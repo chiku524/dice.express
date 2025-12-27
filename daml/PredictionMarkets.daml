@@ -79,10 +79,10 @@ template MarketCreationRequest
     settlementTrigger : SettlementTrigger
     resolutionCriteria : Text  -- Description of how market resolves
     depositAmount : Decimal
-    depositCid : ContractId Holding
-    configCid : ContractId MarketConfig
-    creatorAccount : Account
-    adminAccount : Account
+    depositCid : Optional (ContractId Holding)  -- Optional - can be set during approval
+    configCid : Optional (ContractId MarketConfig)  -- Optional - can be fetched during approval
+    creatorAccount : Optional Account  -- Optional - can be set during approval
+    adminAccount : Optional Account  -- Optional - can be set during approval
   where
     signatory creator, admin
     key marketId : MarketId
@@ -91,8 +91,19 @@ template MarketCreationRequest
     choice ApproveMarket : ContractId Market
       controller admin
       do
-        config <- fetch configCid
-        deposit <- fetch depositCid
+        configCidValue <- case configCid of
+          Some cid -> pure cid
+          None -> abort "configCid must be provided for approval"
+        config <- fetch configCidValue
+        
+        -- Handle deposit if provided
+        depositCidValue <- case depositCid of
+          Some cid -> pure (Some cid)
+          None -> pure None
+        _ <- case depositCidValue of
+          Some cid -> fetch cid
+          None -> pure ()
+        
         currentTime <- getTime
         
         -- Calculate fee
@@ -127,7 +138,7 @@ template MarketCreationRequest
           resolvedOutcome = None
           settlementStep = 0
           createdAt = currentTime
-          configCid = configCid
+          configCid = configCidValue
         
         -- Return deposit (would need proper account transfer in production)
         -- For now, the deposit holding remains and can be returned via separate choice

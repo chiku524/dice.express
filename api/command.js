@@ -74,10 +74,9 @@ export default async function handler(req, res) {
     const transformedCommands = commandList.map(cmd => {
       if (cmd.templateId && cmd.payload) {
         // Create command: transform { templateId, payload } to { CreateCommand: { templateId, createArguments } }
-        // Remove null/undefined values from payload as they might cause validation errors
-        const cleanPayload = Object.fromEntries(
-          Object.entries(cmd.payload).filter(([_, v]) => v !== null && v !== undefined)
-        )
+        // For Optional fields in DAML, null can be used directly (DAML JSON encoding accepts null for Optional)
+        // Keep all values as-is (including null) - DAML will handle Optional fields correctly
+        const cleanPayload = cmd.payload
         return {
           CreateCommand: {
             templateId: cmd.templateId,
