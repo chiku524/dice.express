@@ -74,10 +74,14 @@ export default async function handler(req, res) {
     const transformedCommands = commandList.map(cmd => {
       if (cmd.templateId && cmd.payload) {
         // Create command: transform { templateId, payload } to { CreateCommand: { templateId, createArguments } }
+        // Remove null/undefined values from payload as they might cause validation errors
+        const cleanPayload = Object.fromEntries(
+          Object.entries(cmd.payload).filter(([_, v]) => v !== null && v !== undefined)
+        )
         return {
           CreateCommand: {
             templateId: cmd.templateId,
-            createArguments: cmd.payload
+            createArguments: cleanPayload
           }
         }
       } else if (cmd.templateId && cmd.contractId && cmd.choice) {
@@ -101,6 +105,9 @@ export default async function handler(req, res) {
       commandId: commandId,
       commands: transformedCommands
     }
+    
+    // Log the full request for debugging
+    console.log('[api/command] Transformed v2 request body:', JSON.stringify(requestBodyV2, null, 2))
     
     // Try each endpoint until one works
     let lastError = null
@@ -160,22 +167,17 @@ export default async function handler(req, res) {
             }
             
             console.log('[api/command] Endpoint returned error:', response.status, 'format:', format.name)
-            console.log('[api/command] Error response:', errorText.substring(0, 500))
+            console.log('[api/command] Error response (full):', errorText)
+            console.log('[api/command] Full request body that failed:', JSON.stringify(format.body, null, 2))
             
-            // For 400 errors, try other formats (might be format issue)
+            // For 400 errors, log the full error and return it (don't try other formats since we're using correct format)
             // For other errors, return immediately
-            if (response.status === 400 && formatsToTry.length > 1) {
-              lastError = { 
-                endpoint: commandUrl, 
-                format: format.name,
-                status: response.status, 
-                error: errorText.substring(0, 500),
-                data: errorData
-              }
-              response = null
-              continue // Try next format
+            if (response.status === 400) {
+              // Return the error immediately - we're using the correct format so no point trying others
+              usedEndpoint = commandUrl
+              break // Exit format loop, will process this error response
             } else {
-              // For non-400 errors or last format, use this response
+              // For non-400 errors, use this response
               usedEndpoint = commandUrl
               break // Exit format loop, will process this error response
             }
