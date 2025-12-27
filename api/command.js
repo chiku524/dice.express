@@ -65,20 +65,31 @@ export default async function handler(req, res) {
     const requestBodyV1 = req.body
     
     // v2 format options - try different structures based on Canton API requirements
-    // Option 1: Wrapped commands with actAs
+    // Option 1: Commands with actAs, removing party from commands (since actAs specifies it)
+    const commandsWithoutParty = {
+      applicationId: commandsObj.applicationId,
+      commandId: commandsObj.commandId,
+      list: commandsObj.list
+    }
     const requestBodyV2a = {
+      actAs: party ? [party] : [],
+      commands: commandsWithoutParty
+    }
+    
+    // Option 2: Wrapped commands with actAs, keeping party in commands
+    const requestBodyV2b = {
       actAs: party ? [party] : [],
       commands: commandsObj
     }
     
-    // Option 2: Unwrapped commands with actAs (some v2 endpoints expect this)
-    const requestBodyV2b = {
+    // Option 3: Unwrapped commands with actAs (some v2 endpoints expect this)
+    const requestBodyV2c = {
       actAs: party ? [party] : [],
       ...commandsObj
     }
     
-    // Option 3: Just unwrapped commands (fallback)
-    const requestBodyV2c = commandsObj
+    // Option 4: Just unwrapped commands without party (fallback)
+    const requestBodyV2d = commandsWithoutParty
     
     // Try each endpoint until one works
     let lastError = null
@@ -92,9 +103,10 @@ export default async function handler(req, res) {
       // For v2 endpoints, try multiple format variations
       const formatsToTry = isV2Endpoint 
         ? [
-            { name: 'v2a-wrapped', body: requestBodyV2a },
-            { name: 'v2b-unwrapped', body: requestBodyV2b },
-            { name: 'v2c-direct', body: requestBodyV2c },
+            { name: 'v2a-no-party-in-commands', body: requestBodyV2a },
+            { name: 'v2b-with-party-in-commands', body: requestBodyV2b },
+            { name: 'v2c-unwrapped-with-actAs', body: requestBodyV2c },
+            { name: 'v2d-direct-no-party', body: requestBodyV2d },
           ]
         : [{ name: 'v1', body: requestBodyV1 }]
       
