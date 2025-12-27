@@ -57,39 +57,50 @@ export default async function handler(req, res) {
     console.log('[api/command] Request body:', JSON.stringify(req.body))
     
     // Extract commands object and party from request
+    // Frontend sends: { commands: { party, applicationId, commandId, list: [...] } }
     const commandsObj = req.body.commands || req.body
     const party = commandsObj.party || (Array.isArray(commandsObj.actAs) ? commandsObj.actAs[0] : null)
+    const commandId = commandsObj.commandId
+    const commandList = commandsObj.list || []
     
     // Format request body for different API versions
     // v1 expects: { commands: { party, applicationId, commandId, list } }
     const requestBodyV1 = req.body
     
-    // v2 format options - try different structures based on Canton API requirements
-    // Option 1: Commands with actAs, removing party from commands (since actAs specifies it)
-    const commandsWithoutParty = {
-      applicationId: commandsObj.applicationId,
-      commandId: commandsObj.commandId,
-      list: commandsObj.list
-    }
-    const requestBodyV2a = {
-      actAs: party ? [party] : [],
-      commands: commandsWithoutParty
-    }
+    // v2 format based on OpenAPI spec:
+    // JsCommands expects: { actAs: [string], commandId: string, commands: [Command], ... }
+    // Command is a oneOf: { CreateCommand: { templateId, createArguments } } or { ExerciseCommand: {...} }
+    // Transform the old format to new format
+    const transformedCommands = commandList.map(cmd => {
+      if (cmd.templateId && cmd.payload) {
+        // Create command: transform { templateId, payload } to { CreateCommand: { templateId, createArguments } }
+        return {
+          CreateCommand: {
+            templateId: cmd.templateId,
+            createArguments: cmd.payload
+          }
+        }
+      } else if (cmd.templateId && cmd.contractId && cmd.choice) {
+        // Exercise command: transform to { ExerciseCommand: { templateId, contractId, choice, argument } }
+        return {
+          ExerciseCommand: {
+            templateId: cmd.templateId,
+            contractId: cmd.contractId,
+            choice: cmd.choice,
+            argument: cmd.argument || {}
+          }
+        }
+      } else {
+        // Unknown format, pass through as-is (might be already in correct format)
+        return cmd
+      }
+    })
     
-    // Option 2: Wrapped commands with actAs, keeping party in commands
-    const requestBodyV2b = {
+    const requestBodyV2 = {
       actAs: party ? [party] : [],
-      commands: commandsObj
+      commandId: commandId,
+      commands: transformedCommands
     }
-    
-    // Option 3: Unwrapped commands with actAs (some v2 endpoints expect this)
-    const requestBodyV2c = {
-      actAs: party ? [party] : [],
-      ...commandsObj
-    }
-    
-    // Option 4: Just unwrapped commands without party (fallback)
-    const requestBodyV2d = commandsWithoutParty
     
     // Try each endpoint until one works
     let lastError = null
@@ -100,14 +111,9 @@ export default async function handler(req, res) {
     for (const commandUrl of possibleEndpoints) {
       const isV2Endpoint = commandUrl.includes('/v2/')
       
-      // For v2 endpoints, try multiple format variations
+      // For v2 endpoints, use the correct format based on OpenAPI spec
       const formatsToTry = isV2Endpoint 
-        ? [
-            { name: 'v2a-no-party-in-commands', body: requestBodyV2a },
-            { name: 'v2b-with-party-in-commands', body: requestBodyV2b },
-            { name: 'v2c-unwrapped-with-actAs', body: requestBodyV2c },
-            { name: 'v2d-direct-no-party', body: requestBodyV2d },
-          ]
+        ? [{ name: 'v2-correct-format', body: requestBodyV2 }]
         : [{ name: 'v1', body: requestBodyV1 }]
       
       for (const format of formatsToTry) {
