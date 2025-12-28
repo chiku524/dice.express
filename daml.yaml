@@ -6,7 +6,6 @@ dependencies:
   - daml-stdlib
   - daml-script
   - daml-prim
-  - daml-contracts-1.0.0
   - daml-finance-interface-account-1.0.0
   - daml-finance-interface-holding-1.0.0
   - daml-finance-interface-settlement-1.0.0
