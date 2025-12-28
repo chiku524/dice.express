@@ -6,10 +6,11 @@ dependencies:
   - daml-stdlib
   - daml-script
   - daml-prim
-  - daml-finance-interface-account
-  - daml-finance-interface-holding
-  - daml-finance-interface-settlement
-  - daml-finance-interface-types-common
-  - daml-finance-interface-instrument-token
-  - daml-finance-interface-util
+data-dependencies:
+  - .lib/daml-finance-interface-account.dar
+  - .lib/daml-finance-interface-holding.dar
+  - .lib/daml-finance-interface-settlement.dar
+  - .lib/daml-finance-interface-types-common.dar
+  - .lib/daml-finance-interface-instrument-token.dar
+  - .lib/daml-finance-interface-util.dar
 
