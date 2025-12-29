@@ -2,7 +2,7 @@
 # PowerShell version for better compatibility
 
 param(
-    [string]$DarFile = "test-contract\.daml\dist\prediction-markets-test-1.0.0.dar",
+    [string]$DarFile = ".daml\dist\prediction-markets-1.0.0.dar",
     [string]$TokenFile = "token.json"
 )
 
