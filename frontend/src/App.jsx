@@ -11,6 +11,7 @@ const MarketDetail = lazy(() => import('./components/MarketDetail'))
 const CreateMarket = lazy(() => import('./components/CreateMarket'))
 const WalletConnect = lazy(() => import('./components/WalletConnect'))
 const Portfolio = lazy(() => import('./components/Portfolio'))
+const ContractTester = lazy(() => import('./components/ContractTester'))
 import { analytics } from './utils/analytics'
 import ConnectionStatus from './components/ConnectionStatus'
 import ApiStatusBanner from './components/ApiStatusBanner'
@@ -58,6 +59,7 @@ function App() {
               <Link to="/">Markets</Link>
               <Link to="/create">Create Market</Link>
               <Link to="/portfolio">Portfolio</Link>
+              <Link to="/test">Test Contracts</Link>
               {wallet ? (
                 <div className="wallet-info">
                   <span>{wallet.party.substring(0, 10)}...</span>
@@ -83,6 +85,7 @@ function App() {
                   <Route path="/market/:marketId" element={<MarketDetail />} />
                   <Route path="/create" element={<CreateMarket />} />
                   <Route path="/portfolio" element={<Portfolio />} />
+                  <Route path="/test" element={<ContractTester />} />
                 </Routes>
               </Suspense>
             )}
