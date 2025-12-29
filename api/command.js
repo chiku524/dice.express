@@ -25,6 +25,7 @@ export default async function handler(req, res) {
   console.log('[api/command] Content-Type:', contentType)
   console.log('[api/command] Body type:', typeof req.body)
   console.log('[api/command] Body exists:', !!req.body)
+  console.log('[api/command] Body keys:', req.body ? Object.keys(req.body) : 'none')
 
   // Vercel automatically parses JSON bodies for serverless functions
   // Just use req.body directly - it's already parsed
@@ -40,6 +41,8 @@ export default async function handler(req, res) {
       hint: 'Ensure Content-Type is application/json'
     })
   }
+
+  console.log('[api/command] Processing request body:', JSON.stringify(requestBody).substring(0, 200))
 
   // JSON API is at /json-api path (admin-api is at base URL)
   const LEDGER_URL = process.env.VITE_LEDGER_URL || 'https://participant.dev.canton.wolfedgelabs.com/json-api'
@@ -104,6 +107,10 @@ export default async function handler(req, res) {
     let response = null
     let usedEndpoint = null
 
+    console.log('[api/command] Request body V2:', JSON.stringify(requestBodyV2).substring(0, 300))
+    console.log('[api/command] Token present:', !!token)
+    console.log('[api/command] Party:', party)
+
     for (const commandUrl of possibleEndpoints) {
       const isV2Endpoint = commandUrl.includes('/v2/')
       
@@ -119,12 +126,18 @@ export default async function handler(req, res) {
           headers['Authorization'] = `Bearer ${token}`
         }
 
+        console.log('[api/command] Trying endpoint:', commandUrl)
+        console.log('[api/command] Sending body:', JSON.stringify(bodyToSend).substring(0, 300))
+
         response = await fetch(commandUrl, {
           method: 'POST',
           headers: headers,
           body: JSON.stringify(bodyToSend),
           redirect: 'follow',
         })
+
+        console.log('[api/command] Response status:', response.status)
+        console.log('[api/command] Response headers:', Object.fromEntries(response.headers.entries()))
 
         if (response.status >= 200 && response.status < 300) {
           usedEndpoint = commandUrl
@@ -180,12 +193,16 @@ export default async function handler(req, res) {
 
     if (!response.ok) {
       const userMessage = data.message || data.error || 'Unknown error from Canton ledger'
+      console.log('[api/command] Canton returned error:', response.status, userMessage)
+      console.log('[api/command] Full error data:', JSON.stringify(data).substring(0, 500))
       return res.status(response.status).json({
         error: userMessage,
         details: data,
         endpoint: usedEndpoint
       })
     }
+
+    console.log('[api/command] Success! Contract created.')
 
     return res.status(200).json(data)
   } catch (error) {
