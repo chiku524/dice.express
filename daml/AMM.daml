@@ -1,20 +1,14 @@
 module AMM where
 
 import PredictionMarkets
--- DA.Finance.Asset and DA.Finance.Types don't exist in current packages
--- Using DA.Finance.Interface.Types.Common instead
-import DA.Finance.Interface.Account.V4.Account
-import DA.Finance.Interface.Holding.V4.Holding
-import DA.Finance.Interface.Settlement.V4.Instruction
-import DA.Finance.Interface.Types.Common.V3.Types
-import DA.Finance.Interface.Instrument.Token.V4.Types as TokenTypes
+import Token (Token, TokenId, TokenBalance, Instrument, InstrumentId)
 import DA.Set
 import DA.Time
 import DA.List
 import DA.Optional
 import DA.Text
 import DA.Map
-import DA.Assert
+import DA.Map qualified as Map
 
 -- ============================================================================
 -- AMM Types and Data Models
@@ -26,11 +20,11 @@ type AllocationId = Text
 type PoolId = Text
 
 -- Allocation status tracking for DVP transfers
-data AllocationStatus = Pending | Allocated | Settled | Expired
+data AllocationStatus = Pending | Allocated | AllocationSettled | AllocationExpired
   deriving (Eq, Show)
 
 -- Settlement request status
-data SettlementStatus = WaitingForAllocations | ReadyToSettle | Settled | Expired
+data SettlementStatus = WaitingForAllocations | ReadyToSettle | SettlementSettled | SettlementExpired
   deriving (Eq, Show)
 
 -- Asset allocation requirement for settlement
@@ -45,16 +39,14 @@ template AllocationRequirement
     poolId : PoolId
   where
     signatory party
-    key (settlementRequestId, party, instrumentId.id.unpack) : (SettlementRequestId, Party, Text)
-    maintainer key
 
     -- Update allocation status when user creates allocation
     choice MarkAllocated : ContractId AllocationRequirement
       controller party
       do
         currentTime <- getTime
-        assert_ (currentTime <= deadline) "Allocation deadline has passed"
-        assert_ (status == Pending) "Allocation already processed"
+        _ <- if currentTime > deadline then abort "Allocation deadline has passed" else pure ()
+        _ <- if status /= Pending then abort "Allocation already processed" else pure ()
         
         create this with
           status = Allocated
@@ -68,14 +60,12 @@ template Allocation
     party : Party
     instrumentId : Instrument
     quantity : Decimal
-    holdingCid : ContractId Holding
+    balanceCid : ContractId TokenBalance
     deadline : Time
     poolId : PoolId
     createdAt : Time
   where
     signatory party
-    key (allocationId, party) : (AllocationId, Party)
-    maintainer key
 
     -- Settlement app can exercise to complete settlement
     choice GetAllocation : Allocation
@@ -103,8 +93,6 @@ template SettlementRequest
     createdAt : Time
   where
     signatory poolParty
-    key settlementRequestId : SettlementRequestId
-    maintainer key
 
     -- Settlement app observes allocation creation and updates tracking
     choice RecordAllocation : ContractId SettlementRequest
@@ -115,26 +103,26 @@ template SettlementRequest
       controller poolParty
       do
         currentTime <- getTime
-        assert_ (currentTime <= deadline) "Settlement deadline has passed"
-        assert_ (status == WaitingForAllocations || status == ReadyToSettle) "Settlement already processed"
+        _ <- if currentTime > deadline then abort "Settlement deadline has passed" else pure ()
+        _ <- if status /= WaitingForAllocations && status /= ReadyToSettle then abort "Settlement already processed" else pure ()
         
         -- Verify allocation exists and is valid
         allocation <- fetch allocationCid
-        assert_ (allocation.settlementRequestId == settlementRequestId) "Allocation for wrong settlement"
-        assert_ (allocation.party == party) "Allocation party mismatch"
-        assert_ (allocation.instrumentId == instrumentId) "Allocation instrument mismatch"
-        assert_ (allocation.deadline >= currentTime) "Allocation expired"
+        _ <- if allocation.settlementRequestId /= settlementRequestId then abort "Allocation for wrong settlement" else pure ()
+        _ <- if allocation.party /= party then abort "Allocation party mismatch" else pure ()
+        _ <- if allocation.instrumentId /= instrumentId then abort "Allocation instrument mismatch" else pure ()
+        _ <- if allocation.deadline < currentTime then abort "Allocation expired" else pure ()
         
         let
-          key = (party, instrumentId.id.unpack)
-          requirementExists = member key requiredAllocations
+          key = (party, case instrumentId.id of InstrumentId id -> id)
+          requirementExists = Map.member key requiredAllocations
         
-        assert_ requirementExists "Allocation not required for this settlement"
+        _ <- if not requirementExists then abort "Allocation not required for this settlement" else pure ()
         
         -- Update actual allocations
         let
-          updatedActualAllocations = insert key allocationCid actualAllocations
-          allAllocationsPresent = all (\k -> member k updatedActualAllocations) (keys requiredAllocations)
+          updatedActualAllocations = Map.insert key allocationCid actualAllocations
+          allAllocationsPresent = all (\k -> Map.member k updatedActualAllocations) (Map.keys requiredAllocations)
           newStatus = if allAllocationsPresent
             then ReadyToSettle
             else WaitingForAllocations
@@ -149,8 +137,8 @@ template SettlementRequest
       controller poolParty
       do
         currentTime <- getTime
-        assert_ (status == ReadyToSettle) "Settlement not ready - not all allocations present"
-        assert_ (currentTime <= deadline) "Settlement deadline has passed"
+        _ <- if status /= ReadyToSettle then abort "Settlement not ready - not all allocations present" else pure ()
+        _ <- if currentTime > deadline then abort "Settlement deadline has passed" else pure ()
         
         -- Verify all allocations are still valid
         -- In production, would iterate through all allocations and verify
@@ -158,18 +146,18 @@ template SettlementRequest
         -- Mark as settled
         -- In production, this would trigger the actual asset transfers via Settlement interface
         create this with
-          status = Settled
+          status = SettlementSettled
 
     -- Clean up expired settlements
     choice ExpireSettlement : ContractId SettlementRequest
       controller poolParty
       do
         currentTime <- getTime
-        assert_ (currentTime > deadline) "Settlement deadline not yet passed"
-        assert_ (status /= Settled) "Settlement already completed"
+        _ <- if currentTime <= deadline then abort "Settlement deadline not yet passed" else pure ()
+        _ <- if status == SettlementSettled then abort "Settlement already completed" else pure ()
         
         create this with
-          status = Expired
+          status = SettlementExpired
 
 -- Liquidity pool for a specific market
 -- Maintains liquidity for YES/NO/Outcome shares
@@ -199,8 +187,6 @@ template LiquidityPool
     createdAt : Time
   where
     signatory poolOperator
-    key poolId : PoolId
-    maintainer key
 
     -- Get current pool state (public view)
     choice GetPoolState : LiquidityPool
@@ -214,22 +200,22 @@ template LiquidityPool
         yesAmount : Decimal
         noAmount : Decimal
         outcomeAmounts : Map Text Decimal
-        -- Holdings for the assets being added
-        yesHoldingCid : Optional (ContractId Holding)
-        noHoldingCid : Optional (ContractId Holding)
-        outcomeHoldings : Map Text (ContractId Holding)
+        -- Token balances for the assets being added
+        yesBalanceCid : Optional (ContractId TokenBalance)
+        noBalanceCid : Optional (ContractId TokenBalance)
+        outcomeBalances : Map Text (ContractId TokenBalance)
       controller provider
       do
         market <- fetch marketCid
-        assert_ (market.status == Active) "Market must be active to add liquidity"
+        _ <- if market.status /= Active then abort "Market must be active to add liquidity" else pure ()
         
         -- Validate amounts match market type
         let
           validAmounts = case market.marketType of
-            Binary -> yesAmount > 0.0 && noAmount > 0.0 && null (keys outcomeAmounts)
-            MultiOutcome -> yesAmount == 0.0 && noAmount == 0.0 && not (null (keys outcomeAmounts))
+            Binary -> yesAmount > 0.0 && noAmount > 0.0 && null (Map.keys outcomeAmounts)
+            MultiOutcome -> yesAmount == 0.0 && noAmount == 0.0 && not (null (Map.keys outcomeAmounts))
         
-        assert_ validAmounts "Invalid liquidity amounts for market type"
+        _ <- if not validAmounts then abort "Invalid liquidity amounts for market type" else pure ()
         
         -- Calculate LP shares to mint (proportional to contribution)
         -- Using constant product formula: x * y = k
@@ -242,16 +228,16 @@ template LiquidityPool
           updatedYesReserve = yesReserve + yesAmount
           updatedNoReserve = noReserve + noAmount
         
-        assert_ (lpSharesToMint > 0.0) "Must add positive liquidity"
+        _ <- if lpSharesToMint <= 0.0 then abort "Must add positive liquidity" else pure ()
         
         -- Update outcome reserves for multi-outcome markets
         let
           updatedOutcomeReserves = foldl
             (\acc (outcome, amount) ->
-              let current = case lookup outcome acc of
+              let current = case Map.lookup outcome acc of
                     Some v -> v
                     None -> 0.0
-              in insert outcome (current + amount) acc)
+              in Map.insert outcome (current + amount) acc)
             outcomeReserves
             (toList outcomeAmounts)
         
@@ -268,8 +254,8 @@ template LiquidityPool
         lpSharesToBurn : Decimal
       controller provider
       do
-        assert_ (lpSharesToBurn > 0.0) "Must remove positive liquidity"
-        assert_ (lpSharesToBurn <= totalLPShares) "Cannot remove more than total shares"
+        _ <- if lpSharesToBurn <= 0.0 then abort "Must remove positive liquidity" else pure ()
+        _ <- if lpSharesToBurn > totalLPShares then abort "Cannot remove more than total shares" else pure ()
         
         -- Calculate proportional amounts to return
         let
@@ -281,11 +267,11 @@ template LiquidityPool
           updatedOutcomeReserves = foldl
             (\acc (outcome, reserve) ->
               let amountToReturn = reserve * proportion
-              in insert outcome (reserve - amountToReturn) acc)
+              in Map.insert outcome (reserve - amountToReturn) acc)
             outcomeReserves
             (toList outcomeReserves)
         
-        assert_ (remainingYes >= minLiquidity && remainingNo >= minLiquidity) "Would violate minimum liquidity"
+        _ <- if remainingYes < minLiquidity || remainingNo < minLiquidity then abort "Would violate minimum liquidity" else pure ()
         
         -- In production, would burn LP tokens and transfer holdings back to provider
         -- For now, just update reserves
@@ -309,10 +295,10 @@ template LiquidityPool
       controller trader
       do
         market <- fetch marketCid
-        assert_ (market.status == Active) "Market must be active to trade"
+        _ <- if market.status /= Active then abort "Market must be active to trade" else pure ()
         
         currentTime <- getTime
-        assert_ (deadline > currentTime) "Trade deadline must be in future"
+        _ <- if deadline <= currentTime then abort "Trade deadline must be in future" else pure ()
         
         -- Calculate output amount based on AMM formula (constant product)
         -- For buying YES shares with CC: (x + Δx)(y - Δy) = x*y
@@ -333,7 +319,7 @@ template LiquidityPool
               in if denominator > 0.0 then numerator / denominator else 0.0
             Outcome outcome ->
               -- For multi-outcome, use the outcome reserve
-              let outcomeReserve = case lookup outcome outcomeReserves of
+              let outcomeReserve = case Map.lookup outcome outcomeReserves of
                     Some r -> r
                     None -> 0.0
                   feeMultiplier = 1.0 - feeRate
@@ -341,20 +327,20 @@ template LiquidityPool
                   denominator = outcomeReserve + (inputAmount * feeMultiplier)
               in if denominator > 0.0 then numerator / denominator else 0.0
         
-        assert_ (outputAmount >= minOutputAmount) "Slippage tolerance exceeded"
-        assert_ (outputAmount > 0.0) "Output amount must be positive"
+        _ <- if outputAmount < minOutputAmount then abort "Slippage tolerance exceeded" else pure ()
+        _ <- if outputAmount <= 0.0 then abort "Output amount must be positive" else pure ()
         
         -- Determine output instrument (the shares being bought)
         let
           outputInstrumentId = case tradeType of
-            Yes -> Instrument with id = Id "YES_SHARES"
-            No -> Instrument with id = Id "NO_SHARES"
-            Outcome outcome -> Instrument with id = Id (outcome <> "_SHARES")
+            Yes -> Instrument with id = InstrumentId "YES_SHARES"
+            No -> Instrument with id = InstrumentId "NO_SHARES"
+            Outcome outcome -> Instrument with id = InstrumentId (outcome <> "_SHARES")
           settlementRequestId = poolId <> "-trade-" <> show currentTime
-          traderRequirementKey = (trader, inputInstrumentId.id.unpack)
-          poolRequirementKey = (poolOperator, outputInstrumentId.id.unpack)
-          emptyRequirements : Map (Party, Text) (ContractId AllocationRequirement) = fromList []
-          emptyAllocations : Map (Party, Text) (ContractId Allocation) = fromList []
+          traderRequirementKey = (trader, case inputInstrumentId.id of InstrumentId id -> id)
+          poolRequirementKey = (poolOperator, case outputInstrumentId.id of InstrumentId id -> id)
+          emptyRequirements : Map (Party, Text) (ContractId AllocationRequirement) = Map.fromList []
+          emptyAllocations : Map (Party, Text) (ContractId Allocation) = Map.fromList []
         
         -- Create settlement request
         settlementRequestCid <- create SettlementRequest with
@@ -380,8 +366,8 @@ template LiquidityPool
       controller poolOperator
       do
         settlement <- fetch settlementRequestCid
-        assert_ (settlement.status == ReadyToSettle || settlement.status == Settled) "Settlement not ready"
-        assert_ (settlement.poolId == poolId) "Settlement for different pool"
+        _ <- if settlement.status == ReadyToSettle || settlement.status == SettlementSettled then pure () else abort "Settlement not ready"
+        _ <- if settlement.poolId /= poolId then abort "Settlement for different pool" else pure ()
         
         -- Update reserves based on trade
         let
@@ -389,13 +375,13 @@ template LiquidityPool
             Yes -> (yesReserve + inputAmount, noReserve - outputAmount, outcomeReserves)
             No -> (yesReserve - outputAmount, noReserve + inputAmount, outcomeReserves)
             Outcome outcome ->
-              let updated = case lookup outcome outcomeReserves of
-                    Some r -> insert outcome (r - outputAmount) outcomeReserves
+              let updated = case Map.lookup outcome outcomeReserves of
+                    Some r -> Map.insert outcome (r - outputAmount) outcomeReserves
                     None -> outcomeReserves
               in (yesReserve + inputAmount, noReserve, updated)
         
         -- Verify reserves remain positive
-        assert_ (updatedYes >= 0.0 && updatedNo >= 0.0) "Reserves cannot be negative"
+        _ <- if updatedYes < 0.0 || updatedNo < 0.0 then abort "Reserves cannot be negative" else pure ()
         
         -- In production, would verify actual transfers happened via Settlement interface
         -- For now, just update reserves
@@ -413,8 +399,6 @@ template PoolFactory
     defaultMinLiquidity : Decimal
   where
     signatory factoryOperator
-    key factoryOperator : Party
-    maintainer key
 
     -- Create a new liquidity pool for a market
     choice CreatePool : ContractId LiquidityPool
@@ -430,8 +414,8 @@ template PoolFactory
       controller factoryOperator
       do
         market <- fetch marketCid
-        assert_ (market.status == Active) "Market must be active"
-        assert_ (market.marketId == marketId) "Market ID mismatch"
+        _ <- if market.status /= Active then abort "Market must be active" else pure ()
+        _ <- if market.marketId /= marketId then abort "Market ID mismatch" else pure ()
         
         -- Use provided fees or defaults
         let

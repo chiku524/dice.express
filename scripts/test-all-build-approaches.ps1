@@ -106,7 +106,7 @@ data-dependencies:
     # Try build
     Write-Host "Attempting build..." -ForegroundColor Cyan
     try {
-        $buildOutput = dpm build 2>&1 | Out-String
+        $buildOutput = daml build 2>&1 | Out-String
         
         if ($LASTEXITCODE -eq 0) {
             Write-Host "✅ SUCCESS!" -ForegroundColor Green

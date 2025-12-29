@@ -65,14 +65,14 @@ Write-Host "  - Interface.Instrument.Token" -ForegroundColor Yellow
 Write-Host "  - Interface.Util" -ForegroundColor Yellow
 Write-Host ""
 
-# Find the specific packages we need
+# Find the specific packages we need (with version numbers)
 $packagesToBuild = @(
-    "Interface.Account",
-    "Interface.Holding",
-    "Interface.Settlement",
-    "Interface.Types.Common",
-    "Interface.Instrument.Token",
-    "Interface.Util"
+    "Daml.Finance.Interface.Types.Common.V3",
+    "Daml.Finance.Interface.Util.V3",
+    "Daml.Finance.Interface.Holding.V4",
+    "Daml.Finance.Interface.Account.V4",
+    "Daml.Finance.Interface.Settlement.V4",
+    "Daml.Finance.Interface.Instrument.Token.V4"
 )
 
 $foundPackages = @()
@@ -108,15 +108,21 @@ foreach ($packageDir in $foundPackages) {
     Push-Location $packageDir
     
     try {
-        # Read daml.yaml and add build-options
+        # Read daml.yaml and update SDK version and build-options
         if (Test-Path "daml.yaml") {
             $yamlContent = Get-Content "daml.yaml" -Raw
             
-            # Add build-options if not present
-            if ($yamlContent -notlike "*build-options*") {
+            # Update SDK version to 3.4.9
+            $yamlContent = $yamlContent -replace "sdk-version:\s*\d+\.\d+\.\d+", "sdk-version: 3.4.9"
+            
+            # Update or add build-options
+            if ($yamlContent -like "*build-options*") {
+                $yamlContent = $yamlContent -replace "--target=\d+\.\d+", "--target=$targetLF"
+            } else {
                 $yamlContent += "`nbuild-options:`n  - --target=$targetLF"
-                $yamlContent | Out-File -FilePath "daml.yaml" -Encoding UTF8 -NoNewline
             }
+            
+            $yamlContent | Out-File -FilePath "daml.yaml" -Encoding UTF8 -NoNewline
             
             # Build
             if ($buildCmd -eq "dpm") {

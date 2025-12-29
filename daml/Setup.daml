@@ -1,9 +1,8 @@
 module Setup where
 
 import PredictionMarkets
--- DA.Finance.Types doesn't exist - using DA.Finance.Interface.Types.Common.V3.Types instead
-import DA.Finance.Interface.Types.Common.V3.Types
-import DA.Finance.Interface.Instrument.Token.V4.Types as TokenTypes
+import Token
+import Daml.Script
 import DA.Time
 
 -- Setup script to initialize market configuration
@@ -17,20 +16,20 @@ setup = do
   
   -- IMPORTANT: stablecoinCid must be obtained before running this script
   -- Options:
-  -- 1. Query for existing USDC.x token contract using query @Token
-  -- 2. Create a new token contract first
+  -- 1. Query for existing token balance using query @TokenBalance
+  -- 2. Create a new token balance first
   -- 3. Pass as a script parameter (requires modifying script signature)
   --
   -- For now, this script will need to be modified to:
-  -- - Query for the token contract, or
+  -- - Query for the token balance, or
   -- - Accept it as a parameter
   --
   -- Example query approach (uncomment and modify):
-  -- tokens <- query @Token (const True)
-  -- case tokens of
-  --   [] -> error "No token contracts found. Create a token contract first."
-  --   (token :: _) -> do
-  --     let stablecoinCid = token.contractId
+  -- balances <- query @TokenBalance (const True)
+  -- case balances of
+  --   [] -> error "No token balances found. Create a token balance first."
+  --   (balance :: _) -> do
+  --     let stablecoinCid = balance.contractId
   --     ...
   
   -- Placeholder: This must be replaced with actual token contract ID

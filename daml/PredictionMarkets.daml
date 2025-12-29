@@ -1,20 +1,13 @@
 module PredictionMarkets where
 
--- DA.Finance.Asset and DA.Finance.Types don't exist in current packages
--- Using DA.Finance.Interface.Types.Common instead
-import DA.Finance.Interface.Account.V4.Account
-import DA.Finance.Interface.Holding.V4.Holding
-import DA.Finance.Interface.Settlement.V4.Instruction
-import DA.Finance.Interface.Types.Common.V3.Types
-import DA.Finance.Interface.Instrument.Token.V4.Types as TokenTypes
-import DA.Finance.Interface.Util
-import DA.Set
+-- Using Token Standard API instead of deprecated DA.Finance
+import Token
+import DA.Set qualified as Set
 import DA.Time
 import DA.List
 import DA.Optional
 import DA.Text
-import DA.Map
-import DA.Assert
+import DA.Map qualified as Map
 
 -- ============================================================================
 -- Types and Data Models
@@ -46,11 +39,9 @@ template MarketConfig
     partialCloseFee : Decimal
     settlementFee : Decimal
     oracleParty : Party
-    stablecoinCid : ContractId TokenTypes.Token
+    stablecoinCid : ContractId TokenBalance
   where
     signatory admin
-    key admin : Party
-    maintainer key
 
     choice UpdateFees : ContractId MarketConfig
       with
@@ -79,14 +70,12 @@ template MarketCreationRequest
     settlementTrigger : SettlementTrigger
     resolutionCriteria : Text  -- Description of how market resolves
     depositAmount : Decimal
-    depositCid : Optional (ContractId Holding)  -- Optional - can be set during approval
+    depositCid : Optional (ContractId TokenBalance)  -- Optional - can be set during approval
     configCid : Optional (ContractId MarketConfig)  -- Optional - can be fetched during approval
-    creatorAccount : Optional Account  -- Optional - can be set during approval
-    adminAccount : Optional Account  -- Optional - can be set during approval
+    creatorBalance : Optional (ContractId TokenBalance)  -- Optional - can be set during approval
+    adminBalance : Optional (ContractId TokenBalance)  -- Optional - can be set during approval
   where
     signatory creator, admin
-    key marketId : MarketId
-    maintainer key
 
     choice ApproveMarket : ContractId Market
       controller admin
@@ -101,7 +90,9 @@ template MarketCreationRequest
           Some cid -> pure (Some cid)
           None -> pure None
         _ <- case depositCidValue of
-          Some cid -> fetch cid
+          Some cid -> do
+            _ <- fetch cid
+            pure ()
           None -> pure ()
         
         currentTime <- getTime
@@ -132,8 +123,8 @@ template MarketCreationRequest
           totalVolume = 0.0
           yesVolume = 0.0
           noVolume = 0.0
-          outcomeVolumes = fromList []
-          positions = fromList []
+          outcomeVolumes = Map.fromList []
+          positions = Map.fromList []
           resolutionData = None
           resolvedOutcome = None
           settlementStep = 0
@@ -167,8 +158,8 @@ template Market
     totalVolume : Decimal
     yesVolume : Decimal
     noVolume : Decimal
-    outcomeVolumes : Map Text Decimal
-    positions : Map PositionId (ContractId Position)
+    outcomeVolumes : Map.Map Text Decimal
+    positions : Map.Map PositionId (ContractId Position)
     resolutionData : Optional OracleData
     resolvedOutcome : Optional Text
     settlementStep : Int
@@ -176,8 +167,6 @@ template Market
     configCid : ContractId MarketConfig
   where
     signatory creator, admin
-    key marketId : MarketId
-    maintainer key
 
     -- Viewers: creator and admin can see market, participants see aggregated data
     choice GetMarketState : Market
@@ -195,7 +184,7 @@ template Market
         price : Decimal  -- Price per share (0.0 to 1.0)
       controller owner
       do
-        assert_ (status == Active) "Market must be active to create positions"
+        _ <- if status /= Active then abort "Market must be active to create positions" else pure ()
         
         config <- fetch configCid
         
@@ -212,7 +201,7 @@ template Market
           (MultiOutcome, Outcome outcome) -> pure (outcome `elem` outcomes)
           _ -> pure False
         
-        assert_ validPosition "Invalid position type for market"
+        _ <- if not validPosition then abort "Invalid position type for market" else pure ()
         
         currentTime <- getTime
         
@@ -236,19 +225,21 @@ template Market
             else noVolume
           updatedOutcomeVolumes = case positionType of
             Outcome outcome -> 
-              let currentVolume = case lookup outcome outcomeVolumes of
+              let currentVolume = case Map.lookup outcome outcomeVolumes of
                     Some vol -> vol
                     None -> 0.0
-              in insert outcome (currentVolume + amount) outcomeVolumes
+              in Map.insert outcome (currentVolume + amount) outcomeVolumes
             _ -> outcomeVolumes
         
         -- Update market state
-        create this with
+        _ <- create this with
           totalVolume = totalVolume + amount
           yesVolume = updatedYesVolume
           noVolume = updatedNoVolume
           outcomeVolumes = updatedOutcomeVolumes
-          positions = insert positionId positionCid positions
+          positions = Map.insert positionId positionCid positions
+        
+        return positionCid
 
     -- Update position (adjust size)
     choice UpdatePosition : ContractId Market
@@ -258,9 +249,9 @@ template Market
         newPrice : Decimal
       controller creator, admin
       do
-        assert_ (status == Active) "Market must be active to update positions"
+        _ <- if status /= Active then abort "Market must be active to update positions" else pure ()
         
-        positionCid <- case lookup positionId positions of
+        positionCid <- case Map.lookup positionId positions of
           Some cid -> pure cid
           None -> abort "Position not found"
         
@@ -284,10 +275,10 @@ template Market
             else noVolume
           updatedOutcomeVolumes = case position.positionType of
             Outcome outcome -> 
-              let currentVolume = case lookup outcome outcomeVolumes of
+              let currentVolume = case Map.lookup outcome outcomeVolumes of
                     Some vol -> vol
                     None -> 0.0
-              in insert outcome (currentVolume + amountDiff) outcomeVolumes
+              in Map.insert outcome (currentVolume + amountDiff) outcomeVolumes
             _ -> outcomeVolumes
         
         -- Update position
@@ -308,14 +299,14 @@ template Market
         closeAmount : Decimal
       controller creator, admin
       do
-        assert_ (status == Active) "Market must be active to close positions"
+        _ <- if status /= Active then abort "Market must be active to close positions" else pure ()
         
-        positionCid <- case lookup positionId positions of
+        positionCid <- case Map.lookup positionId positions of
           Some cid -> pure cid
           None -> abort "Position not found"
         
         position <- fetch positionCid
-        assert_ (closeAmount <= position.amount) "Cannot close more than position amount"
+        _ <- if closeAmount > position.amount then abort "Cannot close more than position amount" else pure ()
         
         config <- fetch configCid
         
@@ -333,18 +324,22 @@ template Market
             else noVolume
           updatedOutcomeVolumes = case position.positionType of
             Outcome outcome -> 
-              let currentVolume = case lookup outcome outcomeVolumes of
+              let currentVolume = case Map.lookup outcome outcomeVolumes of
                     Some vol -> vol
                     None -> 0.0
-              in insert outcome (currentVolume - closeAmount) outcomeVolumes
+              in Map.insert outcome (currentVolume - closeAmount) outcomeVolumes
             _ -> outcomeVolumes
         
         -- Update position
-        _ <- if newAmount > 0.0
-          then exercise positionCid UpdatePositionAmount with
-            newAmount = newAmount
-            newPrice = position.price
-          else exercise positionCid Archive
+        if newAmount > 0.0
+          then do
+            _ <- exercise positionCid UpdatePositionAmount with
+              newAmount = newAmount
+              newPrice = position.price
+            pure ()
+          else do
+            _ <- exercise positionCid DeletePosition
+            pure ()
         
         create this with
           totalVolume = totalVolume - closeAmount
@@ -358,7 +353,7 @@ template Market
         oracleData : OracleData
       controller admin
       do
-        assert_ (status == Active) "Market must be active to start resolution"
+        _ <- if status /= Active then abort "Market must be active to start resolution" else pure ()
         
         -- Check if trigger condition is met
         currentTime <- getTime
@@ -368,7 +363,7 @@ template Market
             EventBased _ -> True  -- Oracle data indicates event occurred
             Manual -> True
         
-        assert_ triggerMet "Settlement trigger condition not met"
+        _ <- if not triggerMet then abort "Settlement trigger condition not met" else pure ()
         
         create this with
           status = Resolving
@@ -381,8 +376,8 @@ template Market
         outcome : Text
       controller admin
       do
-        assert_ (status == Resolving) "Market must be in resolving state"
-        assert_ (settlementStep == 1) "Must be at resolution step"
+        _ <- if status /= Resolving then abort "Market must be in resolving state" else pure ()
+        _ <- if settlementStep /= 1 then abort "Must be at resolution step" else pure ()
         
         -- Validate outcome
         let
@@ -390,7 +385,7 @@ template Market
             Binary -> outcome == "Yes" || outcome == "No"
             MultiOutcome -> outcome `elem` outcomes
         
-        assert_ validOutcome "Invalid outcome for market type"
+        _ <- if not validOutcome then abort "Invalid outcome for market type" else pure ()
         
         create this with
           resolvedOutcome = Some outcome
@@ -400,8 +395,8 @@ template Market
     choice ExecuteSettlement : ContractId Market
       controller admin
       do
-        assert_ (status == Resolving) "Market must be in resolving state"
-        assert_ (settlementStep == 2) "Must be at settlement step"
+        _ <- if status /= Resolving then abort "Market must be in resolving state" else pure ()
+        _ <- if settlementStep /= 2 then abort "Must be at settlement step" else pure ()
         
         resolved <- case resolvedOutcome of
           Some outcome -> pure outcome
@@ -441,8 +436,6 @@ template Position
     createdAt : Time
   where
     signatory owner
-    key (positionId, owner) : (PositionId, Party)
-    maintainer key
 
     -- Only owner can view their position
     choice GetPosition : Position
@@ -455,12 +448,12 @@ template Position
         newPrice : Decimal
       controller owner
       do
-        assert_ (newAmount >= 0.0) "Amount must be non-negative"
+        _ <- if newAmount < 0.0 then abort "Amount must be non-negative" else pure ()
         create this with
           amount = newAmount
           price = newPrice
 
-    choice Archive : ()
+    choice DeletePosition : ()
       controller owner
       do return ()
 
@@ -470,13 +463,11 @@ template OracleDataFeed
     oracleParty : Party
     marketId : MarketId
     dataSource : Text
-    data : OracleData
+    oracleData : OracleData
     timestamp : Time
     signature : Optional Text  -- For oracle signature verification
   where
     signatory oracleParty
-    key (marketId, timestamp) : (MarketId, Time)
-    maintainer key
 
     choice UpdateData : ContractId OracleDataFeed
       with
@@ -486,7 +477,7 @@ template OracleDataFeed
       controller oracleParty
       do
         create this with
-          data = newData
+          oracleData = newData
           timestamp = newTimestamp
           signature = newSignature
 
