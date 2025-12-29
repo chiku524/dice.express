@@ -5,7 +5,8 @@
 const fs = require('fs')
 
 const LEDGER_URL = process.env.LEDGER_URL || 'https://participant.dev.canton.wolfedgelabs.com/json-api'
-const PARTY_ID = '122087fa379c37332a753379c58e18d397e39cb82c68c15e4af7134be46561974292'
+// Use full party ID mapped format (found in block explorer)
+const PARTY_ID = process.env.PARTY_ID || 'ee15aa3d-0bd4-44f9-9664-b49ad7e308aa::122087fa379c37332a753379c58e18d397e39cb82c68c15e4af7134be46561974292'
 const PACKAGE_ID = 'b87ef31c8ea5c53a940a7f71a4bc6513cf44048730c0551f1fc2e02adc7271f0' // From deployment
 
 // Load token

@@ -9,7 +9,8 @@ const fs = require('fs')
 const LEDGER_URL = process.env.LEDGER_URL || 'https://participant.dev.canton.wolfedgelabs.com/json-api'
 
 // Get wallet address from command line or environment
-const walletAddress = process.argv[2] || process.env.PARTY_ID || process.env.ADMIN_PARTY
+// Default to full party ID mapped format (found in block explorer)
+const walletAddress = process.argv[2] || process.env.PARTY_ID || process.env.ADMIN_PARTY || 'ee15aa3d-0bd4-44f9-9664-b49ad7e308aa::122087fa379c37332a753379c58e18d397e39cb82c68c15e4af7134be46561974292'
 
 if (!walletAddress) {
   console.error('==========================================')
@@ -23,10 +24,8 @@ if (!walletAddress) {
   console.error('  export PARTY_ID="your-wallet-address"')
   console.error('  node scripts/test-with-wallet-address.js')
   console.error('')
-  console.error('To find your wallet address:')
-  console.error('  1. Log into: https://wallet.validator.dev.canton.wolfedgelabs.com')
-  console.error('  2. Check your wallet/account page')
-  console.error('  3. Look for "Wallet Address" or "Party ID"')
+  console.error('Note: Use the FULL party ID mapped format:')
+  console.error('  ee15aa3d-0bd4-44f9-9664-b49ad7e308aa::122087fa379c37332a753379c58e18d397e39cb82c68c15e4af7134be46561974292')
   console.error('')
   process.exit(1)
 }

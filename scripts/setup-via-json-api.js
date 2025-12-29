@@ -9,9 +9,10 @@
 
 const LEDGER_URL = process.env.LEDGER_URL || 'https://participant.dev.canton.wolfedgelabs.com/json-api'
 const TOKEN_FILE = process.env.TOKEN_FILE || 'token.json'
-// Party ID = Wallet Address (according to client)
+// Party ID = Full party ID mapped format (found in block explorer)
+// Format: ee15aa3d-0bd4-44f9-9664-b49ad7e308aa::122087fa379c37332a753379c58e18d397e39cb82c68c15e4af7134be46561974292
 // Can be set via: PARTY_ID environment variable, or --party command line argument
-const ADMIN_PARTY = process.env.PARTY_ID || process.env.ADMIN_PARTY || (process.argv.includes('--party') ? process.argv[process.argv.indexOf('--party') + 1] : null) || 'Admin'
+const ADMIN_PARTY = process.env.PARTY_ID || process.env.ADMIN_PARTY || (process.argv.includes('--party') ? process.argv[process.argv.indexOf('--party') + 1] : null) || 'ee15aa3d-0bd4-44f9-9664-b49ad7e308aa::122087fa379c37332a753379c58e18d397e39cb82c68c15e4af7134be46561974292'
 const ORACLE_PARTY = process.env.ORACLE_PARTY || 'Oracle'
 
 // Load authentication token if available
