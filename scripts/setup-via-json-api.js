@@ -81,7 +81,16 @@ async function submitCommand(command, description) {
       }
       
       if (authToken) {
-        headers['Authorization'] = `Bearer ${authToken}`
+        // Ensure token is properly trimmed and formatted
+        const cleanToken = authToken.trim()
+        if (cleanToken) {
+          headers['Authorization'] = `Bearer ${cleanToken}`
+          console.log(`   Using token (length: ${cleanToken.length})`)
+        } else {
+          console.warn('   Token is empty after trimming')
+        }
+      } else {
+        console.warn('   No token available for this request')
       }
       
       const response = await fetch(endpoint, {
@@ -138,6 +147,16 @@ async function submitCommand(command, description) {
             }
             // If we have a token but still get 401, it might be expired or invalid
             throw new Error('Authentication failed. Token may be expired or invalid. Please refresh token.')
+          }
+          
+          // For 403, token is invalid or lacks permissions
+          if (response.status === 403) {
+            console.log('⚠️  Forbidden - token may be invalid or lack permissions')
+            if (data && data.context && data.context.ledger_api_error) {
+              console.log(`   Error: ${data.context.ledger_api_error}`)
+            }
+            console.log('   Run: node scripts/verify-token.js to check token validity')
+            throw new Error('Token rejected by Canton. Token may be invalid, expired, or lack required permissions.')
           }
           
           // For 400, log the detailed error message
