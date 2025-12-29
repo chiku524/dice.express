@@ -133,33 +133,73 @@ async function setup() {
 
   try {
     // Step 1: Create TokenBalance
-    const tokenBalanceCommand = {
-      actAs: [ADMIN_PARTY],
-      commandId: `create-token-balance-${Date.now()}`,
-      commands: [
-        {
-          CreateCommand: {
-            templateId: 'Token:TokenBalance',
-            createArguments: {
-              owner: ADMIN_PARTY,
-              token: {
-                id: 'USDC',
-                symbol: 'USDC',
-                name: 'USD Coin',
-                decimals: 6,
-                description: 'Stablecoin for prediction markets',
-              },
-              amount: 1000000.0,
+  // Use v2 format (will be tried first, then fallback to v1)
+  const tokenBalanceCommandV2 = {
+    actAs: [ADMIN_PARTY],
+    commandId: `create-token-balance-${Date.now()}`,
+    commands: [
+      {
+        CreateCommand: {
+          templateId: 'Token:TokenBalance',
+          createArguments: {
+            owner: ADMIN_PARTY,
+            token: {
+              id: 'USDC', // TokenId is a newtype, so just use the Text value
+              symbol: 'USDC',
+              name: 'USD Coin',
+              decimals: 6,
+              description: 'Stablecoin for prediction markets',
             },
+            amount: 1000000.0,
+          },
+        },
+      },
+    ],
+  }
+  
+  // v1 format (fallback)
+  const tokenBalanceCommandV1 = {
+    commands: {
+      party: ADMIN_PARTY,
+      applicationId: 'prediction-markets',
+      commandId: `create-token-balance-${Date.now()}`,
+      list: [
+        {
+          templateId: 'Token:TokenBalance',
+          payload: {
+            owner: ADMIN_PARTY,
+            token: {
+              id: 'USDC',
+              symbol: 'USDC',
+              name: 'USD Coin',
+              decimals: 6,
+              description: 'Stablecoin for prediction markets',
+            },
+            amount: 1000000.0,
           },
         },
       ],
-    }
+    },
+  }
+  
+  // Try v2 first, then v1
+  let tokenBalanceCommand = tokenBalanceCommandV2
 
-    const tokenBalanceCid = await submitCommand(
-      tokenBalanceCommand,
-      'Step 1: Create TokenBalance Contract'
-    )
+    // Try v2 format first
+    let tokenBalanceCid = null
+    try {
+      tokenBalanceCid = await submitCommand(
+        tokenBalanceCommandV2,
+        'Step 1: Create TokenBalance Contract (v2 format)'
+      )
+    } catch (error) {
+      // If v2 fails, try v1 format
+      console.log('v2 format failed, trying v1 format...')
+      tokenBalanceCid = await submitCommand(
+        tokenBalanceCommandV1,
+        'Step 1: Create TokenBalance Contract (v1 format)'
+      )
+    }
 
     if (!tokenBalanceCid || typeof tokenBalanceCid !== 'string') {
       throw new Error('Failed to get TokenBalance contract ID')
@@ -170,7 +210,8 @@ async function setup() {
     console.log('')
 
     // Step 2: Create MarketConfig
-    const marketConfigCommand = {
+    // Use v2 format (will be tried first, then fallback to v1)
+    const marketConfigCommandV2 = {
       actAs: [ADMIN_PARTY],
       commandId: `create-market-config-${Date.now()}`,
       commands: [
@@ -191,11 +232,46 @@ async function setup() {
         },
       ],
     }
+    
+    // v1 format (fallback)
+    const marketConfigCommandV1 = {
+      commands: {
+        party: ADMIN_PARTY,
+        applicationId: 'prediction-markets',
+        commandId: `create-market-config-${Date.now()}`,
+        list: [
+          {
+            templateId: 'PredictionMarkets:MarketConfig',
+            payload: {
+              admin: ADMIN_PARTY,
+              marketCreationDeposit: 100.0,
+              marketCreationFee: 0.0,
+              positionChangeFee: 0.0,
+              partialCloseFee: 0.0,
+              settlementFee: 0.0,
+              oracleParty: ORACLE_PARTY,
+              stablecoinCid: tokenBalanceCid,
+            },
+          },
+        ],
+      },
+    }
 
-    const marketConfigCid = await submitCommand(
-      marketConfigCommand,
-      'Step 2: Create MarketConfig Contract'
-    )
+    // Try v2 format first
+    let marketConfigCid = null
+    try {
+      marketConfigCid = await submitCommand(
+        marketConfigCommandV2,
+        'Step 2: Create MarketConfig Contract (v2 format)'
+      )
+    } catch (error) {
+      // If v2 fails, try v1 format
+      console.log('v2 format failed, trying v1 format...')
+      marketConfigCid = await submitCommand(
+        marketConfigCommandV1,
+        'Step 2: Create MarketConfig Contract (v1 format)'
+      )
+    }
 
     if (!marketConfigCid || typeof marketConfigCid !== 'string') {
       throw new Error('Failed to get MarketConfig contract ID')
