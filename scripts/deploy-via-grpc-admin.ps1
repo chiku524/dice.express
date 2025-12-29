@@ -16,7 +16,7 @@ Write-Host ""
 # Configuration
 $AdminApiHost = "participant.dev.canton.wolfedgelabs.com"
 $AdminApiPort = 443
-$Service = "com.daml.ledger.api.v1.admin.PackageManagementService/UploadDarFile"
+$Service = "com.digitalasset.canton.admin.participant.v30.PackageService/UploadDar"
 
 # Check grpcurl - try multiple methods
 $grpcurlPath = $null
@@ -109,23 +109,28 @@ try {
 
 Write-Host ""
 
-# Base64 encode DAR file
-Write-Host "Base64 encoding DAR file..." -ForegroundColor Cyan
+# Read DAR file as bytes (gRPC expects bytes, not base64)
+Write-Host "Reading DAR file..." -ForegroundColor Cyan
 $darBytes = [IO.File]::ReadAllBytes($DarFile)
+Write-Host "DAR file size: $($darBytes.Length) bytes" -ForegroundColor Gray
+
+# Convert bytes to base64 for JSON (grpcurl will convert it back to bytes)
 $base64Dar = [Convert]::ToBase64String($darBytes)
 Write-Host "Base64 length: $($base64Dar.Length) characters" -ForegroundColor Gray
-
-# Generate submission ID
-$submissionId = [guid]::NewGuid().ToString()
-Write-Host "Submission ID: $submissionId" -ForegroundColor Green
 Write-Host ""
 
-# Create JSON request
+# Create JSON request according to UploadDarRequest format
 Write-Host "Creating gRPC request..." -ForegroundColor Cyan
 $requestJson = @{
-    dar_file = $base64Dar
-    submission_id = $submissionId
-} | ConvertTo-Json -Compress
+    dars = @(
+        @{
+            bytes = $base64Dar
+            description = "Test contract DAR file"
+        }
+    )
+    vet_all_packages = $false
+    synchronize_vetting = $false
+} | ConvertTo-Json -Depth 10 -Compress
 
 $requestJson | Out-File -FilePath "grpc_request.json" -Encoding ASCII -NoNewline
 Write-Host "Request JSON created" -ForegroundColor Green
