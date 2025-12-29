@@ -1,0 +1,52 @@
+module Setup where
+
+import PredictionMarkets
+import Token
+import Daml.Script
+import DA.Time
+
+-- Setup script using the actual party ID from onboarding
+-- Party ID: ee15aa3d-0bd4-44f9-9664-b49ad7e308aa::122087fa379c37332a753379c58e18d397e39cb82c68c15e4af7134be46561974292
+-- This script:
+-- 1. Uses the actual onboarded party (no allocation needed)
+-- 2. Creates a TokenBalance contract (stablecoin)
+-- 3. Creates a MarketConfig contract using the token balance
+setup : Script (ContractId MarketConfig)
+setup = script do
+  -- Use the actual party ID from onboarding
+  -- Format: ee15aa3d-0bd4-44f9-9664-b49ad7e308aa::122087fa379c37332a753379c58e18d397e39cb82c68c15e4af7134be46561974292
+  -- Try to allocate with the party ID as hint - if party exists, it will return it
+  -- The party ID portion (after ::) is: 122087fa379c37332a753379c58e18d397e39cb82c68c15e4af7134be46561974292
+  admin <- allocatePartyWithHint "Admin" (PartyIdHint "122087fa379c37332a753379c58e18d397e39cb82c68c15e4af7134be46561974292")
+  
+  -- For Oracle, we'll allocate a new party (or use a known one)
+  -- If Oracle party needs to be the same, we can use the same party
+  oracleParty <- allocatePartyWithHint "Oracle" (PartyIdHint "oracle")
+  
+  -- Create a token balance (stablecoin) for the admin
+  -- This will be used as the stablecoin for the market
+  stablecoinCid <- submit admin do
+    create TokenBalance with
+      owner = admin
+      token = Token with
+        id = TokenId "USDC"
+        symbol = "USDC"
+        name = "USD Coin"
+        decimals = 6
+        description = "Stablecoin for prediction markets"
+      amount = 1000000.0  -- 1 million USDC
+  
+  -- Create MarketConfig using the token balance
+  configCid <- submit admin do
+    create MarketConfig with
+      admin = admin
+      marketCreationDeposit = 100.0
+      marketCreationFee = 0.0
+      positionChangeFee = 0.0
+      partialCloseFee = 0.0
+      settlementFee = 0.0
+      oracleParty = oracleParty
+      stablecoinCid = stablecoinCid
+  
+  return configCid
+
