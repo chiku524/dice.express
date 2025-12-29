@@ -39,7 +39,9 @@ logs/
 *.tmp
 *.temp
 token.json
+token.txt
 token-response.json
 token-verbose.log
 temp_token.txt
+grpc_request.json
 

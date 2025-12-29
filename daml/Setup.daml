@@ -11,7 +11,7 @@ import DA.Time
 -- 2. Creates a TokenBalance contract (stablecoin)
 -- 3. Creates a MarketConfig contract using the token balance
 setup : Script (ContractId MarketConfig)
-setup = do
+setup = script do
   -- Allocate parties
   admin <- allocatePartyWithHint "Admin" (PartyIdHint "admin")
   oracleParty <- allocatePartyWithHint "Oracle" (PartyIdHint "oracle")
