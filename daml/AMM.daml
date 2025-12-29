@@ -1,14 +1,14 @@
 module AMM where
 
 import PredictionMarkets
-import Token (Token, TokenId, TokenBalance, Instrument, InstrumentId)
+import Token (Token, TokenId, TokenBalance, Instrument, InstrumentId(..))
 import DA.Set
 import DA.Time
 import DA.List
 import DA.Optional
 import DA.Text
-import DA.Map
 import DA.Map qualified as Map
+import DA.Map (Map)
 
 -- ============================================================================
 -- AMM Types and Data Models
