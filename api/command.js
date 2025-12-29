@@ -20,43 +20,18 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed', received: req.method })
   }
 
-  // Parse body manually to avoid Vercel body parser issues
-  let requestBody
-  try {
-    const contentType = req.headers['content-type'] || req.headers['Content-Type'] || ''
-    
-    // Check if body is already parsed (Vercel does this automatically for JSON)
-    if (req.body && typeof req.body === 'object' && !Buffer.isBuffer(req.body)) {
-      // Already parsed by Vercel
-      requestBody = req.body
-    } else if (contentType.includes('application/json')) {
-      // Try to parse if it's a string
-      if (typeof req.body === 'string') {
-        requestBody = JSON.parse(req.body)
-      } else {
-        // Read from stream if needed
-        const chunks = []
-        for await (const chunk of req) {
-          chunks.push(chunk)
-        }
-        const bodyString = Buffer.concat(chunks).toString('utf-8')
-        requestBody = JSON.parse(bodyString)
-      }
-    } else {
-      return res.status(415).json({ 
-        error: `Content-Type '${contentType}' is not supported. Expected 'application/json'` 
-      })
-    }
-  } catch (parseError) {
-    console.error('[api/command] Error parsing body:', parseError)
-    return res.status(400).json({ 
-      error: 'Invalid JSON in request body', 
-      details: parseError.message 
-    })
-  }
+  // Vercel automatically parses JSON bodies for serverless functions
+  // Just use req.body directly - it's already parsed
+  const requestBody = req.body
 
   if (!requestBody) {
     return res.status(400).json({ error: 'Request body is required' })
+  }
+
+  // Validate Content-Type (informational only - Vercel already parsed it)
+  const contentType = req.headers['content-type'] || req.headers['Content-Type'] || ''
+  if (contentType && !contentType.includes('application/json')) {
+    console.warn('[api/command] Unexpected Content-Type:', contentType, '- but proceeding anyway')
   }
 
   // JSON API is at /json-api path (admin-api is at base URL)
