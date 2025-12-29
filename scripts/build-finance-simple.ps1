@@ -87,8 +87,9 @@ foreach ($packageName in $packages) {
             $newYamlLines += "  - --target=$targetLF"
         }
         
-        # Write updated YAML
-        $newYamlLines | Out-File -FilePath $yamlPath -Encoding UTF8
+        # Write updated YAML (UTF8 without BOM)
+        $utf8NoBom = New-Object System.Text.UTF8Encoding $false
+        [System.IO.File]::WriteAllLines((Resolve-Path $yamlPath), $newYamlLines, $utf8NoBom)
         
         Write-Host "Updated daml.yaml:" -ForegroundColor Cyan
         Get-Content $yamlPath | Select-Object -First 20 | ForEach-Object { Write-Host "  $_" -ForegroundColor Gray }
