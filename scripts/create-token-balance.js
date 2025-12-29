@@ -4,6 +4,19 @@
  */
 
 const LEDGER_URL = process.env.LEDGER_URL || 'https://participant.dev.canton.wolfedgelabs.com/json-api'
+const TOKEN_FILE = process.env.TOKEN_FILE || 'token.json'
+
+// Load authentication token if available
+let authToken = null
+try {
+  const fs = require('fs')
+  if (fs.existsSync(TOKEN_FILE)) {
+    const tokenData = JSON.parse(fs.readFileSync(TOKEN_FILE, 'utf8'))
+    authToken = tokenData.access_token
+  }
+} catch (error) {
+  // Ignore errors, authToken remains null
+}
 
 // Configuration for TokenBalance (stablecoin)
 // Token structure matches Token.daml: Token with TokenId (newtype)
@@ -67,12 +80,19 @@ async function createTokenBalance() {
     for (const endpoint of possibleEndpoints) {
       try {
         console.log(`Trying endpoint: ${endpoint}`)
+        const headers = {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        }
+        
+        // Add authentication if available
+        if (authToken) {
+          headers['Authorization'] = `Bearer ${authToken}`
+        }
+        
         const response = await fetch(endpoint, {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Accept': 'application/json',
-          },
+          headers: headers,
           body: JSON.stringify(command),
         })
 
