@@ -70,12 +70,16 @@ export default async function handler(req, res) {
     console.log('[api/command] Request body:', JSON.stringify(req.body))
     console.log('[api/command] Content-Type:', contentType)
     
+    // Extract token from Authorization header or request body
+    const authHeader = req.headers.authorization || req.headers.Authorization
+    const token = authHeader ? authHeader.replace('Bearer ', '') : (req.body.token || null)
+    
     // Extract commands object and party from request
-    // Frontend sends: { commands: { party, applicationId, commandId, list: [...] } }
+    // Frontend sends: { commands: { party, applicationId, commandId, list: [...] } } or v2 format
     const commandsObj = req.body.commands || req.body
     const party = commandsObj.party || (Array.isArray(commandsObj.actAs) ? commandsObj.actAs[0] : null)
     const commandId = commandsObj.commandId
-    const commandList = commandsObj.list || []
+    const commandList = commandsObj.list || commandsObj.commands || []
     
     // Format request body for different API versions
     // v1 expects: { commands: { party, applicationId, commandId, list } }

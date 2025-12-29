@@ -1,86 +1,57 @@
 /**
- * Minimal Contract Tester Component
+ * Contract Tester Component
  * 
- * Simple 2-button interface to test Milestone 1 contracts:
- * 1. Create TokenBalance Contract
- * 2. Create MarketConfig Contract
- * 
- * No CSS styling - minimal implementation as requested
+ * Test all deployed contracts on Canton devnet
+ * Uses Vercel API proxy to avoid CORS issues
  */
 
 import { useState } from 'react'
+import './ContractTester.css'
 
-const JSON_API_URL = 'https://participant.dev.canton.wolfedgelabs.com/json-api'
 const PARTY_ID = 'ee15aa3d-0bd4-44f9-9664-b49ad7e308aa::122087fa379c37332a753379c58e18d397e39cb82c68c15e4af7134be46561974292'
 const PACKAGE_ID = 'b87ef31c8ea5c53a940a7f71a4bc6513cf44048730c0551f1fc2e02adc7271f0'
 
 export default function ContractTester() {
-  const [loading, setLoading] = useState(false)
+  const [loading, setLoading] = useState(null)
   const [result, setResult] = useState(null)
   const [error, setError] = useState(null)
+  const [tokenInput, setTokenInput] = useState('')
 
-  // Load token from token.txt or token.json
-  const getToken = async () => {
-    try {
-      // Try to load from token.txt first
-      const tokenTxtResponse = await fetch('/token.txt')
-      if (tokenTxtResponse.ok) {
-        const token = await tokenTxtResponse.text()
-        return token.trim()
-      }
-      
-      // Try token.json
-      const tokenJsonResponse = await fetch('/token.json')
-      if (tokenJsonResponse.ok) {
-        const tokenData = await tokenJsonResponse.json()
-        return tokenData.access_token || tokenData.token
-      }
-      
-      throw new Error('Token not found. Please ensure token.txt or token.json exists in the public folder.')
-    } catch (err) {
-      throw new Error(`Failed to load token: ${err.message}`)
+  // Get token from input or localStorage
+  const getToken = () => {
+    if (tokenInput.trim()) {
+      localStorage.setItem('canton_token', tokenInput.trim())
+      return tokenInput.trim()
     }
+    return localStorage.getItem('canton_token') || ''
   }
 
-  const createTokenBalance = async () => {
-    setLoading(true)
+  const createContract = async (contractType, templateId, createArguments) => {
+    setLoading(contractType)
     setResult(null)
     setError(null)
 
     try {
-      const token = await getToken()
-      
-      // Note: Template ID format may need adjustment based on client response
-      const templateId = `Token:TokenBalance:${PACKAGE_ID}`
-      
-      const response = await fetch(`${JSON_API_URL}/v2/commands/submit-and-wait`, {
+      const token = getToken()
+      if (!token) {
+        throw new Error('Please enter your authentication token above')
+      }
+
+      // Use Vercel API proxy to avoid CORS
+      const response = await fetch('/api/command', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Accept': 'application/json',
-          'Authorization': `Bearer ${token}`
+          'Authorization': `Bearer ${token}`,
         },
         body: JSON.stringify({
           actAs: [PARTY_ID],
-          commandId: `test-tokenbalance-${Date.now()}`,
+          commandId: `test-${contractType.toLowerCase()}-${Date.now()}`,
           applicationId: 'prediction-markets',
           commands: [{
             CreateCommand: {
               templateId: templateId,
-              createArguments: {
-                owner: PARTY_ID,
-                token: {
-                  id: {
-                    symbol: 'USDC',
-                    issuer: PARTY_ID
-                  },
-                  symbol: 'USDC',
-                  name: 'USD Coin',
-                  decimals: 6,
-                  description: 'Test USDC token'
-                },
-                amount: '1000000.0' // 1M USDC
-              }
+              createArguments: createArguments
             }
           }]
         })
@@ -89,127 +60,248 @@ export default function ContractTester() {
       const data = await response.json()
       
       if (!response.ok) {
-        throw new Error(data.message || data.error || `HTTP ${response.status}`)
+        throw new Error(data.message || data.error || `HTTP ${response.status}: ${JSON.stringify(data)}`)
       }
 
       setResult({
+        contractType,
         success: true,
-        message: 'TokenBalance contract created successfully!',
-        contractId: data.result?.created?.[0]?.contractId || 'N/A',
+        message: `${contractType} contract created successfully!`,
+        contractId: data.result?.created?.[0]?.contractId || data.contractId || 'N/A',
+        templateId: templateId,
         details: data
       })
     } catch (err) {
       setError({
+        contractType,
         message: err.message,
         details: err.toString()
       })
     } finally {
-      setLoading(false)
+      setLoading(null)
     }
   }
 
-  const createMarketConfig = async () => {
-    setLoading(true)
-    setResult(null)
-    setError(null)
-
-    try {
-      const token = await getToken()
-      
-      // Note: Template ID format may need adjustment based on client response
-      const templateId = `PredictionMarkets:MarketConfig:${PACKAGE_ID}`
-      
-      // Note: This requires a TokenBalance contract ID - would need to be provided
-      // For testing, we'll use a placeholder
-      const stablecoinCid = 'PLACEHOLDER_CONTRACT_ID' // Would need actual TokenBalance contract ID
-      
-      const response = await fetch(`${JSON_API_URL}/v2/commands/submit-and-wait`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-          'Authorization': `Bearer ${token}`
+  // Token Module Contracts
+  const createTokenBalance = () => {
+    createContract(
+      'TokenBalance',
+      'Token:TokenBalance',
+      {
+        owner: PARTY_ID,
+        token: {
+          id: {
+            symbol: 'USDC',
+            issuer: PARTY_ID
+          },
+          symbol: 'USDC',
+          name: 'USD Coin',
+          decimals: 6,
+          description: 'Test USDC token for prediction markets'
         },
-        body: JSON.stringify({
-          actAs: [PARTY_ID],
-          commandId: `test-marketconfig-${Date.now()}`,
-          applicationId: 'prediction-markets',
-          commands: [{
-            CreateCommand: {
-              templateId: templateId,
-              createArguments: {
-                admin: PARTY_ID,
-                marketCreationDeposit: '100.0',
-                marketCreationFee: '0.0',
-                positionChangeFee: '0.0',
-                partialCloseFee: '0.0',
-                settlementFee: '0.0',
-                oracleParty: PARTY_ID,
-                stablecoinCid: stablecoinCid
-              }
-            }
-          }]
-        })
-      })
-
-      const data = await response.json()
-      
-      if (!response.ok) {
-        throw new Error(data.message || data.error || `HTTP ${response.status}`)
+        amount: '1000000.0' // 1M USDC
       }
-
-      setResult({
-        success: true,
-        message: 'MarketConfig contract created successfully!',
-        contractId: data.result?.created?.[0]?.contractId || 'N/A',
-        details: data
-      })
-    } catch (err) {
-      setError({
-        message: err.message,
-        details: err.toString()
-      })
-    } finally {
-      setLoading(false)
-    }
+    )
   }
+
+  // Prediction Markets Contracts
+  const createMarketConfig = () => {
+    // Note: This requires a TokenBalance contract ID
+    // For testing, we'll use a placeholder that should be replaced
+    createContract(
+      'MarketConfig',
+      'PredictionMarkets:MarketConfig',
+      {
+        admin: PARTY_ID,
+        marketCreationDeposit: '100.0',
+        marketCreationFee: '0.0',
+        positionChangeFee: '0.0',
+        partialCloseFee: '0.0',
+        settlementFee: '0.0',
+        oracleParty: PARTY_ID,
+        stablecoinCid: '#0:0' // Placeholder - replace with actual TokenBalance contract ID
+      }
+    )
+  }
+
+  const createMarketCreationRequest = () => {
+    createContract(
+      'MarketCreationRequest',
+      'PredictionMarkets:MarketCreationRequest',
+      {
+        creator: PARTY_ID,
+        admin: PARTY_ID,
+        marketId: `market-${Date.now()}`,
+        title: 'Test Market: Will Bitcoin reach $100k?',
+        description: 'A test market to verify contract creation',
+        marketType: { tag: 'Binary' },
+        outcomes: [],
+        settlementTrigger: { tag: 'TimeBased', value: new Date(Date.now() + 86400000).toISOString() },
+        resolutionCriteria: 'Based on CoinGecko price at settlement time',
+        depositAmount: '100.0',
+        depositCid: null,
+        configCid: null,
+        creatorBalance: null,
+        adminBalance: null
+      }
+    )
+  }
+
+  const createOracleDataFeed = () => {
+    createContract(
+      'OracleDataFeed',
+      'PredictionMarkets:OracleDataFeed',
+      {
+        oracleParty: PARTY_ID,
+        marketId: `market-${Date.now()}`,
+        dataSource: 'RedStone',
+        oracleData: JSON.stringify({ price: 50000, timestamp: new Date().toISOString() }),
+        timestamp: new Date().toISOString(),
+        signature: null
+      }
+    )
+  }
+
+  // AMM Contracts
+  const createAllocationRequirement = () => {
+    createContract(
+      'AllocationRequirement',
+      'AMM:AllocationRequirement',
+      {
+        settlementRequestId: `settlement-${Date.now()}`,
+        party: PARTY_ID,
+        instrumentId: { id: 'USDC' },
+        quantity: '1000.0',
+        status: { tag: 'Pending' },
+        deadline: new Date(Date.now() + 86400000).toISOString(),
+        poolId: `pool-${Date.now()}`
+      }
+    )
+  }
+
+  const createSettlementRequest = () => {
+    createContract(
+      'SettlementRequest',
+      'AMM:SettlementRequest',
+      {
+        settlementRequestId: `settlement-${Date.now()}`,
+        poolId: `pool-${Date.now()}`,
+        poolParty: PARTY_ID,
+        requiredAllocations: [],
+        actualAllocations: [],
+        status: { tag: 'WaitingForAllocations' },
+        deadline: new Date(Date.now() + 86400000).toISOString(),
+        createdAt: new Date().toISOString()
+      }
+    )
+  }
+
+  const createLiquidityPool = () => {
+    createContract(
+      'LiquidityPool',
+      'AMM:LiquidityPool',
+      {
+        poolId: `pool-${Date.now()}`,
+        poolParty: PARTY_ID,
+        tokenA: {
+          id: { symbol: 'USDC', issuer: PARTY_ID },
+          symbol: 'USDC',
+          name: 'USD Coin',
+          decimals: 6,
+          description: 'USDC token'
+        },
+        tokenB: {
+          id: { symbol: 'YES', issuer: PARTY_ID },
+          symbol: 'YES',
+          name: 'Yes Shares',
+          decimals: 6,
+          description: 'Yes shares token'
+        },
+        reserveA: '10000.0',
+        reserveB: '10000.0',
+        totalSupply: '10000.0',
+        feeRate: '0.003', // 0.3%
+        createdAt: new Date().toISOString()
+      }
+    )
+  }
+
+  const createPoolFactory = () => {
+    createContract(
+      'PoolFactory',
+      'AMM:PoolFactory',
+      {
+        factoryParty: PARTY_ID,
+        defaultFeeRate: '0.003',
+        pools: []
+      }
+    )
+  }
+
+  const contracts = [
+    {
+      category: 'Token Module',
+      contracts: [
+        { name: 'TokenBalance', description: 'Token balance management', action: createTokenBalance }
+      ]
+    },
+    {
+      category: 'Prediction Markets',
+      contracts: [
+        { name: 'MarketConfig', description: 'Global market configuration', action: createMarketConfig },
+        { name: 'MarketCreationRequest', description: 'Market creation request (pending approval)', action: createMarketCreationRequest },
+        { name: 'OracleDataFeed', description: 'Oracle data feed for market resolution', action: createOracleDataFeed }
+      ]
+    },
+    {
+      category: 'AMM (Automated Market Maker)',
+      contracts: [
+        { name: 'AllocationRequirement', description: 'DVP allocation requirement', action: createAllocationRequirement },
+        { name: 'SettlementRequest', description: 'Settlement request tracking', action: createSettlementRequest },
+        { name: 'LiquidityPool', description: 'AMM liquidity pool', action: createLiquidityPool },
+        { name: 'PoolFactory', description: 'Pool factory for creating pools', action: createPoolFactory }
+      ]
+    }
+  ]
 
   return (
-    <div>
-      <h2>Milestone 1 Contract Tester</h2>
-      <p>Test core contracts deployment (no CSS styling - minimal as requested)</p>
-      
-      <div>
-        <button 
-          onClick={createTokenBalance} 
-          disabled={loading}
-        >
-          {loading ? 'Creating...' : '1. Create TokenBalance Contract'}
-        </button>
-        
-        <button 
-          onClick={createMarketConfig} 
-          disabled={loading}
-        >
-          {loading ? 'Creating...' : '2. Create MarketConfig Contract'}
-        </button>
+    <div className="contract-tester">
+      <div className="contract-tester-header">
+        <h1>Contract Tester</h1>
+        <p>Test all deployed contracts on Canton devnet</p>
+        <p className="package-info">
+          <strong>Package ID:</strong> <code>{PACKAGE_ID}</code>
+        </p>
       </div>
 
-      {result && (
-        <div>
-          <h3>Success</h3>
-          <p>{result.message}</p>
-          <p>Contract ID: {result.contractId}</p>
-          <details>
-            <summary>Full Response</summary>
-            <pre>{JSON.stringify(result.details, null, 2)}</pre>
-          </details>
+      <div className="token-section">
+        <h2>Authentication Token</h2>
+        <div className="token-input-group">
+          <input
+            type="password"
+            placeholder="Enter your JWT token (or paste from token.txt)"
+            value={tokenInput}
+            onChange={(e) => setTokenInput(e.target.value)}
+            className="token-input"
+          />
+          <button
+            onClick={() => {
+              const stored = localStorage.getItem('canton_token')
+              if (stored) setTokenInput(stored)
+            }}
+            className="btn-secondary"
+          >
+            Load Saved
+          </button>
         </div>
-      )}
+        <p className="token-hint">
+          Token is saved in browser localStorage. Get token from: <code>scripts/get-keycloak-token.ps1</code>
+        </p>
+      </div>
 
       {error && (
-        <div>
-          <h3>Error</h3>
+        <div className="alert alert-error">
+          <h3>❌ Error: {error.contractType || 'Unknown'}</h3>
           <p>{error.message}</p>
           <details>
             <summary>Error Details</summary>
@@ -218,16 +310,62 @@ export default function ContractTester() {
         </div>
       )}
 
-      <div>
-        <h3>Testing Notes</h3>
+      {result && (
+        <div className="alert alert-success">
+          <h3>✅ Success: {result.contractType}</h3>
+          <p>{result.message}</p>
+          <div className="contract-info">
+            <p><strong>Contract ID:</strong> <code>{result.contractId}</code></p>
+            <p><strong>Template ID:</strong> <code>{result.templateId}</code></p>
+          </div>
+          <details>
+            <summary>Full Response</summary>
+            <pre>{JSON.stringify(result.details, null, 2)}</pre>
+          </details>
+          <a 
+            href={`https://devnet.ccexplorer.io/contracts/${result.contractId}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="btn-link"
+          >
+            View in Block Explorer →
+          </a>
+        </div>
+      )}
+
+      <div className="contracts-grid">
+        {contracts.map((category, catIdx) => (
+          <div key={catIdx} className="contract-category">
+            <h2>{category.category}</h2>
+            <div className="contracts-list">
+              {category.contracts.map((contract, idx) => (
+                <div key={idx} className="contract-card">
+                  <h3>{contract.name}</h3>
+                  <p>{contract.description}</p>
+                  <button
+                    onClick={contract.action}
+                    disabled={loading === contract.name}
+                    className="btn-primary"
+                  >
+                    {loading === contract.name ? '⏳ Creating...' : `Create ${contract.name}`}
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div className="info-section">
+        <h2>Testing Notes</h2>
         <ul>
-          <li>Token must be available in token.txt or token.json</li>
-          <li>Template ID format may need adjustment (awaiting client confirmation)</li>
-          <li>MarketConfig requires a TokenBalance contract ID</li>
-          <li>Verify contracts in block explorer: https://devnet.ccexplorer.io</li>
+          <li>All contracts use template IDs without package hash (e.g., <code>Token:TokenBalance</code>)</li>
+          <li>Some contracts require dependencies (e.g., MarketConfig needs TokenBalance contract ID)</li>
+          <li>Verify contracts in block explorer: <a href="https://devnet.ccexplorer.io" target="_blank" rel="noopener noreferrer">devnet.ccexplorer.io</a></li>
+          <li>Package ID: <code>{PACKAGE_ID}</code></li>
+          <li>Party ID: <code>{PARTY_ID.substring(0, 50)}...</code></li>
         </ul>
       </div>
     </div>
   )
 }
-
