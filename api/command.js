@@ -2,6 +2,9 @@
 // Located at project root /api/ directory (Vercel requirement)
 export default async function handler(req, res) {
   // Log for debugging - this should appear in Vercel function logs if request reaches here
+  // IMPORTANT: Clone body object to avoid "Body has already been read" error
+  const bodyClone = req.body ? JSON.parse(JSON.stringify(req.body)) : null
+  
   console.log('[api/command] ===== FUNCTION INVOKED =====')
   console.log('[api/command] Request received:', {
     method: req.method,
@@ -9,7 +12,7 @@ export default async function handler(req, res) {
     path: req.url,
     query: req.query,
     headers: req.headers,
-    body: req.body,
+    body: bodyClone,
   })
   console.log('[api/command] Environment:', {
     nodeVersion: process.version,
@@ -38,7 +41,10 @@ export default async function handler(req, res) {
   }
 
   // Ensure request body is parsed (Vercel should do this automatically, but check)
-  if (!req.body) {
+  // Use cloned body to avoid "Body has already been read" error
+  const requestBody = bodyClone || req.body
+  
+  if (!requestBody) {
     console.error('[api/command] No request body received')
     return res.status(400).json({ error: 'Request body is required' })
   }
@@ -67,23 +73,23 @@ export default async function handler(req, res) {
     ]
     
     console.log('[api/command] Trying endpoints:', possibleEndpoints)
-    console.log('[api/command] Request body:', JSON.stringify(req.body))
+    console.log('[api/command] Request body:', JSON.stringify(requestBody))
     console.log('[api/command] Content-Type:', contentType)
     
     // Extract token from Authorization header or request body
     const authHeader = req.headers.authorization || req.headers.Authorization
-    const token = authHeader ? authHeader.replace('Bearer ', '') : (req.body.token || null)
+    const token = authHeader ? authHeader.replace('Bearer ', '') : (requestBody.token || null)
     
     // Extract commands object and party from request
     // Frontend sends: { commands: { party, applicationId, commandId, list: [...] } } or v2 format
-    const commandsObj = req.body.commands || req.body
+    const commandsObj = requestBody.commands || requestBody
     const party = commandsObj.party || (Array.isArray(commandsObj.actAs) ? commandsObj.actAs[0] : null)
     const commandId = commandsObj.commandId
     const commandList = commandsObj.list || commandsObj.commands || []
     
     // Format request body for different API versions
     // v1 expects: { commands: { party, applicationId, commandId, list } }
-    const requestBodyV1 = req.body
+    const requestBodyV1 = requestBody
     
     // v2 format based on OpenAPI spec:
     // JsCommands expects: { actAs: [string], commandId: string, commands: [Command], ... }
