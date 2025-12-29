@@ -69,8 +69,22 @@ try {
   console.log(`   Subject: ${payload.sub || 'N/A'}`)
   console.log(`   Expires: ${payload.exp ? new Date(payload.exp * 1000).toISOString() : 'N/A'}`)
   console.log(`   Issued: ${payload.iat ? new Date(payload.iat * 1000).toISOString() : 'N/A'}`)
-  console.log(`   Client ID: ${payload.azp || payload.aud || 'N/A'}`)
+  console.log(`   Client ID: ${payload.azp || (Array.isArray(payload.aud) ? payload.aud[0] : payload.aud) || 'N/A'}`)
+  console.log(`   Audience: ${Array.isArray(payload.aud) ? payload.aud.join(', ') : payload.aud || 'N/A'}`)
   console.log(`   Scopes: ${payload.scope || 'N/A'}`)
+  console.log('')
+  
+  // Check audience
+  if (payload.aud) {
+    const audiences = Array.isArray(payload.aud) ? payload.aud : [payload.aud]
+    console.log('   Audience check:')
+    for (const aud of audiences) {
+      console.log(`     - ${aud}`)
+      if (aud.includes('canton') || aud.includes('ledger')) {
+        console.log('       ✅ Contains "canton" or "ledger"')
+      }
+    }
+  }
   console.log('')
   
   // Check expiration
