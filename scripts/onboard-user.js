@@ -9,8 +9,8 @@
 
 const fs = require('fs')
 
-// Configuration - Update these when client provides wallet UI URL
-const WALLET_UI_URL = process.env.WALLET_UI_URL || '' // To be provided by client
+// Configuration - Wallet UI URL provided by client
+const WALLET_UI_URL = process.env.WALLET_UI_URL || 'https://wallet.validator.dev.canton.wolfedgelabs.com'
 const TOKEN_FILE = process.env.TOKEN_FILE || 'token.json'
 
 // Load token
