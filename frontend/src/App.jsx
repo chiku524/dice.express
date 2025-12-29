@@ -59,7 +59,14 @@ function App() {
               <Link to="/">Markets</Link>
               <Link to="/create">Create Market</Link>
               <Link to="/portfolio">Portfolio</Link>
-              <Link to="/test">Test Contracts</Link>
+              <Link to="/test" style={{ 
+                background: '#646cff', 
+                padding: '0.5rem 1rem', 
+                borderRadius: '4px',
+                fontWeight: '600'
+              }}>
+                🧪 Test Contracts
+              </Link>
               {wallet ? (
                 <div className="wallet-info">
                   <span>{wallet.party.substring(0, 10)}...</span>
@@ -74,21 +81,23 @@ function App() {
 
         <main className="app-main">
           <div className="container">
-            {!wallet ? (
-              <Suspense fallback={<LoadingSpinner message="Loading..." />}>
-                <WalletConnect onConnect={connectWallet} />
-              </Suspense>
-            ) : (
-              <Suspense fallback={<LoadingSpinner message="Loading..." />}>
-                <Routes>
-                  <Route path="/" element={<MarketsList />} />
-                  <Route path="/market/:marketId" element={<MarketDetail />} />
-                  <Route path="/create" element={<CreateMarket />} />
-                  <Route path="/portfolio" element={<Portfolio />} />
-                  <Route path="/test" element={<ContractTester />} />
-                </Routes>
-              </Suspense>
-            )}
+            <Suspense fallback={<LoadingSpinner message="Loading..." />}>
+              <Routes>
+                <Route path="/test" element={<ContractTester />} />
+                {!wallet ? (
+                  <>
+                    <Route path="*" element={<WalletConnect onConnect={connectWallet} />} />
+                  </>
+                ) : (
+                  <>
+                    <Route path="/" element={<MarketsList />} />
+                    <Route path="/market/:marketId" element={<MarketDetail />} />
+                    <Route path="/create" element={<CreateMarket />} />
+                    <Route path="/portfolio" element={<Portfolio />} />
+                  </>
+                )}
+              </Routes>
+            </Suspense>
           </div>
         </main>
         <ConnectionStatus />
