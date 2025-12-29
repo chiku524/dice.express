@@ -107,12 +107,21 @@ export default async function handler(req, res) {
       return cmd
     })
 
+    // Build v2 request body
+    // Canton v2 API expects: { actAs: [string], readAs: [string]?, commandId: string, applicationId: string, commands: [Command] }
     const requestBodyV2 = {
       actAs: party ? [party] : [],
-      commandId: commandId,
+      commandId: commandId || `cmd-${Date.now()}-${Math.random().toString(36).substring(7)}`,
       applicationId: requestBody.applicationId || 'prediction-markets',
       commands: transformedCommands
     }
+    
+    // Add readAs if provided
+    if (requestBody.readAs && Array.isArray(requestBody.readAs)) {
+      requestBodyV2.readAs = requestBody.readAs
+    }
+    
+    console.log('[api/command] Full v2 request body:', JSON.stringify(requestBodyV2, null, 2))
 
     // Try each endpoint
     let lastError = null
@@ -154,7 +163,7 @@ export default async function handler(req, res) {
 
             console.log('[api/command] Trying endpoint:', commandUrl)
             console.log('[api/command] Content-Type:', contentType)
-            console.log('[api/command] Sending body:', JSON.stringify(bodyToSend).substring(0, 300))
+            console.log('[api/command] Full body being sent:', JSON.stringify(bodyToSend, null, 2))
 
             responseAttempt = await fetch(commandUrl, {
               method: 'POST',
