@@ -59,12 +59,35 @@ The devnet provider should have documentation on:
 - Authentication method (Bearer token, API key, etc.)
 - Required headers or parameters
 
+## Keycloak Authentication
+
+The Canton devnet uses **Keycloak** for authentication. You have an account at:
+https://keycloak.wolfedgelabs.com:8443/realms/canton-devnet/account/
+
+**The account page doesn't show token generation directly.** You need to use the Keycloak token endpoint.
+
+### Getting a Token
+
+See: **`docs/KEYCLOAK_AUTH_TOKEN.md`** for detailed instructions.
+
+Quick method:
+1. Use the Keycloak token endpoint:
+   ```
+   https://keycloak.wolfedgelabs.com:8443/realms/canton-devnet/protocol/openid-connect/token
+   ```
+2. Request token with your credentials (see guide for details)
+3. Extract `access_token` from the response
+
+Or use the helper script:
+```bash
+scripts\get-keycloak-token.bat
+```
+
 ## Next Steps
 
-1. **Contact client** to get:
-   - Authentication token/credentials
-   - Deployment instructions for their Canton devnet
-   - Any required headers or parameters
+1. **Get Client ID** from devnet administrator (if required)
+2. **Get access token** using Keycloak token endpoint (see `docs/KEYCLOAK_AUTH_TOKEN.md`)
+3. **Deploy test contract** using the token
 
 2. **Verify local testing** works:
    ```bash
