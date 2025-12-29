@@ -15,7 +15,8 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' })
   }
   
-  const LEDGER_URL = process.env.VITE_LEDGER_URL || 'https://participant.dev.canton.wolfedgelabs.com'
+  // JSON API is at /json-api path (admin-api is at base URL)
+  const LEDGER_URL = process.env.VITE_LEDGER_URL || 'https://participant.dev.canton.wolfedgelabs.com/json-api'
   const baseUrl = LEDGER_URL.replace(/\/$/, '')
   
   // Try multiple OpenAPI endpoint formats

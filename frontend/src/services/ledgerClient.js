@@ -7,7 +7,8 @@ import { fetchWithProxy } from './corsProxy'
 // Import axios for fallback direct connections
 const axiosDirect = axios.create()
 
-const LEDGER_URL = import.meta.env.VITE_LEDGER_URL || 'https://participant.dev.canton.wolfedgelabs.com'
+// JSON API is at /json-api path (admin-api is at base URL)
+const LEDGER_URL = import.meta.env.VITE_LEDGER_URL || 'https://participant.dev.canton.wolfedgelabs.com/json-api'
 
 // Use proxy API routes in production to avoid CORS issues
 const USE_PROXY = import.meta.env.PROD || window.location.hostname !== 'localhost'

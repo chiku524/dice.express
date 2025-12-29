@@ -21,10 +21,11 @@
 
 ## Configuration Used
 
-- **Endpoint**: `participant.dev.canton.wolfedgelabs.com:443`
+- **Admin API Endpoint**: `participant.dev.canton.wolfedgelabs.com:443` (gRPC)
+- **JSON API Endpoint**: `participant.dev.canton.wolfedgelabs.com/json-api` (HTTP/JSON)
 - **Service**: `com.digitalasset.canton.admin.participant.v30.PackageService/UploadDar`
 - **Authentication**: Bearer token from Keycloak
-- **Protocol**: gRPC (not JSON-API)
+- **Protocol**: gRPC Admin API (for DAR uploads)
 
 ## Request Format
 

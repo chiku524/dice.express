@@ -14,6 +14,8 @@ Write-Host "==========================================" -ForegroundColor Cyan
 Write-Host ""
 
 # Configuration
+# Note: Admin API is at the base URL (no /admin-api path)
+# JSON API is at /json-api path
 $AdminApiHost = "participant.dev.canton.wolfedgelabs.com"
 $AdminApiPort = 443
 $Service = "com.digitalasset.canton.admin.participant.v30.PackageService/UploadDar"

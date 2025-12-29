@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 
-const LEDGER_URL = import.meta.env.VITE_LEDGER_URL || 'https://participant.dev.canton.wolfedgelabs.com'
+// JSON API is at /json-api path (admin-api is at base URL)
+const LEDGER_URL = import.meta.env.VITE_LEDGER_URL || 'https://participant.dev.canton.wolfedgelabs.com/json-api'
 
 /**
  * Hook for WebSocket connection to Canton ledger
