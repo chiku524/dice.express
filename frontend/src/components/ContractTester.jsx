@@ -167,16 +167,13 @@ export default function ContractTester() {
       {
         owner: PARTY_ID,
         token: {
-          id: {
-            symbol: 'USDC',
-            issuer: PARTY_ID
-          },
+          id: 'USDC', // TokenId is a newtype, so just use the Text value
           symbol: 'USDC',
           name: 'USD Coin',
           decimals: 6,
           description: 'Test USDC token for prediction markets'
         },
-        amount: '1000000.0' // 1M USDC
+        amount: 1000000.0 // Decimal type - use number, not string
       }
     )
   }
