@@ -16,11 +16,21 @@ const ORACLE_PARTY = process.env.ORACLE_PARTY || 'Oracle'
 let authToken = null
 try {
   const fs = require('fs')
+  // Try token.json first
   if (fs.existsSync(TOKEN_FILE)) {
     const tokenData = JSON.parse(fs.readFileSync(TOKEN_FILE, 'utf8'))
     authToken = tokenData.access_token
   }
+  // Fallback to token.txt (extracted token)
+  if (!authToken && fs.existsSync('token.txt')) {
+    authToken = fs.readFileSync('token.txt', 'utf8').trim()
+  }
+  // Also check environment variable
+  if (!authToken && process.env.AUTH_TOKEN) {
+    authToken = process.env.AUTH_TOKEN
+  }
 } catch (error) {
+  console.warn('Warning: Could not load authentication token:', error.message)
   // Ignore errors, authToken remains null
 }
 
@@ -70,37 +80,48 @@ async function submitCommand(command, description) {
 
       console.log('Response:', JSON.stringify(data, null, 2))
 
-      if (response.ok) {
-        // Extract contract ID from response
-        let contractId = null
-        if (data.result && data.result.created && data.result.created.length > 0) {
-          contractId = data.result.created[0].contractId
-        } else if (data.created && data.created.length > 0) {
-          contractId = data.created[0].contractId
-        } else if (data.contractId) {
-          contractId = data.contractId
-        }
-        
-        if (contractId) {
-          console.log(`✅ SUCCESS: Contract created!`)
-          console.log(`Contract ID: ${contractId}`)
-          return contractId
+        if (response.ok) {
+          // Extract contract ID from response
+          let contractId = null
+          if (data.result && data.result.created && data.result.created.length > 0) {
+            contractId = data.result.created[0].contractId
+          } else if (data.created && data.created.length > 0) {
+            contractId = data.created[0].contractId
+          } else if (data.contractId) {
+            contractId = data.contractId
+          } else if (data.commands && data.commands.length > 0 && data.commands[0].contractId) {
+            contractId = data.commands[0].contractId
+          }
+          
+          if (contractId) {
+            console.log(`✅ SUCCESS: Contract created!`)
+            console.log(`Contract ID: ${contractId}`)
+            return contractId
+          } else {
+            console.log(`✅ SUCCESS: Command executed (no contract ID in response)`)
+            console.log('Full response:', JSON.stringify(data, null, 2))
+            return true
+          }
         } else {
-          console.log(`✅ SUCCESS: Command executed (no contract ID in response)`)
-          return true
+          console.log(`❌ Error: ${response.status}`)
+          console.log('Error details:', JSON.stringify(data, null, 2))
+          
+          // For 401, authentication is required
+          if (response.status === 401) {
+            console.log('⚠️  Authentication required - ensure token is loaded')
+            if (!authToken) {
+              throw new Error('Authentication required but no token available. Please provide credentials.')
+            }
+          }
+          
+          // If 400, it might be a format issue - try next endpoint
+          if (response.status === 400 && endpoint !== possibleEndpoints[possibleEndpoints.length - 1]) {
+            console.log('Trying next endpoint...')
+            continue
+          }
+          
+          throw new Error(`Failed to create contract: ${response.status} - ${JSON.stringify(data)}`)
         }
-      } else {
-        console.log(`❌ Error: ${response.status}`)
-        console.log('Error details:', JSON.stringify(data, null, 2))
-        
-        // If 400, it might be a format issue - try next endpoint
-        if (response.status === 400 && endpoint !== possibleEndpoints[possibleEndpoints.length - 1]) {
-          console.log('Trying next endpoint...')
-          continue
-        }
-        
-        throw new Error(`Failed to create contract: ${response.status} - ${JSON.stringify(data)}`)
-      }
     } catch (error) {
       console.log(`Error with endpoint ${endpoint}: ${error.message}`)
       if (endpoint === possibleEndpoints[possibleEndpoints.length - 1]) {
@@ -126,8 +147,11 @@ async function setup() {
   console.log(`Oracle Party: ${ORACLE_PARTY}`)
   if (authToken) {
     console.log('✅ Authentication token found')
+    console.log(`   Token (first 20 chars): ${authToken.substring(0, 20)}...`)
   } else {
-    console.log('⚠️  No authentication token (may not be required)')
+    console.log('⚠️  No authentication token found')
+    console.log('   Tried: token.json, token.txt, AUTH_TOKEN env var')
+    console.log('   Some endpoints may require authentication')
   }
   console.log('')
 

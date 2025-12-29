@@ -22,7 +22,10 @@ if ($Username -and $Password) {
     Write-Host "--- Getting Authentication Token ---" -ForegroundColor Yellow
     Write-Host ""
     & ".\scripts\get-keycloak-token.ps1" -Username $Username -Password $Password -TokenFile $TokenFile
-    if ($LASTEXITCODE -ne 0) {
+    if ($LASTEXITCODE -eq 0) {
+        # Extract token to token.txt for easier access
+        & ".\scripts\extract-token.ps1"
+    } else {
         Write-Host "Token acquisition failed, but continuing..." -ForegroundColor Yellow
     }
     Write-Host ""
