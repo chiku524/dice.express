@@ -16,6 +16,10 @@ export default function ContractTester() {
   const [result, setResult] = useState(null)
   const [error, setError] = useState(null)
   const [tokenInput, setTokenInput] = useState('')
+  const [showTokenForm, setShowTokenForm] = useState(false)
+  const [username, setUsername] = useState('')
+  const [password, setPassword] = useState('')
+  const [tokenLoading, setTokenLoading] = useState(false)
 
   // Get token from input or localStorage
   const getToken = () => {
@@ -24,6 +28,76 @@ export default function ContractTester() {
       return tokenInput.trim()
     }
     return localStorage.getItem('canton_token') || ''
+  }
+
+  // Get token from Keycloak
+  const getTokenFromKeycloak = async () => {
+    if (!username || !password) {
+      setError({
+        contractType: 'Token',
+        message: 'Please enter both username and password',
+        details: 'Username and password are required to get a token'
+      })
+      return
+    }
+
+    setTokenLoading(true)
+    setError(null)
+    setResult(null)
+
+    try {
+      const response = await fetch('/api/get-token', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          username,
+          password,
+          clientId: 'Prediction-Market'
+        })
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || `HTTP ${response.status}: ${data.message || 'Failed to get token'}`)
+      }
+
+      if (!data.access_token) {
+        throw new Error('No access token in response')
+      }
+
+      // Store token
+      setTokenInput(data.access_token)
+      localStorage.setItem('canton_token', data.access_token)
+      
+      // Clear password for security
+      setPassword('')
+      setShowTokenForm(false)
+
+      setResult({
+        contractType: 'Token',
+        success: true,
+        message: 'Token obtained successfully!',
+        contractId: 'N/A',
+        templateId: 'Authentication',
+        details: {
+          token_type: data.token_type,
+          expires_in: data.expires_in,
+          scope: data.scope,
+          token_preview: `${data.access_token.substring(0, 50)}...`
+        }
+      })
+    } catch (err) {
+      setError({
+        contractType: 'Token',
+        message: err.message,
+        details: err.toString()
+      })
+    } finally {
+      setTokenLoading(false)
+    }
   }
 
   const createContract = async (contractType, templateId, createArguments) => {
@@ -276,27 +350,95 @@ export default function ContractTester() {
 
       <div className="token-section">
         <h2>Authentication Token</h2>
-        <div className="token-input-group">
-          <input
-            type="password"
-            placeholder="Enter your JWT token (or paste from token.txt)"
-            value={tokenInput}
-            onChange={(e) => setTokenInput(e.target.value)}
-            className="token-input"
-          />
-          <button
-            onClick={() => {
-              const stored = localStorage.getItem('canton_token')
-              if (stored) setTokenInput(stored)
-            }}
-            className="btn-secondary"
-          >
-            Load Saved
-          </button>
-        </div>
-        <p className="token-hint">
-          Token is saved in browser localStorage. Get token from: <code>scripts/get-keycloak-token.ps1</code>
-        </p>
+        
+        {!showTokenForm ? (
+          <>
+            <div className="token-input-group">
+              <input
+                type="password"
+                placeholder="Enter your JWT token (or click 'Get Token' below)"
+                value={tokenInput}
+                onChange={(e) => setTokenInput(e.target.value)}
+                className="token-input"
+              />
+              <button
+                onClick={() => {
+                  const stored = localStorage.getItem('canton_token')
+                  if (stored) setTokenInput(stored)
+                }}
+                className="btn-secondary"
+                disabled={!localStorage.getItem('canton_token')}
+              >
+                Load Saved
+              </button>
+            </div>
+            <div className="token-actions">
+              <button
+                onClick={() => setShowTokenForm(true)}
+                className="btn-get-token"
+              >
+                🔑 Get Token from Keycloak
+              </button>
+            </div>
+            <p className="token-hint">
+              Token is saved in browser localStorage. You can get a token by clicking "Get Token" above or using: <code>scripts/get-keycloak-token.ps1</code>
+            </p>
+          </>
+        ) : (
+          <div className="token-form">
+            <h3>Get Token from Keycloak</h3>
+            <div className="form-group">
+              <label>Username (Email)</label>
+              <input
+                type="text"
+                placeholder="your-email@example.com"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                className="form-input"
+                disabled={tokenLoading}
+              />
+            </div>
+            <div className="form-group">
+              <label>Password</label>
+              <input
+                type="password"
+                placeholder="Enter your password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="form-input"
+                disabled={tokenLoading}
+                onKeyPress={(e) => {
+                  if (e.key === 'Enter' && !tokenLoading) {
+                    getTokenFromKeycloak()
+                  }
+                }}
+              />
+            </div>
+            <div className="form-actions">
+              <button
+                onClick={getTokenFromKeycloak}
+                disabled={tokenLoading || !username || !password}
+                className="btn-primary"
+              >
+                {tokenLoading ? '⏳ Getting Token...' : 'Get Token'}
+              </button>
+              <button
+                onClick={() => {
+                  setShowTokenForm(false)
+                  setUsername('')
+                  setPassword('')
+                }}
+                className="btn-secondary"
+                disabled={tokenLoading}
+              >
+                Cancel
+              </button>
+            </div>
+            <p className="token-hint">
+              Your password is never stored. It's only used to authenticate with Keycloak.
+            </p>
+          </div>
+        )}
       </div>
 
       {error && (
