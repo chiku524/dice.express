@@ -6,10 +6,12 @@
 const LEDGER_URL = process.env.LEDGER_URL || 'https://participant.dev.canton.wolfedgelabs.com/json-api'
 
 // Configuration for TokenBalance (stablecoin)
+// Token structure matches Token.daml: Token with TokenId (newtype)
+// Note: DAML JSON encoding for newtypes is just the wrapped value
 const TOKEN_BALANCE = {
   owner: process.env.ADMIN_PARTY || 'Admin',
   token: {
-    id: { unpack: 'USDC' },
+    id: 'USDC', // TokenId is a newtype wrapping Text, so just use the Text value
     symbol: 'USDC',
     name: 'USD Coin',
     decimals: 6,
