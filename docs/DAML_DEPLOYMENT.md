@@ -1,27 +1,28 @@
-# DAML Code Deployment to Canton
+# DAML Deployment Guide
 
 ## Overview
 
-This guide explains how to deploy the updated DAML contracts to the Canton participant node. After making changes to DAML templates (like making fields Optional), you must rebuild and redeploy the DAR file to Canton.
+This guide explains how to build and deploy DAML contracts to the Canton participant node.
 
 ## Prerequisites
 
-1. **DAML SDK 2.8.0 or later**
+1. **DAML SDK 3.4.9** (or compatible version)
    ```bash
-   # Check if installed
-   daml version
-   
-   # If not installed, download from:
-   # https://github.com/digital-asset/daml/releases
+   daml version  # Should show 3.4.9
    ```
 
-2. **Access to Canton Participant**
-   - Participant URL: `https://participant.dev.canton.wolfedgelabs.com`
-   - Authentication credentials (if required by the participant)
+2. **DPM 1.0.4** (installed)
+   ```bash
+   dpm --version  # Should show 1.0.4
+   ```
 
-3. **Built DAR File**
+3. **Access to Canton Participant**
+   - URL: `https://participant.dev.canton.wolfedgelabs.com`
+   - Currently using v2 API endpoints
+
+4. **Built DAR File**
    - Location: `.daml/dist/prediction-markets-1.0.0.dar`
-   - Created by running `daml build`
+   - Created by running `daml build` (once package issue is resolved)
 
 ## Quick Deployment
 
