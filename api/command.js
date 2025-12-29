@@ -20,18 +20,25 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed', received: req.method })
   }
 
+  // Log for debugging
+  const contentType = req.headers['content-type'] || req.headers['Content-Type'] || ''
+  console.log('[api/command] Content-Type:', contentType)
+  console.log('[api/command] Body type:', typeof req.body)
+  console.log('[api/command] Body exists:', !!req.body)
+
   // Vercel automatically parses JSON bodies for serverless functions
   // Just use req.body directly - it's already parsed
   const requestBody = req.body
 
+  // If body is undefined, it might not have been parsed yet
+  // This shouldn't happen with Vercel, but handle it gracefully
   if (!requestBody) {
-    return res.status(400).json({ error: 'Request body is required' })
-  }
-
-  // Validate Content-Type (informational only - Vercel already parsed it)
-  const contentType = req.headers['content-type'] || req.headers['Content-Type'] || ''
-  if (contentType && !contentType.includes('application/json')) {
-    console.warn('[api/command] Unexpected Content-Type:', contentType, '- but proceeding anyway')
+    console.error('[api/command] No request body - Content-Type was:', contentType)
+    return res.status(400).json({ 
+      error: 'Request body is required',
+      receivedContentType: contentType,
+      hint: 'Ensure Content-Type is application/json'
+    })
   }
 
   // JSON API is at /json-api path (admin-api is at base URL)
