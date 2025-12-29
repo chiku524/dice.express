@@ -2,8 +2,9 @@
 // Located at project root /api/ directory (Vercel requirement)
 export default async function handler(req, res) {
   // Log for debugging - this should appear in Vercel function logs if request reaches here
-  // IMPORTANT: Clone body object to avoid "Body has already been read" error
-  const bodyClone = req.body ? JSON.parse(JSON.stringify(req.body)) : null
+  // IMPORTANT: Store body reference immediately to avoid "Body has already been read" error
+  // Vercel automatically parses JSON bodies, so req.body is already an object
+  const requestBody = req.body
   
   console.log('[api/command] ===== FUNCTION INVOKED =====')
   console.log('[api/command] Request received:', {
@@ -12,7 +13,7 @@ export default async function handler(req, res) {
     path: req.url,
     query: req.query,
     headers: req.headers,
-    body: bodyClone,
+    hasBody: !!requestBody,
   })
   console.log('[api/command] Environment:', {
     nodeVersion: process.version,
@@ -40,10 +41,7 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed', received: req.method })
   }
 
-  // Ensure request body is parsed (Vercel should do this automatically, but check)
-  // Use cloned body to avoid "Body has already been read" error
-  const requestBody = bodyClone || req.body
-  
+  // Ensure request body exists (Vercel automatically parses JSON bodies)
   if (!requestBody) {
     console.error('[api/command] No request body received')
     return res.status(400).json({ error: 'Request body is required' })
