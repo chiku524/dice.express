@@ -1,8 +1,9 @@
 module Setup where
 
 import PredictionMarkets
-import DA.Finance.Types
-import DA.Finance.Interface.Types.Token
+-- DA.Finance.Types doesn't exist - using DA.Finance.Interface.Types.Common.V3.Types instead
+import DA.Finance.Interface.Types.Common.V3.Types
+import DA.Finance.Interface.Instrument.Token.V4.Types as TokenTypes
 import DA.Time
 
 -- Setup script to initialize market configuration

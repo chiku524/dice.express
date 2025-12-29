@@ -1,13 +1,13 @@
 module AMM where
 
 import PredictionMarkets
-import DA.Finance.Asset
-import DA.Finance.Types
-import DA.Finance.Interface.Account
-import DA.Finance.Interface.Holding
-import DA.Finance.Interface.Settlement
-import DA.Finance.Interface.Types.Common
-import DA.Finance.Interface.Types.Token
+-- DA.Finance.Asset and DA.Finance.Types don't exist in current packages
+-- Using DA.Finance.Interface.Types.Common instead
+import DA.Finance.Interface.Account.V4.Account
+import DA.Finance.Interface.Holding.V4.Holding
+import DA.Finance.Interface.Settlement.V4.Instruction
+import DA.Finance.Interface.Types.Common.V3.Types
+import DA.Finance.Interface.Instrument.Token.V4.Types as TokenTypes
 import DA.Set
 import DA.Time
 import DA.List
@@ -125,22 +125,19 @@ template SettlementRequest
         assert_ (allocation.instrumentId == instrumentId) "Allocation instrument mismatch"
         assert_ (allocation.deadline >= currentTime) "Allocation expired"
         
-        key = (party, instrumentId.id.unpack)
-        
-        -- Check if this allocation was required
-        requirementExists = member key requiredAllocations
+        let
+          key = (party, instrumentId.id.unpack)
+          requirementExists = member key requiredAllocations
         
         assert_ requirementExists "Allocation not required for this settlement"
         
         -- Update actual allocations
-        updatedActualAllocations = insert key allocationCid actualAllocations
-        
-        -- Check if all required allocations are present
-        allAllocationsPresent = all (\k -> member k updatedActualAllocations) (keys requiredAllocations)
-        
-        newStatus = if allAllocationsPresent
-          then ReadyToSettle
-          else WaitingForAllocations
+        let
+          updatedActualAllocations = insert key allocationCid actualAllocations
+          allAllocationsPresent = all (\k -> member k updatedActualAllocations) (keys requiredAllocations)
+          newStatus = if allAllocationsPresent
+            then ReadyToSettle
+            else WaitingForAllocations
         
         create this with
           actualAllocations = updatedActualAllocations
@@ -206,9 +203,9 @@ template LiquidityPool
     maintainer key
 
     -- Get current pool state (public view)
-    controller poolOperator can
-      nonconsuming GetPoolState : LiquidityPool
-        do return this
+    choice GetPoolState : LiquidityPool
+      controller poolOperator
+      do return this
 
     -- Add liquidity to the pool
     choice AddLiquidity : ContractId LiquidityPool
@@ -227,39 +224,36 @@ template LiquidityPool
         assert_ (market.status == Active) "Market must be active to add liquidity"
         
         -- Validate amounts match market type
-        validAmounts = case market.marketType of
-          Binary -> yesAmount > 0.0 && noAmount > 0.0 && null (keys outcomeAmounts)
-          MultiOutcome -> yesAmount == 0.0 && noAmount == 0.0 && not (null (keys outcomeAmounts))
+        let
+          validAmounts = case market.marketType of
+            Binary -> yesAmount > 0.0 && noAmount > 0.0 && null (keys outcomeAmounts)
+            MultiOutcome -> yesAmount == 0.0 && noAmount == 0.0 && not (null (keys outcomeAmounts))
         
         assert_ validAmounts "Invalid liquidity amounts for market type"
         
         -- Calculate LP shares to mint (proportional to contribution)
         -- Using constant product formula: x * y = k
-        currentK = yesReserve * noReserve
-        newK = (yesReserve + yesAmount) * (noReserve + noAmount)
-        
-        -- For binary markets
-        lpSharesToMint = if currentK > 0.0
-          then totalLPShares * ((newK / currentK) - 1.0)
-          else yesAmount + noAmount  -- Initial liquidity
+        let
+          currentK = yesReserve * noReserve
+          newK = (yesReserve + yesAmount) * (noReserve + noAmount)
+          lpSharesToMint = if currentK > 0.0
+            then totalLPShares * ((newK / currentK) - 1.0)
+            else yesAmount + noAmount  -- Initial liquidity
+          updatedYesReserve = yesReserve + yesAmount
+          updatedNoReserve = noReserve + noAmount
         
         assert_ (lpSharesToMint > 0.0) "Must add positive liquidity"
         
-        -- In production, would transfer holdings to pool and mint LP tokens
-        -- For now, just update reserves
-        
-        updatedYesReserve = yesReserve + yesAmount
-        updatedNoReserve = noReserve + noAmount
-        
         -- Update outcome reserves for multi-outcome markets
-        updatedOutcomeReserves = foldl
-          (\acc (outcome, amount) ->
-            let current = case lookup outcome acc of
-                  Some v -> v
-                  None -> 0.0
-            in insert outcome (current + amount) acc)
-          outcomeReserves
-          (toList outcomeAmounts)
+        let
+          updatedOutcomeReserves = foldl
+            (\acc (outcome, amount) ->
+              let current = case lookup outcome acc of
+                    Some v -> v
+                    None -> 0.0
+              in insert outcome (current + amount) acc)
+            outcomeReserves
+            (toList outcomeAmounts)
         
         create this with
           yesReserve = updatedYesReserve
@@ -278,25 +272,20 @@ template LiquidityPool
         assert_ (lpSharesToBurn <= totalLPShares) "Cannot remove more than total shares"
         
         -- Calculate proportional amounts to return
-        proportion = lpSharesToBurn / totalLPShares
-        
-        yesAmount = yesReserve * proportion
-        noAmount = noReserve * proportion
-        
-        -- Ensure minimum liquidity remains
-        remainingYes = yesReserve - yesAmount
-        remainingNo = noReserve - noAmount
+        let
+          proportion = lpSharesToBurn / totalLPShares
+          yesAmount = yesReserve * proportion
+          noAmount = noReserve * proportion
+          remainingYes = yesReserve - yesAmount
+          remainingNo = noReserve - noAmount
+          updatedOutcomeReserves = foldl
+            (\acc (outcome, reserve) ->
+              let amountToReturn = reserve * proportion
+              in insert outcome (reserve - amountToReturn) acc)
+            outcomeReserves
+            (toList outcomeReserves)
         
         assert_ (remainingYes >= minLiquidity && remainingNo >= minLiquidity) "Would violate minimum liquidity"
-        
-        -- Calculate outcome amounts for multi-outcome and update reserves
-        -- Iterate through outcome reserves and calculate amounts to return
-        updatedOutcomeReserves = foldl
-          (\acc (outcome, reserve) ->
-            let amountToReturn = reserve * proportion
-            in insert outcome (reserve - amountToReturn) acc)
-          outcomeReserves
-          (toList outcomeReserves)
         
         -- In production, would burn LP tokens and transfer holdings back to provider
         -- For now, just update reserves
@@ -330,51 +319,42 @@ template LiquidityPool
         -- Solving: Δy = (y * Δx) / (x + Δx)
         -- With fee: Δy = (y * Δx * (1 - feeRate)) / (x + Δx * (1 - feeRate))
         
-        outputAmount = case tradeType of
-          Yes -> 
-            let feeMultiplier = 1.0 - feeRate
-                numerator = noReserve * inputAmount * feeMultiplier
-                denominator = yesReserve + (inputAmount * feeMultiplier)
-            in if denominator > 0.0 then numerator / denominator else 0.0
-          No ->
-            let feeMultiplier = 1.0 - feeRate
-                numerator = yesReserve * inputAmount * feeMultiplier
-                denominator = noReserve + (inputAmount * feeMultiplier)
-            in if denominator > 0.0 then numerator / denominator else 0.0
-          Outcome outcome ->
-            -- For multi-outcome, use the outcome reserve
-            let outcomeReserve = case lookup outcome outcomeReserves of
-                  Some r -> r
-                  None -> 0.0
-                feeMultiplier = 1.0 - feeRate
-                numerator = outcomeReserve * inputAmount * feeMultiplier
-                denominator = outcomeReserve + (inputAmount * feeMultiplier)
-            in if denominator > 0.0 then numerator / denominator else 0.0
+        let
+          outputAmount = case tradeType of
+            Yes -> 
+              let feeMultiplier = 1.0 - feeRate
+                  numerator = noReserve * inputAmount * feeMultiplier
+                  denominator = yesReserve + (inputAmount * feeMultiplier)
+              in if denominator > 0.0 then numerator / denominator else 0.0
+            No ->
+              let feeMultiplier = 1.0 - feeRate
+                  numerator = yesReserve * inputAmount * feeMultiplier
+                  denominator = noReserve + (inputAmount * feeMultiplier)
+              in if denominator > 0.0 then numerator / denominator else 0.0
+            Outcome outcome ->
+              -- For multi-outcome, use the outcome reserve
+              let outcomeReserve = case lookup outcome outcomeReserves of
+                    Some r -> r
+                    None -> 0.0
+                  feeMultiplier = 1.0 - feeRate
+                  numerator = outcomeReserve * inputAmount * feeMultiplier
+                  denominator = outcomeReserve + (inputAmount * feeMultiplier)
+              in if denominator > 0.0 then numerator / denominator else 0.0
         
         assert_ (outputAmount >= minOutputAmount) "Slippage tolerance exceeded"
         assert_ (outputAmount > 0.0) "Output amount must be positive"
         
         -- Determine output instrument (the shares being bought)
-        outputInstrumentId = case tradeType of
-          Yes -> Instrument with id = Id "YES_SHARES"
-          No -> Instrument with id = Id "NO_SHARES"
-          Outcome outcome -> Instrument with id = Id (outcome <> "_SHARES")
-        
-        -- Create settlement request ID
-        settlementRequestId = poolId <> "-trade-" <> show currentTime
-        
-        -- Create allocation requirements
-        -- Trader must allocate input asset
-        traderRequirementKey = (trader, inputInstrumentId.id.unpack)
-        
-        -- Pool must allocate output asset (shares)
-        poolRequirementKey = (poolOperator, outputInstrumentId.id.unpack)
-        
-        -- In production, would create AllocationRequirement contracts here
-        -- For now, create empty maps (would be populated via separate choices)
-        
-        emptyRequirements : Map (Party, Text) (ContractId AllocationRequirement) = fromList []
-        emptyAllocations : Map (Party, Text) (ContractId Allocation) = fromList []
+        let
+          outputInstrumentId = case tradeType of
+            Yes -> Instrument with id = Id "YES_SHARES"
+            No -> Instrument with id = Id "NO_SHARES"
+            Outcome outcome -> Instrument with id = Id (outcome <> "_SHARES")
+          settlementRequestId = poolId <> "-trade-" <> show currentTime
+          traderRequirementKey = (trader, inputInstrumentId.id.unpack)
+          poolRequirementKey = (poolOperator, outputInstrumentId.id.unpack)
+          emptyRequirements : Map (Party, Text) (ContractId AllocationRequirement) = fromList []
+          emptyAllocations : Map (Party, Text) (ContractId Allocation) = fromList []
         
         -- Create settlement request
         settlementRequestCid <- create SettlementRequest with
@@ -404,14 +384,15 @@ template LiquidityPool
         assert_ (settlement.poolId == poolId) "Settlement for different pool"
         
         -- Update reserves based on trade
-        (updatedYes, updatedNo, updatedOutcomes) = case tradeType of
-          Yes -> (yesReserve + inputAmount, noReserve - outputAmount, outcomeReserves)
-          No -> (yesReserve - outputAmount, noReserve + inputAmount, outcomeReserves)
-          Outcome outcome ->
-            let updated = case lookup outcome outcomeReserves of
-                  Some r -> insert outcome (r - outputAmount) outcomeReserves
-                  None -> outcomeReserves
-            in (yesReserve + inputAmount, noReserve, updated)
+        let
+          (updatedYes, updatedNo, updatedOutcomes) = case tradeType of
+            Yes -> (yesReserve + inputAmount, noReserve - outputAmount, outcomeReserves)
+            No -> (yesReserve - outputAmount, noReserve + inputAmount, outcomeReserves)
+            Outcome outcome ->
+              let updated = case lookup outcome outcomeReserves of
+                    Some r -> insert outcome (r - outputAmount) outcomeReserves
+                    None -> outcomeReserves
+              in (yesReserve + inputAmount, noReserve, updated)
         
         -- Verify reserves remain positive
         assert_ (updatedYes >= 0.0 && updatedNo >= 0.0) "Reserves cannot be negative"
@@ -453,13 +434,13 @@ template PoolFactory
         assert_ (market.marketId == marketId) "Market ID mismatch"
         
         -- Use provided fees or defaults
-        poolFeeRate = case feeRate of
-          Some f -> f
-          None -> defaultFeeRate
-        
-        poolMinLiquidity = case minLiquidity of
-          Some m -> m
-          None -> defaultMinLiquidity
+        let
+          poolFeeRate = case feeRate of
+            Some f -> f
+            None -> defaultFeeRate
+          poolMinLiquidity = case minLiquidity of
+            Some m -> m
+            None -> defaultMinLiquidity
         
         currentTime <- getTime
         

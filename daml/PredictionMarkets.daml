@@ -1,12 +1,12 @@
 module PredictionMarkets where
 
-import DA.Finance.Asset
-import DA.Finance.Types
-import DA.Finance.Interface.Account
-import DA.Finance.Interface.Holding
-import DA.Finance.Interface.Settlement
-import DA.Finance.Interface.Types.Common
-import DA.Finance.Interface.Types.Token
+-- DA.Finance.Asset and DA.Finance.Types don't exist in current packages
+-- Using DA.Finance.Interface.Types.Common instead
+import DA.Finance.Interface.Account.V4.Account
+import DA.Finance.Interface.Holding.V4.Holding
+import DA.Finance.Interface.Settlement.V4.Instruction
+import DA.Finance.Interface.Types.Common.V3.Types
+import DA.Finance.Interface.Instrument.Token.V4.Types as TokenTypes
 import DA.Finance.Interface.Util
 import DA.Set
 import DA.Time
@@ -46,7 +46,7 @@ template MarketConfig
     partialCloseFee : Decimal
     settlementFee : Decimal
     oracleParty : Party
-    stablecoinCid : ContractId Token
+    stablecoinCid : ContractId TokenTypes.Token
   where
     signatory admin
     key admin : Party
@@ -180,8 +180,8 @@ template Market
     maintainer key
 
     -- Viewers: creator and admin can see market, participants see aggregated data
-    controller creator, admin can
-      nonconsuming GetMarketState : Market
+    choice GetMarketState : Market
+      controller creator, admin
         do return this
 
     -- Create a new position (buy)
@@ -200,9 +200,10 @@ template Market
         config <- fetch configCid
         
         -- Calculate fees
-        feeAmount = if config.positionChangeFee > 0.0
-          then amount * config.positionChangeFee
-          else 0.0
+        let
+          feeAmount = if config.positionChangeFee > 0.0
+            then amount * config.positionChangeFee
+            else 0.0
         
         -- Validate position type matches market type
         validPosition <- case (marketType, positionType) of
@@ -226,21 +227,20 @@ template Market
           createdAt = currentTime
         
         -- Update market volumes
-        updatedYesVolume = if positionType == Yes
-          then yesVolume + amount
-          else yesVolume
-        
-        updatedNoVolume = if positionType == No
-          then noVolume + amount
-          else noVolume
-        
-        updatedOutcomeVolumes = case positionType of
-          Outcome outcome -> 
-            let currentVolume = case lookup outcome outcomeVolumes of
-                  Some vol -> vol
-                  None -> 0.0
-            in insert outcome (currentVolume + amount) outcomeVolumes
-          _ -> outcomeVolumes
+        let
+          updatedYesVolume = if positionType == Yes
+            then yesVolume + amount
+            else yesVolume
+          updatedNoVolume = if positionType == No
+            then noVolume + amount
+            else noVolume
+          updatedOutcomeVolumes = case positionType of
+            Outcome outcome -> 
+              let currentVolume = case lookup outcome outcomeVolumes of
+                    Some vol -> vol
+                    None -> 0.0
+              in insert outcome (currentVolume + amount) outcomeVolumes
+            _ -> outcomeVolumes
         
         -- Update market state
         create this with
@@ -269,35 +269,31 @@ template Market
         config <- fetch configCid
         
         -- Calculate fee on the change
-        changeAmount = abs (newAmount - position.amount)
-        feeAmount = if config.positionChangeFee > 0.0
-          then changeAmount * config.positionChangeFee
-          else 0.0
+        let
+          changeAmount = abs (newAmount - position.amount)
+          feeAmount = if config.positionChangeFee > 0.0
+            then changeAmount * config.positionChangeFee
+            else 0.0
+          oldAmount = position.amount
+          amountDiff = newAmount - oldAmount
+          updatedYesVolume = if position.positionType == Yes
+            then yesVolume + amountDiff
+            else yesVolume
+          updatedNoVolume = if position.positionType == No
+            then noVolume + amountDiff
+            else noVolume
+          updatedOutcomeVolumes = case position.positionType of
+            Outcome outcome -> 
+              let currentVolume = case lookup outcome outcomeVolumes of
+                    Some vol -> vol
+                    None -> 0.0
+              in insert outcome (currentVolume + amountDiff) outcomeVolumes
+            _ -> outcomeVolumes
         
         -- Update position
         _ <- exercise positionCid UpdatePositionAmount with
           newAmount = newAmount
           newPrice = newPrice
-        
-        -- Update market volumes
-        oldAmount = position.amount
-        amountDiff = newAmount - oldAmount
-        
-        updatedYesVolume = if position.positionType == Yes
-          then yesVolume + amountDiff
-          else yesVolume
-        
-        updatedNoVolume = if position.positionType == No
-          then noVolume + amountDiff
-          else noVolume
-        
-        updatedOutcomeVolumes = case position.positionType of
-          Outcome outcome -> 
-            let currentVolume = case lookup outcome outcomeVolumes of
-                  Some vol -> vol
-                  None -> 0.0
-            in insert outcome (currentVolume + amountDiff) outcomeVolumes
-          _ -> outcomeVolumes
         
         create this with
           totalVolume = totalVolume + amountDiff
@@ -324,34 +320,31 @@ template Market
         config <- fetch configCid
         
         -- Calculate fee
-        feeAmount = if config.partialCloseFee > 0.0
-          then closeAmount * config.partialCloseFee
-          else 0.0
+        let
+          feeAmount = if config.partialCloseFee > 0.0
+            then closeAmount * config.partialCloseFee
+            else 0.0
+          newAmount = position.amount - closeAmount
+          updatedYesVolume = if position.positionType == Yes
+            then yesVolume - closeAmount
+            else yesVolume
+          updatedNoVolume = if position.positionType == No
+            then noVolume - closeAmount
+            else noVolume
+          updatedOutcomeVolumes = case position.positionType of
+            Outcome outcome -> 
+              let currentVolume = case lookup outcome outcomeVolumes of
+                    Some vol -> vol
+                    None -> 0.0
+              in insert outcome (currentVolume - closeAmount) outcomeVolumes
+            _ -> outcomeVolumes
         
         -- Update position
-        newAmount = position.amount - closeAmount
         _ <- if newAmount > 0.0
           then exercise positionCid UpdatePositionAmount with
             newAmount = newAmount
             newPrice = position.price
           else exercise positionCid Archive
-        
-        -- Update market volumes
-        updatedYesVolume = if position.positionType == Yes
-          then yesVolume - closeAmount
-          else yesVolume
-        
-        updatedNoVolume = if position.positionType == No
-          then noVolume - closeAmount
-          else noVolume
-        
-        updatedOutcomeVolumes = case position.positionType of
-          Outcome outcome -> 
-            let currentVolume = case lookup outcome outcomeVolumes of
-                  Some vol -> vol
-                  None -> 0.0
-            in insert outcome (currentVolume - closeAmount) outcomeVolumes
-          _ -> outcomeVolumes
         
         create this with
           totalVolume = totalVolume - closeAmount
@@ -369,10 +362,11 @@ template Market
         
         -- Check if trigger condition is met
         currentTime <- getTime
-        triggerMet = case settlementTrigger of
-          TimeBased triggerTime -> currentTime >= triggerTime
-          EventBased _ -> True  -- Oracle data indicates event occurred
-          Manual -> True
+        let
+          triggerMet = case settlementTrigger of
+            TimeBased triggerTime -> currentTime >= triggerTime
+            EventBased _ -> True  -- Oracle data indicates event occurred
+            Manual -> True
         
         assert_ triggerMet "Settlement trigger condition not met"
         
@@ -391,9 +385,10 @@ template Market
         assert_ (settlementStep == 1) "Must be at resolution step"
         
         -- Validate outcome
-        validOutcome = case marketType of
-          Binary -> outcome == "Yes" || outcome == "No"
-          MultiOutcome -> outcome `elem` outcomes
+        let
+          validOutcome = case marketType of
+            Binary -> outcome == "Yes" || outcome == "No"
+            MultiOutcome -> outcome `elem` outcomes
         
         assert_ validOutcome "Invalid outcome for market type"
         
@@ -450,9 +445,9 @@ template Position
     maintainer key
 
     -- Only owner can view their position
-    controller owner can
-      nonconsuming GetPosition : Position
-        do return this
+    choice GetPosition : Position
+      controller owner
+      do return this
 
     choice UpdatePositionAmount : ContractId Position
       with
