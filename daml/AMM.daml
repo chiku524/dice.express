@@ -78,9 +78,9 @@ template Allocation
     maintainer key
 
     -- Settlement app can exercise to complete settlement
-    controller party can
-      nonconsuming GetAllocation : Allocation
-        do return this
+    choice GetAllocation : Allocation
+      controller party
+      do return this
 
     -- Archive allocation after settlement or expiration
     choice ArchiveAllocation : ()

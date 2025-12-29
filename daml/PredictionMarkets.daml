@@ -107,11 +107,11 @@ template MarketCreationRequest
         currentTime <- getTime
         
         -- Calculate fee
-        feeAmount = if config.marketCreationFee > 0.0
-          then config.marketCreationFee
-          else 0.0
-        
-        returnAmount = depositAmount - feeAmount
+        let
+          feeAmount = if config.marketCreationFee > 0.0
+            then config.marketCreationFee
+            else 0.0
+          returnAmount = depositAmount - feeAmount
         
         -- If fee exists, transfer to admin account
         -- Note: This is simplified - proper implementation would use Settlement interface

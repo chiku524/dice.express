@@ -96,12 +96,14 @@ foreach ($pkg in $packages) {
             continue
         }
         
-        # Read YAML as lines to preserve structure (remove BOM if present)
-        $yamlContent = [System.IO.File]::ReadAllText((Resolve-Path $yamlPath), [System.Text.Encoding]::UTF8)
-        # Remove BOM if present
-        if ($yamlContent.StartsWith([char]0xFEFF)) {
-            $yamlContent = $yamlContent.Substring(1)
+        # Read YAML as lines to preserve structure (handle BOM correctly)
+        $yamlBytes = [System.IO.File]::ReadAllBytes((Resolve-Path $yamlPath))
+        # Remove BOM if present (UTF-8 BOM is EF BB BF)
+        if ($yamlBytes.Length -ge 3 -and $yamlBytes[0] -eq 0xEF -and $yamlBytes[1] -eq 0xBB -and $yamlBytes[2] -eq 0xBF) {
+            $yamlBytes = $yamlBytes[3..($yamlBytes.Length-1)]
         }
+        $utf8NoBom = New-Object System.Text.UTF8Encoding $false
+        $yamlContent = $utf8NoBom.GetString($yamlBytes)
         $yamlLines = $yamlContent -split "`r?`n"
         
         # Backup original
