@@ -19,9 +19,13 @@ where grpcurl >nul 2>&1
 if errorlevel 1 (
     echo ERROR: grpcurl is not installed or not in PATH
     echo.
-    echo Please install grpcurl:
-    echo   Windows: choco install grpcurl
-    echo   Or download from: https://github.com/fullstorydev/grpcurl/releases
+    echo Please install grpcurl manually:
+    echo   1. Download from: https://github.com/fullstorydev/grpcurl/releases/latest
+    echo   2. Extract grpcurl.exe
+    echo   3. Add to PATH or copy to C:\Windows\System32
+    echo.
+    echo For detailed instructions, run:
+    echo   scripts\install-grpcurl.bat
     echo.
     pause
     exit /b 1
