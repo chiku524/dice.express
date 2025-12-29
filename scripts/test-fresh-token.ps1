@@ -144,10 +144,33 @@ try {
         try {
             $reader = New-Object System.IO.StreamReader($_.Exception.Response.GetResponseStream())
             $responseBody = $reader.ReadToEnd()
-            Write-Host "Response:" -ForegroundColor Yellow
-            Write-Host $responseBody
+            $reader.Close()
+            
+            Write-Host "Response Body:" -ForegroundColor Yellow
+            if ($responseBody) {
+                Write-Host $responseBody
+                
+                # Try to parse as JSON for better formatting
+                try {
+                    $jsonResponse = $responseBody | ConvertFrom-Json
+                    Write-Host ""
+                    Write-Host "Parsed Response:" -ForegroundColor Cyan
+                    Write-Host ($jsonResponse | ConvertTo-Json -Depth 10)
+                } catch {
+                    # Not JSON, that's fine
+                }
+            } else {
+                Write-Host "(empty response body)" -ForegroundColor Gray
+            }
         } catch {
-            Write-Host "Could not read response body" -ForegroundColor Yellow
+            Write-Host "Could not read response body: $($_.Exception.Message)" -ForegroundColor Yellow
+        }
+        
+        # Also check error details
+        if ($_.ErrorDetails) {
+            Write-Host ""
+            Write-Host "Error Details:" -ForegroundColor Yellow
+            Write-Host $_.ErrorDetails.Message
         }
     } else {
         Write-Host "Error: $($_.Exception.Message)" -ForegroundColor Red
