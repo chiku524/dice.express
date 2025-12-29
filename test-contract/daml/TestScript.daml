@@ -1,0 +1,40 @@
+module TestScript where
+
+import TestContract
+import Daml.Script
+
+-- Test script to verify DAML code works locally
+testScript : Script ()
+testScript = do
+  -- Create a test party
+  alice <- allocateParty "Alice"
+  
+  -- Get current time
+  now <- getTime
+  
+  -- Create a HelloWorld contract
+  helloCid <- submit alice do
+    createCmd HelloWorld with
+      owner = alice
+      message = "Hello from DAML!"
+      createdAt = now
+  
+  -- Exercise SayHello choice
+  result <- submit alice do
+    exerciseCmd helloCid SayHello
+  
+  -- Log the result
+  debug result
+  
+  -- Update the message
+  updatedCid <- submit alice do
+    exerciseCmd helloCid UpdateMessage with newMessage = "Updated message!"
+  
+  -- Verify the update worked
+  updated <- submit alice do
+    exerciseCmd updatedCid SayHello
+  
+  debug updated
+  
+  return ()
+

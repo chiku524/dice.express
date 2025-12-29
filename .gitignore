@@ -38,4 +38,8 @@ logs/
 # Temporary files
 *.tmp
 *.temp
+token.json
+token-response.json
+token-verbose.log
+temp_token.txt
 
