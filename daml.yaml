@@ -13,4 +13,6 @@ data-dependencies:
   - .lib/daml-finance-interface-types-common.dar
   - .lib/daml-finance-interface-instrument-token.dar
   - .lib/daml-finance-interface-util.dar
+build-options:
+  - --target=2.1
 
