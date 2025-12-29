@@ -1,0 +1,56 @@
+# Vercel Ignore File
+# Files/directories listed here won't trigger deployments when changed
+
+# Documentation (doesn't affect frontend build)
+docs/
+*.md
+README.md
+QUICKSTART.md
+
+# Scripts (doesn't affect frontend build)
+scripts/
+
+# DAML source files (frontend doesn't depend on these)
+daml/
+.daml/
+*.dar
+daml.yaml
+daml.yaml.lock
+
+# Test contracts
+test-contract/
+
+# Oracle service (separate deployment)
+oracle/
+
+# Token files (sensitive, shouldn't be in repo anyway)
+token.json
+token.txt
+token-response.json
+token-verbose.log
+temp_token.txt
+grpc_request.json
+
+# Git files
+.git/
+.gitignore
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+logs/
+*.log
+
+# Temporary files
+*.tmp
+*.temp
+
