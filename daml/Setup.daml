@@ -6,47 +6,40 @@ import Daml.Script
 import DA.Time
 
 -- Setup script to initialize market configuration
--- Note: This script should be run after obtaining the stablecoin contract ID
--- The stablecoinCid parameter must be provided when running this script
+-- This script:
+-- 1. Allocates parties (Admin and Oracle)
+-- 2. Creates a TokenBalance contract (stablecoin)
+-- 3. Creates a MarketConfig contract using the token balance
 setup : Script (ContractId MarketConfig)
 setup = do
   -- Allocate parties
   admin <- allocatePartyWithHint "Admin" (PartyIdHint "admin")
   oracleParty <- allocatePartyWithHint "Oracle" (PartyIdHint "oracle")
   
-  -- IMPORTANT: stablecoinCid must be obtained before running this script
-  -- Options:
-  -- 1. Query for existing token balance using query @TokenBalance
-  -- 2. Create a new token balance first
-  -- 3. Pass as a script parameter (requires modifying script signature)
-  --
-  -- For now, this script will need to be modified to:
-  -- - Query for the token balance, or
-  -- - Accept it as a parameter
-  --
-  -- Example query approach (uncomment and modify):
-  -- balances <- query @TokenBalance (const True)
-  -- case balances of
-  --   [] -> error "No token balances found. Create a token balance first."
-  --   (balance :: _) -> do
-  --     let stablecoinCid = balance.contractId
-  --     ...
+  -- Create a token balance (stablecoin) for the admin
+  -- This will be used as the stablecoin for the market
+  stablecoinCid <- submit admin do
+    create TokenBalance with
+      owner = admin
+      token = Token with
+        id = TokenId "USDC"
+        symbol = "USDC"
+        name = "USD Coin"
+        decimals = 6
+        description = "Stablecoin for prediction markets"
+      amount = 1000000.0  -- 1 million USDC
   
-  -- Placeholder: This must be replaced with actual token contract ID
-  -- The script will fail at runtime if this is not set correctly
-  -- In production, use one of the approaches above to get the contract ID
-  abort "Setup script requires stablecoin contract ID. Please query for or create a token contract first, then modify this script to use it."
+  -- Create MarketConfig using the token balance
+  configCid <- submit admin do
+    create MarketConfig with
+      admin = admin
+      marketCreationDeposit = 100.0
+      marketCreationFee = 0.0
+      positionChangeFee = 0.0
+      partialCloseFee = 0.0
+      settlementFee = 0.0
+      oracleParty = oracleParty
+      stablecoinCid = stablecoinCid
   
-  -- Unreachable code - kept for reference of structure
-  -- configCid <- submit admin do
-  --   create MarketConfig with
-  --     admin = admin
-  --     marketCreationDeposit = 100.0
-  --     marketCreationFee = 0.0
-  --     positionChangeFee = 0.0
-  --     partialCloseFee = 0.0
-  --     settlementFee = 0.0
-  --     oracleParty = oracleParty
-  --     stablecoinCid = stablecoinCid
-  -- return configCid
+  return configCid
 
