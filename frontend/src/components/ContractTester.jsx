@@ -112,23 +112,26 @@ export default function ContractTester() {
       }
 
       // Use Vercel API proxy to avoid CORS
+      const requestPayload = {
+        actAs: [PARTY_ID],
+        commandId: `test-${contractType.toLowerCase()}-${Date.now()}`,
+        applicationId: 'prediction-markets',
+        commands: [{
+          CreateCommand: {
+            templateId: templateId,
+            createArguments: createArguments
+          }
+        }]
+      }
+
       const response = await fetch('/api/command', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Accept': 'application/json',
           'Authorization': `Bearer ${token}`,
         },
-        body: JSON.stringify({
-          actAs: [PARTY_ID],
-          commandId: `test-${contractType.toLowerCase()}-${Date.now()}`,
-          applicationId: 'prediction-markets',
-          commands: [{
-            CreateCommand: {
-              templateId: templateId,
-              createArguments: createArguments
-            }
-          }]
-        })
+        body: JSON.stringify(requestPayload)
       })
 
       const data = await response.json()
