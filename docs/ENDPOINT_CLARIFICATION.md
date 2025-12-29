@@ -1,7 +1,8 @@
 # Endpoint Path Clarification
 
-## Client Update
+## Client Updates
 
+### Update 1
 **Huzefa Shakir:**
 > "I have changed the paths
 > 
@@ -11,21 +12,36 @@
 > 
 > participant.dev.canton.wolfedgelabs.com/json-api is for json-api"
 
+### Update 2
+**Huzefa Shakir:**
+> "I have changed the paths
+> 
+> participant.dev.canton.wolfedgelabs.com is for admin-api 
+> 
+> and 
+> 
+> participant.dev.canton.wolfedgelabs.com/json-api is for json-api
+> 
+> I have exposed the grpc admin-api on participant.dev.canton.wolfedgelabs.com/admin-api"
+
 ## Correct Endpoints
 
 ### Admin API (gRPC)
 - **Base URL**: `participant.dev.canton.wolfedgelabs.com:443`
+- **Alternative**: `participant.dev.canton.wolfedgelabs.com/admin-api` (gRPC)
 - **Protocol**: gRPC
 - **Usage**: DAR file uploads, admin operations
 - **Service**: `com.digitalasset.canton.admin.participant.v30.PackageService/UploadDar`
 
 ### JSON API (HTTP/JSON)
-- **Base URL**: `participant.dev.canton.wolfedgelabs.com/json-api`
+- **Base URL**: `https://participant.dev.canton.wolfedgelabs.com/json-api`
 - **Protocol**: HTTP/JSON
 - **Usage**: Contract queries, command submissions
 - **Endpoints**: 
-  - `/v2/commands/submit-and-wait` (or `/v1/command`)
-  - `/v1/query` (or `/v2/query`)
+  - `/v2/commands/submit-and-wait` - Submit commands and wait for completion
+  - `/v1/command` - Legacy command endpoint (may not be available)
+  - `/v2/query` - Query contracts
+  - `/v1/query` - Legacy query endpoint (may not be available)
 
 ## Updated Configuration
 
