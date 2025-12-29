@@ -45,10 +45,18 @@ export default async function handler(req, res) {
   console.log('[api/command] Processing request body:', JSON.stringify(requestBody).substring(0, 200))
 
   // JSON API is at /json-api path (admin-api is at base URL)
-  const LEDGER_URL = process.env.VITE_LEDGER_URL || 'https://participant.dev.canton.wolfedgelabs.com/json-api'
+  // Ensure we have the full JSON API URL
+  let LEDGER_URL = process.env.VITE_LEDGER_URL || process.env.LEDGER_URL || 'https://participant.dev.canton.wolfedgelabs.com/json-api'
+  
+  // Ensure /json-api is in the URL
+  if (!LEDGER_URL.includes('/json-api')) {
+    LEDGER_URL = LEDGER_URL.replace(/\/$/, '') + '/json-api'
+  }
 
   try {
     const baseUrl = LEDGER_URL.replace(/\/$/, '')
+    
+    console.log('[api/command] Base URL:', baseUrl)
     
     // Try v1 endpoints first (they might be more stable)
     // Then try v2 endpoints
@@ -58,6 +66,8 @@ export default async function handler(req, res) {
       `${baseUrl}/v2/command`,
       `${baseUrl}/v2/commands/submit-and-wait`,
     ]
+    
+    console.log('[api/command] Will try endpoints:', possibleEndpoints)
 
     // Extract token from Authorization header or request body
     const authHeader = req.headers.authorization || req.headers.Authorization
@@ -161,13 +171,24 @@ export default async function handler(req, res) {
               break
             }
             
-            // If 415, try next Content-Type
-            lastContentTypeError = {
-              contentType,
-              status: responseAttempt.status,
-              message: await responseAttempt.text().catch(() => 'Could not read error message')
+            // If 415, clone the response to read the error message without consuming the body
+            const clonedResponse = responseAttempt.clone()
+            try {
+              const errorText = await clonedResponse.text()
+              lastContentTypeError = {
+                contentType,
+                status: responseAttempt.status,
+                message: errorText.substring(0, 200)
+              }
+              console.log('[api/command] 415 with Content-Type:', contentType, '- trying next...')
+            } catch (readError) {
+              lastContentTypeError = {
+                contentType,
+                status: responseAttempt.status,
+                message: 'Could not read error message'
+              }
+              console.log('[api/command] 415 with Content-Type:', contentType, '- trying next...')
             }
-            console.log('[api/command] 415 with Content-Type:', contentType, '- trying next...')
           } catch (contentTypeError) {
             console.log('[api/command] Error with Content-Type:', contentType, contentTypeError.message)
             lastContentTypeError = { contentType, error: contentTypeError.message }
