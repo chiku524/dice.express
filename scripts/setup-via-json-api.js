@@ -161,6 +161,7 @@ async function setup() {
   const tokenBalanceCommandV2 = {
     actAs: [ADMIN_PARTY],
     commandId: `create-token-balance-${Date.now()}`,
+    applicationId: 'prediction-markets',
     commands: [
       {
         CreateCommand: {
@@ -238,6 +239,7 @@ async function setup() {
     const marketConfigCommandV2 = {
       actAs: [ADMIN_PARTY],
       commandId: `create-market-config-${Date.now()}`,
+      applicationId: 'prediction-markets',
       commands: [
         {
           CreateCommand: {
