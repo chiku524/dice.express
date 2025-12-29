@@ -177,11 +177,11 @@ export default async function handler(req, res) {
           // For 400 errors, try other formats as it might be a format issue
           // For other errors (401, 403, 500), return immediately as they're not format-related
           if (response.status !== 404) {
-            const contentType = response.headers.get('content-type')
+            const responseContentType = response.headers.get('content-type')
             let errorText = ''
             let errorData = null
             try {
-              if (contentType && contentType.includes('application/json')) {
+              if (responseContentType && responseContentType.includes('application/json')) {
                 errorData = await response.json()
                 errorText = JSON.stringify(errorData)
               } else {
@@ -240,14 +240,14 @@ export default async function handler(req, res) {
     }
     
     // Check if response is JSON before parsing
-    const contentType = response.headers.get('content-type')
-    console.log('[api/command] Response content-type:', contentType)
+    const responseContentType = response.headers.get('content-type')
+    console.log('[api/command] Response content-type:', responseContentType)
     console.log('[api/command] Response status:', response.status)
     console.log('[api/command] Successful response from:', usedEndpoint)
     
     let data
     try {
-      if (contentType && contentType.includes('application/json')) {
+      if (responseContentType && responseContentType.includes('application/json')) {
         data = await response.json()
       } else {
         const text = await response.text()

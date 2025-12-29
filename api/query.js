@@ -37,6 +37,18 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed', received: req.method })
   }
 
+  // Ensure request body is parsed (Vercel should do this automatically, but check)
+  if (!req.body) {
+    console.error('[api/query] No request body received')
+    return res.status(400).json({ error: 'Request body is required' })
+  }
+
+  // Check Content-Type
+  const requestContentType = req.headers['content-type'] || req.headers['Content-Type']
+  if (requestContentType && !requestContentType.includes('application/json')) {
+    console.warn('[api/query] Unexpected Content-Type:', requestContentType)
+  }
+
   // JSON API is at /json-api path (admin-api is at base URL)
   const LEDGER_URL = process.env.VITE_LEDGER_URL || 'https://participant.dev.canton.wolfedgelabs.com/json-api'
 
@@ -59,6 +71,7 @@ export default async function handler(req, res) {
     
     console.log('[api/query] Trying endpoints:', possibleEndpoints)
     console.log('[api/query] Request body:', JSON.stringify(req.body))
+    console.log('[api/query] Content-Type:', requestContentType)
     
     // Ensure request body matches Canton JSON API format
     const requestBody = {
