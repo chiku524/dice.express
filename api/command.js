@@ -1,15 +1,5 @@
 // Vercel serverless function to proxy Canton JSON API commands
 // Located at project root /api/ directory (Vercel requirement)
-
-// Disable body parsing - we'll handle it manually to avoid "Body has already been read" errors
-export const config = {
-  api: {
-    bodyParser: {
-      sizeLimit: '1mb',
-    },
-  },
-}
-
 export default async function handler(req, res) {
   // Enable CORS first
   res.setHeader('Access-Control-Allow-Credentials', true)
@@ -30,28 +20,9 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed', received: req.method })
   }
 
-  // Parse body manually to avoid "Body has already been read" error
-  let requestBody
-  try {
-    // Vercel automatically parses JSON, but we'll be safe and handle it
-    if (typeof req.body === 'string') {
-      requestBody = JSON.parse(req.body)
-    } else if (req.body && typeof req.body === 'object') {
-      // Already parsed by Vercel
-      requestBody = req.body
-    } else {
-      // Read from stream if needed (shouldn't happen in Vercel)
-      const chunks = []
-      for await (const chunk of req) {
-        chunks.push(chunk)
-      }
-      const bodyString = Buffer.concat(chunks).toString()
-      requestBody = JSON.parse(bodyString)
-    }
-  } catch (parseError) {
-    console.error('[api/command] Error parsing body:', parseError)
-    return res.status(400).json({ error: 'Invalid JSON in request body', details: parseError.message })
-  }
+  // Vercel automatically parses JSON bodies, so req.body is already an object
+  // Store it immediately to avoid any potential issues
+  const requestBody = req.body
 
   if (!requestBody) {
     return res.status(400).json({ error: 'Request body is required' })
