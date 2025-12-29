@@ -50,11 +50,13 @@ export default async function handler(req, res) {
   try {
     const baseUrl = LEDGER_URL.replace(/\/$/, '')
     
+    // Try v1 endpoints first (they might be more stable)
+    // Then try v2 endpoints
     const possibleEndpoints = [
-      `${baseUrl}/v2/commands/submit-and-wait`,
       `${baseUrl}/v1/command`,
-      `${baseUrl}/v2/command`,
       `${baseUrl}/command`,
+      `${baseUrl}/v2/command`,
+      `${baseUrl}/v2/commands/submit-and-wait`,
     ]
 
     // Extract token from Authorization header or request body
@@ -117,24 +119,66 @@ export default async function handler(req, res) {
       const bodyToSend = isV2Endpoint ? requestBodyV2 : requestBody
 
       try {
-        const headers = {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
+        // Try different Content-Type headers - Canton might be picky
+        const contentTypeOptions = [
+          'application/json; charset=utf-8',
+          'application/json',
+          'application/grpc-web+json',
+          'application/grpc-web',
+        ]
+        
+        let responseAttempt = null
+        let lastContentTypeError = null
+        
+        // Try each Content-Type option
+        for (const contentType of contentTypeOptions) {
+          try {
+            const headers = {
+              'Content-Type': contentType,
+              'Accept': 'application/json',
+            }
+
+            if (token) {
+              headers['Authorization'] = `Bearer ${token}`
+            }
+
+            console.log('[api/command] Trying endpoint:', commandUrl)
+            console.log('[api/command] Content-Type:', contentType)
+            console.log('[api/command] Sending body:', JSON.stringify(bodyToSend).substring(0, 300))
+
+            responseAttempt = await fetch(commandUrl, {
+              method: 'POST',
+              headers: headers,
+              body: JSON.stringify(bodyToSend),
+              redirect: 'follow',
+            })
+
+            console.log('[api/command] Response status:', responseAttempt.status)
+            
+            // If we get a non-415 error, this Content-Type worked (or at least wasn't rejected for Content-Type)
+            if (responseAttempt.status !== 415) {
+              response = responseAttempt
+              break
+            }
+            
+            // If 415, try next Content-Type
+            lastContentTypeError = {
+              contentType,
+              status: responseAttempt.status,
+              message: await responseAttempt.text().catch(() => 'Could not read error message')
+            }
+            console.log('[api/command] 415 with Content-Type:', contentType, '- trying next...')
+          } catch (contentTypeError) {
+            console.log('[api/command] Error with Content-Type:', contentType, contentTypeError.message)
+            lastContentTypeError = { contentType, error: contentTypeError.message }
+            continue
+          }
         }
-
-        if (token) {
-          headers['Authorization'] = `Bearer ${token}`
+        
+        // If we tried all Content-Types and still got 415, use the last response
+        if (!response && responseAttempt) {
+          response = responseAttempt
         }
-
-        console.log('[api/command] Trying endpoint:', commandUrl)
-        console.log('[api/command] Sending body:', JSON.stringify(bodyToSend).substring(0, 300))
-
-        response = await fetch(commandUrl, {
-          method: 'POST',
-          headers: headers,
-          body: JSON.stringify(bodyToSend),
-          redirect: 'follow',
-        })
 
         console.log('[api/command] Response status:', response.status)
         console.log('[api/command] Response headers:', Object.fromEntries(response.headers.entries()))
