@@ -121,6 +121,9 @@ export default async function handler(req, res) {
     
     // Log the full request for debugging
     console.log('[api/command] Transformed v2 request body:', JSON.stringify(requestBodyV2, null, 2))
+    console.log('[api/command] Party:', party)
+    console.log('[api/command] Command ID:', commandId)
+    console.log('[api/command] Number of commands:', transformedCommands.length)
     
     // Try each endpoint until one works
     let lastError = null
