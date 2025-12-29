@@ -1,10 +1,10 @@
 module AMM where
 
 import PredictionMarkets
-import Token (Token, TokenId, TokenBalance, Instrument, InstrumentId(..))
+import Token (Token, TokenId, TokenBalance, Instrument(..), InstrumentId(..))
 import DA.Set
 import DA.Time
-import DA.List
+import DA.List qualified as List
 import DA.Optional
 import DA.Text
 import DA.Map qualified as Map
@@ -133,7 +133,7 @@ template SettlementRequest
 
     -- Execute settlement when all allocations are present
     -- This performs atomic transfer of all assets
-    choice ExecuteSettlement : ContractId SettlementRequest
+    choice ExecuteSettlementRequest : ContractId SettlementRequest
       controller poolParty
       do
         currentTime <- getTime
@@ -212,8 +212,8 @@ template LiquidityPool
         -- Validate amounts match market type
         let
           validAmounts = case market.marketType of
-            Binary -> yesAmount > 0.0 && noAmount > 0.0 && null (Map.keys outcomeAmounts)
-            MultiOutcome -> yesAmount == 0.0 && noAmount == 0.0 && not (null (Map.keys outcomeAmounts))
+            Binary -> yesAmount > 0.0 && noAmount > 0.0 && List.null (Map.keys outcomeAmounts)
+            MultiOutcome -> yesAmount == 0.0 && noAmount == 0.0 && not (List.null (Map.keys outcomeAmounts))
         
         _ <- if not validAmounts then abort "Invalid liquidity amounts for market type" else pure ()
         
@@ -239,7 +239,7 @@ template LiquidityPool
                     None -> 0.0
               in Map.insert outcome (current + amount) acc)
             outcomeReserves
-            (toList outcomeAmounts)
+            (Map.toList outcomeAmounts)
         
         create this with
           yesReserve = updatedYesReserve
@@ -269,7 +269,7 @@ template LiquidityPool
               let amountToReturn = reserve * proportion
               in Map.insert outcome (reserve - amountToReturn) acc)
             outcomeReserves
-            (toList outcomeReserves)
+            (Map.toList outcomeReserves)
         
         _ <- if remainingYes < minLiquidity || remainingNo < minLiquidity then abort "Would violate minimum liquidity" else pure ()
         
