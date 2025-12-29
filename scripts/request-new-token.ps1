@@ -20,11 +20,33 @@ Write-Host "Username: $Username" -ForegroundColor Gray
 Write-Host "Client ID: $ClientId" -ForegroundColor Gray
 Write-Host ""
 
-& ".\scripts\get-keycloak-token.ps1" -Username $Username -Password $Password -ClientId $ClientId
-
-if ($LASTEXITCODE -ne 0) {
+try {
+    & ".\scripts\get-keycloak-token.ps1" -Username $Username -Password $Password -ClientId $ClientId
+    
+    if ($LASTEXITCODE -ne 0 -and $LASTEXITCODE -ne $null) {
+        Write-Host ""
+        Write-Host "❌ Failed to get token (exit code: $LASTEXITCODE)" -ForegroundColor Red
+        exit 1
+    }
+    
+    # Check if token.json was created
+    if (-not (Test-Path "token.json")) {
+        Write-Host ""
+        Write-Host "❌ Failed to get token (token.json not created)" -ForegroundColor Red
+        exit 1
+    }
+    
+    $tokenData = Get-Content "token.json" -Raw | ConvertFrom-Json
+    if (-not $tokenData.access_token) {
+        Write-Host ""
+        Write-Host "❌ Failed to get token (no access_token in response)" -ForegroundColor Red
+        exit 1
+    }
+    
+    Write-Host "✅ Token obtained successfully" -ForegroundColor Green
+} catch {
     Write-Host ""
-    Write-Host "❌ Failed to get token" -ForegroundColor Red
+    Write-Host "❌ Failed to get token: $($_.Exception.Message)" -ForegroundColor Red
     exit 1
 }
 

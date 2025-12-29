@@ -39,7 +39,8 @@ try {
         $response | ConvertTo-Json | Out-File -FilePath "token.json" -Encoding UTF8
         Write-Host "Token saved to token.json" -ForegroundColor Green
         Write-Host "Token (first 50 chars): $($response.access_token.Substring(0, [Math]::Min(50, $response.access_token.Length)))..." -ForegroundColor Gray
-        return $response.access_token
+        # Exit with success code (don't return token to avoid printing it)
+        exit 0
     } else {
         Write-Host "ERROR: No access_token in response" -ForegroundColor Red
         Write-Host "Response: $($response | ConvertTo-Json)" -ForegroundColor Yellow
