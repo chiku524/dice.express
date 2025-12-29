@@ -85,7 +85,7 @@ Write-Host ""
 # Get token
 if (-not (Test-Path $TokenFile)) {
     Write-Host "Getting authentication token..." -ForegroundColor Cyan
-    & "scripts\get-keycloak-token.bat"
+    & "scripts\get-keycloak-token.ps1" -ClientId "Prediction-Market"
     if (-not (Test-Path $TokenFile)) {
         Write-Host "ERROR: Could not get token" -ForegroundColor Red
         exit 1
