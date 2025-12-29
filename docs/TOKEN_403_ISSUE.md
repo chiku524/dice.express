@@ -43,8 +43,8 @@ Token includes:
 - Token might need resource-specific permissions
 
 ### 3. Endpoint-Specific Validation
-- `/v2/packages` might require different token format
-- Might need to use `/v1/packages` instead
+- ✅ **CORRECT ENDPOINT**: `/v2/dars` (confirmed by client)
+- ❌ `/v2/packages` was incorrect (returns 404)
 - Might need additional headers
 
 ### 4. Token Audience Mismatch
@@ -58,20 +58,14 @@ Token includes:
 Ask about:
 1. **Token validation requirements** - What does Canton check?
 2. **Required permissions** - Does user need specific roles?
-3. **Alternative endpoints** - Is `/v2/packages` the correct endpoint?
+3. ✅ **Endpoint confirmed**: `/v2/dars` (client confirmed)
 4. **Token format** - Are there additional claims needed?
 
-### Option 2: Try Different Endpoints
+### Option 2: Use Correct Endpoint
 
+✅ **CORRECT ENDPOINT** (confirmed by client):
 ```bash
-# Try v1 endpoint
-curl -X POST "https://participant.dev.canton.wolfedgelabs.com/v1/packages" \
-  -H "Content-Type: application/octet-stream" \
-  -H "Authorization: Bearer TOKEN" \
-  --data-binary "@test-contract\.daml\dist\prediction-markets-test-1.0.0.dar"
-
-# Try without version
-curl -X POST "https://participant.dev.canton.wolfedgelabs.com/packages" \
+curl -X POST "https://participant.dev.canton.wolfedgelabs.com/v2/dars" \
   -H "Content-Type: application/octet-stream" \
   -H "Authorization: Bearer TOKEN" \
   --data-binary "@test-contract\.daml\dist\prediction-markets-test-1.0.0.dar"
@@ -97,9 +91,10 @@ The token appears correct but Canton is rejecting it. This suggests:
 - **Permission issue** - user/client might need additional permissions
 - **Validation issue** - Canton might be checking something we're not aware of
 
-**Recommendation:** Contact the devnet administrator to verify:
+**Update:** Client confirmed the correct endpoint is `/v2/dars`. All deployment scripts have been updated to use this endpoint.
+
+**Recommendation:** Try deployment again with `/v2/dars` endpoint. If 403 persists, contact the devnet administrator to verify:
 1. Token format is correct
-2. User has required permissions
+2. User has required permissions (`package:upload`)
 3. Client ID has correct configuration
-4. Endpoint is correct
 

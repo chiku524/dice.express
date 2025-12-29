@@ -75,7 +75,7 @@ echo Token obtained!
 echo.
 
 echo Deploying to Canton...
-curl -X POST "%CANTON_URL%/v2/packages" ^
+curl -X POST "%CANTON_URL%/v2/dars" ^
   -H "Content-Type: application/octet-stream" ^
   -H "Authorization: Bearer !TOKEN!" ^
   --data-binary "@%DAR_FILE%" ^

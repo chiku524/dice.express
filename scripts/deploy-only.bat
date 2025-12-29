@@ -30,34 +30,23 @@ echo.
 
 REM Upload DAR to Canton
 echo Uploading to Canton participant...
-echo Trying v2 packages endpoint...
+echo Using v2/dars endpoint (as confirmed by client)...
 
-curl -X POST "%PARTICIPANT_URL%/v2/packages" -H "Content-Type: application/octet-stream" --data-binary "@%DAR_FILE%" -w "\nHTTP Code: %%{http_code}\n"
+curl -X POST "%PARTICIPANT_URL%/v2/dars" -H "Content-Type: application/octet-stream" --data-binary "@%DAR_FILE%" -w "\nHTTP Code: %%{http_code}\n"
 
 if errorlevel 1 (
     echo.
-    echo v2 endpoint failed, trying v1 endpoint...
-    curl -X POST "%PARTICIPANT_URL%/v1/packages" -H "Content-Type: application/octet-stream" --data-binary "@%DAR_FILE%" -w "\nHTTP Code: %%{http_code}\n"
-    
-    if errorlevel 1 (
-        echo.
-        echo ERROR: Upload failed!
-        echo Check:
-        echo   1. Network connection
-        echo   2. Participant URL: %PARTICIPANT_URL%
-        echo   3. Authentication (if required)
-        pause
-        exit /b 1
-    ) else (
-        echo.
-        echo ==========================================
-        echo SUCCESS: DAR uploaded via v1 endpoint!
-        echo ==========================================
-    )
+    echo ERROR: Upload failed!
+    echo Check:
+    echo   1. Network connection
+    echo   2. Participant URL: %PARTICIPANT_URL%
+    echo   3. Authentication (if required)
+    pause
+    exit /b 1
 ) else (
     echo.
     echo ==========================================
-    echo SUCCESS: DAR uploaded via v2 endpoint!
+    echo SUCCESS: DAR uploaded via v2/dars endpoint!
     echo ==========================================
 )
 

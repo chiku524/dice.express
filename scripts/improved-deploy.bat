@@ -113,12 +113,12 @@ echo Deploying to Canton
 echo ==========================================
 echo.
 echo DAR file: %DAR_FILE%
-echo Canton URL: %CANTON_URL%/v2/packages
+echo Canton URL: %CANTON_URL%/v2/dars
 echo.
 
 REM Deploy with token
 echo Sending deployment request...
-curl -X POST "%CANTON_URL%/v2/packages" ^
+curl -X POST "%CANTON_URL%/v2/dars" ^
   -H "Content-Type: application/octet-stream" ^
   -H "Authorization: Bearer !TOKEN!" ^
   --data-binary "@%DAR_FILE%" ^

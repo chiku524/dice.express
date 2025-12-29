@@ -36,8 +36,8 @@ if "!TOKEN!"=="NO_TOKEN" (
 echo Token ready (first 50 chars): !TOKEN:~0,50!...
 echo.
 
-REM Try different endpoints
-set ENDPOINTS=/v2/packages /v1/packages /packages /api/v2/packages /api/v1/packages
+REM Try different endpoints (including the correct /v2/dars)
+set ENDPOINTS=/v2/dars /v2/packages /v1/packages /packages /api/v2/packages /api/v1/packages
 
 for %%E in (%ENDPOINTS%) do (
     echo.

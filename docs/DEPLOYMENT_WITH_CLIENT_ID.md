@@ -66,11 +66,13 @@ Or manually copy from the JSON response:
 ### Step 3: Deploy
 
 ```bash
-curl -X POST "https://participant.dev.canton.wolfedgelabs.com/v2/packages" \
+curl -X POST "https://participant.dev.canton.wolfedgelabs.com/v2/dars" \
   -H "Content-Type: application/octet-stream" \
   -H "Authorization: Bearer YOUR_ACCESS_TOKEN" \
   --data-binary "@test-contract\.daml\dist\prediction-markets-test-1.0.0.dar"
 ```
+
+**Note:** The correct endpoint is `/v2/dars` (not `/v2/packages`), as confirmed by the client.
 
 ## Expected Response
 
