@@ -37,6 +37,18 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed', received: req.method })
   }
 
+  // Ensure request body is parsed (Vercel should do this automatically, but check)
+  if (!req.body) {
+    console.error('[api/command] No request body received')
+    return res.status(400).json({ error: 'Request body is required' })
+  }
+
+  // Check Content-Type
+  const contentType = req.headers['content-type'] || req.headers['Content-Type']
+  if (contentType && !contentType.includes('application/json')) {
+    console.warn('[api/command] Unexpected Content-Type:', contentType)
+  }
+
   // JSON API is at /json-api path (admin-api is at base URL)
   const LEDGER_URL = process.env.VITE_LEDGER_URL || 'https://participant.dev.canton.wolfedgelabs.com/json-api'
 
@@ -56,6 +68,7 @@ export default async function handler(req, res) {
     
     console.log('[api/command] Trying endpoints:', possibleEndpoints)
     console.log('[api/command] Request body:', JSON.stringify(req.body))
+    console.log('[api/command] Content-Type:', contentType)
     
     // Extract commands object and party from request
     // Frontend sends: { commands: { party, applicationId, commandId, list: [...] } }
@@ -128,6 +141,15 @@ export default async function handler(req, res) {
           console.log('[api/command] Trying endpoint:', commandUrl, 'with format:', format.name)
           console.log('[api/command] Formatted request body:', JSON.stringify(format.body).substring(0, 500))
           
+          // Ensure body is a valid JSON string
+          let requestBody
+          try {
+            requestBody = JSON.stringify(format.body)
+          } catch (stringifyError) {
+            console.error('[api/command] Error stringifying request body:', stringifyError)
+            throw new Error('Failed to serialize request body')
+          }
+
           response = await fetch(commandUrl, {
             method: 'POST',
             headers: {
@@ -135,7 +157,7 @@ export default async function handler(req, res) {
               'Accept': 'application/json',
               ...(req.headers.authorization && { Authorization: req.headers.authorization }),
             },
-            body: JSON.stringify(format.body),
+            body: requestBody,
             redirect: 'follow',
           })
           
@@ -170,14 +192,14 @@ export default async function handler(req, res) {
             console.log('[api/command] Error response (full):', errorText)
             console.log('[api/command] Full request body that failed:', JSON.stringify(format.body, null, 2))
             
-            // For 400 errors, log the full error and return it (don't try other formats since we're using correct format)
+            // For 400/415 errors, log the full error and return it (don't try other formats since we're using correct format)
             // For other errors, return immediately
-            if (response.status === 400) {
+            if (response.status === 400 || response.status === 415) {
               // Return the error immediately - we're using the correct format so no point trying others
               usedEndpoint = commandUrl
               break // Exit format loop, will process this error response
             } else {
-              // For non-400 errors, use this response
+              // For non-400/415 errors, use this response
               usedEndpoint = commandUrl
               break // Exit format loop, will process this error response
             }

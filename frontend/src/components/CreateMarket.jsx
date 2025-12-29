@@ -58,8 +58,8 @@ export default function CreateMarket() {
           depositAmount: 100.0,
           depositCid: null, // Would need to create holding first
           configCid: null, // Would need to fetch from config
-          creatorAccount: null,
-          adminAccount: null,
+          creatorBalance: null, // Fixed: was creatorAccount
+          adminBalance: null, // Fixed: was adminAccount
         },
         wallet.party
       )
