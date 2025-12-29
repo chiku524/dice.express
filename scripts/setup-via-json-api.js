@@ -16,18 +16,42 @@ const ORACLE_PARTY = process.env.ORACLE_PARTY || 'Oracle'
 let authToken = null
 try {
   const fs = require('fs')
-  // Try token.json first
-  if (fs.existsSync(TOKEN_FILE)) {
-    const tokenData = JSON.parse(fs.readFileSync(TOKEN_FILE, 'utf8'))
-    authToken = tokenData.access_token
+  
+  // Try token.txt first (most reliable - plain text)
+  if (fs.existsSync('token.txt')) {
+    const tokenContent = fs.readFileSync('token.txt', 'utf8').trim()
+    if (tokenContent && tokenContent.length > 10) {
+      authToken = tokenContent
+      console.log('Loaded token from token.txt')
+    }
   }
-  // Fallback to token.txt (extracted token)
-  if (!authToken && fs.existsSync('token.txt')) {
-    authToken = fs.readFileSync('token.txt', 'utf8').trim()
+  
+  // Fallback to token.json
+  if (!authToken && fs.existsSync(TOKEN_FILE)) {
+    try {
+      const fileContent = fs.readFileSync(TOKEN_FILE, 'utf8').trim()
+      // Try to parse as JSON
+      const tokenData = JSON.parse(fileContent)
+      if (tokenData && tokenData.access_token) {
+        authToken = tokenData.access_token
+        console.log('Loaded token from token.json')
+      }
+    } catch (jsonError) {
+      // If JSON parse fails, check if the file is just the token itself
+      const fileContent = fs.readFileSync(TOKEN_FILE, 'utf8').trim()
+      if (fileContent && fileContent.length > 10 && !fileContent.startsWith('{')) {
+        authToken = fileContent
+        console.log('Loaded token from token.json (plain text)')
+      } else {
+        console.warn('Warning: token.json exists but could not parse:', jsonError.message)
+      }
+    }
   }
+  
   // Also check environment variable
   if (!authToken && process.env.AUTH_TOKEN) {
     authToken = process.env.AUTH_TOKEN
+    console.log('Loaded token from AUTH_TOKEN env var')
   }
 } catch (error) {
   console.warn('Warning: Could not load authentication token:', error.message)
@@ -111,6 +135,16 @@ async function submitCommand(command, description) {
             console.log('⚠️  Authentication required - ensure token is loaded')
             if (!authToken) {
               throw new Error('Authentication required but no token available. Please provide credentials.')
+            }
+            // If we have a token but still get 401, it might be expired or invalid
+            throw new Error('Authentication failed. Token may be expired or invalid. Please refresh token.')
+          }
+          
+          // For 400, log the detailed error message
+          if (response.status === 400) {
+            console.log('⚠️  Bad Request - format issue')
+            if (data && data.text) {
+              console.log('Error details:', data.text)
             }
           }
           
