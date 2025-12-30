@@ -676,22 +676,70 @@ export default function ContractTester() {
         <div className="alert alert-success">
           <h3>✅ Success: {result.contractType}</h3>
           <p>{result.message}</p>
-          <div className="contract-info">
-            <p><strong>Contract ID:</strong> <code>{result.contractId}</code></p>
+          <div className="contract-info" style={{ marginTop: '1rem' }}>
             <p><strong>Template ID:</strong> <code>{result.templateId}</code></p>
+            {result.contractId && result.contractId !== 'N/A' ? (
+              <div style={{ marginTop: '1rem' }}>
+                <p><strong>Contract ID:</strong></p>
+                <code style={{ 
+                  display: 'block', 
+                  padding: '0.5rem', 
+                  background: '#f5f5f5', 
+                  borderRadius: '4px',
+                  wordBreak: 'break-all',
+                  marginTop: '0.5rem',
+                  fontSize: '0.9rem'
+                }}>
+                  {result.contractId}
+                </code>
+                <div style={{ marginTop: '1rem' }}>
+                  <a 
+                    href={`https://devnet.ccexplorer.io/?q=${encodeURIComponent(result.contractId)}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{
+                      display: 'inline-block',
+                      padding: '0.5rem 1rem',
+                      background: '#646cff',
+                      color: 'white',
+                      textDecoration: 'none',
+                      borderRadius: '4px',
+                      marginTop: '0.5rem',
+                      fontWeight: '500'
+                    }}
+                  >
+                    🔗 View Contract in Block Explorer →
+                  </a>
+                </div>
+                <p style={{ marginTop: '1rem', fontSize: '0.9rem', color: '#666' }}>
+                  <strong>Tip:</strong> Click the link above to view your contract details on the block explorer. You can also copy the Contract ID and search for it manually.
+                </p>
+                {/* Log to console for easy access */}
+                {console.log('✅ Contract created successfully!')}
+                {console.log('📋 Contract ID:', result.contractId)}
+                {console.log('🔗 View in explorer:', `https://devnet.ccexplorer.io/?q=${result.contractId}`)}
+              </div>
+            ) : (
+              <div style={{ marginTop: '1rem' }}>
+                <p style={{ color: '#666', fontSize: '0.9rem' }}>
+                  <em>Contract ID not available in response. Check the full response below for details.</em>
+                </p>
+              </div>
+            )}
           </div>
-          <details>
+          <details style={{ marginTop: '1rem' }}>
             <summary>Full Response</summary>
-            <pre>{JSON.stringify(result.details, null, 2)}</pre>
+            <pre style={{ 
+              background: '#f5f5f5', 
+              padding: '1rem', 
+              borderRadius: '4px',
+              overflow: 'auto',
+              maxHeight: '400px',
+              fontSize: '0.85rem'
+            }}>
+              {JSON.stringify(result.details, null, 2)}
+            </pre>
           </details>
-          <a 
-            href={`https://devnet.ccexplorer.io/contracts/${result.contractId}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="btn-link"
-          >
-            View in Block Explorer →
-          </a>
         </div>
       )}
 
