@@ -17,7 +17,7 @@ export default function MarketsList() {
   // WebSocket disabled by default (falls back to polling)
   // Enable in useWebSocket.js if WebSocket support is needed
   const { data: wsMarkets, connected: wsConnected } = useWebSocket(
-    ['PredictionMarkets:Market'],
+    ['#prediction-markets:PredictionMarkets:Market'],
     {},
     false // Disabled - using polling instead
   )
@@ -47,7 +47,7 @@ export default function MarketsList() {
         
         // Query active markets from the ledger
         // Force refresh to get latest data
-        const fetchedMarkets = await ledger.query(['PredictionMarkets:Market'], {}, { forceRefresh: true })
+        const fetchedMarkets = await ledger.query(['#prediction-markets:PredictionMarkets:Market'], {}, { forceRefresh: true })
         
         if (!isMountedRef.current) return
         

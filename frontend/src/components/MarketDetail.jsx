@@ -23,7 +23,7 @@ export default function MarketDetail() {
       try {
         setLoading(true)
         // Fetch market details
-        const markets = await ledger.query(['PredictionMarkets:Market'], { marketId: marketId })
+        const markets = await ledger.query(['#prediction-markets:PredictionMarkets:Market'], { marketId: marketId })
         if (markets && markets.length > 0) {
           setMarket(markets[0])
         } else {

@@ -87,33 +87,91 @@ export default async function handler(req, res) {
     
     for (const queryUrl of possibleEndpoints) {
       try {
-        console.log('[api/query] Trying endpoint:', queryUrl)
-        response = await fetch(queryUrl, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Accept': 'application/json',
-            ...(req.headers.authorization && { Authorization: req.headers.authorization }),
-          },
-          body: JSON.stringify(requestBody),
-          redirect: 'follow', // Follow redirects if any
-        })
+        // Try different Content-Type headers - Canton might be picky
+        const contentTypeOptions = [
+          'application/json; charset=utf-8',
+          'application/json',
+          'application/grpc-web+json',
+          'application/grpc-web',
+        ]
         
-        console.log('[api/query] Response URL:', response.url) // Log final URL after redirects
-        console.log('[api/query] Response status:', response.status)
+        let responseAttempt = null
+        let lastContentTypeError = null
         
-        // If we get a non-404 response, this endpoint might work
-        if (response.status !== 404) {
-          console.log('[api/query] Endpoint responded (not 404):', queryUrl)
-          usedEndpoint = queryUrl
+        // Try each Content-Type option
+        for (const contentType of contentTypeOptions) {
+          try {
+            console.log('[api/query] Trying endpoint:', queryUrl, 'with Content-Type:', contentType)
+            responseAttempt = await fetch(queryUrl, {
+              method: 'POST',
+              headers: {
+                'Content-Type': contentType,
+                'Accept': 'application/json',
+                ...(req.headers.authorization && { Authorization: req.headers.authorization }),
+              },
+              body: JSON.stringify(requestBody),
+              redirect: 'follow', // Follow redirects if any
+            })
+            
+            console.log('[api/query] Response URL:', responseAttempt.url) // Log final URL after redirects
+            console.log('[api/query] Response status:', responseAttempt.status)
+            
+            // If we get a non-415 and non-404 response, this Content-Type worked
+            if (responseAttempt.status !== 415 && responseAttempt.status !== 404) {
+              response = responseAttempt
+              usedEndpoint = queryUrl
+              console.log('[api/query] Endpoint responded (not 404/415):', queryUrl)
+              break
+            }
+            
+            // If 415, try next Content-Type
+            if (responseAttempt.status === 415) {
+              const clonedResponse = responseAttempt.clone()
+              try {
+                const errorText = await clonedResponse.text()
+                lastContentTypeError = {
+                  contentType,
+                  status: responseAttempt.status,
+                  message: errorText.substring(0, 200)
+                }
+                console.log('[api/query] 415 with Content-Type:', contentType, '- trying next...')
+              } catch (readError) {
+                lastContentTypeError = {
+                  contentType,
+                  status: responseAttempt.status,
+                  message: 'Could not read error message'
+                }
+                console.log('[api/query] 415 with Content-Type:', contentType, '- trying next...')
+              }
+              continue
+            }
+            
+            // If 404, try next endpoint (not Content-Type)
+            if (responseAttempt.status === 404) {
+              const errorData = await responseAttempt.json().catch(() => ({}))
+              lastError = { endpoint: queryUrl, status: responseAttempt.status, data: errorData }
+              console.log('[api/query] Endpoint returned 404, trying next:', queryUrl)
+              response = null
+              break // Break out of Content-Type loop, try next endpoint
+            }
+          } catch (contentTypeError) {
+            console.log('[api/query] Error with Content-Type:', contentType, contentTypeError.message)
+            lastContentTypeError = { contentType, error: contentTypeError.message }
+            continue
+          }
+        }
+        
+        // If we found a working response, break out of endpoint loop
+        if (response && response.status !== 404 && response.status !== 415) {
           break
         }
         
-        // If 404, try next endpoint
-        const errorData = await response.json().catch(() => ({}))
-        lastError = { endpoint: queryUrl, status: response.status, data: errorData }
-        console.log('[api/query] Endpoint returned 404, trying next:', queryUrl)
-        response = null
+        // If all Content-Types failed with 415, use the last response
+        if (!response && responseAttempt && responseAttempt.status === 415) {
+          response = responseAttempt
+          usedEndpoint = queryUrl
+          break // We'll handle 415 error below
+        }
       } catch (error) {
         console.log('[api/query] Error with endpoint:', queryUrl, error.message)
         lastError = { endpoint: queryUrl, error: error.message }

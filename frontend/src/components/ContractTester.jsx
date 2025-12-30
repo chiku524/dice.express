@@ -10,6 +10,7 @@ import './ContractTester.css'
 
 const PARTY_ID = 'ee15aa3d-0bd4-44f9-9664-b49ad7e308aa::122087fa379c37332a753379c58e18d397e39cb82c68c15e4af7134be46561974292'
 const PACKAGE_ID = 'b87ef31c8ea5c53a940a7f71a4bc6513cf44048730c0551f1fc2e02adc7271f0'
+const PACKAGE_NAME = 'prediction-markets' // DAR file name from daml.yaml
 
 export default function ContractTester() {
   const [loading, setLoading] = useState(null)
@@ -191,11 +192,11 @@ export default function ContractTester() {
         applicationId: 'prediction-markets',
         commands: [{
           CreateCommand: {
-            templateId: 'b87ef31c8ea5c53a940a7f71a4bc6513cf44048730c0551f1fc2e02adc7271f0:Token:TokenBalance',
+            templateId: `#${PACKAGE_NAME}:Token:TokenBalance`,
             createArguments: {
               owner: PARTY_ID,
               token: {
-                id: { TokenId: 'USDC' }, // Newtype format: use constructor name as key
+                id: 'USDC', // TokenId is a newtype - use plain string value
                 symbol: 'USDC',
                 name: 'USD Coin',
                 decimals: 6,
@@ -245,11 +246,11 @@ export default function ContractTester() {
   const createTokenBalance = () => {
     createContract(
       'TokenBalance',
-      'b87ef31c8ea5c53a940a7f71a4bc6513cf44048730c0551f1fc2e02adc7271f0:Token:TokenBalance',
+      `#${PACKAGE_NAME}:Token:TokenBalance`,
       {
         owner: PARTY_ID,
         token: {
-          id: { TokenId: 'USDC' }, // Newtype format: use constructor name as key
+          id: 'USDC', // TokenId is a newtype - use plain string value
           symbol: 'USDC',
           name: 'USD Coin',
           decimals: 6,
@@ -272,7 +273,7 @@ export default function ContractTester() {
       
       await createContract(
         'MarketConfig',
-        'b87ef31c8ea5c53a940a7f71a4bc6513cf44048730c0551f1fc2e02adc7271f0:PredictionMarkets:MarketConfig',
+        `#${PACKAGE_NAME}:PredictionMarkets:MarketConfig`,
         {
           admin: PARTY_ID,
           marketCreationDeposit: '100.0',
@@ -302,14 +303,14 @@ export default function ContractTester() {
   const createMarketCreationRequest = () => {
     createContract(
       'MarketCreationRequest',
-      'b87ef31c8ea5c53a940a7f71a4bc6513cf44048730c0551f1fc2e02adc7271f0:PredictionMarkets:MarketCreationRequest',
+      `#${PACKAGE_NAME}:PredictionMarkets:MarketCreationRequest`,
       {
         creator: PARTY_ID,
         admin: PARTY_ID,
         marketId: `market-${Date.now()}`,
         title: 'Test Market: Will Bitcoin reach $100k?',
         description: 'A test market to verify contract creation',
-          marketType: 'Binary', // MarketType is an enum - use string directly
+        marketType: { tag: 'Binary' }, // MarketType is a variant - use tag format
         outcomes: [],
         settlementTrigger: {
           tag: 'TimeBased',
@@ -328,7 +329,7 @@ export default function ContractTester() {
   const createOracleDataFeed = () => {
     createContract(
       'OracleDataFeed',
-      'b87ef31c8ea5c53a940a7f71a4bc6513cf44048730c0551f1fc2e02adc7271f0:PredictionMarkets:OracleDataFeed',
+      `#${PACKAGE_NAME}:PredictionMarkets:OracleDataFeed`,
       {
         oracleParty: PARTY_ID,
         marketId: `market-${Date.now()}`,
@@ -344,11 +345,11 @@ export default function ContractTester() {
   const createAllocationRequirement = () => {
     createContract(
       'AllocationRequirement',
-      'b87ef31c8ea5c53a940a7f71a4bc6513cf44048730c0551f1fc2e02adc7271f0:AMM:AllocationRequirement',
+      `#${PACKAGE_NAME}:AMM:AllocationRequirement`,
       {
         settlementRequestId: `settlement-${Date.now()}`,
         party: PARTY_ID,
-        instrumentId: { InstrumentId: 'USDC' }, // Newtype format: use constructor name as key
+        instrumentId: 'USDC', // InstrumentId is a newtype - use plain string value
         quantity: '1000.0',
         status: { tag: 'Pending' },
         deadline: new Date(Date.now() + 86400000).toISOString(),
@@ -360,7 +361,7 @@ export default function ContractTester() {
   const createSettlementRequest = () => {
     createContract(
       'SettlementRequest',
-      'b87ef31c8ea5c53a940a7f71a4bc6513cf44048730c0551f1fc2e02adc7271f0:AMM:SettlementRequest',
+      `#${PACKAGE_NAME}:AMM:SettlementRequest`,
       {
         settlementRequestId: `settlement-${Date.now()}`,
         poolId: `pool-${Date.now()}`,
@@ -377,19 +378,19 @@ export default function ContractTester() {
   const createLiquidityPool = () => {
     createContract(
       'LiquidityPool',
-      'b87ef31c8ea5c53a940a7f71a4bc6513cf44048730c0551f1fc2e02adc7271f0:AMM:LiquidityPool',
+      `#${PACKAGE_NAME}:AMM:LiquidityPool`,
       {
         poolId: `pool-${Date.now()}`,
         poolParty: PARTY_ID,
         tokenA: {
-          id: { TokenId: 'USDC' }, // Newtype format
+          id: 'USDC', // TokenId is a newtype - use plain string value
           symbol: 'USDC',
           name: 'USD Coin',
           decimals: 6,
           description: 'USDC token'
         },
         tokenB: {
-          id: { TokenId: 'YES' }, // Newtype format
+          id: 'YES', // TokenId is a newtype - use plain string value
           symbol: 'YES',
           name: 'Yes Shares',
           decimals: 6,
@@ -407,7 +408,7 @@ export default function ContractTester() {
   const createPoolFactory = () => {
     createContract(
       'PoolFactory',
-      'b87ef31c8ea5c53a940a7f71a4bc6513cf44048730c0551f1fc2e02adc7271f0:AMM:PoolFactory',
+      `#${PACKAGE_NAME}:AMM:PoolFactory`,
       {
         factoryParty: PARTY_ID,
         defaultFeeRate: '0.003',
@@ -605,9 +606,10 @@ export default function ContractTester() {
       <div className="info-section">
         <h2>Testing Notes</h2>
         <ul>
-          <li>All contracts use template IDs without package hash (e.g., <code>Token:TokenBalance</code>)</li>
+          <li>All contracts use template IDs with package name format: <code>#{PACKAGE_NAME}:Module:Template</code></li>
           <li>Some contracts require dependencies (e.g., MarketConfig needs TokenBalance contract ID)</li>
           <li>Verify contracts in block explorer: <a href="https://devnet.ccexplorer.io" target="_blank" rel="noopener noreferrer">devnet.ccexplorer.io</a></li>
+          <li>Package Name: <code>{PACKAGE_NAME}</code></li>
           <li>Package ID: <code>{PACKAGE_ID}</code></li>
           <li>Party ID: <code>{PARTY_ID.substring(0, 50)}...</code></li>
         </ul>
