@@ -19,23 +19,32 @@ export function useWallet() {
 
   const connectWallet = async () => {
     try {
-      // In production, this would use WebAuthn/passkey for authentication
-      // For now, we'll use a simple prompt with better UX
-      const partyName = prompt(
-        'Enter your party name:\n\n' +
-        '• Leave empty to generate a new party\n' +
-        '• Enter an existing party name to connect\n\n' +
-        'Note: In production, this will use secure passkey authentication.'
+      // Canton requires full party ID format: {user-id}::{party-id}
+      // Example: ee15aa3d-0bd4-44f9-9664-b49ad7e308aa::122087fa379c37332a753379c58e18d397e39cb82c68c15e4af7134be46561974292
+      const defaultPartyId = 'ee15aa3d-0bd4-44f9-9664-b49ad7e308aa::122087fa379c37332a753379c58e18d397e39cb82c68c15e4af7134be46561974292'
+      
+      const partyId = prompt(
+        'Enter your Canton Party ID:\n\n' +
+        'Format: {user-id}::{party-id}\n' +
+        'Example: ' + defaultPartyId.substring(0, 50) + '...\n\n' +
+        '• Leave empty to use default party ID\n' +
+        '• Paste your full party ID to connect\n\n' +
+        'Note: You can find your party ID in the block explorer or from your Canton admin.'
       )
       
-      if (partyName === null) {
+      if (partyId === null) {
         // User cancelled
         return
       }
       
-      // In production, this would call the Canton party management API
-      // to create or retrieve a party
-      const party = partyName.trim() || `User_${Date.now()}`
+      // Use provided party ID or default
+      const party = partyId.trim() || defaultPartyId
+      
+      // Validate party ID format (should contain ::)
+      if (!party.includes('::')) {
+        alert('Invalid party ID format. Party ID must be in format: {user-id}::{party-id}\n\nExample: ' + defaultPartyId.substring(0, 50) + '...')
+        return
+      }
       
       const newWallet = {
         party: party,
@@ -47,6 +56,7 @@ export function useWallet() {
       
       // Show success message
       console.log('Wallet connected:', party)
+      alert('Wallet connected successfully!\nParty ID: ' + party.substring(0, 50) + '...')
     } catch (error) {
       console.error('Failed to connect wallet', error)
       alert('Failed to connect wallet: ' + error.message)
