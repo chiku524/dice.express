@@ -2,7 +2,8 @@
 # Deploy DAR file using gRPC Admin API (Bash version)
 # Based on client-provided script with proper vetting enabled
 
-set -e  # Exit on error
+# Don't exit on error - we want to continue even if package removal fails
+set +e
 
 # Configuration
 REMOVE_EXISTING=${REMOVE_EXISTING:-true}  # Default to true, can be overridden
@@ -193,7 +194,8 @@ EOF
     
     echo -e "${CYAN}Sending gRPC request...${NC}"
     
-    # Send gRPC request
+    # Send gRPC request (now exit on error for upload)
+    set -e
     echo "${grpc_upload_dar_request}" | json | grpcurl \
         -insecure \
         -H "Authorization: Bearer ${JWT_TOKEN}" \
@@ -201,7 +203,8 @@ EOF
         "${CANTON_ADMIN_API_URL}" \
         "${CANTON_ADMIN_API_GRPC_PACKAGE_SERVICE}.UploadDar"
     
-    if [ $? -eq 0 ]; then
+    local upload_exit_code=$?
+    if [ $upload_exit_code -eq 0 ]; then
         echo ""
         echo -e "${GREEN}==========================================${NC}"
         echo -e "${GREEN}SUCCESS: DAR '${dar_name}' uploaded and vetted!${NC}"
