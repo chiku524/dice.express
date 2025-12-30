@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { useLedger } from '../hooks/useLedger'
-import { useWallet } from '../hooks/useWallet'
+import { useWallet } from '../contexts/WalletContext'
 import './AdminDashboard.css'
 
 const PACKAGE_ID = 'b87ef31c8ea5c53a940a7f71a4bc6513cf44048730c0551f1fc2e02adc7271f0'

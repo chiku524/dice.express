@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useLedger } from '../hooks/useLedger'
-import { useWallet } from '../hooks/useWallet'
+import { useWallet } from '../contexts/WalletContext'
 import MarketResolution from './MarketResolution'
 
 export default function MarketDetail() {

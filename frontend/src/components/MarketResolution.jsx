@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useLedger } from '../hooks/useLedger'
-import { useWallet } from '../hooks/useWallet'
+import { useWallet } from '../contexts/WalletContext'
 import { oracleService } from '../services/oracleService'
 
 /**

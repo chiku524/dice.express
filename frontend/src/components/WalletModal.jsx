@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { useWallet } from '../hooks/useWallet'
+import { useWallet } from '../contexts/WalletContext'
 import './WalletModal.css'
 
 const DEFAULT_PARTY_ID = 'ee15aa3d-0bd4-44f9-9664-b49ad7e308aa::122087fa379c37332a753379c58e18d397e39cb82c68c15e4af7134be46561974292'

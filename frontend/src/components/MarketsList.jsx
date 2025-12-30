@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import { useLedger } from '../hooks/useLedger'
-import { useWallet } from '../hooks/useWallet'
+import { useWallet } from '../contexts/WalletContext'
 
 export default function MarketsList() {
   const { ledger } = useLedger()

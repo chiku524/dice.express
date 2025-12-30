@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { BrowserRouter as Router, Routes, Route, Link, useLocation } from 'react-router-dom'
 import { useLedger } from './hooks/useLedger'
-import { useWallet } from './hooks/useWallet'
+import { WalletProvider, useWallet } from './contexts/WalletContext'
 import { lazy, Suspense } from 'react'
 import LoadingSpinner from './components/LoadingSpinner'
 
@@ -42,17 +42,17 @@ function PageViewTracker() {
   return null
 }
 
-function App() {
+function AppContent() {
   const { ledger, isConnected } = useLedger()
   const { wallet, connectWallet, disconnectWallet } = useWallet()
   const [showWalletModal, setShowWalletModal] = useState(false)
 
-      return (
-        <Router>
-          <PageViewTracker />
-          <AnimatedBackground />
-          <ApiStatusBanner />
-          <div className="app">
+  return (
+    <>
+      <PageViewTracker />
+      <AnimatedBackground />
+      <ApiStatusBanner />
+      <div className="app">
         <header className="app-header">
           <div className="container">
             <Link to="/" className="logo">
@@ -114,6 +114,16 @@ function App() {
           onClose={() => setShowWalletModal(false)} 
         />
       </div>
+    </>
+  )
+}
+
+function App() {
+  return (
+    <Router>
+      <WalletProvider>
+        <AppContent />
+      </WalletProvider>
     </Router>
   )
 }
