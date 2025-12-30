@@ -1,12 +1,27 @@
 # Contract Creation Issues - Troubleshooting Guide
 
+## Executive Summary
+
+**Status**: Application code is correct. Blocking issue is Canton infrastructure configuration.
+
+**Current Issue**: All contract creation attempts fail with `NO_SYNCHRONIZER_FOR_SUBMISSION` error.
+
+**Root Cause**: Party is not properly synchronized with a domain (infrastructure configuration issue).
+
+**Solution**: Client needs to enable synchronizer and connect party to domain on Canton participant.
+
+**Diagnostic Tool**: Available on `/test` page - click "🔍 Check Party Status" to verify party configuration.
+
+---
+
 ## Current Status
 
 We're encountering persistent errors when trying to create contracts via Canton JSON API. This document summarizes the issues and potential solutions.
 
 **Last Updated**: December 30, 2025  
 **Canton DevNet Version**: Likely Canton 3.4 (as of December 2025, per [Canton Network announcements](https://discuss.daml.com/t/canton-network-mainnet-v0-5-1-major-upgrade-announcement-and-advice/8287))  
-**Block Explorer Version**: 0.5.4 (this is the explorer version, not Canton version)
+**Block Explorer Version**: 0.5.4 (this is the explorer version, not Canton version)  
+**Application Status**: ✅ Code verified and correct - all serialization formats match DAML/Canton specifications
 
 ## Errors Encountered
 
@@ -56,18 +71,22 @@ We're encountering persistent errors when trying to create contracts via Canton 
 **Client Action Required**: This cannot be fixed from the application code - it requires Canton infrastructure configuration.
 
 **What We CAN Do from Application Side**:
-1. ✅ **Diagnostic Tool**: Created `/api/party-status` endpoint to check:
+1. ✅ **Diagnostic Tool**: Created `/api/party-status` endpoint and UI button to check:
    - Whether party can read contracts (query access)
    - Whether party can write contracts (command submission)
-   - Specific error codes and messages
+   - Specific error codes and messages (e.g., `NO_SYNCHRONIZER_FOR_SUBMISSION`)
    - Actionable recommendations
+   - **Available on `/test` page - click "🔍 Check Party Status" button**
 
 2. ✅ **Verify Request Format**: Confirmed our JSON payloads are correctly formatted:
-   - Newtypes use `{ unpack: "value" }` format
+   - Newtypes use `{ unpack: "value" }` format (per DAML specification)
    - Template IDs use explicit package ID format
    - All required fields are present
+   - Request structure matches Canton JSON API v2 specification
 
-3. ✅ **Test Different Endpoints**: Already trying multiple API endpoints to find working one
+3. ✅ **Test Different Endpoints**: Already trying multiple API endpoints (v1, v2, alternative paths)
+
+4. ✅ **Comprehensive Error Logging**: Capturing full error responses for analysis
 
 **What We CANNOT Do**:
 - ❌ Connect party to domain (requires admin access)
@@ -138,10 +157,11 @@ This indicates the party is not properly synchronized with a domain. This is a *
 
 ### Questions for Client
 
-1. **Party Synchronization**:
+1. **Party Synchronization** (CRITICAL):
    - Is the party `ee15aa3d-0bd4-44f9-9664-b49ad7e308aa::122087fa379c37332a753379c58e18d397e39cb82c68c15e4af7134be46561974292` connected to a domain?
-   - Is the synchronizer enabled for this party?
+   - Is the synchronizer enabled for this party on the participant?
    - Does the party need to be registered on a specific domain?
+   - **Can you run the diagnostic tool first?** (Available on `/test` page) This will show the exact status.
 
 2. **Canton Version**:
    - What version of Canton is running on the devnet? (Likely 3.4 based on recent upgrades)
@@ -150,10 +170,15 @@ This indicates the party is not properly synchronized with a domain. This is a *
 3. **Domain Configuration**:
    - Which domain should the party be connected to?
    - Are there any domain connection requirements we need to meet?
+   - What is the domain connection status for this participant?
 
 4. **Package Status**:
    - Is the package `b87ef31c8ea5c53a940a7f71a4bc6513cf44048730c0551f1fc2e02adc7271f0` vetted on all required participants?
    - Are there any additional package requirements?
+
+5. **Testing**:
+   - After you configure the synchronizer, can you verify using the diagnostic tool on `/test` page?
+   - The tool will show if the party can now successfully submit commands
 
 ## Current Request Format
 
@@ -215,9 +240,10 @@ data Token = Token
 ## Summary for Client
 
 ### What We've Fixed ✅
-1. **Newtype Serialization**: All newtypes now use correct `{ unpack: "value" }` format
+1. **Newtype Serialization**: All newtypes now use correct `{ unpack: "value" }` format per DAML specification
 2. **Template ID Format**: Using explicit package ID to bypass vetting requirements  
 3. **Enum Serialization**: MarketType uses correct string format
+4. **Diagnostic Tools**: Created party status diagnostic tool to verify party configuration
 
 ### Current Blocking Issue ⚠️
 **All contract creation attempts fail with "NO_SYNCHRONIZER_FOR_SUBMISSION"**
@@ -229,5 +255,38 @@ This error indicates the party is not properly synchronized with a domain. This 
 2. Have a synchronizer enabled
 3. Be properly registered on the domain
 
-**Action Required**: Please configure the party's domain connection and synchronizer on the Canton participant.
+### Diagnostic Tool Available 🔍
+
+We've created a diagnostic tool to help verify the issue. You can use it by:
+
+1. **Via Application UI**:
+   - Navigate to `/test` page
+   - Enter authentication token
+   - Click "🔍 Check Party Status" button
+   - Review diagnostic results
+
+2. **Via API Endpoint**:
+   - `POST /api/party-status`
+   - Body: `{ "party": "ee15aa3d-0bd4-44f9-9664-b49ad7e308aa::122087fa379c37332a753379c58e18d397e39cb82c68c15e4af7134be46561974292" }`
+   - Returns detailed diagnostics including read/write access status
+
+The diagnostic tool will show:
+- ✅ Whether party can read contracts (query access)
+- ❌ Whether party can write contracts (command submission)
+- Specific error codes and messages
+- Actionable recommendations
+
+### Action Required
+
+**Please configure the party's domain connection and synchronizer on the Canton participant.**
+
+**Party ID**: `ee15aa3d-0bd4-44f9-9664-b49ad7e308aa::122087fa379c37332a753379c58e18d397e39cb82c68c15e4af7134be46561974292`
+
+**Required Actions**:
+1. Verify participant is connected to a domain
+2. Enable synchronizer for this party on the participant
+3. Ensure party is registered on the domain
+4. Verify domain and participant protocol version compatibility (Canton 3.4)
+
+Once configured, the diagnostic tool can verify that the party can successfully submit commands.
 
