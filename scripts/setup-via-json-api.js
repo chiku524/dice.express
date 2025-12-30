@@ -221,7 +221,7 @@ async function setup() {
     commands: [
       {
         CreateCommand: {
-          templateId: 'Token:TokenBalance',
+          templateId: '#prediction-markets:Token:TokenBalance',
           createArguments: {
             owner: ADMIN_PARTY,
             token: {
@@ -246,7 +246,7 @@ async function setup() {
       commandId: `create-token-balance-${Date.now()}`,
       list: [
         {
-          templateId: 'Token:TokenBalance',
+          templateId: '#prediction-markets:Token:TokenBalance',
           payload: {
             owner: ADMIN_PARTY,
             token: {
@@ -299,7 +299,7 @@ async function setup() {
       commands: [
         {
           CreateCommand: {
-            templateId: 'PredictionMarkets:MarketConfig',
+            templateId: '#prediction-markets:PredictionMarkets:MarketConfig',
             createArguments: {
               admin: ADMIN_PARTY,
               marketCreationDeposit: 100.0,
@@ -323,7 +323,7 @@ async function setup() {
         commandId: `create-market-config-${Date.now()}`,
         list: [
           {
-            templateId: 'PredictionMarkets:MarketConfig',
+            templateId: '#prediction-markets:PredictionMarkets:MarketConfig',
             payload: {
               admin: ADMIN_PARTY,
               marketCreationDeposit: 100.0,
