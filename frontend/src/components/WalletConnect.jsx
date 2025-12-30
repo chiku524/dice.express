@@ -20,7 +20,7 @@ export default function WalletConnect({ onConnect }) {
       }}>
         <strong>Party ID Format Required:</strong>
         <p style={{ marginTop: '0.5rem', fontFamily: 'monospace', fontSize: '0.85rem', wordBreak: 'break-all' }}>
-          {user-id}::{party-id}
+          {'{user-id}'}::{'{party-id}'}
         </p>
         <p style={{ marginTop: '0.5rem', fontSize: '0.85rem' }}>
           Example: ee15aa3d-0bd4-44f9-9664-b49ad7e308aa::122087fa379c37332a753379c58e18d397e39cb82c68c15e4af7134be46561974292
