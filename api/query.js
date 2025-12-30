@@ -273,22 +273,6 @@ module.exports = async function handler(req, res) {
       } catch (endpointError) {
         console.log('[api/query] Error with endpoint:', queryUrl, endpointError.message)
         lastError = { endpoint: queryUrl, error: endpointError.message }
-      }
-        
-        // If we found a working response, break out of endpoint loop
-        if (response && response.status !== 404 && response.status !== 415) {
-          break
-        }
-        
-        // If all Content-Types failed with 415, use the last response
-        if (!response && responseAttempt && responseAttempt.status === 415) {
-          response = responseAttempt
-          usedEndpoint = queryUrl
-          break // We'll handle 415 error below
-        }
-      } catch (error) {
-        console.log('[api/query] Error with endpoint:', queryUrl, error.message)
-        lastError = { endpoint: queryUrl, error: error.message }
         response = null
         // Continue to next endpoint
       }
