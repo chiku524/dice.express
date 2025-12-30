@@ -214,7 +214,34 @@ export default function MarketsList() {
   return (
     <div>
       <h1>Prediction Markets</h1>
-      {markets.length === 0 ? (
+      {!apiRoutesWorkingRef.current ? (
+        <div className="card">
+          <div className="alert-warning">
+            <h3>⚠️ Query Endpoints Unavailable</h3>
+            <p>
+              The Canton query endpoints are not currently available (returning 404 errors). 
+              This means we cannot display markets even though they may exist on the ledger.
+            </p>
+            <p>
+              <strong>Possible solutions:</strong>
+            </p>
+            <ul>
+              <li>Query endpoints may need to be enabled on the Canton participant</li>
+              <li>Check with your Canton administrator to enable the JSON API query endpoints</li>
+              <li>You can verify markets were created using the block explorer</li>
+              <li>Markets that were approved will appear here once query endpoints are enabled</li>
+            </ul>
+            <p>
+              <strong>Note:</strong> You can still create new markets, but they won't appear in this list until query endpoints are available.
+            </p>
+            <Link to="/create">
+              <button className="btn-primary" style={{ marginTop: '1rem' }}>
+                Create Market
+              </button>
+            </Link>
+          </div>
+        </div>
+      ) : markets.length === 0 ? (
         <div className="card">
           <p>No markets found. Create your first market to get started!</p>
           <Link to="/create">

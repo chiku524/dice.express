@@ -166,7 +166,28 @@ export default function AdminDashboard() {
         </button>
       </div>
 
-      {requests.length === 0 ? (
+      {!apiRoutesWorkingRef.current ? (
+        <div className="card">
+          <div className="alert-warning">
+            <h3>⚠️ Query Endpoints Unavailable</h3>
+            <p>
+              The Canton query endpoints are not currently available (returning 404 errors). 
+              This means we cannot display market creation requests even though they may exist on the ledger.
+            </p>
+            <p>
+              <strong>Possible solutions:</strong>
+            </p>
+            <ul>
+              <li>Query endpoints may need to be enabled on the Canton participant</li>
+              <li>Check with your Canton administrator to enable the JSON API query endpoints</li>
+              <li>You can verify contracts were created using the block explorer</li>
+            </ul>
+            <p>
+              <strong>Note:</strong> Market creation requests that were successfully created will appear here once query endpoints are enabled.
+            </p>
+          </div>
+        </div>
+      ) : requests.length === 0 ? (
         <div className="card">
           <p>No pending market creation requests.</p>
         </div>

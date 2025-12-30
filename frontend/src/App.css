@@ -101,6 +101,35 @@
   margin-bottom: 0.5rem;
 }
 
+.alert-warning {
+  background: rgba(255, 193, 7, 0.2);
+  border: 1px solid rgba(255, 193, 7, 0.5);
+  border-radius: 8px;
+  padding: 1.5rem;
+  color: rgba(255, 255, 255, 0.87);
+}
+
+.alert-warning h3 {
+  margin: 0 0 1rem 0;
+  color: #ffc107;
+  font-size: 1.2rem;
+}
+
+.alert-warning p {
+  margin: 0.75rem 0;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.alert-warning ul {
+  margin: 0.75rem 0;
+  padding-left: 1.5rem;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.alert-warning li {
+  margin: 0.5rem 0;
+}
+
 .form-group {
   margin-bottom: 1rem;
 }

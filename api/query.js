@@ -80,11 +80,42 @@ export default async function handler(req, res) {
     console.log('[api/query] Content-Type:', requestContentType)
     
     // Ensure request body matches Canton JSON API format
+    // Try multiple formats - Canton might expect different formats
+    const templateIds = req.body.templateIds || []
+    
+    // Try with and without package IDs - some Canton setups might not need full package IDs
+    const templateIdsWithPackage = templateIds.map(id => {
+      // If already has package ID, use as-is
+      if (id.includes(':')) {
+        return id
+      }
+      // Otherwise, add default package ID
+      const defaultPackageId = 'b87ef31c8ea5c53a940a7f71a4bc6513cf44048730c0551f1fc2e02adc7271f0'
+      return `${defaultPackageId}:${id}`
+    })
+    
+    // Also try without package IDs (just module:template)
+    const templateIdsWithoutPackage = templateIds.map(id => {
+      // Extract module:template from packageId:module:template
+      const parts = id.split(':')
+      if (parts.length >= 3) {
+        return `${parts[1]}:${parts[2]}`
+      }
+      return id
+    })
+    
     const requestBody = {
-      templateIds: req.body.templateIds || [],
+      templateIds: templateIdsWithPackage,
       query: req.body.query || {},
     }
-    console.log('[api/query] Formatted request body:', JSON.stringify(requestBody))
+    
+    const requestBodyWithoutPackage = {
+      templateIds: templateIdsWithoutPackage,
+      query: req.body.query || {},
+    }
+    
+    console.log('[api/query] Formatted request body (with package):', JSON.stringify(requestBody))
+    console.log('[api/query] Formatted request body (without package):', JSON.stringify(requestBodyWithoutPackage))
     
     // Try each endpoint until one works
     let lastError = null
@@ -104,20 +135,28 @@ export default async function handler(req, res) {
         let responseAttempt = null
         let lastContentTypeError = null
         
-        // Try each Content-Type option
+        // Try each Content-Type option, and also try with/without package IDs
         for (const contentType of contentTypeOptions) {
-          try {
-            console.log('[api/query] Trying endpoint:', queryUrl, 'with Content-Type:', contentType)
-            responseAttempt = await fetch(queryUrl, {
-              method: 'POST',
-              headers: {
-                'Content-Type': contentType,
-                'Accept': 'application/json',
-                ...(req.headers.authorization && { Authorization: req.headers.authorization }),
-              },
-              body: JSON.stringify(requestBody),
-              redirect: 'follow', // Follow redirects if any
-            })
+          // Try with package IDs first, then without
+          const bodiesToTry = [requestBody]
+          if (templateIdsWithPackage.length > 0 && templateIdsWithPackage[0] !== templateIdsWithoutPackage[0]) {
+            bodiesToTry.push(requestBodyWithoutPackage)
+          }
+          
+          for (const bodyToTry of bodiesToTry) {
+            try {
+              console.log('[api/query] Trying endpoint:', queryUrl, 'with Content-Type:', contentType)
+              console.log('[api/query] Request body:', JSON.stringify(bodyToTry).substring(0, 300))
+              responseAttempt = await fetch(queryUrl, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': contentType,
+                  'Accept': 'application/json',
+                  ...(req.headers.authorization && { Authorization: req.headers.authorization }),
+                },
+                body: JSON.stringify(bodyToTry),
+                redirect: 'follow', // Follow redirects if any
+              })
             
             console.log('[api/query] Response URL:', responseAttempt.url) // Log final URL after redirects
             console.log('[api/query] Response status:', responseAttempt.status)
@@ -127,10 +166,10 @@ export default async function handler(req, res) {
               response = responseAttempt
               usedEndpoint = queryUrl
               console.log('[api/query] Endpoint responded (not 404/415):', queryUrl)
-              break
+              break // Break out of bodyToTry loop
             }
             
-            // If 415, try next Content-Type
+            // If 415, try next body format or Content-Type
             if (responseAttempt.status === 415) {
               const clonedResponse = responseAttempt.clone()
               try {
@@ -152,20 +191,28 @@ export default async function handler(req, res) {
               continue
             }
             
-            // If 404, try next endpoint (not Content-Type)
+            // If 404, try next body format
             if (responseAttempt.status === 404) {
               const errorData = await responseAttempt.json().catch(() => ({}))
               lastError = { endpoint: queryUrl, status: responseAttempt.status, data: errorData }
-              console.log('[api/query] Endpoint returned 404, trying next:', queryUrl)
-              response = null
-              break // Break out of Content-Type loop, try next endpoint
+              console.log('[api/query] Endpoint returned 404 with this body format, trying next format...')
+              continue // Try next body format
             }
           } catch (contentTypeError) {
-            console.log('[api/query] Error with Content-Type:', contentType, contentTypeError.message)
+            console.log('[api/query] Error with body format:', contentTypeError.message)
             lastContentTypeError = { contentType, error: contentTypeError.message }
-            continue
+            continue // Try next body format
           }
         }
+        
+        // If we got a successful response, break out of Content-Type loop
+        if (response) {
+          break
+        }
+      } catch (endpointError) {
+        console.log('[api/query] Error with Content-Type:', contentType, endpointError.message)
+        lastContentTypeError = { contentType, error: endpointError.message }
+      }
         
         // If we found a working response, break out of endpoint loop
         if (response && response.status !== 404 && response.status !== 415) {
