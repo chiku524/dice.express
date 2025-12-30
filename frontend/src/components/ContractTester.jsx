@@ -147,7 +147,18 @@ export default function ContractTester() {
         throw new Error(data.message || data.error || `HTTP ${response.status}: ${JSON.stringify(data)}`)
       }
 
-      const contractId = data.result?.created?.[0]?.contractId || data.contractId || data.created?.[0]?.contractId || 'N/A'
+      // Try multiple response formats to extract contract ID
+      const contractId = data.result?.created?.[0]?.contractId || 
+                        data.result?.created?.[0]?.contract_id ||
+                        data.contractId || 
+                        data.contract_id ||
+                        data.created?.[0]?.contractId ||
+                        data.created?.[0]?.contract_id ||
+                        data.result?.contractId ||
+                        data.result?.contract_id ||
+                        (data.result?.events && data.result.events[0]?.created?.contractId) ||
+                        (data.result?.events && data.result.events[0]?.created?.contract_id) ||
+                        'N/A'
       
       setResult({
         contractType,
@@ -230,12 +241,26 @@ export default function ContractTester() {
         throw new Error(data.message || data.error || `Failed to create TokenBalance: ${response.status}`)
       }
 
-      const contractId = data.result?.created?.[0]?.contractId || data.contractId || data.created?.[0]?.contractId
-      if (contractId) {
+      // Try multiple response formats to extract contract ID
+      const contractId = data.result?.created?.[0]?.contractId || 
+                        data.result?.created?.[0]?.contract_id ||
+                        data.contractId || 
+                        data.contract_id ||
+                        data.created?.[0]?.contractId ||
+                        data.created?.[0]?.contract_id ||
+                        data.result?.contractId ||
+                        data.result?.contract_id ||
+                        (data.result?.events && data.result.events[0]?.created?.contractId) ||
+                        (data.result?.events && data.result.events[0]?.created?.contract_id)
+      
+      if (contractId && contractId !== 'N/A') {
         localStorage.setItem('tokenBalanceContractId', contractId)
         return contractId
       }
-      throw new Error('TokenBalance created but no contract ID returned')
+      
+      // Log the full response for debugging
+      console.error('TokenBalance response structure:', JSON.stringify(data, null, 2))
+      throw new Error('TokenBalance created but no contract ID returned. Response: ' + JSON.stringify(data).substring(0, 200))
     } catch (err) {
       setError({
         contractType: 'TokenBalance (auto)',
@@ -355,9 +380,9 @@ export default function ContractTester() {
       {
         settlementRequestId: `settlement-${Date.now()}`,
         party: PARTY_ID,
-        instrumentId: { unpack: 'USDC' }, // InstrumentId newtype - DAML expects {"unpack": "value"} format
+        instrumentId: { id: { unpack: 'USDC' } }, // Instrument is { id: InstrumentId }, InstrumentId is newtype
         quantity: '1000.0',
-        status: { tag: 'Pending' },
+        status: 'Pending', // AllocationStatus enum - use string directly
         deadline: new Date(Date.now() + 86400000).toISOString(),
         poolId: `pool-${Date.now()}`
       }
@@ -372,9 +397,9 @@ export default function ContractTester() {
         settlementRequestId: `settlement-${Date.now()}`,
         poolId: `pool-${Date.now()}`,
         poolParty: PARTY_ID,
-        requiredAllocations: [],
-        actualAllocations: [],
-        status: { tag: 'WaitingForAllocations' },
+        requiredAllocations: {}, // Map (Party, Text) (ContractId AllocationRequirement) - empty map is {}
+        actualAllocations: {}, // Map (Party, Text) (ContractId Allocation) - empty map is {}
+        status: 'WaitingForAllocations', // SettlementStatus enum - use string directly
         deadline: new Date(Date.now() + 86400000).toISOString(),
         createdAt: new Date().toISOString()
       }
@@ -382,33 +407,38 @@ export default function ContractTester() {
   }
 
   const createLiquidityPool = () => {
+    // Note: LiquidityPool requires a Market contract (marketCid field)
+    // Market contracts are created by approving a MarketCreationRequest
+    // For testing, we'll attempt to create the pool but it will fail without a valid Market
+    // In production, you would create a MarketCreationRequest, approve it to get a Market, then create the pool
+    
+    setError({
+      contractType: 'LiquidityPool',
+      message: 'LiquidityPool requires a Market contract',
+      details: 'To create a LiquidityPool, you must first:\n1. Create a MarketCreationRequest\n2. Approve it to create a Market contract\n3. Use the Market contract ID as marketCid when creating the LiquidityPool\n\nThis contract cannot be created standalone for testing.'
+    })
+    setLoading(null)
+    
+    // Uncomment below to attempt creation (will fail without valid marketCid):
+    /*
     createContract(
       'LiquidityPool',
       getTemplateId('AMM', 'LiquidityPool'),
       {
         poolId: `pool-${Date.now()}`,
-        poolParty: PARTY_ID,
-        tokenA: {
-          id: { unpack: 'USDC' }, // TokenId newtype - DAML expects {"unpack": "value"} format
-          symbol: 'USDC',
-          name: 'USD Coin',
-          decimals: 6,
-          description: 'USDC token'
-        },
-        tokenB: {
-          id: { unpack: 'YES' }, // TokenId newtype - DAML expects {"unpack": "value"} format
-          symbol: 'YES',
-          name: 'Yes Shares',
-          decimals: 6,
-          description: 'Yes shares token'
-        },
-        reserveA: '10000.0',
-        reserveB: '10000.0',
-        totalSupply: '10000.0',
+        marketId: `test-market-${Date.now()}`,
+        poolOperator: PARTY_ID, // Note: field is poolOperator, not poolParty
+        marketCid: 'REQUIRED_MARKET_CONTRACT_ID', // Must be a valid ContractId Market
+        yesReserve: '10000.0',
+        noReserve: '10000.0',
+        outcomeReserves: {}, // Map Text Decimal - empty map is {}
+        totalLPShares: '10000.0',
         feeRate: '0.003', // 0.3%
+        minLiquidity: '100.0',
         createdAt: new Date().toISOString()
       }
     )
+    */
   }
 
   const createPoolFactory = () => {
@@ -416,9 +446,9 @@ export default function ContractTester() {
       'PoolFactory',
       getTemplateId('AMM', 'PoolFactory'),
       {
-        factoryParty: PARTY_ID,
+        factoryOperator: PARTY_ID, // Note: field is factoryOperator, not factoryParty
         defaultFeeRate: '0.003',
-        pools: []
+        defaultMinLiquidity: '100.0' // Required field that was missing
       }
     )
   }
