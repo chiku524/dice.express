@@ -208,9 +208,10 @@ export default async function handler(req, res) {
     canWrite: diagnostics.checks.commandSubmission?.success || false,
     synchronizerIssue: diagnostics.checks.commandSubmission?.errorCode === 'NO_SYNCHRONIZER_FOR_SUBMISSION',
     permissionsConfirmed: diagnostics.checks.permissions?.note?.includes('Client confirmed'),
+    participantConnected: true, // Client confirmed participant is connected (via validator rewards)
     recommendation: diagnostics.checks.commandSubmission?.errorCode === 'NO_SYNCHRONIZER_FOR_SUBMISSION'
       ? diagnostics.checks.permissions?.note?.includes('Client confirmed')
-        ? 'Party has actAs and readAs permissions confirmed. Issue is synchronizer/domain connection configuration (requires admin action).'
+        ? 'Party has actAs and readAs permissions ✅. Participant is connected to domain ✅. Issue is party-level synchronization - this specific party needs to be registered/synchronized on the domain (requires admin action).'
         : 'Party needs to be connected to a domain with synchronizer enabled (requires admin action)'
       : diagnostics.checks.commandSubmission?.success
       ? 'Party appears to be properly configured'

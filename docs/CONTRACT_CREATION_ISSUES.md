@@ -59,18 +59,21 @@ We're encountering persistent errors when trying to create contracts via Canton 
 
 **What This Means**:
 - ✅ **Permissions are correct**: Client confirmed party has both `actAs` and `readAs` permissions (verified via UserManagementService/ListUserRights)
-- ❌ **Synchronizer issue**: Even with correct permissions, the participant lacks a synchronizer for submission
-- The party `ee15aa3d-0bd4-44f9-9664-b49ad7e308aa::122087fa379c37332a753379c58e18d397e39cb82c68c15e4af7134be46561974292` is not properly connected to a domain with synchronizer enabled
-- All contract creation attempts will fail until synchronizer is configured
+- ✅ **Participant is connected to domain**: Client confirmed participant is connected (verified via validator rewards: https://devnet.ccview.io/validators/wolfedgelabs-dev-1::122087fa379c37332a753379c58e18d397e39cb82c68c15e4af7134be46561974292/)
+- ❌ **Party-level synchronizer issue**: The specific party `ee15aa3d-0bd4-44f9-9664-b49ad7e308aa::122087fa379c37332a753379c58e18d397e39cb82c68c15e4af7134be46561974292` may need to be explicitly registered/synchronized on the domain, even though the participant is connected
+- All contract creation attempts will fail until this specific party is synchronized on the domain
 
 **Solution** (Requires Admin/Client Action):
 1. ✅ **Permissions Verified**: Client confirmed party has both `actAs` and `readAs` permissions (not the issue)
-2. **Enable Synchronizer**: Ensure synchronizer is properly configured on the participant for this party
-3. **Verify Domain Connection**: Check if the participant is connected to a domain
-4. **Party Domain Registration**: Verify the party is registered on a domain with synchronizer enabled
+2. ✅ **Participant Connected**: Client confirmed participant is connected to domain (verified via validator rewards)
+3. **Party-Level Synchronization**: The specific party `ee15aa3d-0bd4-44f9-9664-b49ad7e308aa::122087fa379c37332a753379c58e18d397e39cb82c68c15e4af7134be46561974292` needs to be explicitly registered/synchronized on the domain
+4. **Enable Synchronizer for Party**: Ensure synchronizer is enabled for this specific party (not just the participant)
 5. **Protocol Version**: Check domain and participant protocol version compatibility (Canton 3.4)
 
-**Important**: Permissions are correct. The issue is specifically the synchronizer configuration, which is separate from permissions.
+**Important**: 
+- Permissions are correct ✅
+- Participant is connected to domain ✅
+- Issue is party-level synchronization: This specific party needs to be registered/synchronized on the domain, even though the participant is connected
 
 **Client Action Required**: This cannot be fixed from the application code - it requires Canton infrastructure configuration.
 
@@ -252,15 +255,21 @@ data Token = Token
 ### Current Blocking Issue ⚠️
 **All contract creation attempts fail with "NO_SYNCHRONIZER_FOR_SUBMISSION"**
 
-**Update**: Client confirmed party has both `actAs` and `readAs` permissions (verified via UserManagementService/ListUserRights). Permissions are **not** the issue.
+**Updates from Client**:
+- ✅ **Permissions**: Client confirmed party has both `actAs` and `readAs` permissions (verified via UserManagementService/ListUserRights)
+- ✅ **Participant Connection**: Client confirmed participant is connected to domain (verified via validator rewards: https://devnet.ccview.io/validators/wolfedgelabs-dev-1::122087fa379c37332a753379c58e18d397e39cb82c68c15e4af7134be46561974292/)
 
-This error indicates the participant lacks a synchronizer for submission. This is a **Canton infrastructure configuration issue** that requires admin access to resolve.
+**Root Cause**: This error indicates the specific party lacks a synchronizer for submission. Even though:
+- The participant is connected to the domain ✅
+- The party has correct permissions ✅
 
-**The application code is correct** - the issue is that the participant needs:
+The specific party `ee15aa3d-0bd4-44f9-9664-b49ad7e308aa::122087fa379c37332a753379c58e18d397e39cb82c68c15e4af7134be46561974292` needs to be explicitly registered/synchronized on the domain at the party level.
+
+**The application code is correct** - the issue is party-level synchronization:
 1. ✅ Permissions are correct (actAs and readAs confirmed)
-2. ❌ Synchronizer enabled for this party on the participant
-3. ❌ Participant connected to a domain
-4. ❌ Party registered on domain with synchronizer enabled
+2. ✅ Participant is connected to domain (confirmed via validator rewards)
+3. ❌ **Party needs to be registered/synchronized on the domain** (party-level configuration)
+4. ❌ Synchronizer needs to be enabled for this specific party
 
 ### Diagnostic Tool Available 🔍
 
@@ -290,10 +299,12 @@ The diagnostic tool will show:
 **Party ID**: `ee15aa3d-0bd4-44f9-9664-b49ad7e308aa::122087fa379c37332a753379c58e18d397e39cb82c68c15e4af7134be46561974292`
 
 **Required Actions**:
-1. Verify participant is connected to a domain
-2. Enable synchronizer for this party on the participant
-3. Ensure party is registered on the domain
+1. ✅ Participant is connected to domain (confirmed via validator rewards)
+2. **Register/Synchronize the specific party on the domain**: Party `ee15aa3d-0bd4-44f9-9664-b49ad7e308aa::122087fa379c37332a753379c58e18d397e39cb82c68c15e4af7134be46561974292` needs to be explicitly registered on the domain
+3. **Enable synchronizer for this specific party**: Even though participant is connected, this party needs synchronizer enabled at party level
 4. Verify domain and participant protocol version compatibility (Canton 3.4)
+
+**Note**: The validator operator party is receiving rewards (proving participant connection), but the user party needs separate registration/synchronization.
 
 Once configured, the diagnostic tool can verify that the party can successfully submit commands.
 
