@@ -140,20 +140,102 @@ export default function ContractTester() {
         throw new Error(data.message || data.error || `HTTP ${response.status}: ${JSON.stringify(data)}`)
       }
 
+      const contractId = data.result?.created?.[0]?.contractId || data.contractId || data.created?.[0]?.contractId || 'N/A'
+      
       setResult({
         contractType,
         success: true,
         message: `${contractType} contract created successfully!`,
-        contractId: data.result?.created?.[0]?.contractId || data.contractId || 'N/A',
+        contractId: contractId,
         templateId: templateId,
         details: data
       })
+      
+      // Store TokenBalance contract ID for use in other contracts
+      if (contractType === 'TokenBalance' && contractId !== 'N/A') {
+        localStorage.setItem('tokenBalanceContractId', contractId)
+      }
+      
+      return contractId
     } catch (err) {
       setError({
         contractType,
         message: err.message,
         details: err.toString()
       })
+      throw err
+    } finally {
+      setLoading(null)
+    }
+  }
+  
+  // Helper to create TokenBalance if needed and return its contract ID
+  const ensureTokenBalance = async () => {
+    // Check if we already have a TokenBalance contract ID stored
+    const existingCid = localStorage.getItem('tokenBalanceContractId')
+    if (existingCid && existingCid !== 'N/A') {
+      return existingCid
+    }
+    
+    // Create TokenBalance first
+    setLoading('TokenBalance (auto)')
+    try {
+      const token = getToken()
+      if (!token) {
+        throw new Error('Please enter your authentication token above')
+      }
+
+      const requestPayload = {
+        actAs: [PARTY_ID],
+        commandId: `auto-tokenbalance-${Date.now()}`,
+        applicationId: 'prediction-markets',
+        commands: [{
+          CreateCommand: {
+            templateId: 'b87ef31c8ea5c53a940a7f71a4bc6513cf44048730c0551f1fc2e02adc7271f0:Token:TokenBalance',
+            createArguments: {
+              owner: PARTY_ID,
+              token: {
+                id: 'USDC', // Try just the string value for newtype
+                symbol: 'USDC',
+                name: 'USD Coin',
+                decimals: 6,
+                description: 'Auto-created USDC token for prediction markets'
+              },
+              amount: 1000000.0
+            }
+          }
+        }]
+      }
+
+      const response = await fetch('/api/command', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify(requestPayload)
+      })
+
+      const data = await response.json()
+      
+      if (!response.ok) {
+        throw new Error(data.message || data.error || `Failed to create TokenBalance: ${response.status}`)
+      }
+
+      const contractId = data.result?.created?.[0]?.contractId || data.contractId || data.created?.[0]?.contractId
+      if (contractId) {
+        localStorage.setItem('tokenBalanceContractId', contractId)
+        return contractId
+      }
+      throw new Error('TokenBalance created but no contract ID returned')
+    } catch (err) {
+      setError({
+        contractType: 'TokenBalance (auto)',
+        message: `Failed to auto-create TokenBalance: ${err.message}`,
+        details: err.toString()
+      })
+      throw err
     } finally {
       setLoading(null)
     }
@@ -167,7 +249,7 @@ export default function ContractTester() {
       {
         owner: PARTY_ID,
         token: {
-          id: { _1: 'USDC' }, // TokenId is a newtype - JSON API wraps newtypes as {_1: value}
+          id: 'USDC', // Try just the string - newtypes might unwrap automatically
           symbol: 'USDC',
           name: 'USD Coin',
           decimals: 6,
@@ -179,23 +261,29 @@ export default function ContractTester() {
   }
 
   // Prediction Markets Contracts
-  const createMarketConfig = () => {
-    // Note: This requires a TokenBalance contract ID
-    // For testing, we'll use a placeholder that should be replaced
-    createContract(
-      'MarketConfig',
-      'b87ef31c8ea5c53a940a7f71a4bc6513cf44048730c0551f1fc2e02adc7271f0:PredictionMarkets:MarketConfig',
-      {
-        admin: PARTY_ID,
-        marketCreationDeposit: '100.0',
-        marketCreationFee: '0.0',
-        positionChangeFee: '0.0',
-        partialCloseFee: '0.0',
-        settlementFee: '0.0',
-        oracleParty: PARTY_ID,
-          stablecoinCid: null // Will need to create TokenBalance first, then update this
-      }
-    )
+  const createMarketConfig = async () => {
+    // Automatically create TokenBalance first if needed
+    try {
+      const tokenBalanceCid = await ensureTokenBalance()
+      
+      createContract(
+        'MarketConfig',
+        'b87ef31c8ea5c53a940a7f71a4bc6513cf44048730c0551f1fc2e02adc7271f0:PredictionMarkets:MarketConfig',
+        {
+          admin: PARTY_ID,
+          marketCreationDeposit: '100.0',
+          marketCreationFee: '0.0',
+          positionChangeFee: '0.0',
+          partialCloseFee: '0.0',
+          settlementFee: '0.0',
+          oracleParty: PARTY_ID,
+          stablecoinCid: tokenBalanceCid // Use the auto-created TokenBalance contract ID
+        }
+      )
+    } catch (err) {
+      // Error already set by ensureTokenBalance
+      console.error('Failed to create MarketConfig:', err)
+    }
   }
 
   const createMarketCreationRequest = () => {
