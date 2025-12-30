@@ -92,13 +92,15 @@ export default function CreateMarket() {
         // If no contract ID, check for updateId (async submission)
         if (!contractId) {
           updateId = result.updateId || result.update_id || result.result?.updateId
-          // Get timestamp from completionOffset or use current time
-          updateTimestamp = result.completionOffset || result.timestamp || new Date().toISOString()
+          // completionOffset is a number, not a timestamp - use it directly
+          // The explorer URL format is: /updates/{updateId}/{completionOffset}
+          updateTimestamp = result.completionOffset || result.completion_offset
           
-          // Format timestamp for URL (ISO format)
-          if (updateTimestamp && typeof updateTimestamp === 'string') {
-            // Ensure it's in ISO format
-            updateTimestamp = new Date(updateTimestamp).toISOString()
+          // If completionOffset is not available, try timestamp (but this is less common)
+          if (!updateTimestamp) {
+            updateTimestamp = result.timestamp || result.result?.timestamp
+            // If it's a string timestamp, keep it as-is (don't convert)
+            // The explorer may accept ISO timestamps in some cases
           }
         }
       }
@@ -106,9 +108,14 @@ export default function CreateMarket() {
       // Build explorer URL
       if (contractId) {
         explorerUrl = `https://devnet.ccexplorer.io/?q=${encodeURIComponent(contractId)}`
-      } else if (updateId && updateTimestamp) {
-        // Use the correct format: /updates/{updateId}/{timestamp}
-        explorerUrl = `https://devnet.ccexplorer.io/updates/${updateId}/${encodeURIComponent(updateTimestamp)}`
+      } else if (updateId && updateTimestamp !== undefined && updateTimestamp !== null) {
+        // Use the correct format: /updates/{updateId}/{completionOffset}
+        // completionOffset is typically a number, not a timestamp
+        // Don't encode if it's a number, encode if it's a string
+        const offsetPart = typeof updateTimestamp === 'number' 
+          ? updateTimestamp.toString() 
+          : encodeURIComponent(updateTimestamp)
+        explorerUrl = `https://devnet.ccexplorer.io/updates/${updateId}/${offsetPart}`
       }
 
       // Store display ID (contractId or updateId format)

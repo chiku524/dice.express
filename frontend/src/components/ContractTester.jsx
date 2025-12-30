@@ -166,22 +166,27 @@ export default function ContractTester() {
       
       if (!contractId && data.updateId) {
         updateId = data.updateId || data.update_id || data.result?.updateId
-        // Get timestamp from completionOffset or use current time
-        updateTimestamp = data.completionOffset || data.timestamp || new Date().toISOString()
+        // completionOffset is a number, not a timestamp - use it directly
+        // The explorer URL format is: /updates/{updateId}/{completionOffset}
+        updateTimestamp = data.completionOffset || data.completion_offset
         
-        // Format timestamp for URL (ISO format)
-        if (updateTimestamp && typeof updateTimestamp === 'string') {
-          updateTimestamp = new Date(updateTimestamp).toISOString()
+        // If completionOffset is not available, try timestamp (but this is less common)
+        if (updateTimestamp === undefined || updateTimestamp === null) {
+          updateTimestamp = data.timestamp || data.result?.timestamp
         }
         
-        // Build explorer URL using correct format: /updates/{updateId}/{timestamp}
-        if (updateId && updateTimestamp) {
-          explorerUrl = `https://devnet.ccexplorer.io/updates/${updateId}/${encodeURIComponent(updateTimestamp)}`
+        // Build explorer URL using correct format: /updates/{updateId}/{completionOffset}
+        if (updateId && updateTimestamp !== undefined && updateTimestamp !== null) {
+          // Don't encode if it's a number, encode if it's a string
+          const offsetPart = typeof updateTimestamp === 'number' 
+            ? updateTimestamp.toString() 
+            : encodeURIComponent(updateTimestamp)
+          explorerUrl = `https://devnet.ccexplorer.io/updates/${updateId}/${offsetPart}`
         }
         
         contractId = `updateId:${updateId}`
         console.log('Contract created with updateId:', updateId)
-        console.log('Timestamp:', updateTimestamp)
+        console.log('Completion Offset:', updateTimestamp)
       }
       
       // Build explorer URL for contract ID
@@ -363,11 +368,20 @@ export default function ContractTester() {
     try {
       let tokenBalanceCid = await ensureTokenBalance()
       
-      // If tokenBalanceCid is in updateId format, the contract was created but we need the actual ID
-      // For now, we'll use it as-is since the contract exists on the ledger
+      // If tokenBalanceCid is in updateId format, we cannot use it as a contract ID reference
+      // MarketConfig requires an actual contract ID, not an updateId
       if (tokenBalanceCid && tokenBalanceCid.startsWith('updateId:')) {
-        console.log('Using TokenBalance with updateId format:', tokenBalanceCid)
-        // Note: In production, you'd query the ledger using the updateId to get the actual contract ID
+        throw new Error(
+          'TokenBalance was created but only updateId is available. ' +
+          'MarketConfig requires an actual contract ID. ' +
+          'Please create TokenBalance manually first and wait for the contract ID, ' +
+          'or try creating MarketConfig again after the TokenBalance transaction is processed.'
+        )
+      }
+      
+      // Ensure we have a valid contract ID (not updateId format)
+      if (!tokenBalanceCid || tokenBalanceCid === 'N/A') {
+        throw new Error('TokenBalance contract ID is required but not available')
       }
       
       await createContract(
@@ -381,7 +395,7 @@ export default function ContractTester() {
           partialCloseFee: '0.0',
           settlementFee: '0.0',
           oracleParty: PARTY_ID,
-          stablecoinCid: tokenBalanceCid // Use the auto-created TokenBalance contract ID (or updateId reference)
+          stablecoinCid: tokenBalanceCid // Must be an actual contract ID, not updateId
         }
       )
     } catch (err) {
