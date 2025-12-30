@@ -163,7 +163,7 @@ export default function ContractTester() {
   const createTokenBalance = () => {
     createContract(
       'TokenBalance',
-      'Token:TokenBalance',
+      '#prediction-markets:Token:TokenBalance',
       {
         owner: PARTY_ID,
         token: {
@@ -184,7 +184,7 @@ export default function ContractTester() {
     // For testing, we'll use a placeholder that should be replaced
     createContract(
       'MarketConfig',
-      'PredictionMarkets:MarketConfig',
+      '#prediction-markets:PredictionMarkets:MarketConfig',
       {
         admin: PARTY_ID,
         marketCreationDeposit: '100.0',
@@ -201,7 +201,7 @@ export default function ContractTester() {
   const createMarketCreationRequest = () => {
     createContract(
       'MarketCreationRequest',
-      'PredictionMarkets:MarketCreationRequest',
+      '#prediction-markets:PredictionMarkets:MarketCreationRequest',
       {
         creator: PARTY_ID,
         admin: PARTY_ID,
@@ -224,7 +224,7 @@ export default function ContractTester() {
   const createOracleDataFeed = () => {
     createContract(
       'OracleDataFeed',
-      'PredictionMarkets:OracleDataFeed',
+      '#prediction-markets:PredictionMarkets:OracleDataFeed',
       {
         oracleParty: PARTY_ID,
         marketId: `market-${Date.now()}`,
@@ -240,7 +240,7 @@ export default function ContractTester() {
   const createAllocationRequirement = () => {
     createContract(
       'AllocationRequirement',
-      'AMM:AllocationRequirement',
+      '#prediction-markets:AMM:AllocationRequirement',
       {
         settlementRequestId: `settlement-${Date.now()}`,
         party: PARTY_ID,
@@ -256,7 +256,7 @@ export default function ContractTester() {
   const createSettlementRequest = () => {
     createContract(
       'SettlementRequest',
-      'AMM:SettlementRequest',
+      '#prediction-markets:AMM:SettlementRequest',
       {
         settlementRequestId: `settlement-${Date.now()}`,
         poolId: `pool-${Date.now()}`,
@@ -273,7 +273,7 @@ export default function ContractTester() {
   const createLiquidityPool = () => {
     createContract(
       'LiquidityPool',
-      'AMM:LiquidityPool',
+      '#prediction-markets:AMM:LiquidityPool',
       {
         poolId: `pool-${Date.now()}`,
         poolParty: PARTY_ID,
@@ -303,7 +303,7 @@ export default function ContractTester() {
   const createPoolFactory = () => {
     createContract(
       'PoolFactory',
-      'AMM:PoolFactory',
+      '#prediction-markets:AMM:PoolFactory',
       {
         factoryParty: PARTY_ID,
         defaultFeeRate: '0.003',
