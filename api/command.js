@@ -1,6 +1,6 @@
 // Vercel serverless function to proxy Canton JSON API commands
 // Located at project root /api/ directory (Vercel requirement)
-export default async function handler(req, res) {
+module.exports = async function handler(req, res) {
   // Enable CORS first
   res.setHeader('Access-Control-Allow-Credentials', true)
   res.setHeader('Access-Control-Allow-Origin', '*')

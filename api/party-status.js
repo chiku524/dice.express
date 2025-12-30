@@ -1,6 +1,6 @@
 // Diagnostic endpoint to check party status and domain connection
 // This helps diagnose synchronizer issues
-export default async function handler(req, res) {
+module.exports = async function handler(req, res) {
   console.log('[api/party-status] ===== FUNCTION INVOKED =====')
   
   res.setHeader('Access-Control-Allow-Credentials', true)
