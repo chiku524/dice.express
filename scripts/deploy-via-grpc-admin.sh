@@ -5,6 +5,9 @@
 set -e  # Exit on error
 
 # Configuration
+REMOVE_EXISTING=${REMOVE_EXISTING:-true}  # Default to true, can be overridden
+
+# Configuration
 DAR_DIRECTORY="./.daml/dist"
 DAR_FILE="${DAR_DIRECTORY}/prediction-markets-1.0.0.dar"
 PARTICIPANT_HOST="participant.dev.canton.wolfedgelabs.com"
@@ -83,10 +86,79 @@ echo -e "${GREEN}Admin API: ${CANTON_ADMIN_API_URL}${NC}"
 echo -e "${GREEN}Service: ${CANTON_ADMIN_API_GRPC_PACKAGE_SERVICE}.UploadDar${NC}"
 echo ""
 
+# Remove existing package function
+remove_existing_package() {
+    local package_id=$1
+    
+    if [ "${REMOVE_EXISTING}" != "true" ]; then
+        echo -e "${YELLOW}Skipping package removal (REMOVE_EXISTING=false)${NC}"
+        return 0
+    fi
+    
+    echo -e "${CYAN}==========================================${NC}"
+    echo -e "${CYAN}Removing existing packages...${NC}"
+    echo -e "${CYAN}==========================================${NC}"
+    echo ""
+    
+    echo -e "${YELLOW}Attempting to remove package: ${package_id}${NC}"
+    
+    # First, try to unvet the package
+    local unvet_service="${CANTON_ADMIN_API_GRPC_PACKAGE_SERVICE}.UnvetPackage"
+    local unvet_request=$(cat <<EOF
+{
+  "package_id": "${package_id}"
+}
+EOF
+)
+    
+    echo -e "${CYAN}Attempting to unvet package...${NC}"
+    
+    if echo "${unvet_request}" | json | grpcurl \
+        -insecure \
+        -H "Authorization: Bearer ${JWT_TOKEN}" \
+        -d @ \
+        "${CANTON_ADMIN_API_URL}" \
+        "${unvet_service}" 2>&1 > /dev/null; then
+        echo -e "${GREEN}Package unvetted successfully${NC}"
+    else
+        echo -e "${YELLOW}Package unvetting not supported or package not found (this is OK)${NC}"
+    fi
+    
+    # Then try to remove the package
+    local remove_service="${CANTON_ADMIN_API_GRPC_PACKAGE_SERVICE}.RemovePackage"
+    local remove_request=$(cat <<EOF
+{
+  "package_id": "${package_id}"
+}
+EOF
+)
+    
+    echo -e "${CYAN}Attempting to remove package...${NC}"
+    
+    # Try to remove package (may not be supported)
+    if echo "${remove_request}" | json | grpcurl \
+        -insecure \
+        -H "Authorization: Bearer ${JWT_TOKEN}" \
+        -d @ \
+        "${CANTON_ADMIN_API_URL}" \
+        "${remove_service}" 2>&1 > /dev/null; then
+        echo -e "${GREEN}Package removed successfully${NC}"
+    else
+        echo -e "${YELLOW}Package removal not supported or package not found (this is OK)${NC}"
+        echo -e "${CYAN}Continuing with upload...${NC}"
+    fi
+    
+    echo ""
+}
+
 # Upload DAR function
 upload_dar() {
     local dar_file=$1
     local dar_name=$(basename "${dar_file}")
+    
+    # Remove existing package first
+    local package_id="b87ef31c8ea5c53a940a7f71a4bc6513cf44048730c0551f1fc2e02adc7271f0"
+    remove_existing_package "${package_id}"
     
     echo -e "${CYAN}==========================================${NC}"
     echo -e "${CYAN}Uploading DAR: ${dar_name}${NC}"

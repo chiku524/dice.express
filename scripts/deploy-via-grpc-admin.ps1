@@ -3,7 +3,8 @@
 
 param(
     [string]$DarFile = ".daml\dist\prediction-markets-1.0.0.dar",
-    [string]$TokenFile = "token.json"
+    [string]$TokenFile = "token.json",
+    [switch]$RemoveExisting = $true
 )
 
 $ErrorActionPreference = "Stop"
@@ -110,6 +111,91 @@ try {
 }
 
 Write-Host ""
+
+# Remove existing packages if requested
+if ($RemoveExisting) {
+    Write-Host "==========================================" -ForegroundColor Cyan
+    Write-Host "Removing existing packages..." -ForegroundColor Cyan
+    Write-Host "==========================================" -ForegroundColor Cyan
+    Write-Host ""
+    
+    # Try to list and remove existing packages
+    # Package ID from our project
+    $packageId = "b87ef31c8ea5c53a940a7f71a4bc6513cf44048730c0551f1fc2e02adc7271f0"
+    
+    Write-Host "Attempting to remove package: $packageId" -ForegroundColor Yellow
+    
+    # Try to unvet and remove package
+    # First, try to unvet the package
+    $unvetService = "com.digitalasset.canton.admin.participant.v30.PackageService/UnvetPackage"
+    $unvetRequest = @{
+        package_id = $packageId
+    } | ConvertTo-Json -Compress
+    
+    try {
+        Write-Host "Attempting to unvet package..." -ForegroundColor Gray
+        $unvetRequest | Out-File -FilePath "grpc_unvet_request.json" -Encoding ASCII -NoNewline
+        
+        $unvetArgs = @(
+            "-insecure"
+            "-H", "authorization: Bearer $token"
+            "-d", "@"
+            "${AdminApiHost}:${AdminApiPort}"
+            $unvetService
+        )
+        
+        $unvetRequest | & $grpcurlPath @unvetArgs 2>&1 | Out-Null
+        
+        if ($LASTEXITCODE -eq 0) {
+            Write-Host "Package unvetted successfully" -ForegroundColor Green
+        } else {
+            Write-Host "Package unvetting not supported or package not found (this is OK)" -ForegroundColor Yellow
+        }
+        
+        if (Test-Path "grpc_unvet_request.json") {
+            Remove-Item "grpc_unvet_request.json" -ErrorAction SilentlyContinue
+        }
+    } catch {
+        Write-Host "Package unvetting not available (this is OK)" -ForegroundColor Yellow
+    }
+    
+    # Then try to remove the package
+    $removeService = "com.digitalasset.canton.admin.participant.v30.PackageService/RemovePackage"
+    $removeRequest = @{
+        package_id = $packageId
+    } | ConvertTo-Json -Compress
+    
+    try {
+        Write-Host "Attempting to remove package..." -ForegroundColor Gray
+        $removeRequest | Out-File -FilePath "grpc_remove_request.json" -Encoding ASCII -NoNewline
+        
+        $removeArgs = @(
+            "-insecure"
+            "-H", "authorization: Bearer $token"
+            "-d", "@"
+            "${AdminApiHost}:${AdminApiPort}"
+            $removeService
+        )
+        
+        $removeRequest | & $grpcurlPath @removeArgs 2>&1 | Out-Null
+        
+        if ($LASTEXITCODE -eq 0) {
+            Write-Host "Package removed successfully" -ForegroundColor Green
+        } else {
+            Write-Host "Package removal not supported or package not found (this is OK)" -ForegroundColor Yellow
+            Write-Host "Continuing with upload..." -ForegroundColor Gray
+        }
+        
+        if (Test-Path "grpc_remove_request.json") {
+            Remove-Item "grpc_remove_request.json" -ErrorAction SilentlyContinue
+        }
+    } catch {
+        Write-Host "Package removal not available or failed (this is OK)" -ForegroundColor Yellow
+        Write-Host "Continuing with upload..." -ForegroundColor Gray
+    }
+    
+    Write-Host ""
+}
 
 # Read DAR file as bytes (gRPC expects bytes, not base64)
 Write-Host "Reading DAR file..." -ForegroundColor Cyan
