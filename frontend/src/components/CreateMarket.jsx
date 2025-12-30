@@ -91,11 +91,23 @@ export default function CreateMarket() {
         console.log('✅ Market created successfully!')
         console.log('📋 Contract ID:', contractId)
         console.log('🔗 View in explorer:', `https://devnet.ccexplorer.io/?q=${contractId}`)
+      } else {
+        console.log('⚠️ Market created but contract ID not found in response')
+        console.log('Full response:', result)
       }
       
-      setTimeout(() => {
-        navigate('/')
-      }, 5000) // Increased timeout to give user time to see contract ID
+      // Reset form after successful creation
+      setFormData({
+        title: '',
+        description: '',
+        marketType: 'Binary',
+        outcomes: '',
+        settlementType: 'TimeBased',
+        settlementTime: '',
+        resolutionCriteria: '',
+      })
+      
+      // DO NOT redirect - let user see the success message and contract details
     } catch (err) {
       let errorMessage = err.message
       
@@ -130,46 +142,68 @@ export default function CreateMarket() {
 
       {error && <div className="error">{error}</div>}
       {success && (
-        <div className="success">
-          <h3>✅ Market creation request submitted successfully!</h3>
+        <div className="success" style={{ marginBottom: '2rem' }}>
+          <h3>✅ Market Creation Request Submitted Successfully!</h3>
+          <p style={{ marginTop: '0.5rem' }}>
+            Your market creation request has been submitted and is pending admin approval.
+          </p>
+          
           {contractId ? (
-            <div style={{ marginTop: '1rem' }}>
+            <div style={{ marginTop: '1.5rem' }}>
               <p><strong>Contract ID:</strong></p>
               <code style={{ 
                 display: 'block', 
-                padding: '0.5rem', 
+                padding: '0.75rem', 
                 background: '#f5f5f5', 
                 borderRadius: '4px',
                 wordBreak: 'break-all',
-                marginTop: '0.5rem'
+                marginTop: '0.5rem',
+                fontSize: '0.9rem',
+                border: '1px solid #ddd'
               }}>
                 {contractId}
               </code>
               <div style={{ marginTop: '1rem' }}>
                 <a 
-                  href={`https://devnet.ccexplorer.io/?q=${contractId}`}
+                  href={`https://devnet.ccexplorer.io/?q=${encodeURIComponent(contractId)}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   style={{
                     display: 'inline-block',
-                    padding: '0.5rem 1rem',
+                    padding: '0.75rem 1.5rem',
                     background: '#646cff',
                     color: 'white',
                     textDecoration: 'none',
                     borderRadius: '4px',
-                    marginTop: '0.5rem'
+                    marginTop: '0.5rem',
+                    fontWeight: '500',
+                    transition: 'background 0.2s'
                   }}
+                  onMouseOver={(e) => e.target.style.background = '#535bf2'}
+                  onMouseOut={(e) => e.target.style.background = '#646cff'}
                 >
                   🔗 View Contract in Block Explorer →
                 </a>
               </div>
               <p style={{ marginTop: '1rem', fontSize: '0.9rem', color: '#666' }}>
-                <strong>Tip:</strong> Click the link above to view your market contract details (title, description, etc.) on the block explorer.
+                <strong>Tip:</strong> Click the link above to view your market contract details (title, description, etc.) on the block explorer. 
+                You can also copy the Contract ID and search for it manually.
               </p>
             </div>
           ) : (
-            <p>Redirecting to markets page...</p>
+            <div style={{ marginTop: '1.5rem', padding: '1rem', background: '#fff3cd', borderRadius: '4px', border: '1px solid #ffc107' }}>
+              <p style={{ margin: 0, color: '#856404' }}>
+                <strong>⚠️ Note:</strong> Contract ID not found in response. Check the browser console (F12) for full response details.
+              </p>
+            </div>
           )}
+          
+          <div style={{ marginTop: '1.5rem', padding: '1rem', background: '#e7f3ff', borderRadius: '4px', border: '1px solid #b3d9ff' }}>
+            <p style={{ margin: 0, fontSize: '0.9rem', color: '#004085' }}>
+              <strong>📋 Next Steps:</strong> Your market creation request is now pending admin approval. 
+              Once approved, it will appear in the Markets page. You can view the contract details using the link above.
+            </p>
+          </div>
         </div>
       )}
 
