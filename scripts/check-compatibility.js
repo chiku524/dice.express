@@ -95,7 +95,7 @@ console.log('')
 console.log('📝 Setup Scripts:')
 const setupScripts = [
   { path: 'daml/Setup.daml', sdk: '3.4.9', type: 'Script' },
-  { path: 'daml/Setup-2.10.0.daml', sdk: '2.10.0', type: 'Scenario' },
+  // Setup-2.10.0.daml removed - project uses SDK 3.4.9 only
 ]
 
 for (const script of setupScripts) {
@@ -133,13 +133,10 @@ console.log('')
 // Recommendations
 console.log('💡 Recommendations:')
 if (sdkVersion === '3.4.9') {
-  console.log('  1. If DAML Script fails with "Method not found", try SDK 2.10.0')
-  console.log('  2. Use Setup-2.10.0.daml for v1 API compatibility')
-  console.log('  3. Use setup-via-json-api.js as fallback')
+  console.log('  1. Use setup-via-json-api.js for setup (recommended)')
+  console.log('  2. SDK 2.10.0 support has been removed')
 } else if (sdkVersion === '2.10.0') {
-  console.log('  1. Use Setup-2.10.0.daml (or rename to Setup.daml)')
-  console.log('  2. Ensure LF target is 1.14 or compatible')
-  console.log('  3. Use setup-via-json-api.js as fallback')
+  console.log('  ⚠️  SDK 2.10.0 support has been removed. Please use SDK 3.4.9.')
 }
 
 console.log('')

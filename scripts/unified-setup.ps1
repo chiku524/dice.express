@@ -97,38 +97,9 @@ if (-not $SkipDamlScript -and $sdkVersion -eq "2.10.0") {
     
     if (Test-Path "token.txt") {
         try {
-            # Check if Setup-2.10.0.daml exists, if so, temporarily rename it
-            $backupSetup = $false
-            if (Test-Path "daml\Setup-2.10.0.daml") {
-                if (Test-Path "daml\Setup.daml") {
-                    Copy-Item "daml\Setup.daml" "daml\Setup-3.4.9.daml.backup" -ErrorAction SilentlyContinue
-                    $backupSetup = $true
-                }
-                Copy-Item "daml\Setup-2.10.0.daml" "daml\Setup.daml" -Force
-            }
-            
-            # Rebuild with SDK 2.10.0
-            Write-Host "Rebuilding with SDK 2.10.0..." -ForegroundColor Yellow
-            daml build
-            if ($LASTEXITCODE -eq 0) {
-                & ".\scripts\run-setup-script.ps1" -Password $Password
-                if ($LASTEXITCODE -eq 0) {
-                    # Restore original Setup.daml if backed up
-                    if ($backupSetup -and (Test-Path "daml\Setup-3.4.9.daml.backup")) {
-                        Copy-Item "daml\Setup-3.4.9.daml.backup" "daml\Setup.daml" -Force
-                        Remove-Item "daml\Setup-3.4.9.daml.backup" -ErrorAction SilentlyContinue
-                    }
-                    Write-Host ""
-                    Write-Host "✅ Setup completed successfully using DAML Script (SDK 2.10.0)!" -ForegroundColor Green
-                    exit 0
-                }
-            }
-            
-            # Restore original Setup.daml if backed up
-            if ($backupSetup -and (Test-Path "daml\Setup-3.4.9.daml.backup")) {
-                Copy-Item "daml\Setup-3.4.9.daml.backup" "daml\Setup.daml" -Force
-                Remove-Item "daml\Setup-3.4.9.daml.backup" -ErrorAction SilentlyContinue
-            }
+            # SDK 2.10.0 support removed - project uses SDK 3.4.9 only
+            Write-Host "⚠️  SDK 2.10.0 support has been removed. This project uses SDK 3.4.9 only." -ForegroundColor Yellow
+            Write-Host "   Skipping DAML Script setup (SDK 2.10.0 not available)." -ForegroundColor Yellow
             
             Write-Host "❌ DAML Script (SDK 2.10.0) failed, trying next method..." -ForegroundColor Yellow
         } catch {

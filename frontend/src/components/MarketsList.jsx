@@ -2,7 +2,6 @@ import { useState, useEffect, useMemo, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import { useLedger } from '../hooks/useLedger'
 import { useWallet } from '../hooks/useWallet'
-import { useWebSocket } from '../hooks/useWebSocket'
 
 export default function MarketsList() {
   const { ledger } = useLedger()
@@ -14,14 +13,7 @@ export default function MarketsList() {
   const apiRoutesWorkingRef = useRef(true)
   const isMountedRef = useRef(true)
 
-  // WebSocket disabled by default (falls back to polling)
-  // Enable in useWebSocket.js if WebSocket support is needed
   const PACKAGE_ID = 'b87ef31c8ea5c53a940a7f71a4bc6513cf44048730c0551f1fc2e02adc7271f0'
-  const { data: wsMarkets, connected: wsConnected } = useWebSocket(
-    [`${PACKAGE_ID}:PredictionMarkets:Market`],
-    {},
-    false // Disabled - using polling instead
-  )
 
   useEffect(() => {
     isMountedRef.current = true
@@ -126,13 +118,7 @@ export default function MarketsList() {
     }
   }, [ledger, wallet]) // Only depend on ledger and wallet
 
-  // Update markets when WebSocket data arrives
-  useEffect(() => {
-    if (wsMarkets && wsMarkets.length > 0) {
-      setMarkets(wsMarkets)
-      setLoading(false)
-    }
-  }, [wsMarkets])
+  // WebSocket support removed - using polling instead
 
   const getStatusClass = useMemo(() => {
     const statusMap = {

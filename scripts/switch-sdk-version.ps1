@@ -62,27 +62,13 @@ Set-Content -Path "daml.yaml" -Value $yamlContent -Encoding UTF8
 Write-Host "✅ Updated daml.yaml" -ForegroundColor Green
 Write-Host ""
 
-# Switch Setup script if needed
+# Note: SDK 2.10.0 support removed - project now uses SDK 3.4.9 only
+# Setup-2.10.0.daml and Setup-WithPartyId.daml have been removed
 if ($Version -eq "2.10.0") {
-    Write-Host "Switching to Setup-2.10.0.daml..." -ForegroundColor Yellow
-    if (Test-Path "daml\Setup-2.10.0.daml") {
-        if (Test-Path "daml\Setup.daml") {
-            Copy-Item "daml\Setup.daml" "daml\Setup-3.4.9.daml.backup" -ErrorAction SilentlyContinue
-        }
-        Copy-Item "daml\Setup-2.10.0.daml" "daml\Setup.daml" -Force
-        Write-Host "✅ Switched to Setup-2.10.0.daml" -ForegroundColor Green
-    } else {
-        Write-Host "⚠️  Setup-2.10.0.daml not found" -ForegroundColor Yellow
-    }
+    Write-Host "⚠️  SDK 2.10.0 support has been removed. This project uses SDK 3.4.9 only." -ForegroundColor Yellow
+    Write-Host "   Please use SDK 3.4.9 or update the project configuration." -ForegroundColor Yellow
 } elseif ($Version -eq "3.4.9") {
-    Write-Host "Switching to Setup.daml (3.4.9)..." -ForegroundColor Yellow
-    if (Test-Path "daml\Setup-3.4.9.daml.backup") {
-        Copy-Item "daml\Setup-3.4.9.daml.backup" "daml\Setup.daml" -Force
-        Remove-Item "daml\Setup-3.4.9.daml.backup" -ErrorAction SilentlyContinue
-        Write-Host "✅ Restored Setup.daml (3.4.9)" -ForegroundColor Green
-    } else {
-        Write-Host "⚠️  Backup not found, keeping current Setup.daml" -ForegroundColor Yellow
-    }
+    Write-Host "✅ Using SDK 3.4.9 (current version)" -ForegroundColor Green
 }
 
 Write-Host ""

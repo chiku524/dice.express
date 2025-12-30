@@ -2,7 +2,6 @@ import axios from 'axios'
 import { formatError } from '../utils/errorHandler'
 import { retryWithBackoff } from '../utils/retry'
 import { cache, Cache } from '../utils/cache'
-import { fetchWithProxy } from './corsProxy'
 
 // Import axios for fallback direct connections
 const axiosDirect = axios.create()

@@ -231,11 +231,12 @@ async function verifyCapabilities() {
   
   // Recommendations
   console.log('💡 Recommendations:')
-  if (results.apiVersions.v1.commands) {
-    console.log('  ✅ Use SDK 2.10.0 with v1 API (Setup-2.10.0.daml)')
-  }
   if (results.apiVersions.v2.commands) {
-    console.log('  ✅ SDK 3.4.9 with v2 API may work (Setup.daml)')
+    console.log('  ✅ Use SDK 3.4.9 with v2 API (Setup.daml)')
+    console.log('  ✅ Use setup-via-json-api.js for setup (recommended)')
+  }
+  if (results.apiVersions.v1.commands && !results.apiVersions.v2.commands) {
+    console.log('  ⚠️  Only v1 API available. SDK 2.10.0 support has been removed.')
   }
   if (!results.apiVersions.v1.commands && !results.apiVersions.v2.commands) {
     console.log('  ⚠️  No command endpoints found - use JSON API fallback script')
