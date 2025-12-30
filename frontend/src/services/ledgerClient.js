@@ -80,36 +80,40 @@ class LedgerClient {
           } else {
             return []
           }
-            } catch (apiError) {
-              // If Vercel API route returns 404, API routes aren't configured
-              if (this.useProxy && apiError.response?.status === 404) {
-                console.warn('Vercel API route not found. Please configure API routes. See docs/VERCEL_FIX.md')
-                // Return empty array so app doesn't break
-                // User will see empty state and API status banner
-                return []
-              }
-              // For 404 errors from Canton, return empty array (endpoint not found)
-              if (apiError.response?.status === 404) {
-                console.warn('Canton endpoint not found. Returning empty results.')
-                return []
-              }
-              // For other client errors (4xx), return empty array
-              if (apiError.response?.status >= 400 && apiError.response?.status < 500) {
-                return [] // Client errors - return empty instead of breaking
-              }
-              // For server errors (5xx) or network errors, throw to trigger retry
-              throw apiError
-            }
+        } catch (apiError) {
+          // If Vercel API route returns 404, API routes aren't configured
+          if (this.useProxy && apiError.response?.status === 404) {
+            console.warn('Vercel API route not found. Please configure API routes. See docs/VERCEL_FIX.md')
+            // Return empty array so app doesn't break
+            // User will see empty state and API status banner
+            return []
+          }
+          // For 404 errors from Canton, return empty array (endpoint not found)
+          if (apiError.response?.status === 404) {
+            console.warn('Canton endpoint not found. Returning empty results.')
+            return []
+          }
+          // For other client errors (4xx), return empty array
+          if (apiError.response?.status >= 400 && apiError.response?.status < 500) {
+            return [] // Client errors - return empty instead of breaking
+          }
+          // For server errors (5xx) or network errors, throw to trigger retry
+          throw apiError
+        }
       }, {
-        maxRetries: 2,
+        maxRetries: 1, // Reduced from 2 to 1 to prevent excessive retries
         initialDelay: 1000,
         shouldRetry: (error) => {
           // Don't retry on 404 - API route doesn't exist
           if (error.response?.status === 404) {
             return false
           }
-          // Retry on network errors and 5xx errors
-          return error.code === 'ERR_NETWORK' || (error.response?.status >= 500)
+          // Don't retry on 4xx client errors
+          if (error.response?.status >= 400 && error.response?.status < 500) {
+            return false
+          }
+          // Only retry on network errors and 5xx errors
+          return error.code === 'ERR_NETWORK' || error.code === 'ERR_INSUFFICIENT_RESOURCES' || (error.response?.status >= 500)
         }
       })
 

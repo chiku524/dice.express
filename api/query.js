@@ -192,6 +192,7 @@ export default async function handler(req, res) {
       console.error('[api/query] All endpoints failed. Last error:', lastError)
       console.warn('[api/query] Returning empty result set - Canton query endpoints are not available')
       // Return empty result set in format expected by frontend (matches Canton response format)
+      // Use 200 status to prevent retries - 404 would trigger retries
       return res.status(200).json({
         result: []
       })

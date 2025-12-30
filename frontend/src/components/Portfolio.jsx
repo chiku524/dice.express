@@ -10,12 +10,24 @@ export default function Portfolio() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const isMountedRef = useRef(true)
+  const isFetchingRef = useRef(false)
+  const apiRoutesWorkingRef = useRef(true)
 
   useEffect(() => {
     isMountedRef.current = true
     
     const fetchPositions = async () => {
-      if (!ledger || !wallet || !isMountedRef.current) return
+      // Prevent multiple simultaneous requests
+      if (isFetchingRef.current || !ledger || !wallet || !isMountedRef.current) return
+      
+      // Stop if API routes are not working
+      if (!apiRoutesWorkingRef.current) {
+        setPositions([])
+        setLoading(false)
+        return
+      }
+
+      isFetchingRef.current = true
 
       try {
         setLoading(true)
@@ -27,17 +39,23 @@ export default function Portfolio() {
         
         setPositions(fetchedPositions)
         setError(null)
+        apiRoutesWorkingRef.current = true
       } catch (err) {
         if (!isMountedRef.current) return
         
-        // Don't set error if it's just empty results
-        if (err.message?.includes('Resource not found') || err.message?.includes('404')) {
+        // Don't set error if it's just empty results or 404
+        if (err.message?.includes('Resource not found') || 
+            err.message?.includes('404') || 
+            err.response?.status === 404) {
+          // API route not found - stop retrying to prevent excessive requests
+          apiRoutesWorkingRef.current = false
           setPositions([]) // Show empty portfolio
           setError(null)
         } else {
           setError(err.message)
         }
       } finally {
+        isFetchingRef.current = false
         if (isMountedRef.current) {
           setLoading(false)
         }
@@ -48,6 +66,7 @@ export default function Portfolio() {
 
     return () => {
       isMountedRef.current = false
+      isFetchingRef.current = false
     }
   }, [ledger, wallet])
 
