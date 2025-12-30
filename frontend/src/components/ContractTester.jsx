@@ -195,7 +195,7 @@ export default function ContractTester() {
             createArguments: {
               owner: PARTY_ID,
               token: {
-                id: 'USDC', // Try just the string value for newtype
+                id: { TokenId: 'USDC' }, // Newtype format: use constructor name as key
                 symbol: 'USDC',
                 name: 'USD Coin',
                 decimals: 6,
@@ -249,7 +249,7 @@ export default function ContractTester() {
       {
         owner: PARTY_ID,
         token: {
-          id: 'USDC', // Try just the string - newtypes might unwrap automatically
+          id: { TokenId: 'USDC' }, // Newtype format: use constructor name as key
           symbol: 'USDC',
           name: 'USD Coin',
           decimals: 6,
@@ -262,11 +262,15 @@ export default function ContractTester() {
 
   // Prediction Markets Contracts
   const createMarketConfig = async () => {
+    setLoading('MarketConfig')
+    setResult(null)
+    setError(null)
+    
     // Automatically create TokenBalance first if needed
     try {
       const tokenBalanceCid = await ensureTokenBalance()
       
-      createContract(
+      await createContract(
         'MarketConfig',
         'b87ef31c8ea5c53a940a7f71a4bc6513cf44048730c0551f1fc2e02adc7271f0:PredictionMarkets:MarketConfig',
         {
@@ -281,8 +285,17 @@ export default function ContractTester() {
         }
       )
     } catch (err) {
-      // Error already set by ensureTokenBalance
+      // Error already set by ensureTokenBalance or createContract
       console.error('Failed to create MarketConfig:', err)
+      if (!error) {
+        setError({
+          contractType: 'MarketConfig',
+          message: err.message || 'Failed to create MarketConfig',
+          details: err.toString()
+        })
+      }
+    } finally {
+      setLoading(null)
     }
   }
 
