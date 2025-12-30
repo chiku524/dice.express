@@ -348,7 +348,7 @@ export default function ContractTester() {
       {
         settlementRequestId: `settlement-${Date.now()}`,
         party: PARTY_ID,
-        instrumentId: { id: 'USDC' },
+        instrumentId: { InstrumentId: 'USDC' }, // Newtype format: use constructor name as key
         quantity: '1000.0',
         status: { tag: 'Pending' },
         deadline: new Date(Date.now() + 86400000).toISOString(),
@@ -382,14 +382,14 @@ export default function ContractTester() {
         poolId: `pool-${Date.now()}`,
         poolParty: PARTY_ID,
         tokenA: {
-          id: { symbol: 'USDC', issuer: PARTY_ID },
+          id: { TokenId: 'USDC' }, // Newtype format
           symbol: 'USDC',
           name: 'USD Coin',
           decimals: 6,
           description: 'USDC token'
         },
         tokenB: {
-          id: { symbol: 'YES', issuer: PARTY_ID },
+          id: { TokenId: 'YES' }, // Newtype format
           symbol: 'YES',
           name: 'Yes Shares',
           decimals: 6,
