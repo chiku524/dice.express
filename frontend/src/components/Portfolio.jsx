@@ -18,7 +18,7 @@ export default function Portfolio() {
     
     // Set a timeout to ensure loading doesn't stay true forever
     const loadingTimeout = setTimeout(() => {
-      if (isMountedRef.current && loading) {
+      if (isMountedRef.current) {
         setLoading(false)
       }
     }, 10000) // 10 second timeout
