@@ -20,7 +20,8 @@ export default function Portfolio() {
       try {
         setLoading(true)
         // Query user's positions
-        const fetchedPositions = await ledger.query(['#prediction-markets:PredictionMarkets:Position'], { owner: wallet.party })
+        const PACKAGE_ID = 'b87ef31c8ea5c53a940a7f71a4bc6513cf44048730c0551f1fc2e02adc7271f0'
+        const fetchedPositions = await ledger.query([`${PACKAGE_ID}:PredictionMarkets:Position`], { owner: wallet.party })
         
         if (!isMountedRef.current) return
         
