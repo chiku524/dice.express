@@ -74,10 +74,27 @@ export default async function handler(req, res) {
     const token = authHeader ? authHeader.replace('Bearer ', '') : (requestBody.token || null)
 
     // Extract commands object and party from request
-    // Frontend sends: { actAs: [string], commandId: string, commands: [Command], applicationId: string }
-    const party = Array.isArray(requestBody.actAs) ? requestBody.actAs[0] : (requestBody.party || null)
-    const commandId = requestBody.commandId
-    const commandList = requestBody.commands || []
+    // Handle both v1 and v2 formats:
+    // v2: { actAs: [string], commandId: string, commands: [Command], applicationId: string }
+    // v1: { commands: { party: string, commandId: string, list: [Command], applicationId: string } }
+    
+    let party, commandId, applicationId, commandList
+    
+    // Check if this is v1 format (commands is an object with 'list' property)
+    if (requestBody.commands && typeof requestBody.commands === 'object' && !Array.isArray(requestBody.commands) && requestBody.commands.list) {
+      // v1 format
+      const v1Commands = requestBody.commands
+      party = v1Commands.party || null
+      commandId = v1Commands.commandId || null
+      applicationId = v1Commands.applicationId || 'prediction-markets'
+      commandList = Array.isArray(v1Commands.list) ? v1Commands.list : []
+    } else {
+      // v2 format (or direct array)
+      party = Array.isArray(requestBody.actAs) ? requestBody.actAs[0] : (requestBody.party || null)
+      commandId = requestBody.commandId
+      applicationId = requestBody.applicationId || 'prediction-markets'
+      commandList = Array.isArray(requestBody.commands) ? requestBody.commands : []
+    }
 
     // Transform commands to v2 format if needed
     const transformedCommands = commandList.map(cmd => {
@@ -112,7 +129,7 @@ export default async function handler(req, res) {
     const requestBodyV2 = {
       actAs: party ? [party] : [],
       commandId: commandId || `cmd-${Date.now()}-${Math.random().toString(36).substring(7)}`,
-      applicationId: requestBody.applicationId || 'prediction-markets',
+      applicationId: applicationId,
       commands: transformedCommands
     }
     
