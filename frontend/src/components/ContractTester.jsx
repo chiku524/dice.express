@@ -163,7 +163,7 @@ export default function ContractTester() {
   const createTokenBalance = () => {
     createContract(
       'TokenBalance',
-      '#prediction-markets:Token:TokenBalance',
+      'b87ef31c8ea5c53a940a7f71a4bc6513cf44048730c0551f1fc2e02adc7271f0:Token:TokenBalance',
       {
         owner: PARTY_ID,
         token: {
@@ -184,7 +184,7 @@ export default function ContractTester() {
     // For testing, we'll use a placeholder that should be replaced
     createContract(
       'MarketConfig',
-      '#prediction-markets:PredictionMarkets:MarketConfig',
+      'b87ef31c8ea5c53a940a7f71a4bc6513cf44048730c0551f1fc2e02adc7271f0:PredictionMarkets:MarketConfig',
       {
         admin: PARTY_ID,
         marketCreationDeposit: '100.0',
@@ -201,7 +201,7 @@ export default function ContractTester() {
   const createMarketCreationRequest = () => {
     createContract(
       'MarketCreationRequest',
-      '#prediction-markets:PredictionMarkets:MarketCreationRequest',
+      'b87ef31c8ea5c53a940a7f71a4bc6513cf44048730c0551f1fc2e02adc7271f0:PredictionMarkets:MarketCreationRequest',
       {
         creator: PARTY_ID,
         admin: PARTY_ID,
@@ -224,7 +224,7 @@ export default function ContractTester() {
   const createOracleDataFeed = () => {
     createContract(
       'OracleDataFeed',
-      '#prediction-markets:PredictionMarkets:OracleDataFeed',
+      'b87ef31c8ea5c53a940a7f71a4bc6513cf44048730c0551f1fc2e02adc7271f0:PredictionMarkets:OracleDataFeed',
       {
         oracleParty: PARTY_ID,
         marketId: `market-${Date.now()}`,
@@ -240,7 +240,7 @@ export default function ContractTester() {
   const createAllocationRequirement = () => {
     createContract(
       'AllocationRequirement',
-      '#prediction-markets:AMM:AllocationRequirement',
+      'b87ef31c8ea5c53a940a7f71a4bc6513cf44048730c0551f1fc2e02adc7271f0:AMM:AllocationRequirement',
       {
         settlementRequestId: `settlement-${Date.now()}`,
         party: PARTY_ID,
@@ -256,7 +256,7 @@ export default function ContractTester() {
   const createSettlementRequest = () => {
     createContract(
       'SettlementRequest',
-      '#prediction-markets:AMM:SettlementRequest',
+      'b87ef31c8ea5c53a940a7f71a4bc6513cf44048730c0551f1fc2e02adc7271f0:AMM:SettlementRequest',
       {
         settlementRequestId: `settlement-${Date.now()}`,
         poolId: `pool-${Date.now()}`,
@@ -273,7 +273,7 @@ export default function ContractTester() {
   const createLiquidityPool = () => {
     createContract(
       'LiquidityPool',
-      '#prediction-markets:AMM:LiquidityPool',
+      'b87ef31c8ea5c53a940a7f71a4bc6513cf44048730c0551f1fc2e02adc7271f0:AMM:LiquidityPool',
       {
         poolId: `pool-${Date.now()}`,
         poolParty: PARTY_ID,
@@ -303,7 +303,7 @@ export default function ContractTester() {
   const createPoolFactory = () => {
     createContract(
       'PoolFactory',
-      '#prediction-markets:AMM:PoolFactory',
+      'b87ef31c8ea5c53a940a7f71a4bc6513cf44048730c0551f1fc2e02adc7271f0:AMM:PoolFactory',
       {
         factoryParty: PARTY_ID,
         defaultFeeRate: '0.003',
