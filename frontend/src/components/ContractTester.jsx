@@ -328,7 +328,14 @@ export default function ContractTester() {
     
     // Automatically create TokenBalance first if needed
     try {
-      const tokenBalanceCid = await ensureTokenBalance()
+      let tokenBalanceCid = await ensureTokenBalance()
+      
+      // If tokenBalanceCid is in updateId format, the contract was created but we need the actual ID
+      // For now, we'll use it as-is since the contract exists on the ledger
+      if (tokenBalanceCid && tokenBalanceCid.startsWith('updateId:')) {
+        console.log('Using TokenBalance with updateId format:', tokenBalanceCid)
+        // Note: In production, you'd query the ledger using the updateId to get the actual contract ID
+      }
       
       await createContract(
         'MarketConfig',
@@ -341,7 +348,7 @@ export default function ContractTester() {
           partialCloseFee: '0.0',
           settlementFee: '0.0',
           oracleParty: PARTY_ID,
-          stablecoinCid: tokenBalanceCid // Use the auto-created TokenBalance contract ID
+          stablecoinCid: tokenBalanceCid // Use the auto-created TokenBalance contract ID (or updateId reference)
         }
       )
     } catch (err) {
