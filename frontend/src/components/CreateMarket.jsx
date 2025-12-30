@@ -23,6 +23,7 @@ export default function CreateMarket() {
   const [error, setError] = useState(null)
   const [success, setSuccess] = useState(false)
   const [contractId, setContractId] = useState(null)
+  const [explorerUrl, setExplorerUrl] = useState(null)
 
   const handleSubmit = async (e) => {
     e.preventDefault()
