@@ -125,13 +125,8 @@ export default function WalletModal({ isOpen, onClose }) {
               </div>
             ) : (
               <div className="wallet-disconnected">
-                <p>Connect your Canton wallet to start trading.</p>
-                <div className="wallet-format-info">
-                  <strong>Party ID Format Required:</strong>
-                  <code>{'{user-id}'}::{'{party-id}'}</code>
-                  <p className="example">
-                    Example: {DEFAULT_PARTY_ID.substring(0, 50)}...
-                  </p>
+                <div className="wallet-format-info-compact">
+                  <strong>Format:</strong> <code>{'{user-id}'}::{'{party-id}'}</code>
                 </div>
                 
                 {walletError && (
@@ -141,46 +136,34 @@ export default function WalletModal({ isOpen, onClose }) {
                 <div className="wallet-input-group">
                   <input
                     type="text"
-                    placeholder={`Enter Party ID (or leave empty for default)`}
+                    placeholder={`Enter Party ID (leave empty for default)`}
                     value={partyIdInput}
                     onChange={(e) => setPartyIdInput(e.target.value)}
                     className="party-id-input"
                   />
                   <button
-                    className="btn-secondary"
-                    onClick={() => {
-                      setPartyIdInput(DEFAULT_PARTY_ID)
+                    className="btn-primary"
+                    onClick={async () => {
+                      setWalletError(null)
+                      setWalletLoading(true)
+                      try {
+                        await connectWallet(partyIdInput || DEFAULT_PARTY_ID)
+                        setPartyIdInput('')
+                      } catch (err) {
+                        setWalletError(err.message)
+                      } finally {
+                        setWalletLoading(false)
+                      }
                     }}
-                    title="Use default party ID"
+                    disabled={walletLoading}
                   >
-                    Use Default
+                    {walletLoading ? 'Connecting...' : 'Connect'}
                   </button>
                 </div>
                 
-                <div className="default-party-info">
-                  <p><strong>Default Party ID:</strong></p>
-                  <code className="default-party-id">{DEFAULT_PARTY_ID}</code>
-                  <p className="hint">Leave the input empty to use this default party ID</p>
+                <div className="default-party-info-compact">
+                  <p className="hint">💡 Leave empty to use default: <code>{DEFAULT_PARTY_ID.substring(0, 30)}...</code></p>
                 </div>
-                
-                <button
-                  className="btn-primary"
-                  onClick={async () => {
-                    setWalletError(null)
-                    setWalletLoading(true)
-                    try {
-                      await connectWallet(partyIdInput || DEFAULT_PARTY_ID)
-                      setPartyIdInput('')
-                    } catch (err) {
-                      setWalletError(err.message)
-                    } finally {
-                      setWalletLoading(false)
-                    }
-                  }}
-                  disabled={walletLoading}
-                >
-                  {walletLoading ? 'Connecting...' : 'Connect Wallet'}
-                </button>
               </div>
             )}
           </section>
