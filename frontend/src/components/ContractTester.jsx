@@ -25,6 +25,8 @@ export default function ContractTester() {
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [tokenLoading, setTokenLoading] = useState(false)
+  const [diagnostics, setDiagnostics] = useState(null)
+  const [diagnosticsLoading, setDiagnosticsLoading] = useState(false)
 
   // Get token from input or localStorage
   const getToken = () => {
@@ -421,6 +423,48 @@ export default function ContractTester() {
     )
   }
 
+  // Diagnostic function to check party status
+  const checkPartyStatus = async () => {
+    setDiagnosticsLoading(true)
+    setDiagnostics(null)
+    setError(null)
+    
+    try {
+      const token = getToken()
+      if (!token) {
+        throw new Error('Please enter your authentication token above')
+      }
+
+      const response = await fetch('/api/party-status', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ party: PARTY_ID })
+      })
+
+      const data = await response.json()
+      setDiagnostics(data)
+      
+      if (!response.ok) {
+        setError({
+          contractType: 'Diagnostics',
+          message: 'Failed to check party status',
+          details: JSON.stringify(data, null, 2)
+        })
+      }
+    } catch (err) {
+      setError({
+        contractType: 'Diagnostics',
+        message: 'Error checking party status',
+        details: err.message
+      })
+    } finally {
+      setDiagnosticsLoading(false)
+    }
+  }
+
   const contracts = [
     {
       category: 'Token Module',
@@ -605,6 +649,45 @@ export default function ContractTester() {
             </div>
           </div>
         ))}
+      </div>
+
+      <div className="info-section">
+        <h2>🔍 Party Diagnostics</h2>
+        <p>Check if your party can read/write contracts and diagnose synchronizer issues:</p>
+        <button
+          onClick={checkPartyStatus}
+          disabled={diagnosticsLoading}
+          className="btn-primary"
+          style={{ marginBottom: '1rem' }}
+        >
+          {diagnosticsLoading ? '⏳ Checking...' : '🔍 Check Party Status'}
+        </button>
+        
+        {diagnostics && (
+          <div className="alert" style={{ 
+            backgroundColor: diagnostics.summary?.canWrite ? '#d4edda' : '#f8d7da',
+            border: `1px solid ${diagnostics.summary?.canWrite ? '#c3e6cb' : '#f5c6cb'}`,
+            padding: '1rem',
+            borderRadius: '4px',
+            marginTop: '1rem'
+          }}>
+            <h3>{diagnostics.summary?.canWrite ? '✅ Party Can Submit Commands' : '❌ Party Cannot Submit Commands'}</h3>
+            <p><strong>Read Access:</strong> {diagnostics.summary?.canRead ? '✅ Yes' : '❌ No'}</p>
+            <p><strong>Write Access:</strong> {diagnostics.summary?.canWrite ? '✅ Yes' : '❌ No'}</p>
+            {diagnostics.summary?.synchronizerIssue && (
+              <div style={{ marginTop: '1rem', padding: '0.5rem', backgroundColor: '#fff3cd', borderRadius: '4px' }}>
+                <strong>⚠️ Synchronizer Issue Detected:</strong>
+                <p>{diagnostics.summary.recommendation}</p>
+              </div>
+            )}
+            <details style={{ marginTop: '1rem' }}>
+              <summary>Full Diagnostics</summary>
+              <pre style={{ marginTop: '0.5rem', fontSize: '0.875rem', overflow: 'auto' }}>
+                {JSON.stringify(diagnostics, null, 2)}
+              </pre>
+            </details>
+          </div>
+        )}
       </div>
 
       <div className="info-section">
