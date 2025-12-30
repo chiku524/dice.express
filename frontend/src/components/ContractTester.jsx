@@ -171,6 +171,13 @@ export default function ContractTester() {
       
       contractId = contractId || 'N/A'
       
+      // Log contract ID to console for easy access
+      if (contractId && contractId !== 'N/A') {
+        console.log('✅ Contract created successfully!')
+        console.log('📋 Contract ID:', contractId)
+        console.log('🔗 View in explorer:', `https://devnet.ccexplorer.io/?q=${contractId}`)
+      }
+      
       setResult({
         contractType,
         success: true,
@@ -714,10 +721,6 @@ export default function ContractTester() {
                 <p style={{ marginTop: '1rem', fontSize: '0.9rem', color: '#666' }}>
                   <strong>Tip:</strong> Click the link above to view your contract details on the block explorer. You can also copy the Contract ID and search for it manually.
                 </p>
-                {/* Log to console for easy access */}
-                {console.log('✅ Contract created successfully!')}
-                {console.log('📋 Contract ID:', result.contractId)}
-                {console.log('🔗 View in explorer:', `https://devnet.ccexplorer.io/?q=${result.contractId}`)}
               </div>
             ) : (
               <div style={{ marginTop: '1rem' }}>
