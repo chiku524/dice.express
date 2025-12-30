@@ -16,6 +16,7 @@ import { analytics } from './utils/analytics'
 import ConnectionStatus from './components/ConnectionStatus'
 import ApiStatusBanner from './components/ApiStatusBanner'
 import AnimatedBackground from './components/AnimatedBackground'
+import WalletModal from './components/WalletModal'
 import './App.css'
 
 // Component to track page views
@@ -43,6 +44,7 @@ function PageViewTracker() {
 function App() {
   const { ledger, isConnected } = useLedger()
   const { wallet, connectWallet, disconnectWallet } = useWallet()
+  const [showWalletModal, setShowWalletModal] = useState(false)
 
       return (
         <Router>
@@ -69,11 +71,12 @@ function App() {
               </Link>
               {wallet ? (
                 <div className="wallet-info">
-                  <span>{wallet.party.substring(0, 10)}...</span>
+                  <span>{wallet.party.substring(0, 20)}...</span>
+                  <button onClick={() => setShowWalletModal(true)}>Wallet</button>
                   <button onClick={disconnectWallet}>Disconnect</button>
                 </div>
               ) : (
-                <button onClick={connectWallet}>Connect Wallet</button>
+                <button onClick={() => setShowWalletModal(true)}>Connect Wallet</button>
               )}
             </nav>
           </div>
