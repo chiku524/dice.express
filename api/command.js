@@ -71,7 +71,13 @@ export default async function handler(req, res) {
 
     // Extract token from Authorization header or request body
     const authHeader = req.headers.authorization || req.headers.Authorization
-    const token = authHeader ? authHeader.replace('Bearer ', '') : (requestBody.token || null)
+    let token = authHeader ? authHeader.replace('Bearer ', '') : (requestBody.token || null)
+    
+    // If no token in header, try to get from localStorage via a cookie or check if it's in the request
+    // For now, we'll log a warning if token is missing
+    if (!token) {
+      console.warn('[api/command] No authentication token provided - request may fail')
+    }
 
     // Extract commands object and party from request
     // Handle both v1 and v2 formats:

@@ -3,6 +3,9 @@ import { useNavigate } from 'react-router-dom'
 import { useLedger } from '../hooks/useLedger'
 import { useWallet } from '../hooks/useWallet'
 
+const PACKAGE_ID = 'b87ef31c8ea5c53a940a7f71a4bc6513cf44048730c0551f1fc2e02adc7271f0'
+const getTemplateId = (module, template) => `${PACKAGE_ID}:${module}:${template}`
+
 export default function CreateMarket() {
   const navigate = useNavigate()
   const { ledger } = useLedger()
@@ -37,25 +40,27 @@ export default function CreateMarket() {
         ? formData.outcomes.split(',').map(o => o.trim()).filter(o => o)
         : []
 
+      // SettlementTrigger is a variant type - needs { tag, value } format
+      // For TimeBased, value should be ISO timestamp
       const settlementTrigger = formData.settlementType === 'TimeBased'
-        ? { tag: 'TimeBased', value: formData.settlementTime }
+        ? { tag: 'TimeBased', value: new Date(formData.settlementTime).toISOString() }
         : formData.settlementType === 'EventBased'
         ? { tag: 'EventBased', value: formData.resolutionCriteria }
         : { tag: 'Manual' }
 
       await ledger.create(
-        'PredictionMarkets:MarketCreationRequest',
+        getTemplateId('PredictionMarkets', 'MarketCreationRequest'),
         {
           creator: wallet.party,
-          admin: 'Admin', // Would be fetched from config
+          admin: wallet.party, // Use same party as admin for testing (would be fetched from config in production)
           marketId: `market-${Date.now()}`,
           title: formData.title,
           description: formData.description,
-          marketType: formData.marketType === 'Binary' ? { tag: 'Binary' } : { tag: 'MultiOutcome' },
+          marketType: formData.marketType === 'Binary' ? 'Binary' : 'MultiOutcome', // MarketType enum - use plain string, not { tag: '...' }
           outcomes: outcomes,
-          settlementTrigger: settlementTrigger,
+          settlementTrigger: settlementTrigger, // SettlementTrigger is a variant, so { tag: '...', value: '...' } is correct
           resolutionCriteria: formData.resolutionCriteria,
-          depositAmount: 100.0,
+          depositAmount: '100.0', // Decimal type - use string
           depositCid: null, // Would need to create holding first
           configCid: null, // Would need to fetch from config
           creatorBalance: null, // Fixed: was creatorAccount
