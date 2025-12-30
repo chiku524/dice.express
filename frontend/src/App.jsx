@@ -104,6 +104,11 @@ function App() {
           </div>
         </main>
         <ConnectionStatus />
+        
+        <WalletModal 
+          isOpen={showWalletModal} 
+          onClose={() => setShowWalletModal(false)} 
+        />
       </div>
     </Router>
   )
