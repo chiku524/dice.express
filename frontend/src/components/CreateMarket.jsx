@@ -70,9 +70,15 @@ export default function CreateMarket() {
         wallet.party
       )
 
-      // Extract contract ID from response
+      // Extract contract ID or updateId from response
+      // Canton may return either a contractId directly or an updateId that needs to be used to query for the contract
       let contractId = null
+      let updateId = null
+      let updateTimestamp = null
+      let explorerUrl = null
+      
       if (result) {
+        // Try to extract contract ID first
         contractId = result.result?.created?.[0]?.contractId || 
                      result.result?.created?.[0]?.contract_id ||
                      result.contractId || 
@@ -81,19 +87,50 @@ export default function CreateMarket() {
                      result.created?.[0]?.contract_id ||
                      (result.result?.events && result.result.events[0]?.created?.contractId) ||
                      (result.result?.events && result.result.events[0]?.created?.contract_id)
+        
+        // If no contract ID, check for updateId (async submission)
+        if (!contractId) {
+          updateId = result.updateId || result.update_id || result.result?.updateId
+          // Get timestamp from completionOffset or use current time
+          updateTimestamp = result.completionOffset || result.timestamp || new Date().toISOString()
+          
+          // Format timestamp for URL (ISO format)
+          if (updateTimestamp && typeof updateTimestamp === 'string') {
+            // Ensure it's in ISO format
+            updateTimestamp = new Date(updateTimestamp).toISOString()
+          }
+        }
       }
 
+      // Build explorer URL
+      if (contractId) {
+        explorerUrl = `https://devnet.ccexplorer.io/?q=${encodeURIComponent(contractId)}`
+      } else if (updateId && updateTimestamp) {
+        // Use the correct format: /updates/{updateId}/{timestamp}
+        explorerUrl = `https://devnet.ccexplorer.io/updates/${updateId}/${encodeURIComponent(updateTimestamp)}`
+      }
+
+      // Store display ID (contractId or updateId format)
+      const displayId = contractId || (updateId ? `updateId:${updateId}` : null)
+
       setSuccess(true)
-      setContractId(contractId) // Store contract ID to display
+      setContractId(displayId) // Store for display
+      setExplorerUrl(explorerUrl) // Store explorer URL separately
       
-      // Log contract ID to console for easy access
+      // Log to console for easy access
       if (contractId) {
         console.log('✅ Market created successfully!')
         console.log('📋 Contract ID:', contractId)
-        console.log('🔗 View in explorer:', `https://devnet.ccexplorer.io/?q=${contractId}`)
+        console.log('🔗 View in explorer:', explorerUrl)
+      } else if (updateId) {
+        console.log('✅ Market created successfully!')
+        console.log('📋 Update ID:', updateId)
+        console.log('📅 Timestamp:', updateTimestamp)
+        console.log('🔗 View in explorer:', explorerUrl)
+        console.log('ℹ️ Note: Using updateId format. The contract was created but contract ID will be available after the transaction is processed.')
       } else {
-        console.log('⚠️ Market created but contract ID not found in response')
-        console.log('Full response:', result)
+        console.log('⚠️ Market created but contract ID/updateId not found in response')
+        console.log('Full response:', JSON.stringify(result, null, 2))
       }
       
       // Reset form after successful creation
@@ -163,28 +200,30 @@ export default function CreateMarket() {
               }}>
                 {contractId}
               </code>
-              <div style={{ marginTop: '1rem' }}>
-                <a 
-                  href={`https://devnet.ccexplorer.io/?q=${encodeURIComponent(contractId)}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  style={{
-                    display: 'inline-block',
-                    padding: '0.75rem 1.5rem',
-                    background: '#646cff',
-                    color: 'white',
-                    textDecoration: 'none',
-                    borderRadius: '4px',
-                    marginTop: '0.5rem',
-                    fontWeight: '500',
-                    transition: 'background 0.2s'
-                  }}
-                  onMouseOver={(e) => e.target.style.background = '#535bf2'}
-                  onMouseOut={(e) => e.target.style.background = '#646cff'}
-                >
-                  🔗 View Contract in Block Explorer →
-                </a>
-              </div>
+              {explorerUrl && (
+                <div style={{ marginTop: '1rem' }}>
+                  <a 
+                    href={explorerUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{
+                      display: 'inline-block',
+                      padding: '0.75rem 1.5rem',
+                      background: '#646cff',
+                      color: 'white',
+                      textDecoration: 'none',
+                      borderRadius: '4px',
+                      marginTop: '0.5rem',
+                      fontWeight: '500',
+                      transition: 'background 0.2s'
+                    }}
+                    onMouseOver={(e) => e.target.style.background = '#535bf2'}
+                    onMouseOut={(e) => e.target.style.background = '#646cff'}
+                  >
+                    🔗 View Contract in Block Explorer →
+                  </a>
+                </div>
+              )}
               <p style={{ marginTop: '1rem', fontSize: '0.9rem', color: '#666' }}>
                 <strong>Tip:</strong> Click the link above to view your market contract details (title, description, etc.) on the block explorer. 
                 You can also copy the Contract ID and search for it manually.

@@ -159,23 +159,48 @@ export default function ContractTester() {
                         (data.result?.events && data.result.events[0]?.created?.contractId) ||
                         (data.result?.events && data.result.events[0]?.created?.contract_id)
       
-      // If we got updateId and completionOffset, the contract was created but we need to query for it
-      // This happens with some Canton endpoints that return async submission results
+      // If no contract ID, check for updateId (async submission)
+      let updateId = null
+      let updateTimestamp = null
+      let explorerUrl = null
+      
       if (!contractId && data.updateId) {
-        // The contract was created successfully, but we need to extract the contract ID
-        // For now, we'll use the updateId as a reference
-        console.log('Contract created with updateId:', data.updateId)
-        contractId = `updateId:${data.updateId}`
-        // Note: In production, you'd query the ledger using the updateId to get the actual contract ID
+        updateId = data.updateId || data.update_id || data.result?.updateId
+        // Get timestamp from completionOffset or use current time
+        updateTimestamp = data.completionOffset || data.timestamp || new Date().toISOString()
+        
+        // Format timestamp for URL (ISO format)
+        if (updateTimestamp && typeof updateTimestamp === 'string') {
+          updateTimestamp = new Date(updateTimestamp).toISOString()
+        }
+        
+        // Build explorer URL using correct format: /updates/{updateId}/{timestamp}
+        if (updateId && updateTimestamp) {
+          explorerUrl = `https://devnet.ccexplorer.io/updates/${updateId}/${encodeURIComponent(updateTimestamp)}`
+        }
+        
+        contractId = `updateId:${updateId}`
+        console.log('Contract created with updateId:', updateId)
+        console.log('Timestamp:', updateTimestamp)
+      }
+      
+      // Build explorer URL for contract ID
+      if (contractId && !contractId.startsWith('updateId:') && !explorerUrl) {
+        explorerUrl = `https://devnet.ccexplorer.io/?q=${encodeURIComponent(contractId)}`
       }
       
       contractId = contractId || 'N/A'
       
-      // Log contract ID to console for easy access
+      // Log to console for easy access
       if (contractId && contractId !== 'N/A') {
         console.log('✅ Contract created successfully!')
         console.log('📋 Contract ID:', contractId)
-        console.log('🔗 View in explorer:', `https://devnet.ccexplorer.io/?q=${contractId}`)
+        if (explorerUrl) {
+          console.log('🔗 View in explorer:', explorerUrl)
+        }
+        if (updateId) {
+          console.log('ℹ️ Note: Using updateId format. The contract was created but contract ID will be available after the transaction is processed.')
+        }
       }
       
       setResult({
@@ -184,7 +209,8 @@ export default function ContractTester() {
         message: `${contractType} contract created successfully!`,
         contractId: contractId,
         templateId: templateId,
-        details: data
+        details: data,
+        explorerUrl: explorerUrl // Store explorer URL
       })
       
       // Store TokenBalance contract ID for use in other contracts
@@ -690,34 +716,41 @@ export default function ContractTester() {
                 <p><strong>Contract ID:</strong></p>
                 <code style={{ 
                   display: 'block', 
-                  padding: '0.5rem', 
-                  background: '#f5f5f5', 
+                  padding: '0.75rem', 
+                  background: '#1a1a1a', 
+                  color: '#ffffff',
                   borderRadius: '4px',
                   wordBreak: 'break-all',
                   marginTop: '0.5rem',
-                  fontSize: '0.9rem'
+                  fontSize: '0.9rem',
+                  border: '1px solid #333'
                 }}>
                   {result.contractId}
                 </code>
-                <div style={{ marginTop: '1rem' }}>
-                  <a 
-                    href={`https://devnet.ccexplorer.io/?q=${encodeURIComponent(result.contractId)}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    style={{
-                      display: 'inline-block',
-                      padding: '0.5rem 1rem',
-                      background: '#646cff',
-                      color: 'white',
-                      textDecoration: 'none',
-                      borderRadius: '4px',
-                      marginTop: '0.5rem',
-                      fontWeight: '500'
-                    }}
-                  >
-                    🔗 View Contract in Block Explorer →
-                  </a>
-                </div>
+                {result.explorerUrl && (
+                  <div style={{ marginTop: '1rem' }}>
+                    <a 
+                      href={result.explorerUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      style={{
+                        display: 'inline-block',
+                        padding: '0.75rem 1.5rem',
+                        background: '#646cff',
+                        color: 'white',
+                        textDecoration: 'none',
+                        borderRadius: '4px',
+                        marginTop: '0.5rem',
+                        fontWeight: '500',
+                        transition: 'background 0.2s'
+                      }}
+                      onMouseOver={(e) => e.target.style.background = '#535bf2'}
+                      onMouseOut={(e) => e.target.style.background = '#646cff'}
+                    >
+                      🔗 View Contract in Block Explorer →
+                    </a>
+                  </div>
+                )}
                 <p style={{ marginTop: '1rem', fontSize: '0.9rem', color: '#666' }}>
                   <strong>Tip:</strong> Click the link above to view your contract details on the block explorer. You can also copy the Contract ID and search for it manually.
                 </p>
