@@ -151,8 +151,15 @@ class LedgerClient {
       const result = await retryWithBackoff(async () => {
         const endpoint = this.useProxy ? '/api/command' : `${this.baseUrl}/v1/command`
         
-        // Get token from localStorage if available (for API proxy routes)
-        const token = this.token || localStorage.getItem('canton_token')
+        // Always get the latest token from localStorage (in case it was updated)
+        // This ensures we use the most recent token even if it was just saved
+        const latestToken = localStorage.getItem('canton_token')
+        const token = this.token || latestToken
+        
+        if (!token) {
+          console.warn('[LedgerClient] No authentication token found. Please save a token in the Wallet modal.')
+        }
+        
         const headers = {}
         if (token) {
           headers['Authorization'] = `Bearer ${token}`

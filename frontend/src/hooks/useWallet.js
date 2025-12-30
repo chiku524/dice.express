@@ -26,33 +26,17 @@ export function useWallet() {
     }
   }, [])
 
-  const connectWallet = async () => {
+  // Default party ID for testing
+  const DEFAULT_PARTY_ID = 'ee15aa3d-0bd4-44f9-9664-b49ad7e308aa::122087fa379c37332a753379c58e18d397e39cb82c68c15e4af7134be46561974292'
+
+  const connectWallet = async (partyId = null) => {
     try {
-      // Canton requires full party ID format: {user-id}::{party-id}
-      // Example: ee15aa3d-0bd4-44f9-9664-b49ad7e308aa::122087fa379c37332a753379c58e18d397e39cb82c68c15e4af7134be46561974292
-      const defaultPartyId = 'ee15aa3d-0bd4-44f9-9664-b49ad7e308aa::122087fa379c37332a753379c58e18d397e39cb82c68c15e4af7134be46561974292'
-      
-      const partyId = prompt(
-        'Enter your Canton Party ID:\n\n' +
-        'Format: {user-id}::{party-id}\n' +
-        'Example: ' + defaultPartyId.substring(0, 50) + '...\n\n' +
-        '• Leave empty to use default party ID\n' +
-        '• Paste your full party ID to connect\n\n' +
-        'Note: You can find your party ID in the block explorer or from your Canton admin.'
-      )
-      
-      if (partyId === null) {
-        // User cancelled
-        return
-      }
-      
-      // Use provided party ID or default
-      const party = partyId.trim() || defaultPartyId
+      // If partyId is provided (from modal), use it; otherwise use default
+      const party = partyId?.trim() || DEFAULT_PARTY_ID
       
       // Validate party ID format (should contain ::)
       if (!party.includes('::')) {
-        alert('Invalid party ID format. Party ID must be in format: {user-id}::{party-id}\n\nExample: ' + defaultPartyId.substring(0, 50) + '...')
-        return
+        throw new Error('Invalid party ID format. Party ID must be in format: {user-id}::{party-id}')
       }
       
       const newWallet = {
@@ -65,18 +49,21 @@ export function useWallet() {
       
       // Show success message
       console.log('Wallet connected:', party)
-      alert('Wallet connected successfully!\nParty ID: ' + party.substring(0, 50) + '...')
+      return { success: true, party }
     } catch (error) {
       console.error('Failed to connect wallet', error)
-      alert('Failed to connect wallet: ' + error.message)
+      throw error
     }
   }
+
+  // Export default party ID for use in UI
+  connectWallet.DEFAULT_PARTY_ID = DEFAULT_PARTY_ID
 
   const disconnectWallet = () => {
     setWallet(null)
     localStorage.removeItem(WALLET_STORAGE_KEY)
   }
 
-  return { wallet, connectWallet, disconnectWallet }
+  return { wallet, connectWallet, disconnectWallet, DEFAULT_PARTY_ID }
 }
 

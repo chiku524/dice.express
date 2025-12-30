@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react'
 import { useWallet } from '../hooks/useWallet'
 import './WalletModal.css'
 
+const DEFAULT_PARTY_ID = 'ee15aa3d-0bd4-44f9-9664-b49ad7e308aa::122087fa379c37332a753379c58e18d397e39cb82c68c15e4af7134be46561974292'
+
 export default function WalletModal({ isOpen, onClose }) {
   const { wallet, connectWallet, disconnectWallet } = useWallet()
   const [tokenInput, setTokenInput] = useState('')
@@ -11,6 +13,9 @@ export default function WalletModal({ isOpen, onClose }) {
   const [tokenLoading, setTokenLoading] = useState(false)
   const [tokenError, setTokenError] = useState(null)
   const [tokenSuccess, setTokenSuccess] = useState(false)
+  const [partyIdInput, setPartyIdInput] = useState('')
+  const [walletError, setWalletError] = useState(null)
+  const [walletLoading, setWalletLoading] = useState(false)
 
   // Load token from localStorage on mount
   useEffect(() => {
@@ -125,11 +130,56 @@ export default function WalletModal({ isOpen, onClose }) {
                   <strong>Party ID Format Required:</strong>
                   <code>{'{user-id}'}::{'{party-id}'}</code>
                   <p className="example">
-                    Example: ee15aa3d-0bd4-44f9-9664-b49ad7e308aa::122087fa379c37332a753379c58e18d397e39cb82c68c15e4af7134be46561974292
+                    Example: {DEFAULT_PARTY_ID.substring(0, 50)}...
                   </p>
                 </div>
-                <button className="btn-primary" onClick={connectWallet}>
-                  Connect Wallet
+                
+                {walletError && (
+                  <div className="alert-error">{walletError}</div>
+                )}
+                
+                <div className="wallet-input-group">
+                  <input
+                    type="text"
+                    placeholder={`Enter Party ID (or leave empty for default)`}
+                    value={partyIdInput}
+                    onChange={(e) => setPartyIdInput(e.target.value)}
+                    className="party-id-input"
+                  />
+                  <button
+                    className="btn-secondary"
+                    onClick={() => {
+                      setPartyIdInput(DEFAULT_PARTY_ID)
+                    }}
+                    title="Use default party ID"
+                  >
+                    Use Default
+                  </button>
+                </div>
+                
+                <div className="default-party-info">
+                  <p><strong>Default Party ID:</strong></p>
+                  <code className="default-party-id">{DEFAULT_PARTY_ID}</code>
+                  <p className="hint">Leave the input empty to use this default party ID</p>
+                </div>
+                
+                <button
+                  className="btn-primary"
+                  onClick={async () => {
+                    setWalletError(null)
+                    setWalletLoading(true)
+                    try {
+                      await connectWallet(partyIdInput || DEFAULT_PARTY_ID)
+                      setPartyIdInput('')
+                    } catch (err) {
+                      setWalletError(err.message)
+                    } finally {
+                      setWalletLoading(false)
+                    }
+                  }}
+                  disabled={walletLoading}
+                >
+                  {walletLoading ? 'Connecting...' : 'Connect Wallet'}
                 </button>
               </div>
             )}

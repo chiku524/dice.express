@@ -74,7 +74,17 @@ export default function CreateMarket() {
         navigate('/')
       }, 2000)
     } catch (err) {
-      setError(err.message)
+      let errorMessage = err.message
+      
+      // Provide helpful error messages for common issues
+      if (err.message?.includes('401') || err.response?.status === 401) {
+        errorMessage = 'Authentication failed. Please check your token in the Wallet modal. The token may have expired - try getting a new token from Keycloak.'
+      } else if (err.message?.includes('token') || err.message?.includes('unauthorized')) {
+        errorMessage = 'Authentication required. Please ensure you have a valid token saved in the Wallet modal.'
+      }
+      
+      setError(errorMessage)
+      console.error('Create market error:', err)
     } finally {
       setLoading(false)
     }
