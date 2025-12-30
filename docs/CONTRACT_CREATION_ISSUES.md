@@ -252,12 +252,15 @@ data Token = Token
 ### Current Blocking Issue ⚠️
 **All contract creation attempts fail with "NO_SYNCHRONIZER_FOR_SUBMISSION"**
 
-This error indicates the party is not properly synchronized with a domain. This is a **Canton infrastructure configuration issue** that requires admin access to resolve.
+**Update**: Client confirmed party has both `actAs` and `readAs` permissions (verified via UserManagementService/ListUserRights). Permissions are **not** the issue.
 
-**The application code is correct** - the issue is that the party needs to be:
-1. Connected to a domain
-2. Have a synchronizer enabled
-3. Be properly registered on the domain
+This error indicates the participant lacks a synchronizer for submission. This is a **Canton infrastructure configuration issue** that requires admin access to resolve.
+
+**The application code is correct** - the issue is that the participant needs:
+1. ✅ Permissions are correct (actAs and readAs confirmed)
+2. ❌ Synchronizer enabled for this party on the participant
+3. ❌ Participant connected to a domain
+4. ❌ Party registered on domain with synchronizer enabled
 
 ### Diagnostic Tool Available 🔍
 
