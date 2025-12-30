@@ -200,7 +200,7 @@ export default function ContractTester() {
             createArguments: {
               owner: PARTY_ID,
               token: {
-                id: 'USDC', // TokenId is a newtype - use plain string value
+                id: { TokenId: 'USDC' }, // TokenId is a newtype - use object format
                 symbol: 'USDC',
                 name: 'USD Coin',
                 decimals: 6,
@@ -254,7 +254,7 @@ export default function ContractTester() {
       {
         owner: PARTY_ID,
         token: {
-          id: 'USDC', // TokenId is a newtype - use plain string value
+          id: { TokenId: 'USDC' }, // TokenId is a newtype - use object format
           symbol: 'USDC',
           name: 'USD Coin',
           decimals: 6,
@@ -314,7 +314,7 @@ export default function ContractTester() {
         marketId: `market-${Date.now()}`,
         title: 'Test Market: Will Bitcoin reach $100k?',
         description: 'A test market to verify contract creation',
-        marketType: { tag: 'Binary' }, // MarketType is a variant - use tag format
+        marketType: 'Binary', // MarketType is an enum - use string directly
         outcomes: [],
         settlementTrigger: {
           tag: 'TimeBased',
@@ -353,7 +353,7 @@ export default function ContractTester() {
       {
         settlementRequestId: `settlement-${Date.now()}`,
         party: PARTY_ID,
-        instrumentId: 'USDC', // InstrumentId is a newtype - use plain string value
+        instrumentId: { InstrumentId: 'USDC' }, // InstrumentId is a newtype - use object format
         quantity: '1000.0',
         status: { tag: 'Pending' },
         deadline: new Date(Date.now() + 86400000).toISOString(),
@@ -387,14 +387,14 @@ export default function ContractTester() {
         poolId: `pool-${Date.now()}`,
         poolParty: PARTY_ID,
         tokenA: {
-          id: 'USDC', // TokenId is a newtype - use plain string value
+          id: { TokenId: 'USDC' }, // TokenId is a newtype - use object format
           symbol: 'USDC',
           name: 'USD Coin',
           decimals: 6,
           description: 'USDC token'
         },
         tokenB: {
-          id: 'YES', // TokenId is a newtype - use plain string value
+          id: { TokenId: 'YES' }, // TokenId is a newtype - use object format
           symbol: 'YES',
           name: 'Yes Shares',
           decimals: 6,
