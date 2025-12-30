@@ -56,8 +56,7 @@ export default function Portfolio() {
         // Don't set error if it's just empty results or 404
         if (err.message?.includes('Resource not found') || 
             err.message?.includes('404') || 
-            err.response?.status === 404 ||
-            (Array.isArray(fetchedPositions) && fetchedPositions.length === 0)) {
+            err.response?.status === 404) {
           // API route not found - stop retrying to prevent excessive requests
           apiRoutesWorkingRef.current = false
           setPositions([]) // Show empty portfolio
