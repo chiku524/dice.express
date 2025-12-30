@@ -55,6 +55,26 @@ We're encountering persistent errors when trying to create contracts via Canton 
 
 **Client Action Required**: This cannot be fixed from the application code - it requires Canton infrastructure configuration.
 
+**What We CAN Do from Application Side**:
+1. ✅ **Diagnostic Tool**: Created `/api/party-status` endpoint to check:
+   - Whether party can read contracts (query access)
+   - Whether party can write contracts (command submission)
+   - Specific error codes and messages
+   - Actionable recommendations
+
+2. ✅ **Verify Request Format**: Confirmed our JSON payloads are correctly formatted:
+   - Newtypes use `{ unpack: "value" }` format
+   - Template IDs use explicit package ID format
+   - All required fields are present
+
+3. ✅ **Test Different Endpoints**: Already trying multiple API endpoints to find working one
+
+**What We CANNOT Do**:
+- ❌ Connect party to domain (requires admin access)
+- ❌ Enable synchronizer (requires participant configuration)
+- ❌ Register party on domain (requires admin access)
+- ❌ Modify Canton participant settings (requires infrastructure access)
+
 ## Potential Solutions
 
 ### Solution 1: Verify Canton JSON API Version
