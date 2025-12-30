@@ -253,6 +253,49 @@ class LedgerClient {
   }
 
   /**
+   * Exercise a choice (convenience method with full choice path)
+   * @param {string} contractId - Contract ID
+   * @param {string} choicePath - Full choice path (e.g., "PredictionMarkets:MarketCreationRequest:ApproveMarket")
+   * @param {object} argument - Choice argument
+   * @param {string} party - Party exercising the choice (required)
+   * @param {string} packageId - Package ID (optional, will be extracted from contract if not provided)
+   * @returns {Promise<object>} Command result
+   */
+  async exerciseChoice(contractId, choicePath, argument = {}, party = null, packageId = null) {
+    // Extract template ID from choice path (format: "Module:Template:Choice")
+    const parts = choicePath.split(':')
+    if (parts.length < 3) {
+      throw new Error(`Invalid choice path format: ${choicePath}. Expected "Module:Template:Choice"`)
+    }
+    
+    // If packageId not provided, try to extract from contractId or use default
+    // Contract IDs in Canton are in format: #contractId:packageId:module:template
+    let finalPackageId = packageId
+    if (!finalPackageId && contractId.includes(':')) {
+      const contractParts = contractId.split(':')
+      if (contractParts.length >= 2) {
+        finalPackageId = contractParts[1]
+      }
+    }
+    
+    // Default package ID if still not found
+    if (!finalPackageId) {
+      finalPackageId = 'b87ef31c8ea5c53a940a7f71a4bc6513cf44048730c0551f1fc2e02adc7271f0'
+    }
+    
+    const templateId = `${finalPackageId}:${parts[0]}:${parts[1]}`
+    const choice = parts[2]
+    
+    // Get party from parameter, localStorage, or throw error
+    const finalParty = party || localStorage.getItem('wallet_party') || null
+    if (!finalParty) {
+      throw new Error('Party is required to exercise a choice. Please connect a wallet.')
+    }
+    
+    return this.exercise(templateId, contractId, choice, argument, finalParty)
+  }
+
+  /**
    * Set authentication token
    * @param {string} token - Authentication token
    */

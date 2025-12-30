@@ -12,6 +12,7 @@ const CreateMarket = lazy(() => import('./components/CreateMarket'))
 const WalletConnect = lazy(() => import('./components/WalletConnect'))
 const Portfolio = lazy(() => import('./components/Portfolio'))
 const ContractTester = lazy(() => import('./components/ContractTester'))
+const AdminDashboard = lazy(() => import('./components/AdminDashboard'))
 import { analytics } from './utils/analytics'
 import ConnectionStatus from './components/ConnectionStatus'
 import ApiStatusBanner from './components/ApiStatusBanner'
@@ -61,13 +62,15 @@ function App() {
               <Link to="/">Markets</Link>
               <Link to="/create">Create Market</Link>
               <Link to="/portfolio">Portfolio</Link>
+              <Link to="/admin">Admin</Link>
               <Link to="/test" style={{ 
                 background: '#646cff', 
                 padding: '0.5rem 1rem', 
                 borderRadius: '4px',
-                fontWeight: '600'
+                fontWeight: '600',
+                fontSize: '0.9rem'
               }}>
-                🧪 Test Contracts
+                🧪 Test
               </Link>
               {wallet ? (
                 <div className="wallet-info">
@@ -97,6 +100,7 @@ function App() {
                     <Route path="/market/:marketId" element={<MarketDetail />} />
                     <Route path="/create" element={<CreateMarket />} />
                     <Route path="/portfolio" element={<Portfolio />} />
+                    <Route path="/admin" element={<AdminDashboard />} />
                   </>
                 )}
               </Routes>
