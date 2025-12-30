@@ -139,9 +139,18 @@ class LedgerClient {
       const result = await retryWithBackoff(async () => {
         const endpoint = this.useProxy ? '/api/command' : `${this.baseUrl}/v1/command`
         
+        // Get token from localStorage if available (for API proxy routes)
+        const token = this.token || localStorage.getItem('canton_token')
+        const headers = {}
+        if (token) {
+          headers['Authorization'] = `Bearer ${token}`
+        }
+        
         try {
           const response = await this.client.post(endpoint, {
             commands,
+          }, {
+            headers
           })
           return response.data
         } catch (apiError) {
