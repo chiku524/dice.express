@@ -29,7 +29,14 @@ export function useLedger() {
 
     connect()
     
-    // Listen for token updates
+    // Listen for token updates from WalletModal
+    const handleTokenUpdate = (e) => {
+      if (ledger && e.detail?.token) {
+        ledger.setToken(e.detail.token)
+      }
+    }
+    
+    // Also listen for localStorage changes (from other tabs)
     const handleStorageChange = (e) => {
       if (e.key === 'canton_token' && ledger) {
         const newToken = e.newValue
@@ -39,12 +46,14 @@ export function useLedger() {
       }
     }
     
+    window.addEventListener('canton_token_updated', handleTokenUpdate)
     window.addEventListener('storage', handleStorageChange)
     
     return () => {
+      window.removeEventListener('canton_token_updated', handleTokenUpdate)
       window.removeEventListener('storage', handleStorageChange)
     }
-  }, [])
+  }, [ledger])
 
   return { ledger, isConnected, error }
 }

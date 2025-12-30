@@ -63,10 +63,10 @@ export default function WalletModal({ isOpen, onClose }) {
       setShowTokenForm(false)
       setTokenSuccess(true)
       setTimeout(() => setTokenSuccess(false), 2000)
-      // Reload page to ensure ledger client picks up the new token
-      setTimeout(() => {
-        window.location.reload()
-      }, 2000)
+      // Dispatch custom event to notify ledger client of token update
+      window.dispatchEvent(new CustomEvent('canton_token_updated', { 
+        detail: { token: data.access_token } 
+      }))
     } catch (err) {
       setTokenError(err.message)
     } finally {
@@ -79,11 +79,10 @@ export default function WalletModal({ isOpen, onClose }) {
       localStorage.setItem('canton_token', tokenInput.trim())
       setTokenSuccess(true)
       setTimeout(() => setTokenSuccess(false), 2000)
-      // Trigger a page reload to ensure ledger client picks up the new token
-      // Alternatively, we could emit an event or use a context
-      setTimeout(() => {
-        window.location.reload()
-      }, 2000)
+      // Dispatch custom event to notify ledger client of token update
+      window.dispatchEvent(new CustomEvent('canton_token_updated', { 
+        detail: { token: tokenInput.trim() } 
+      }))
     }
   }
 
