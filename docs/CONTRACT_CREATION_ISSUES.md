@@ -58,15 +58,19 @@ We're encountering persistent errors when trying to create contracts via Canton 
 - **This is a Canton infrastructure/configuration issue, NOT a code issue**
 
 **What This Means**:
-- The party `ee15aa3d-0bd4-44f9-9664-b49ad7e308aa::122087fa379c37332a753379c58e18d397e39cb82c68c15e4af7134be46561974292` is not properly connected to a domain
-- Even though the party was onboarded, it may not be synchronized with a domain
-- All contract creation attempts will fail until this is resolved
+- ✅ **Permissions are correct**: Client confirmed party has both `actAs` and `readAs` permissions (verified via UserManagementService/ListUserRights)
+- ❌ **Synchronizer issue**: Even with correct permissions, the participant lacks a synchronizer for submission
+- The party `ee15aa3d-0bd4-44f9-9664-b49ad7e308aa::122087fa379c37332a753379c58e18d397e39cb82c68c15e4af7134be46561974292` is not properly connected to a domain with synchronizer enabled
+- All contract creation attempts will fail until synchronizer is configured
 
 **Solution** (Requires Admin/Client Action):
-1. **Verify Domain Connection**: Check if the participant is connected to a domain
-2. **Enable Synchronizer**: Ensure synchronizer is properly configured on the participant
-3. **Party Domain Registration**: Verify the party is registered on a domain
-4. **Protocol Version**: Check domain and participant protocol version compatibility (Canton 3.4)
+1. ✅ **Permissions Verified**: Client confirmed party has both `actAs` and `readAs` permissions (not the issue)
+2. **Enable Synchronizer**: Ensure synchronizer is properly configured on the participant for this party
+3. **Verify Domain Connection**: Check if the participant is connected to a domain
+4. **Party Domain Registration**: Verify the party is registered on a domain with synchronizer enabled
+5. **Protocol Version**: Check domain and participant protocol version compatibility (Canton 3.4)
+
+**Important**: Permissions are correct. The issue is specifically the synchronizer configuration, which is separate from permissions.
 
 **Client Action Required**: This cannot be fixed from the application code - it requires Canton infrastructure configuration.
 

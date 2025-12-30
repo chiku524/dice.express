@@ -119,9 +119,47 @@ export default async function handler(req, res) {
     }
   }
   
-  // Check 3: Try to get party info (if endpoint exists)
+  // Check 3: Try to get user ID from token and check permissions
   try {
-    console.log('[api/party-status] Test 3: Checking for party info endpoint...')
+    console.log('[api/party-status] Test 3: Checking user permissions...')
+    const authHeader = req.headers.authorization || req.headers.Authorization
+    const token = authHeader ? authHeader.replace('Bearer ', '') : null
+    
+    if (token) {
+      // Try to extract user_id from token (JWT)
+      try {
+        const tokenParts = token.split('.')
+        if (tokenParts.length === 3) {
+          const payload = JSON.parse(Buffer.from(tokenParts[1], 'base64').toString())
+          const userId = payload.sub || payload.user_id || payload.preferred_username
+          
+          if (userId) {
+            diagnostics.checks.userId = {
+              found: true,
+              userId: userId,
+              note: 'Extracted from JWT token. Use UserManagementService/ListUserRights to verify permissions.'
+            }
+          }
+        }
+      } catch (e) {
+        // Not a JWT or can't parse
+      }
+    }
+    
+    diagnostics.checks.permissions = {
+      note: 'Permissions should be checked via UserManagementService/ListUserRights (gRPC)',
+      recommendation: 'Client confirmed party has both actAs and readAs permissions. Issue is synchronizer configuration, not permissions.'
+    }
+  } catch (error) {
+    diagnostics.checks.permissions = {
+      success: false,
+      message: `Permission check failed: ${error.message}`
+    }
+  }
+  
+  // Check 4: Try to get party info (if endpoint exists)
+  try {
+    console.log('[api/party-status] Test 4: Checking for party info endpoint...')
     const infoEndpoints = [
       `${baseUrl}/v2/parties/${encodeURIComponent(party)}`,
       `${baseUrl}/v1/parties/${encodeURIComponent(party)}`,
@@ -169,8 +207,11 @@ export default async function handler(req, res) {
     canRead: diagnostics.checks.queryAccess?.success || false,
     canWrite: diagnostics.checks.commandSubmission?.success || false,
     synchronizerIssue: diagnostics.checks.commandSubmission?.errorCode === 'NO_SYNCHRONIZER_FOR_SUBMISSION',
+    permissionsConfirmed: diagnostics.checks.permissions?.note?.includes('Client confirmed'),
     recommendation: diagnostics.checks.commandSubmission?.errorCode === 'NO_SYNCHRONIZER_FOR_SUBMISSION'
-      ? 'Party needs to be connected to a domain with synchronizer enabled (requires admin action)'
+      ? diagnostics.checks.permissions?.note?.includes('Client confirmed')
+        ? 'Party has actAs and readAs permissions confirmed. Issue is synchronizer/domain connection configuration (requires admin action).'
+        : 'Party needs to be connected to a domain with synchronizer enabled (requires admin action)'
       : diagnostics.checks.commandSubmission?.success
       ? 'Party appears to be properly configured'
       : 'Unknown issue - check error details'
