@@ -22,6 +22,7 @@ export default function CreateMarket() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
   const [success, setSuccess] = useState(false)
+  const [contractId, setContractId] = useState(null)
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -48,7 +49,7 @@ export default function CreateMarket() {
         ? { tag: 'EventBased', value: formData.resolutionCriteria }
         : { tag: 'Manual' }
 
-      await ledger.create(
+      const result = await ledger.create(
         getTemplateId('PredictionMarkets', 'MarketCreationRequest'),
         {
           creator: wallet.party,
@@ -69,10 +70,32 @@ export default function CreateMarket() {
         wallet.party
       )
 
+      // Extract contract ID from response
+      let contractId = null
+      if (result) {
+        contractId = result.result?.created?.[0]?.contractId || 
+                     result.result?.created?.[0]?.contract_id ||
+                     result.contractId || 
+                     result.contract_id ||
+                     result.created?.[0]?.contractId ||
+                     result.created?.[0]?.contract_id ||
+                     (result.result?.events && result.result.events[0]?.created?.contractId) ||
+                     (result.result?.events && result.result.events[0]?.created?.contract_id)
+      }
+
       setSuccess(true)
+      setContractId(contractId) // Store contract ID to display
+      
+      // Log contract ID to console for easy access
+      if (contractId) {
+        console.log('✅ Market created successfully!')
+        console.log('📋 Contract ID:', contractId)
+        console.log('🔗 View in explorer:', `https://devnet.ccexplorer.io/?q=${contractId}`)
+      }
+      
       setTimeout(() => {
         navigate('/')
-      }, 2000)
+      }, 5000) // Increased timeout to give user time to see contract ID
     } catch (err) {
       let errorMessage = err.message
       
@@ -106,7 +129,49 @@ export default function CreateMarket() {
       </p>
 
       {error && <div className="error">{error}</div>}
-      {success && <div className="success">Market creation request submitted! Redirecting...</div>}
+      {success && (
+        <div className="success">
+          <h3>✅ Market creation request submitted successfully!</h3>
+          {contractId ? (
+            <div style={{ marginTop: '1rem' }}>
+              <p><strong>Contract ID:</strong></p>
+              <code style={{ 
+                display: 'block', 
+                padding: '0.5rem', 
+                background: '#f5f5f5', 
+                borderRadius: '4px',
+                wordBreak: 'break-all',
+                marginTop: '0.5rem'
+              }}>
+                {contractId}
+              </code>
+              <div style={{ marginTop: '1rem' }}>
+                <a 
+                  href={`https://devnet.ccexplorer.io/?q=${contractId}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{
+                    display: 'inline-block',
+                    padding: '0.5rem 1rem',
+                    background: '#646cff',
+                    color: 'white',
+                    textDecoration: 'none',
+                    borderRadius: '4px',
+                    marginTop: '0.5rem'
+                  }}
+                >
+                  🔗 View Contract in Block Explorer →
+                </a>
+              </div>
+              <p style={{ marginTop: '1rem', fontSize: '0.9rem', color: '#666' }}>
+                <strong>Tip:</strong> Click the link above to view your market contract details (title, description, etc.) on the block explorer.
+              </p>
+            </div>
+          ) : (
+            <p>Redirecting to markets page...</p>
+          )}
+        </div>
+      )}
 
       <form onSubmit={handleSubmit} className="card">
         <div className="form-group">
