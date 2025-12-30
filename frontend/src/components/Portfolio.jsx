@@ -16,9 +16,19 @@ export default function Portfolio() {
   useEffect(() => {
     isMountedRef.current = true
     
+    // Set a timeout to ensure loading doesn't stay true forever
+    const loadingTimeout = setTimeout(() => {
+      if (isMountedRef.current && loading) {
+        setLoading(false)
+      }
+    }, 10000) // 10 second timeout
+    
     const fetchPositions = async () => {
       // Prevent multiple simultaneous requests
-      if (isFetchingRef.current || !ledger || !wallet || !isMountedRef.current) return
+      if (isFetchingRef.current || !ledger || !wallet || !isMountedRef.current) {
+        setLoading(false) // Make sure loading is false if we can't fetch
+        return
+      }
       
       // Stop if API routes are not working
       if (!apiRoutesWorkingRef.current) {
@@ -70,6 +80,7 @@ export default function Portfolio() {
     return () => {
       isMountedRef.current = false
       isFetchingRef.current = false
+      clearTimeout(loadingTimeout)
     }
   }, [ledger, wallet])
 

@@ -45,7 +45,9 @@ export default function MarketsList() {
         
         if (!isMountedRef.current) return
         
-        setMarkets(fetchedMarkets)
+        // If we get empty results, it could mean no markets OR endpoints don't work
+        // For now, just show empty state - user can still create markets
+        setMarkets(Array.isArray(fetchedMarkets) ? fetchedMarkets : [])
         setError(null)
         apiRoutesWorkingRef.current = true // Mark API as working
       } catch (err) {
@@ -98,12 +100,15 @@ export default function MarketsList() {
       }
     }
     
-    // Delay polling setup to allow initial fetch to complete
+    // Delay polling setup to allow initial fetch to complete and check if it succeeded
+    // Only start polling if we got a successful response (even if empty)
     const pollingTimeout = setTimeout(() => {
-      if (apiRoutesWorkingRef.current) {
+      // Only start polling if we haven't detected that API routes are broken
+      // and if we have markets or if we got a successful empty response
+      if (apiRoutesWorkingRef.current && markets.length >= 0) {
         setupPolling()
       }
-    }, 2000) // Wait 2 seconds before starting to poll
+    }, 3000) // Wait 3 seconds before starting to poll
 
     // Handle visibility change - pause/resume polling
     const handleVisibilityChange = () => {
