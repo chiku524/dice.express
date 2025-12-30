@@ -380,9 +380,11 @@ export default function ContractTester() {
       {
         settlementRequestId: `settlement-${Date.now()}`,
         party: PARTY_ID,
-        instrumentId: { id: { unpack: 'USDC' } }, // Instrument is { id: InstrumentId }, InstrumentId is newtype
+        instrumentId: { 
+          id: { unpack: 'USDC' }  // Instrument is { id: InstrumentId }, InstrumentId is newtype
+        },
         quantity: '1000.0',
-        status: 'Pending', // AllocationStatus enum - use string directly
+        status: 'Pending', // AllocationStatus enum - use string directly (not { tag: 'Pending' })
         deadline: new Date(Date.now() + 86400000).toISOString(),
         poolId: `pool-${Date.now()}`
       }
@@ -397,8 +399,8 @@ export default function ContractTester() {
         settlementRequestId: `settlement-${Date.now()}`,
         poolId: `pool-${Date.now()}`,
         poolParty: PARTY_ID,
-        requiredAllocations: {}, // Map (Party, Text) (ContractId AllocationRequirement) - empty map is {}
-        actualAllocations: {}, // Map (Party, Text) (ContractId Allocation) - empty map is {}
+        requiredAllocations: [], // Map (Party, Text) (ContractId AllocationRequirement) - DAML Maps are arrays of [key, value] pairs, empty map is []
+        actualAllocations: [], // Map (Party, Text) (ContractId Allocation) - DAML Maps are arrays, empty map is []
         status: 'WaitingForAllocations', // SettlementStatus enum - use string directly
         deadline: new Date(Date.now() + 86400000).toISOString(),
         createdAt: new Date().toISOString()
@@ -431,7 +433,7 @@ export default function ContractTester() {
         marketCid: 'REQUIRED_MARKET_CONTRACT_ID', // Must be a valid ContractId Market
         yesReserve: '10000.0',
         noReserve: '10000.0',
-        outcomeReserves: {}, // Map Text Decimal - empty map is {}
+        outcomeReserves: [], // Map Text Decimal - DAML Maps are arrays of [key, value] pairs, empty map is []
         totalLPShares: '10000.0',
         feeRate: '0.003', // 0.3%
         minLiquidity: '100.0',
