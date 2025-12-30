@@ -130,8 +130,8 @@ $requestJson = @{
             description = "Test contract DAR file"
         }
     )
-    vet_all_packages = $false
-    synchronize_vetting = $false
+    vet_all_packages = $true
+    synchronize_vetting = $true
 } | ConvertTo-Json -Depth 10 -Compress
 
 $requestJson | Out-File -FilePath "grpc_request.json" -Encoding ASCII -NoNewline
