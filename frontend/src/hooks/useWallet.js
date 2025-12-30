@@ -10,7 +10,16 @@ export function useWallet() {
     const stored = localStorage.getItem(WALLET_STORAGE_KEY)
     if (stored) {
       try {
-        setWallet(JSON.parse(stored))
+        const wallet = JSON.parse(stored)
+        // Validate party ID format (must contain ::)
+        if (wallet.party && wallet.party.includes('::')) {
+          setWallet(wallet)
+        } else {
+          // Invalid format - clear it and prompt user to reconnect
+          console.warn('Invalid party ID format in stored wallet:', wallet.party)
+          localStorage.removeItem(WALLET_STORAGE_KEY)
+          alert('Your stored wallet has an invalid party ID format. Please reconnect with a valid Canton Party ID (format: user-id::party-id)')
+        }
       } catch (e) {
         console.error('Failed to load wallet from storage', e)
       }
