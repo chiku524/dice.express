@@ -167,7 +167,7 @@ export default function ContractTester() {
       {
         owner: PARTY_ID,
         token: {
-          id: 'USDC', // TokenId is a newtype, so just use the Text value
+          id: { _1: 'USDC' }, // TokenId is a newtype - JSON API wraps newtypes as {_1: value}
           symbol: 'USDC',
           name: 'USD Coin',
           decimals: 6,
@@ -193,7 +193,7 @@ export default function ContractTester() {
         partialCloseFee: '0.0',
         settlementFee: '0.0',
         oracleParty: PARTY_ID,
-        stablecoinCid: '#0:0' // Placeholder - replace with actual TokenBalance contract ID
+          stablecoinCid: null // Will need to create TokenBalance first, then update this
       }
     )
   }
@@ -208,9 +208,12 @@ export default function ContractTester() {
         marketId: `market-${Date.now()}`,
         title: 'Test Market: Will Bitcoin reach $100k?',
         description: 'A test market to verify contract creation',
-        marketType: { tag: 'Binary' },
+          marketType: 'Binary', // MarketType is an enum - use string directly
         outcomes: [],
-        settlementTrigger: { tag: 'TimeBased', value: new Date(Date.now() + 86400000).toISOString() },
+        settlementTrigger: {
+          tag: 'TimeBased',
+          value: new Date(Date.now() + 86400000).toISOString()
+        },
         resolutionCriteria: 'Based on CoinGecko price at settlement time',
         depositAmount: '100.0',
         depositCid: null,
