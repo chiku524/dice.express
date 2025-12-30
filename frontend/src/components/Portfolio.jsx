@@ -46,18 +46,21 @@ export default function Portfolio() {
         // Don't set error if it's just empty results or 404
         if (err.message?.includes('Resource not found') || 
             err.message?.includes('404') || 
-            err.response?.status === 404) {
+            err.response?.status === 404 ||
+            (Array.isArray(fetchedPositions) && fetchedPositions.length === 0)) {
           // API route not found - stop retrying to prevent excessive requests
           apiRoutesWorkingRef.current = false
           setPositions([]) // Show empty portfolio
           setError(null)
+          setLoading(false) // Make sure loading is false so page renders
         } else {
           setError(err.message)
+          setLoading(false) // Make sure loading is false even on error
         }
       } finally {
         isFetchingRef.current = false
         if (isMountedRef.current) {
-          setLoading(false)
+          setLoading(false) // Always set loading to false
         }
       }
     }

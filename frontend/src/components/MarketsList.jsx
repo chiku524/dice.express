@@ -52,7 +52,10 @@ export default function MarketsList() {
         if (!isMountedRef.current) return
         
         // Don't set error if it's just empty results - show empty state instead
-        if (err.message?.includes('Resource not found') || err.message?.includes('404')) {
+        if (err.message?.includes('Resource not found') || 
+            err.message?.includes('404') || 
+            err.response?.status === 404 ||
+            (Array.isArray(fetchedMarkets) && fetchedMarkets.length === 0 && err.message?.includes('endpoint'))) {
           // API route not found - stop polling to prevent excessive requests
           apiRoutesWorkingRef.current = false
           if (pollIntervalRef.current) {
@@ -61,6 +64,7 @@ export default function MarketsList() {
           }
           setMarkets([]) // Show empty markets list
           setError(null) // Don't show error, just empty state
+          setLoading(false) // Make sure loading is false
         } else {
           setError(err.message)
         }
@@ -76,14 +80,30 @@ export default function MarketsList() {
 
     // Only poll if API routes are working and tab is visible
     // Poll for updates every 30 seconds (increased to reduce load)
-    if (apiRoutesWorkingRef.current) {
-      pollIntervalRef.current = setInterval(() => {
-        // Only poll if tab is visible
-        if (!document.hidden && ledger && wallet && apiRoutesWorkingRef.current) {
-          fetchMarkets()
-        }
-      }, 30000) // Increased to 30 seconds
+    // Use a flag to prevent setting up polling if API routes are already known to be broken
+    const setupPolling = () => {
+      if (apiRoutesWorkingRef.current && !pollIntervalRef.current) {
+        pollIntervalRef.current = setInterval(() => {
+          // Only poll if tab is visible and API routes are still working
+          if (!document.hidden && ledger && wallet && apiRoutesWorkingRef.current) {
+            fetchMarkets()
+          } else if (!apiRoutesWorkingRef.current) {
+            // Stop polling if API routes are broken
+            if (pollIntervalRef.current) {
+              clearInterval(pollIntervalRef.current)
+              pollIntervalRef.current = null
+            }
+          }
+        }, 30000) // 30 seconds
+      }
     }
+    
+    // Delay polling setup to allow initial fetch to complete
+    const pollingTimeout = setTimeout(() => {
+      if (apiRoutesWorkingRef.current) {
+        setupPolling()
+      }
+    }, 2000) // Wait 2 seconds before starting to poll
 
     // Handle visibility change - pause/resume polling
     const handleVisibilityChange = () => {
@@ -97,11 +117,7 @@ export default function MarketsList() {
         // Tab is visible, resume polling if API routes are working
         if (apiRoutesWorkingRef.current && ledger && wallet && !pollIntervalRef.current) {
           fetchMarkets() // Fetch immediately when tab becomes visible
-          pollIntervalRef.current = setInterval(() => {
-            if (!document.hidden && ledger && wallet && apiRoutesWorkingRef.current) {
-              fetchMarkets()
-            }
-          }, 30000)
+          setupPolling()
         }
       }
     }
@@ -113,6 +129,9 @@ export default function MarketsList() {
       if (pollIntervalRef.current) {
         clearInterval(pollIntervalRef.current)
         pollIntervalRef.current = null
+      }
+      if (pollingTimeout) {
+        clearTimeout(pollingTimeout)
       }
       document.removeEventListener('visibilitychange', handleVisibilityChange)
     }
