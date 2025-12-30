@@ -200,7 +200,7 @@ export default function ContractTester() {
             createArguments: {
               owner: PARTY_ID,
               token: {
-                id: { TokenId: 'USDC' }, // TokenId is a newtype - use object format
+                id: 'USDC', // TokenId newtype - use unwrapped value directly
                 symbol: 'USDC',
                 name: 'USD Coin',
                 decimals: 6,
@@ -254,7 +254,7 @@ export default function ContractTester() {
       {
         owner: PARTY_ID,
         token: {
-          id: { TokenId: 'USDC' }, // TokenId is a newtype - use object format
+          id: 'USDC', // TokenId newtype - use unwrapped value directly
           symbol: 'USDC',
           name: 'USD Coin',
           decimals: 6,
@@ -353,7 +353,7 @@ export default function ContractTester() {
       {
         settlementRequestId: `settlement-${Date.now()}`,
         party: PARTY_ID,
-        instrumentId: { InstrumentId: 'USDC' }, // InstrumentId is a newtype - use object format
+        instrumentId: 'USDC', // InstrumentId newtype - use unwrapped value directly
         quantity: '1000.0',
         status: { tag: 'Pending' },
         deadline: new Date(Date.now() + 86400000).toISOString(),
@@ -387,14 +387,14 @@ export default function ContractTester() {
         poolId: `pool-${Date.now()}`,
         poolParty: PARTY_ID,
         tokenA: {
-          id: { TokenId: 'USDC' }, // TokenId is a newtype - use object format
+          id: 'USDC', // TokenId newtype - use unwrapped value directly
           symbol: 'USDC',
           name: 'USD Coin',
           decimals: 6,
           description: 'USDC token'
         },
         tokenB: {
-          id: { TokenId: 'YES' }, // TokenId is a newtype - use object format
+          id: 'YES', // TokenId newtype - use unwrapped value directly
           symbol: 'YES',
           name: 'Yes Shares',
           decimals: 6,
