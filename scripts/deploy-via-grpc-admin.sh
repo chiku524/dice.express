@@ -6,8 +6,6 @@ set -e  # Exit on error
 
 # Configuration
 REMOVE_EXISTING=${REMOVE_EXISTING:-true}  # Default to true, can be overridden
-
-# Configuration
 DAR_DIRECTORY="./.daml/dist"
 DAR_FILE="${DAR_DIRECTORY}/prediction-markets-1.0.0.dar"
 PARTICIPANT_HOST="participant.dev.canton.wolfedgelabs.com"
