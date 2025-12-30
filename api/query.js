@@ -50,7 +50,13 @@ export default async function handler(req, res) {
   }
 
   // JSON API is at /json-api path (admin-api is at base URL)
-  const LEDGER_URL = process.env.VITE_LEDGER_URL || 'https://participant.dev.canton.wolfedgelabs.com/json-api'
+  // Ensure we have the full JSON API URL
+  let LEDGER_URL = process.env.VITE_LEDGER_URL || process.env.LEDGER_URL || 'https://participant.dev.canton.wolfedgelabs.com/json-api'
+  
+  // Ensure /json-api is in the URL
+  if (!LEDGER_URL.includes('/json-api')) {
+    LEDGER_URL = LEDGER_URL.replace(/\/$/, '') + '/json-api'
+  }
 
   try {
     // Ensure we're using HTTPS and the correct endpoint
