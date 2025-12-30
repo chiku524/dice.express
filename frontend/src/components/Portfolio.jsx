@@ -47,7 +47,22 @@ export default function Portfolio() {
         
         if (!isMountedRef.current) return
         
-        setPositions(fetchedPositions)
+        // Check if endpoints are unavailable
+        if (fetchedPositions && fetchedPositions._endpointsUnavailable) {
+          // Query endpoints don't exist - stop retrying
+          apiRoutesWorkingRef.current = false
+          setPositions([])
+          setError(null)
+          setLoading(false)
+          return
+        }
+        
+        // Handle results
+        if (Array.isArray(fetchedPositions)) {
+          setPositions(fetchedPositions)
+        } else {
+          setPositions([])
+        }
         setError(null)
         apiRoutesWorkingRef.current = true
       } catch (err) {

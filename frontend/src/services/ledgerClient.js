@@ -72,6 +72,14 @@ class LedgerClient {
             query,
           })
           
+          // Check if endpoints are unavailable (all returned 404)
+          if (response.data._endpointsUnavailable) {
+            // Store flag in response so components can detect and stop polling
+            const emptyResult = []
+            emptyResult._endpointsUnavailable = true
+            return emptyResult
+          }
+          
           // Handle both direct API response and proxy response
           if (response.data.result) {
             return response.data.result

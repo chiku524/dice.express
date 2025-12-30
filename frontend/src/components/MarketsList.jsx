@@ -45,6 +45,20 @@ export default function MarketsList() {
         
         if (!isMountedRef.current) return
         
+        // Check if endpoints are unavailable
+        if (fetchedMarkets && fetchedMarkets._endpointsUnavailable) {
+          // Query endpoints don't exist - stop polling immediately
+          apiRoutesWorkingRef.current = false
+          if (pollIntervalRef.current) {
+            clearInterval(pollIntervalRef.current)
+            pollIntervalRef.current = null
+          }
+          setMarkets([])
+          setError(null)
+          setLoading(false)
+          return
+        }
+        
         // If we get empty results, it could mean no markets OR endpoints don't work
         // For now, just show empty state - user can still create markets
         setMarkets(Array.isArray(fetchedMarkets) ? fetchedMarkets : [])
