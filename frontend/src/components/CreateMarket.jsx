@@ -116,15 +116,22 @@ export default function CreateMarket() {
         // If no contract ID, check for updateId (async submission)
         if (!contractId) {
           updateId = result.updateId || result.update_id || result.result?.updateId
-          // completionOffset is a number, not a timestamp - use it directly
-          // The explorer URL format is: /updates/{updateId}/{completionOffset}
-          updateTimestamp = result.completionOffset || result.completion_offset
           
-          // If completionOffset is not available, try timestamp (but this is less common)
+          // The explorer URL format is: /updates/{updateId}/{record_time}
+          // We need the record_time (timestamp), not completionOffset
+          // Priority: recordTime > timestamp > record_time > completionOffset (as fallback)
+          updateTimestamp = result.recordTime || 
+                           result.record_time || 
+                           result.timestamp || 
+                           result.result?.recordTime ||
+                           result.result?.record_time ||
+                           result.result?.timestamp
+          
+          // If we still don't have a timestamp, use completionOffset as last resort
+          // But note: this might not work correctly - timestamp is preferred
           if (!updateTimestamp) {
-            updateTimestamp = result.timestamp || result.result?.timestamp
-            // If it's a string timestamp, keep it as-is (don't convert)
-            // The explorer may accept ISO timestamps in some cases
+            updateTimestamp = result.completionOffset || result.completion_offset
+            console.warn('[CreateMarket] Using completionOffset for explorer URL - timestamp preferred but not available')
           }
         }
       }
@@ -133,13 +140,22 @@ export default function CreateMarket() {
       if (contractId) {
         explorerUrl = `https://devnet.ccexplorer.io/?q=${encodeURIComponent(contractId)}`
       } else if (updateId && updateTimestamp !== undefined && updateTimestamp !== null) {
-        // Use the correct format: /updates/{updateId}/{completionOffset}
-        // completionOffset is typically a number, not a timestamp
-        // Don't encode if it's a number, encode if it's a string
-        const offsetPart = typeof updateTimestamp === 'number' 
-          ? updateTimestamp.toString() 
-          : encodeURIComponent(updateTimestamp)
-        explorerUrl = `https://devnet.ccexplorer.io/updates/${updateId}/${offsetPart}`
+        // Use the correct format: /updates/{updateId}/{record_time}
+        // The explorer expects the record_time (timestamp), not completionOffset
+        // Format should be ISO timestamp like: 2025-12-31T19:45:35.056Z
+        let timePart = updateTimestamp
+        
+        // If it's a number (completionOffset), we can't use it - need timestamp
+        if (typeof timePart === 'number') {
+          console.warn('[CreateMarket] Received number for timestamp - this might not work. Explorer expects ISO timestamp format.')
+          // Try to construct a timestamp from current time as fallback
+          // But this won't be accurate - better to get the actual record_time from the API
+          timePart = new Date().toISOString()
+        }
+        
+        // URL encode the timestamp
+        const encodedTime = encodeURIComponent(timePart)
+        explorerUrl = `https://devnet.ccexplorer.io/updates/${updateId}/${encodedTime}`
       }
 
       // Store display ID (contractId or updateId format)

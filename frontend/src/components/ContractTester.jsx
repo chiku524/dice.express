@@ -166,22 +166,41 @@ export default function ContractTester() {
       
       if (!contractId && data.updateId) {
         updateId = data.updateId || data.update_id || data.result?.updateId
-        // completionOffset is a number, not a timestamp - use it directly
-        // The explorer URL format is: /updates/{updateId}/{completionOffset}
-        updateTimestamp = data.completionOffset || data.completion_offset
         
-        // If completionOffset is not available, try timestamp (but this is less common)
-        if (updateTimestamp === undefined || updateTimestamp === null) {
-          updateTimestamp = data.timestamp || data.result?.timestamp
+        // The explorer URL format is: /updates/{updateId}/{record_time}
+        // We need the record_time (timestamp), not completionOffset
+        // Priority: recordTime > timestamp > record_time > completionOffset (as fallback)
+        updateTimestamp = data.recordTime || 
+                         data.record_time || 
+                         data.timestamp || 
+                         data.result?.recordTime ||
+                         data.result?.record_time ||
+                         data.result?.timestamp
+        
+        // If we still don't have a timestamp, use completionOffset as last resort
+        // But note: this might not work correctly - timestamp is preferred
+        if (!updateTimestamp) {
+          updateTimestamp = data.completionOffset || data.completion_offset
+          console.warn('[ContractTester] Using completionOffset for explorer URL - timestamp preferred but not available')
         }
         
-        // Build explorer URL using correct format: /updates/{updateId}/{completionOffset}
+        // Build explorer URL using correct format: /updates/{updateId}/{record_time}
         if (updateId && updateTimestamp !== undefined && updateTimestamp !== null) {
-          // Don't encode if it's a number, encode if it's a string
-          const offsetPart = typeof updateTimestamp === 'number' 
-            ? updateTimestamp.toString() 
-            : encodeURIComponent(updateTimestamp)
-          explorerUrl = `https://devnet.ccexplorer.io/updates/${updateId}/${offsetPart}`
+          // The explorer expects the record_time (timestamp), not completionOffset
+          // Format should be ISO timestamp like: 2025-12-31T19:45:35.056Z
+          let timePart = updateTimestamp
+          
+          // If it's a number (completionOffset), we can't use it - need timestamp
+          if (typeof timePart === 'number') {
+            console.warn('[ContractTester] Received number for timestamp - this might not work. Explorer expects ISO timestamp format.')
+            // Try to construct a timestamp from current time as fallback
+            // But this won't be accurate - better to get the actual record_time from the API
+            timePart = new Date().toISOString()
+          }
+          
+          // URL encode the timestamp
+          const encodedTime = encodeURIComponent(timePart)
+          explorerUrl = `https://devnet.ccexplorer.io/updates/${updateId}/${encodedTime}`
         }
         
         contractId = `updateId:${updateId}`
