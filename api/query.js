@@ -93,10 +93,11 @@ module.exports = async function handler(req, res) {
   }
 
   // Build request body according to GetActiveContractsRequest schema
-  // activeAtOffset is required - use empty string for latest/beginning
+  // activeAtOffset is required and must be a Long (integer)
+  // Use 0 to start from the beginning, or we could get the latest offset first
   const requestBodyV2 = {
     filter: filter,
-    activeAtOffset: "" // Required field - empty string means start from beginning/latest
+    activeAtOffset: 0 // Required field - Long type, 0 means start from beginning
   }
 
   console.log('[api/query] Calling endpoint:', endpoint)
