@@ -2,19 +2,20 @@ import { useState, useEffect, useRef } from 'react'
 import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom'
 import { useLedger } from './hooks/useLedger'
 import { WalletProvider, useWallet } from './contexts/WalletContext'
-import { lazy, Suspense } from 'react'
+import { Suspense } from 'react'
 import LoadingSpinner from './components/LoadingSpinner'
+import { lazyWithRetry } from './utils/lazyWithRetry'
 
-// Lazy load components for code splitting
-const MarketsList = lazy(() => import('./components/MarketsList'))
-const MarketDetail = lazy(() => import('./components/MarketDetail'))
-const CreateMarket = lazy(() => import('./components/CreateMarket'))
-const WalletConnect = lazy(() => import('./components/WalletConnect'))
-const Portfolio = lazy(() => import('./components/Portfolio'))
-const ContractTester = lazy(() => import('./components/ContractTester'))
-const AdminDashboard = lazy(() => import('./components/AdminDashboard'))
-const ContractHistory = lazy(() => import('./components/ContractHistory'))
-const ActiveContractsTest = lazy(() => import('./components/ActiveContractsTest'))
+// Lazy load components for code splitting with retry logic
+const MarketsList = lazyWithRetry(() => import('./components/MarketsList'))
+const MarketDetail = lazyWithRetry(() => import('./components/MarketDetail'))
+const CreateMarket = lazyWithRetry(() => import('./components/CreateMarket'))
+const WalletConnect = lazyWithRetry(() => import('./components/WalletConnect'))
+const Portfolio = lazyWithRetry(() => import('./components/Portfolio'))
+const ContractTester = lazyWithRetry(() => import('./components/ContractTester'))
+const AdminDashboard = lazyWithRetry(() => import('./components/AdminDashboard'))
+const ContractHistory = lazyWithRetry(() => import('./components/ContractHistory'))
+const ActiveContractsTest = lazyWithRetry(() => import('./components/ActiveContractsTest'))
 import { analytics } from './utils/analytics'
 import ConnectionStatus from './components/ConnectionStatus'
 import ApiStatusBanner from './components/ApiStatusBanner'
