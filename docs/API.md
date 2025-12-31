@@ -10,22 +10,18 @@ Base URL: `https://participant.dev.canton.wolfedgelabs.com`
 
 #### Query Contracts
 
-```http
-POST /v1/query
-Content-Type: application/json
+**Note**: Query endpoints do NOT exist in the JSON API per OpenAPI documentation.
+Contract querying requires gRPC API or WebSocket connections.
 
-{
-  "templateIds": ["PredictionMarkets:Market"],
-  "query": {
-    "marketId": "market-123"
-  }
-}
-```
+For contract queries, use:
+- gRPC Ledger API
+- WebSocket connections
+- Contract storage system (local tracking of created contracts)
 
 #### Create Contract
 
 ```http
-POST /v1/command
+POST /v2/commands/submit-and-wait
 Content-Type: application/json
 
 {
@@ -59,7 +55,7 @@ Content-Type: application/json
 #### Exercise Choice
 
 ```http
-POST /v1/command
+POST /v2/commands/submit-and-wait
 Content-Type: application/json
 
 {

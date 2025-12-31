@@ -26,11 +26,15 @@
 - **Base URL**: `https://participant.dev.canton.wolfedgelabs.com/json-api`
 - **Protocol**: HTTP/JSON
 - **Usage**: Contract queries, command submissions
-- **Endpoints**: 
-  - `/v2/commands/submit-and-wait` - Submit commands and wait for completion
-  - `/v1/command` - Legacy command endpoint (may not be available)
-  - `/v2/query` - Query contracts
-  - `/v1/query` - Legacy query endpoint (may not be available)
+- **Endpoints** (per OpenAPI docs): 
+  - `/v2/commands/submit-and-wait` - Submit commands and wait for completion ✅
+  - `/v2/commands/async/submit` - Submit commands asynchronously ✅
+  - `/v2/commands/completions` - Query completions ✅
+  - `/v2/events/events-by-contract-id` - Get events by contract ID ✅
+  - `/v2/version` - Get version ✅
+  - `/v1/query` - ❌ Does NOT exist
+  - `/v2/query` - ❌ Does NOT exist
+  - `/v1/command` - ❌ Does NOT exist
 
 ## Current Configuration Status
 
