@@ -93,11 +93,10 @@ module.exports = async function handler(req, res) {
   }
 
   // Build request body according to GetActiveContractsRequest schema
-  // Note: activeAtOffset might need to be a string or omitted
+  // activeAtOffset is required - use empty string for latest/beginning
   const requestBodyV2 = {
-    filter: filter
-    // verbose, activeAtOffset, and eventFormat might not be in the schema
-    // Let's try without them first, or use offset if needed
+    filter: filter,
+    activeAtOffset: "" // Required field - empty string means start from beginning/latest
   }
 
   console.log('[api/query] Calling endpoint:', endpoint)
