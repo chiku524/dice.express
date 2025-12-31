@@ -106,10 +106,11 @@ export default function AdminDashboard() {
         setError(err.message)
       }
     } finally {
-      if (isMountedRef.current && retryCount === 0) {
-        // Only set loading to false on first attempt (not retry)
+      if (isMountedRef.current && (retryCount >= 3 || requestsArray.length > 0)) {
+        // Set loading to false after all retries are complete OR if we found contracts
         setLoading(false)
       }
+      // If retrying, don't set loading to false yet
     }
   }
 
@@ -241,6 +242,24 @@ export default function AdminDashboard() {
       ) : requests.length === 0 ? (
         <div className="card">
           <p>No pending market creation requests.</p>
+        </div>
+      ) : requests.length === 0 ? (
+        <div className="card">
+          <h3>No Pending Requests</h3>
+          <p style={{ marginTop: '1rem', color: 'rgba(255, 255, 255, 0.7)' }}>
+            There are currently no market creation requests awaiting approval.
+          </p>
+          <div style={{ marginTop: '1.5rem', padding: '1rem', background: 'rgba(255, 255, 255, 0.05)', borderRadius: '8px' }}>
+            <p style={{ fontSize: '0.9rem', color: 'rgba(255, 255, 255, 0.6)', marginBottom: '0.5rem' }}>
+              <strong>Note:</strong> If you just created a market, it may take a few seconds to appear here due to synchronization delays.
+            </p>
+            <p style={{ fontSize: '0.9rem', color: 'rgba(255, 255, 255, 0.6)' }}>
+              Contracts created with <code>updateId</code> (async submission) may take 10-30 seconds to become visible in queries.
+            </p>
+            <p style={{ fontSize: '0.9rem', color: 'rgba(255, 255, 255, 0.6)', marginTop: '0.5rem' }}>
+              You can verify contracts were created by checking the explorer link provided after market creation.
+            </p>
+          </div>
         </div>
       ) : (
         <div className="requests-list">
