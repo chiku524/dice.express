@@ -305,7 +305,17 @@ module.exports = async function handler(req, res) {
       console.log('[api/command] Contract created with ID:', data.result.created[0].contractId)
     } else if (data.updateId) {
       console.log('[api/command] Command submitted with updateId:', data.updateId)
+      console.log('[api/command] Completion Offset:', data.completionOffset)
+      console.log('[api/command] Available timestamp fields in response:', {
+        recordTime: data.recordTime,
+        record_time: data.record_time,
+        timestamp: data.timestamp,
+        recordTimeInResult: data.result?.recordTime,
+        record_timeInResult: data.result?.record_time,
+        timestampInResult: data.result?.timestamp
+      })
       console.log('[api/command] Note: Contract may take a few seconds to be visible in queries due to synchronization.')
+      console.log('[api/command] Note: Explorer URL should use record_time (ISO timestamp), not completionOffset')
     }
 
     return res.status(200).json(data)

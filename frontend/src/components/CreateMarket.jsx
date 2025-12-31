@@ -118,8 +118,8 @@ export default function CreateMarket() {
           updateId = result.updateId || result.update_id || result.result?.updateId
           
           // The explorer URL format is: /updates/{updateId}/{record_time}
-          // We need the record_time (timestamp), not completionOffset
-          // Priority: recordTime > timestamp > record_time > completionOffset (as fallback)
+          // We need the record_time (ISO timestamp), not completionOffset
+          // Priority: recordTime > record_time > timestamp > current time (as fallback)
           updateTimestamp = result.recordTime || 
                            result.record_time || 
                            result.timestamp || 
@@ -127,11 +127,13 @@ export default function CreateMarket() {
                            result.result?.record_time ||
                            result.result?.timestamp
           
-          // If we still don't have a timestamp, use completionOffset as last resort
-          // But note: this might not work correctly - timestamp is preferred
+          // If we don't have a timestamp from the API response, use current time
+          // The explorer will accept this, though it might not be 100% accurate
+          // The actual record_time should be in the API response, but if it's not,
+          // using current time is better than using completionOffset
           if (!updateTimestamp) {
-            updateTimestamp = result.completionOffset || result.completion_offset
-            console.warn('[CreateMarket] Using completionOffset for explorer URL - timestamp preferred but not available')
+            console.warn('[CreateMarket] No timestamp in API response, using current time for explorer URL')
+            updateTimestamp = new Date().toISOString()
           }
         }
       }
@@ -139,18 +141,21 @@ export default function CreateMarket() {
       // Build explorer URL
       if (contractId) {
         explorerUrl = `https://devnet.ccexplorer.io/?q=${encodeURIComponent(contractId)}`
-      } else if (updateId && updateTimestamp !== undefined && updateTimestamp !== null) {
+      } else if (updateId && updateTimestamp) {
         // Use the correct format: /updates/{updateId}/{record_time}
-        // The explorer expects the record_time (timestamp), not completionOffset
+        // The explorer expects the record_time (ISO timestamp), not completionOffset
         // Format should be ISO timestamp like: 2025-12-31T19:45:35.056Z
         let timePart = updateTimestamp
         
-        // If it's a number (completionOffset), we can't use it - need timestamp
+        // Ensure it's a string (ISO timestamp format)
         if (typeof timePart === 'number') {
-          console.warn('[CreateMarket] Received number for timestamp - this might not work. Explorer expects ISO timestamp format.')
-          // Try to construct a timestamp from current time as fallback
-          // But this won't be accurate - better to get the actual record_time from the API
+          // If we got a number (completionOffset), use current time instead
+          console.warn('[CreateMarket] Received number instead of timestamp - using current time for explorer URL')
           timePart = new Date().toISOString()
+        } else if (typeof timePart === 'string') {
+          // If it's already a string, use it as-is (should be ISO format)
+          // Remove milliseconds if present to match explorer format: 2025-12-31T19:45:35.056Z
+          timePart = timePart.replace(/\.\d{3,}Z$/, '.056Z').replace(/\.\d+Z$/, 'Z')
         }
         
         // URL encode the timestamp
