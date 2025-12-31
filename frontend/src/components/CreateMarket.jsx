@@ -329,7 +329,15 @@ export default function CreateMarket() {
             onChange={handleChange}
             required
             placeholder="e.g., Will Bitcoin reach $100k by 2025?"
+            className={fieldErrors.title ? 'error' : ''}
+            aria-invalid={!!fieldErrors.title}
+            aria-describedby={fieldErrors.title ? 'title-error' : undefined}
           />
+          {fieldErrors.title && (
+            <span id="title-error" className="field-error" role="alert">
+              {fieldErrors.title}
+            </span>
+          )}
         </div>
 
         <div className="form-group">
@@ -410,8 +418,17 @@ export default function CreateMarket() {
               name="settlementTime"
               value={formData.settlementTime}
               onChange={handleChange}
+              onBlur={handleBlur}
               required
+              className={fieldErrors.settlementTime ? 'error' : ''}
+              aria-invalid={!!fieldErrors.settlementTime}
+              aria-describedby={fieldErrors.settlementTime ? 'settlementTime-error' : undefined}
             />
+            {fieldErrors.settlementTime && (
+              <span id="settlementTime-error" className="field-error" role="alert">
+                {fieldErrors.settlementTime}
+              </span>
+            )}
           </div>
         )}
 
@@ -423,7 +440,15 @@ export default function CreateMarket() {
             onChange={handleChange}
             required
             placeholder="Describe how this market will be resolved..."
+            className={fieldErrors.resolutionCriteria ? 'error' : ''}
+            aria-invalid={!!fieldErrors.resolutionCriteria}
+            aria-describedby={fieldErrors.resolutionCriteria ? 'resolutionCriteria-error' : undefined}
           />
+          {fieldErrors.resolutionCriteria && (
+            <span id="resolutionCriteria-error" className="field-error" role="alert">
+              {fieldErrors.resolutionCriteria}
+            </span>
+          )}
         </div>
 
         <button
