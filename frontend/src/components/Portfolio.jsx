@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import { useLedger } from '../hooks/useLedger'
 import { useWallet } from '../contexts/WalletContext'
+import { SkeletonList } from './SkeletonLoader'
 
 export default function Portfolio() {
   const { ledger } = useLedger()
@@ -100,11 +101,9 @@ export default function Portfolio() {
 
   if (loading) {
     return (
-      <div className="loading">
-        <p>Loading portfolio...</p>
-        <p style={{ fontSize: '0.9rem', color: 'rgba(255, 255, 255, 0.6)', marginTop: '0.5rem' }}>
-          Fetching your positions...
-        </p>
+      <div>
+        <h1>My Portfolio</h1>
+        <SkeletonList count={3} />
       </div>
     )
   }

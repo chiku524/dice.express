@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import { useLedger } from '../hooks/useLedger'
 import { useWallet } from '../contexts/WalletContext'
+import { SkeletonMarketGrid } from './SkeletonLoader'
 
 export default function MarketsList() {
   const { ledger } = useLedger()
@@ -181,11 +182,9 @@ export default function MarketsList() {
 
   if (loading) {
     return (
-      <div className="loading">
-        <p>Loading markets...</p>
-        <p style={{ fontSize: '0.9rem', color: 'rgba(255, 255, 255, 0.6)', marginTop: '0.5rem' }}>
-          Connecting to Canton ledger...
-        </p>
+      <div>
+        <h1>Prediction Markets</h1>
+        <SkeletonMarketGrid count={6} />
       </div>
     )
   }

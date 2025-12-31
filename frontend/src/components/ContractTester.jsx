@@ -218,6 +218,17 @@ export default function ContractTester() {
         explorerUrl: explorerUrl // Store explorer URL
       })
       
+      // Store contract in local storage for history (only if we have a real contract ID)
+      if (contractId && contractId !== 'N/A' && !contractId.startsWith('updateId:')) {
+        const { ContractStorage } = require('../utils/contractStorage')
+        ContractStorage.storeContract(
+          contractId,
+          templateId,
+          data.result?.created?.[0]?.payload || {},
+          PARTY_ID
+        )
+      }
+      
       // Store TokenBalance contract ID for use in other contracts
       if (contractType === 'TokenBalance' && contractId !== 'N/A') {
         localStorage.setItem('tokenBalanceContractId', contractId)

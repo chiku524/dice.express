@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useLedger } from '../hooks/useLedger'
 import { useWallet } from '../contexts/WalletContext'
+import { ContractStorage } from '../utils/contractStorage'
 
 const PACKAGE_ID = 'b87ef31c8ea5c53a940a7f71a4bc6513cf44048730c0551f1fc2e02adc7271f0'
 const getTemplateId = (module, template) => `${PACKAGE_ID}:${module}:${template}`
@@ -24,6 +25,7 @@ export default function CreateMarket() {
   const [success, setSuccess] = useState(false)
   const [contractId, setContractId] = useState(null)
   const [explorerUrl, setExplorerUrl] = useState(null)
+  const [fieldErrors, setFieldErrors] = useState({})
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -32,8 +34,29 @@ export default function CreateMarket() {
       return
     }
 
+    // Validate form
+    const validationSchema = {
+      title: [validators.required, validators.minLength(5), validators.maxLength(200)],
+      description: [validators.required, validators.minLength(20), validators.maxLength(1000)],
+      outcomes: formData.marketType === 'MultiOutcome' 
+        ? [validators.required, validators.outcomes]
+        : [],
+      settlementTime: formData.settlementType === 'TimeBased'
+        ? [validators.required, validators.date]
+        : [],
+      resolutionCriteria: [validators.required, validators.minLength(10)]
+    }
+    
+    const validation = validateForm(formData, validationSchema)
+    if (!validation.isValid) {
+      setFieldErrors(validation.errors)
+      setError('Please fix the errors in the form')
+      return
+    }
+
     setLoading(true)
     setError(null)
+    setFieldErrors({})
 
     try {
       // Create market creation request
@@ -125,6 +148,22 @@ export default function CreateMarket() {
       setContractId(displayId) // Store for display
       setExplorerUrl(explorerUrl) // Store explorer URL separately
       
+      // Store contract in local storage for history
+      if (displayId && displayId !== 'N/A' && !displayId.startsWith('updateId:')) {
+        ContractStorage.storeContract(
+          displayId,
+          getTemplateId('PredictionMarkets', 'MarketCreationRequest'),
+          {
+            title: formData.title,
+            description: formData.description,
+            marketType: formData.marketType,
+            marketId: `market-${Date.now()}`,
+            status: 'PendingApproval'
+          },
+          wallet.party
+        )
+      }
+      
       // Log to console for easy access
       if (contractId) {
         console.log('✅ Market created successfully!')
@@ -176,6 +215,32 @@ export default function CreateMarket() {
       ...prev,
       [name]: value,
     }))
+    
+    // Real-time validation
+    const validationSchema = {
+      title: [validators.required, validators.minLength(5), validators.maxLength(200)],
+      description: [validators.required, validators.minLength(20), validators.maxLength(1000)],
+      outcomes: formData.marketType === 'MultiOutcome' 
+        ? [validators.required, validators.outcomes]
+        : [],
+      settlementTime: formData.settlementType === 'TimeBased'
+        ? [validators.required, validators.date]
+        : [],
+      resolutionCriteria: [validators.required, validators.minLength(10)]
+    }
+    
+    if (validationSchema[name]) {
+      const fieldError = validateForm({ [name]: value }, { [name]: validationSchema[name] })
+      setFieldErrors(prev => ({
+        ...prev,
+        [name]: fieldError.errors[name] || null
+      }))
+    }
+  }
+  
+  const handleBlur = (e) => {
+    // Validate on blur for better UX
+    handleChange(e)
   }
 
   return (
@@ -273,9 +338,18 @@ export default function CreateMarket() {
             name="description"
             value={formData.description}
             onChange={handleChange}
+            onBlur={handleBlur}
             required
             placeholder="Describe the market and resolution criteria..."
+            className={fieldErrors.description ? 'error' : ''}
+            aria-invalid={!!fieldErrors.description}
+            aria-describedby={fieldErrors.description ? 'description-error' : undefined}
           />
+          {fieldErrors.description && (
+            <span id="description-error" className="field-error" role="alert">
+              {fieldErrors.description}
+            </span>
+          )}
         </div>
 
         <div className="form-group">

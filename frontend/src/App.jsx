@@ -18,6 +18,7 @@ import ConnectionStatus from './components/ConnectionStatus'
 import ApiStatusBanner from './components/ApiStatusBanner'
 import AnimatedBackground from './components/AnimatedBackground'
 import WalletModal from './components/WalletModal'
+import ErrorBoundary from './components/ErrorBoundary'
 import './App.css'
 
 // Component to track page views
@@ -101,6 +102,7 @@ function AppContent() {
                     <Route path="/create" element={<CreateMarket />} />
                     <Route path="/portfolio" element={<Portfolio />} />
                     <Route path="/admin" element={<AdminDashboard />} />
+                    <Route path="/history" element={<ContractHistory />} />
                   </>
                 )}
               </Routes>
@@ -120,11 +122,13 @@ function AppContent() {
 
 function App() {
   return (
-    <Router>
-      <WalletProvider>
-        <AppContent />
-      </WalletProvider>
-    </Router>
+    <ErrorBoundary>
+      <Router>
+        <WalletProvider>
+          <AppContent />
+        </WalletProvider>
+      </Router>
+    </ErrorBoundary>
   )
 }
 

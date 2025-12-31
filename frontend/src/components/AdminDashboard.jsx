@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useLedger } from '../hooks/useLedger'
 import { useWallet } from '../contexts/WalletContext'
+import { SkeletonList } from './SkeletonLoader'
 import './AdminDashboard.css'
 
 const PACKAGE_ID = 'b87ef31c8ea5c53a940a7f71a4bc6513cf44048730c0551f1fc2e02adc7271f0'
@@ -138,8 +139,11 @@ export default function AdminDashboard() {
 
   if (loading) {
     return (
-      <div className="loading">
-        <p>Loading market creation requests...</p>
+      <div className="admin-dashboard">
+        <div className="admin-header">
+          <h1>Admin Dashboard</h1>
+        </div>
+        <SkeletonList count={3} />
       </div>
     )
   }
