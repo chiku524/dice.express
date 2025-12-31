@@ -216,28 +216,40 @@ export default function MarketsList() {
       {!apiRoutesWorkingRef.current ? (
         <div className="card">
           <div className="alert-warning">
-            <h3>⚠️ Query Endpoints Unavailable</h3>
+            <h3>ℹ️ Contract Querying Not Available in JSON API</h3>
             <p>
-              The Canton query endpoints are not currently available (returning 404 errors). 
-              This means we cannot display markets even though they may exist on the ledger.
+              Query endpoints do not exist in the Canton JSON API per the official OpenAPI documentation. 
+              This means we cannot query contracts to display markets, even though they exist on the ledger.
             </p>
             <p>
-              <strong>Possible solutions:</strong>
+              <strong>Why this happens:</strong>
             </p>
             <ul>
-              <li>Query endpoints may need to be enabled on the Canton participant</li>
-              <li>Check with your Canton administrator to enable the JSON API query endpoints</li>
-              <li>You can verify markets were created using the block explorer</li>
-              <li>Markets that were approved will appear here once query endpoints are enabled</li>
+              <li>JSON API only supports command submission, not contract queries</li>
+              <li>Contract querying requires gRPC API or WebSocket connections</li>
+              <li>This is by design, not a configuration issue</li>
             </ul>
             <p>
-              <strong>Note:</strong> You can still create new markets, but they won't appear in this list until query endpoints are available.
+              <strong>What you can do:</strong>
             </p>
-            <Link to="/create">
-              <button className="btn-primary" style={{ marginTop: '1rem' }}>
-                Create Market
-              </button>
-            </Link>
+            <ul>
+              <li>✅ Create new markets (command submission works)</li>
+              <li>✅ View your created contracts in the <Link to="/history">History page</Link></li>
+              <li>✅ Verify markets on the <a href="https://devnet.ccexplorer.io/" target="_blank" rel="noopener noreferrer">block explorer</a></li>
+              <li>✅ Use gRPC or WebSocket APIs for contract queries (requires different implementation)</li>
+            </ul>
+            <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem' }}>
+              <Link to="/create">
+                <button className="btn-primary">
+                  Create Market
+                </button>
+              </Link>
+              <Link to="/history">
+                <button className="btn-secondary">
+                  View Contract History
+                </button>
+              </Link>
+            </div>
           </div>
         </div>
       ) : markets.length === 0 ? (

@@ -173,21 +173,31 @@ export default function AdminDashboard() {
       {!apiRoutesWorkingRef.current ? (
         <div className="card">
           <div className="alert-warning">
-            <h3>⚠️ Query Endpoints Unavailable</h3>
+            <h3>ℹ️ Contract Querying Not Available in JSON API</h3>
             <p>
-              The Canton query endpoints are not currently available (returning 404 errors). 
-              This means we cannot display market creation requests even though they may exist on the ledger.
+              Query endpoints do not exist in the Canton JSON API per the official OpenAPI documentation. 
+              This means we cannot query contracts to display market creation requests, even though they exist on the ledger.
             </p>
             <p>
-              <strong>Possible solutions:</strong>
+              <strong>Why this happens:</strong>
             </p>
             <ul>
-              <li>Query endpoints may need to be enabled on the Canton participant</li>
-              <li>Check with your Canton administrator to enable the JSON API query endpoints</li>
-              <li>You can verify contracts were created using the block explorer</li>
+              <li>JSON API only supports command submission, not contract queries</li>
+              <li>Contract querying requires gRPC API or WebSocket connections</li>
+              <li>This is by design, not a configuration issue</li>
             </ul>
             <p>
-              <strong>Note:</strong> Market creation requests that were successfully created will appear here once query endpoints are enabled.
+              <strong>What you can do:</strong>
+            </p>
+            <ul>
+              <li>✅ Approve/reject markets via command submission (when you have contract IDs)</li>
+              <li>✅ View created contracts in the <Link to="/history">History page</Link></li>
+              <li>✅ Verify contracts on the <a href="https://devnet.ccexplorer.io/" target="_blank" rel="noopener noreferrer">block explorer</a></li>
+              <li>✅ Use gRPC or WebSocket APIs for contract queries (requires different implementation)</li>
+            </ul>
+            <p>
+              <strong>Note:</strong> Market creation requests are stored locally when created. 
+              Check the <Link to="/history">History page</Link> to see contracts you've created.
             </p>
           </div>
         </div>
@@ -252,4 +262,5 @@ export default function AdminDashboard() {
     </div>
   )
 }
+
 
