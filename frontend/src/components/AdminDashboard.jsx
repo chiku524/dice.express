@@ -69,11 +69,26 @@ export default function AdminDashboard() {
         return
       }
 
-      setRequests(Array.isArray(fetchedRequests) ? fetchedRequests : [])
+      const requestsArray = Array.isArray(fetchedRequests) ? fetchedRequests : []
+      setRequests(requestsArray)
       setError(null)
       apiRoutesWorkingRef.current = true
+      
+      // If no requests found and this is the first attempt, retry after a short delay
+      // This handles the case where contracts are created but not yet visible due to synchronization
+      if (requestsArray.length === 0 && retryCount === 0) {
+        console.log('[AdminDashboard] No contracts found. Retrying after 3 seconds in case of synchronization delay...')
+        setTimeout(() => {
+          if (isMountedRef.current && apiRoutesWorkingRef.current) {
+            fetchRequests(1) // Retry once
+          }
+        }, 3000)
+        return // Don't set loading to false yet
+      }
     } catch (err) {
       if (!isMountedRef.current) return
+      
+      console.error('[AdminDashboard] Error fetching requests:', err)
       
       if (err.message?.includes('404') || err.response?.status === 404) {
         apiRoutesWorkingRef.current = false
@@ -83,7 +98,8 @@ export default function AdminDashboard() {
         setError(err.message)
       }
     } finally {
-      if (isMountedRef.current) {
+      if (isMountedRef.current && retryCount === 0) {
+        // Only set loading to false on first attempt (not retry)
         setLoading(false)
       }
     }
