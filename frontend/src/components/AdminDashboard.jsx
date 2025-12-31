@@ -40,15 +40,18 @@ export default function AdminDashboard() {
       setLoading(true)
       console.log(`[AdminDashboard] Fetching requests (attempt ${retryCount + 1})...`)
       console.log(`[AdminDashboard] Querying for admin: ${wallet.party}`)
+      console.log(`[AdminDashboard] Template ID: ${PACKAGE_ID}:PredictionMarkets:MarketCreationRequest`)
+      console.log(`[AdminDashboard] Query filters: { admin: ${wallet.party} }`)
       
       // Query MarketCreationRequest contracts where admin matches wallet party
       const fetchedRequests = await ledger.query(
         [`${PACKAGE_ID}:PredictionMarkets:MarketCreationRequest`],
-        { admin: wallet.party },
-        { forceRefresh: true, walletParty: wallet.party }
+        { admin: wallet.party }, // Client-side filter: only show contracts where payload.admin === wallet.party
+        { forceRefresh: true, walletParty: wallet.party } // Server-side filter: only get contracts visible to wallet.party
       )
       
       console.log(`[AdminDashboard] Received ${Array.isArray(fetchedRequests) ? fetchedRequests.length : 0} contracts`)
+      console.log(`[AdminDashboard] Response type:`, typeof fetchedRequests, Array.isArray(fetchedRequests) ? 'array' : 'not array')
       if (Array.isArray(fetchedRequests) && fetchedRequests.length > 0) {
         console.log('[AdminDashboard] Contract details:', fetchedRequests.map(r => ({
           contractId: r.contractId,
