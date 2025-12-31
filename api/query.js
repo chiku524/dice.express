@@ -68,13 +68,21 @@ module.exports = async function handler(req, res) {
   // 2. Party-specific: { filter: { filtersByParty: { party: { inclusive: { templateIds: [...] } } } } }
   
   // Determine which party to filter by
-  const filterParty = party || queryFilters?.party || queryFilters?.admin || queryFilters?.owner || queryFilters?.creator
+  // The endpoint requires a party for filtersByParty, so we need to use a party
+  // Priority: explicit party > walletParty > party from query filters
+  // For MarketsList (no query filters), we need walletParty
+  // For AdminDashboard/Portfolio, we use the party from query filters
+  const filterParty = party || walletParty || queryFilters?.party || queryFilters?.admin || queryFilters?.owner || queryFilters?.creator
   
   // Build filter structure
+  // Note: The endpoint requires filtersByParty with a party, so we always need a party
+  // If no party is provided, we can't query (endpoint requirement)
+  // In practice, components should always have a wallet party available
   let filter = {}
   
   if (filterParty) {
     // Filter by specific party using filtersByParty
+    // This gets contracts visible to this party
     filter = {
       filtersByParty: {
         [filterParty]: {
@@ -85,11 +93,14 @@ module.exports = async function handler(req, res) {
       }
     }
   } else {
-    // No party filter - use simple templateIds filter
-    // This should work for querying all contracts of a template
-    filter = {
-      templateIds: templateIds
-    }
+    // No party provided - this is a problem because endpoint requires a party
+    // Return error or use a default party if available
+    // For now, return error to make it clear a party is needed
+    return res.status(400).json({
+      error: 'Party is required for /v2/state/active-contracts endpoint',
+      message: 'The endpoint requires a party in filtersByParty. Please provide a party in the query.',
+      hint: 'For MarketsList, use wallet.party. For AdminDashboard/Portfolio, the party is extracted from query filters.'
+    })
   }
 
   // Build request body according to GetActiveContractsRequest schema
@@ -133,7 +144,7 @@ module.exports = async function handler(req, res) {
     // Transform response to match expected format
     // Response format: [{ createdEvent: { contractId, templateId, createArguments } }]
     // Expected format: [{ contractId, payload: createArguments }]
-    const transformedResults = Array.isArray(data) ? data.map(item => {
+    let transformedResults = Array.isArray(data) ? data.map(item => {
       if (item.createdEvent) {
         return {
           contractId: item.createdEvent.contractId,
@@ -143,6 +154,20 @@ module.exports = async function handler(req, res) {
       }
       return item
     }) : []
+
+    // Apply client-side filtering by contract data fields
+    // The endpoint only filters by party visibility, not by contract data fields
+    // So we need to filter client-side for fields like admin, owner, creator, etc.
+    if (queryFilters && Object.keys(queryFilters).length > 0) {
+      transformedResults = transformedResults.filter(contract => {
+        // Check if contract matches all query filters
+        return Object.entries(queryFilters).every(([key, value]) => {
+          // Handle nested fields (e.g., settlementTrigger.tag)
+          const contractValue = contract.payload?.[key]
+          return contractValue === value
+        })
+      })
+    }
 
     return res.status(200).json({
       result: transformedResults,

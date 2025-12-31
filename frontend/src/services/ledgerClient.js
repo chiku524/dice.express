@@ -69,9 +69,16 @@ class LedgerClient {
         const endpoint = '/api/query'
         
         try {
+          // Get token from localStorage (always fetch latest)
+          const latestToken = typeof window !== 'undefined' ? localStorage.getItem('canton_token') : null
+          if (latestToken && latestToken !== this.token) {
+            this.setToken(latestToken)
+          }
+          
           const response = await this.client.post(endpoint, {
             templateIds,
             query,
+            walletParty // Pass wallet party for cases where no query filters are provided (e.g., MarketsList)
           })
           
           // Check if endpoints are unavailable (all returned 404)

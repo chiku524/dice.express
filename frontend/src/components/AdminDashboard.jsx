@@ -42,7 +42,7 @@ export default function AdminDashboard() {
       const fetchedRequests = await ledger.query(
         [`${PACKAGE_ID}:PredictionMarkets:MarketCreationRequest`],
         { admin: wallet.party },
-        { forceRefresh: true }
+        { forceRefresh: true, walletParty: wallet.party }
       )
 
       if (!isMountedRef.current) return

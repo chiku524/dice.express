@@ -42,7 +42,7 @@ export default function MarketsList() {
         // Query active markets from the ledger
         // Force refresh to get latest data
         const PACKAGE_ID = 'b87ef31c8ea5c53a940a7f71a4bc6513cf44048730c0551f1fc2e02adc7271f0'
-        const fetchedMarkets = await ledger.query([`${PACKAGE_ID}:PredictionMarkets:Market`], {}, { forceRefresh: true })
+        const fetchedMarkets = await ledger.query([`${PACKAGE_ID}:PredictionMarkets:Market`], {}, { forceRefresh: true, walletParty: wallet?.party })
         
         if (!isMountedRef.current) return
         
