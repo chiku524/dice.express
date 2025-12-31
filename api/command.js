@@ -58,13 +58,11 @@ module.exports = async function handler(req, res) {
     
     console.log('[api/command] Base URL:', baseUrl)
     
-    // Try v1 endpoints first (they might be more stable)
-    // Then try v2 endpoints
+    // Based on OpenAPI docs: https://participant.dev.canton.wolfedgelabs.com/json-api/docs/openapi
+    // Only /v2/commands/submit-and-wait exists for command submission
+    // Other endpoints like /v1/command, /v2/command, /command do NOT exist
     const possibleEndpoints = [
-      `${baseUrl}/v1/command`,
-      `${baseUrl}/command`,
-      `${baseUrl}/v2/command`,
-      `${baseUrl}/v2/commands/submit-and-wait`,
+      `${baseUrl}/v2/commands/submit-and-wait`, // ✅ Only valid endpoint from OpenAPI
     ]
     
     console.log('[api/command] Will try endpoints:', possibleEndpoints)

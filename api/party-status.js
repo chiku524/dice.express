@@ -37,40 +37,13 @@ module.exports = async function handler(req, res) {
     checks: {}
   }
   
-  // Check 1: Can we query contracts? (This tests read access)
-  try {
-    console.log('[api/party-status] Test 1: Querying contracts...')
-    const queryResponse = await fetch(`${baseUrl}/v2/query`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': req.headers.authorization || ''
-      },
-      body: JSON.stringify({
-        filter: {
-          party: party
-        },
-        templateIds: []
-      })
-    })
-    
-    diagnostics.checks.queryAccess = {
-      status: queryResponse.status,
-      success: queryResponse.ok,
-      message: queryResponse.ok 
-        ? 'Party can query contracts (read access works)'
-        : `Query failed with status ${queryResponse.status}`,
-      error: queryResponse.ok ? null : await queryResponse.text().catch(() => 'Unknown error')
-    }
-    
-    console.log('[api/party-status] Query result:', diagnostics.checks.queryAccess)
-  } catch (error) {
-    diagnostics.checks.queryAccess = {
-      status: 'error',
-      success: false,
-      message: `Query test failed: ${error.message}`,
-      error: error.message
-    }
+  // Check 1: Query endpoints do not exist in JSON API (per OpenAPI docs)
+  // Querying contracts is not available via JSON API - would require gRPC or WebSocket
+  diagnostics.checks.queryAccess = {
+    status: 'not_available',
+    success: false,
+    message: 'Query endpoints (/v1/query, /v2/query) do not exist in JSON API per OpenAPI documentation. Contract querying requires gRPC API or WebSocket connections.',
+    note: 'This is expected - JSON API only supports command submission, not contract queries'
   }
   
   // Check 2: Try a minimal command to see the exact error
@@ -157,49 +130,12 @@ module.exports = async function handler(req, res) {
     }
   }
   
-  // Check 4: Try to get party info (if endpoint exists)
-  try {
-    console.log('[api/party-status] Test 4: Checking for party info endpoint...')
-    const infoEndpoints = [
-      `${baseUrl}/v2/parties/${encodeURIComponent(party)}`,
-      `${baseUrl}/v1/parties/${encodeURIComponent(party)}`,
-      `${baseUrl}/parties/${encodeURIComponent(party)}`
-    ]
-    
-    for (const endpoint of infoEndpoints) {
-      try {
-        const infoResponse = await fetch(endpoint, {
-          method: 'GET',
-          headers: {
-            'Authorization': req.headers.authorization || ''
-          }
-        })
-        
-        if (infoResponse.ok) {
-          const infoData = await infoResponse.json()
-          diagnostics.checks.partyInfo = {
-            success: true,
-            endpoint,
-            data: infoData
-          }
-          break
-        }
-      } catch (e) {
-        // Try next endpoint
-      }
-    }
-    
-    if (!diagnostics.checks.partyInfo) {
-      diagnostics.checks.partyInfo = {
-        success: false,
-        message: 'No party info endpoint found'
-      }
-    }
-  } catch (error) {
-    diagnostics.checks.partyInfo = {
-      success: false,
-      message: `Party info check failed: ${error.message}`
-    }
+  // Check 4: Party info endpoints do not exist in JSON API (per OpenAPI docs)
+  // Party information would need to be retrieved via gRPC UserManagementService
+  diagnostics.checks.partyInfo = {
+    success: false,
+    message: 'Party info endpoints (/v1/parties/{party}, /v2/parties/{party}) do not exist in JSON API per OpenAPI documentation. Use gRPC UserManagementService for party information.',
+    note: 'This is expected - JSON API does not provide party info endpoints'
   }
   
   // Summary

@@ -64,7 +64,9 @@ class LedgerClient {
     try {
       // Retry with exponential backoff
       const result = await retryWithBackoff(async () => {
-        const endpoint = this.useProxy ? '/api/query' : `${this.baseUrl}/v1/query`
+        // Query endpoints do not exist in JSON API (per OpenAPI docs)
+        // Always use proxy which returns empty results with _endpointsUnavailable flag
+        const endpoint = '/api/query'
         
         try {
           const response = await this.client.post(endpoint, {
@@ -149,7 +151,9 @@ class LedgerClient {
     try {
       // Retry with exponential backoff for commands
       const result = await retryWithBackoff(async () => {
-        const endpoint = this.useProxy ? '/api/command' : `${this.baseUrl}/v1/command`
+        // Command endpoint: /v2/commands/submit-and-wait (per OpenAPI docs)
+        // /v1/command does not exist - always use proxy
+        const endpoint = '/api/command'
         
         // Always get the latest token from localStorage (in case it was updated)
         // This ensures we use the most recent token even if it was just saved

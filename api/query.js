@@ -64,24 +64,22 @@ module.exports = async function handler(req, res) {
     const baseUrl = LEDGER_URL.replace(/\/$/, '')
     
     // IMPORTANT: Based on OpenAPI docs (https://participant.dev.canton.wolfedgelabs.com/json-api/docs/openapi),
-    // there are NO /v1/query or /v2/query endpoints in the JSON API.
-    // Available endpoints from OpenAPI:
-    // - /v2/commands/* (command submission)
-    // - /v2/events/events-by-contract-id (requires contract ID)
-    // - /v2/version
+    // there are NO query endpoints in the JSON API.
     // 
-    // Query endpoints do not exist in JSON API. We'll try the events endpoint
-    // but it requires contract IDs, which we don't have for general queries.
+    // Available endpoints from OpenAPI:
+    // - /v2/commands/submit-and-wait - Submit commands
+    // - /v2/commands/async/submit - Submit commands asynchronously
+    // - /v2/commands/completions - Query completions (not contract queries)
+    // - /v2/events/events-by-contract-id - Get events by contract ID (requires contract ID, not template queries)
+    // - /v2/version - Get version
+    // 
+    // Query endpoints (/v1/query, /v2/query) do NOT exist in JSON API.
+    // Contract querying requires gRPC API or WebSocket connections.
     // 
     // The client confirmed: "/v1/query does not exist in json-api"
     // 
-    // For now, we'll return empty results and indicate endpoints are unavailable.
-    // Contract querying may require gRPC API or WebSocket connections instead.
-    const possibleEndpoints = [
-      // Try events endpoint (requires contract IDs, not template queries)
-      // This won't work for general template-based queries, but we'll try it
-      { url: `${baseUrl}/v2/events/events-by-contract-id`, method: 'POST' },
-    ]
+    // Return empty results immediately - no need to try non-existent endpoints
+    const possibleEndpoints = []
     
     console.log('[api/query] Trying endpoints:', possibleEndpoints)
     console.log('[api/query] Request body:', JSON.stringify(req.body))

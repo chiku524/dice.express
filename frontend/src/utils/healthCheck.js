@@ -44,20 +44,19 @@ export async function checkApiHealth() {
 
 /**
  * Check if direct ledger connection works (for fallback)
+ * Note: Query endpoints do not exist in JSON API per OpenAPI docs
+ * This function checks the version endpoint instead
  * @param {string} ledgerUrl - Ledger URL
  * @returns {Promise<boolean>} True if direct connection works
  */
 export async function checkDirectConnection(ledgerUrl) {
   try {
-    const response = await fetch(`${ledgerUrl}/v1/query`, {
-      method: 'POST',
+    // Use /v2/version endpoint which exists per OpenAPI docs
+    const response = await fetch(`${ledgerUrl}/v2/version`, {
+      method: 'GET',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({
-        templateIds: ['Test'],
-        query: {},
-      }),
     })
     
     return response.status !== 404 && response.status < 500
