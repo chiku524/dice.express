@@ -131,6 +131,17 @@ module.exports = async function handler(req, res) {
     if (!response.ok) {
       const errorText = await response.text()
       console.error('[api/query] Error response:', errorText)
+      
+      // Provide helpful error messages for common issues
+      if (response.status === 401) {
+        return res.status(401).json({
+          error: 'Authentication failed',
+          message: 'Invalid or expired authentication token. Please update your token in the Wallet modal.',
+          status: 401,
+          hint: 'Your token may have expired. Get a new token and save it in the Wallet modal.'
+        })
+      }
+      
       return res.status(response.status).json({
         error: 'Failed to query contracts',
         message: errorText.substring(0, 500),
