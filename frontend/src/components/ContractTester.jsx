@@ -185,17 +185,26 @@ export default function ContractTester() {
         }
         
         // Build explorer URL using correct format: /updates/{updateId}/{record_time}
-        if (updateId && updateTimestamp !== undefined && updateTimestamp !== null) {
-          // The explorer expects the record_time (timestamp), not completionOffset
+        if (updateId) {
+          // The explorer expects the record_time (ISO timestamp), not completionOffset
           // Format should be ISO timestamp like: 2025-12-31T19:45:35.056Z
+          
           let timePart = updateTimestamp
           
-          // If it's a number (completionOffset), we can't use it - need timestamp
-          if (typeof timePart === 'number') {
-            console.warn('[ContractTester] Received number for timestamp - this might not work. Explorer expects ISO timestamp format.')
-            // Try to construct a timestamp from current time as fallback
-            // But this won't be accurate - better to get the actual record_time from the API
+          // Ensure we have a valid timestamp string
+          if (!timePart || typeof timePart === 'number') {
+            // If we got a number (completionOffset) or no timestamp, use current time
+            // The explorer will accept this, though it might not be 100% accurate
+            // The actual record_time should ideally come from the API response
+            console.warn('[ContractTester] No timestamp in response, using current time for explorer URL')
             timePart = new Date().toISOString()
+          }
+          
+          // Ensure it's a string and in ISO format
+          if (typeof timePart === 'string') {
+            // Remove extra precision if present (explorer expects format like: 2025-12-31T19:45:35.056Z)
+            // Keep milliseconds but limit to 3 digits
+            timePart = timePart.replace(/\.(\d{3})\d+Z$/, '.$1Z')
           }
           
           // URL encode the timestamp
