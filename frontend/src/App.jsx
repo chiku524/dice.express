@@ -13,6 +13,7 @@ const WalletConnect = lazy(() => import('./components/WalletConnect'))
 const Portfolio = lazy(() => import('./components/Portfolio'))
 const ContractTester = lazy(() => import('./components/ContractTester'))
 const AdminDashboard = lazy(() => import('./components/AdminDashboard'))
+const ContractHistory = lazy(() => import('./components/ContractHistory'))
 import { analytics } from './utils/analytics'
 import ConnectionStatus from './components/ConnectionStatus'
 import ApiStatusBanner from './components/ApiStatusBanner'
