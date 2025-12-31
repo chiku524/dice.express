@@ -33,7 +33,7 @@ module.exports = async function handler(req, res) {
 
   // Get request body
   const requestBody = req.body || {}
-  const { templateIds, query: queryFilters, party, walletParty } = requestBody
+  const { templateIds, query: queryFilters, party, walletParty, minOffset } = requestBody
 
   if (!templateIds || !Array.isArray(templateIds) || templateIds.length === 0) {
     return res.status(400).json({ 
@@ -105,10 +105,15 @@ module.exports = async function handler(req, res) {
 
   // Build request body according to GetActiveContractsRequest schema
   // activeAtOffset is required and must be a Long (integer)
-  // Use 0 to start from the beginning, or we could get the latest offset first
+  // Use 0 to start from the beginning, or use minOffset if provided
+  // Note: If contracts are created with updateId/completionOffset, they might not appear
+  // immediately. Using 0 should work, but we might need to wait for synchronization.
+  const activeAtOffset = requestBody.minOffset !== undefined && requestBody.minOffset !== null 
+    ? parseInt(requestBody.minOffset, 10) 
+    : 0
   const requestBodyV2 = {
     filter: filter,
-    activeAtOffset: 0 // Required field - Long type, 0 means start from beginning
+    activeAtOffset: activeAtOffset // Required field - Long type, 0 means start from beginning
   }
 
   console.log('[api/query] Calling endpoint:', endpoint)
