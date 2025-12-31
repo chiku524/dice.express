@@ -155,19 +155,37 @@ module.exports = async function handler(req, res) {
     }
 
     const data = await response.json()
-    console.log('[api/query] Response data (first 500 chars):', JSON.stringify(data).substring(0, 500))
+    console.log('[api/query] Response data (first 1000 chars):', JSON.stringify(data).substring(0, 1000))
     const contractCount = Array.isArray(data) ? data.length : 0
     console.log('[api/query] Total contracts returned:', contractCount)
     
     // Log full response if empty to help debug
     if (contractCount === 0) {
-      console.log('[api/query] ⚠️ No contracts found. This could mean:')
+      console.log('[api/query] ⚠️ No contracts found. Debugging info:')
+      console.log('[api/query]   - Filter party:', filterParty)
+      console.log('[api/query]   - Template IDs:', templateIds)
+      console.log('[api/query]   - Active at offset:', activeAtOffset)
+      console.log('[api/query]   - Request body:', JSON.stringify(requestBodyV2, null, 2))
+      console.log('[api/query] Possible reasons:')
       console.log('[api/query]   1. No contracts exist for this party/template combination')
       console.log('[api/query]   2. Contracts exist but are not yet synchronized (wait a few seconds)')
-      console.log('[api/query]   3. Contracts exist but party does not have visibility')
+      console.log('[api/query]   3. Contracts exist but party does not have visibility (check signatories/observers)')
       console.log('[api/query]   4. Contracts were created but immediately archived')
+      console.log('[api/query]   5. activeAtOffset: 0 might miss contracts - try querying from completionOffset')
+      console.log('[api/query]   6. Contract might be in a different domain or state')
     } else {
-      console.log('[api/query] ✅ Found contracts. Sample:', JSON.stringify(data[0]).substring(0, 200))
+      console.log('[api/query] ✅ Found contracts. Sample:', JSON.stringify(data[0]).substring(0, 500))
+      // Log all contract IDs and their admin/creator fields for debugging
+      data.slice(0, 5).forEach((contract, idx) => {
+        const contractId = contract.createdEvent?.contractId || contract.contractId
+        const payload = contract.createdEvent?.createArguments || contract.payload || {}
+        console.log(`[api/query] Contract ${idx + 1}:`, {
+          contractId: contractId?.substring(0, 50) + '...',
+          admin: payload.admin,
+          creator: payload.creator,
+          title: payload.title
+        })
+      })
     }
 
     // Transform response to match expected format
