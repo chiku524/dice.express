@@ -151,6 +151,7 @@ module.exports = async function handler(req, res) {
 
     const data = await response.json()
     console.log('[api/query] Response data (first 500 chars):', JSON.stringify(data).substring(0, 500))
+    console.log('[api/query] Total contracts returned:', Array.isArray(data) ? data.length : 0)
 
     // Transform response to match expected format
     // Response format: [{ createdEvent: { contractId, templateId, createArguments } }]
@@ -166,18 +167,24 @@ module.exports = async function handler(req, res) {
       return item
     }) : []
 
-    // Apply client-side filtering by contract data fields
-    // The endpoint only filters by party visibility, not by contract data fields
-    // So we need to filter client-side for fields like admin, owner, creator, etc.
+    console.log('[api/query] Transformed contracts:', transformedResults.length)
     if (queryFilters && Object.keys(queryFilters).length > 0) {
+      console.log('[api/query] Applying client-side filters:', queryFilters)
+      const beforeFilter = transformedResults.length
       transformedResults = transformedResults.filter(contract => {
         // Check if contract matches all query filters
-        return Object.entries(queryFilters).every(([key, value]) => {
+        const matches = Object.entries(queryFilters).every(([key, value]) => {
           // Handle nested fields (e.g., settlementTrigger.tag)
           const contractValue = contract.payload?.[key]
-          return contractValue === value
+          const match = contractValue === value
+          if (!match) {
+            console.log(`[api/query] Contract ${contract.contractId} filtered out: ${key} = ${contractValue} (expected ${value})`)
+          }
+          return match
         })
+        return matches
       })
+      console.log(`[api/query] After filtering: ${transformedResults.length} contracts (was ${beforeFilter})`)
     }
 
     return res.status(200).json({

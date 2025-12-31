@@ -53,8 +53,12 @@ export function WalletProvider({ children }) {
 
   const connectWallet = async (partyId = null) => {
     try {
-      // If partyId is provided (from modal), use it; otherwise use default
-      const party = partyId?.trim() || DEFAULT_PARTY_ID
+      // Require explicit party ID - no default fallback
+      const party = partyId?.trim()
+      
+      if (!party) {
+        throw new Error('Party ID is required. Please enter your Party ID in the format: {user-id}::{party-id}')
+      }
       
       // Validate party ID format (should contain ::)
       if (!party.includes('::')) {

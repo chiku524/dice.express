@@ -59,9 +59,10 @@ export default function WalletModal({ isOpen, onClose }) {
         throw new Error('No access token in response')
       }
 
-      // Store token
+      // Store token with expiration info
       setTokenInput(data.access_token)
-      localStorage.setItem('canton_token', data.access_token)
+      const { storeToken } = await import('../utils/tokenManager')
+      storeToken(data)
       
       // Clear password for security
       setPassword('')
@@ -79,8 +80,9 @@ export default function WalletModal({ isOpen, onClose }) {
     }
   }
 
-  const saveToken = () => {
+  const saveToken = async () => {
     if (tokenInput.trim()) {
+      // Store token (without expiration info if manually entered)
       localStorage.setItem('canton_token', tokenInput.trim())
       setTokenSuccess(true)
       setTimeout(() => setTokenSuccess(false), 2000)
@@ -92,7 +94,8 @@ export default function WalletModal({ isOpen, onClose }) {
   }
 
   const clearToken = () => {
-    localStorage.removeItem('canton_token')
+    const { clearToken } = require('../utils/tokenManager')
+    clearToken()
     setTokenInput('')
     setTokenSuccess(true)
     setTimeout(() => setTokenSuccess(false), 2000)
