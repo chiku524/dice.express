@@ -373,9 +373,18 @@ export default function CreateMarket() {
               name="outcomes"
               value={formData.outcomes}
               onChange={handleChange}
+              onBlur={handleBlur}
               required
               placeholder="e.g., Option A, Option B, Option C"
+              className={fieldErrors.outcomes ? 'error' : ''}
+              aria-invalid={!!fieldErrors.outcomes}
+              aria-describedby={fieldErrors.outcomes ? 'outcomes-error' : undefined}
             />
+            {fieldErrors.outcomes && (
+              <span id="outcomes-error" className="field-error" role="alert">
+                {fieldErrors.outcomes}
+              </span>
+            )}
           </div>
         )}
 
