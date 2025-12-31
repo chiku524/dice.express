@@ -141,21 +141,27 @@ export default function CreateMarket() {
       // Build explorer URL
       if (contractId) {
         explorerUrl = `https://devnet.ccexplorer.io/?q=${encodeURIComponent(contractId)}`
-      } else if (updateId && updateTimestamp) {
+      } else if (updateId) {
         // Use the correct format: /updates/{updateId}/{record_time}
         // The explorer expects the record_time (ISO timestamp), not completionOffset
         // Format should be ISO timestamp like: 2025-12-31T19:45:35.056Z
+        
         let timePart = updateTimestamp
         
-        // Ensure it's a string (ISO timestamp format)
-        if (typeof timePart === 'number') {
-          // If we got a number (completionOffset), use current time instead
-          console.warn('[CreateMarket] Received number instead of timestamp - using current time for explorer URL')
+        // Ensure we have a valid timestamp string
+        if (!timePart || typeof timePart === 'number') {
+          // If we got a number (completionOffset) or no timestamp, use current time
+          // The explorer will accept this, though it might not be 100% accurate
+          // The actual record_time should ideally come from the API response
+          console.warn('[CreateMarket] No timestamp in response, using current time for explorer URL')
           timePart = new Date().toISOString()
-        } else if (typeof timePart === 'string') {
-          // If it's already a string, use it as-is (should be ISO format)
-          // Remove milliseconds if present to match explorer format: 2025-12-31T19:45:35.056Z
-          timePart = timePart.replace(/\.\d{3,}Z$/, '.056Z').replace(/\.\d+Z$/, 'Z')
+        }
+        
+        // Ensure it's a string and in ISO format
+        if (typeof timePart === 'string') {
+          // Remove extra precision if present (explorer expects format like: 2025-12-31T19:45:35.056Z)
+          // Keep milliseconds but limit to 3 digits
+          timePart = timePart.replace(/\.(\d{3})\d+Z$/, '.$1Z')
         }
         
         // URL encode the timestamp
