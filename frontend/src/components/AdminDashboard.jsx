@@ -241,10 +241,6 @@ export default function AdminDashboard() {
         </div>
       ) : requests.length === 0 ? (
         <div className="card">
-          <p>No pending market creation requests.</p>
-        </div>
-      ) : requests.length === 0 ? (
-        <div className="card">
           <h3>No Pending Requests</h3>
           <p style={{ marginTop: '1rem', color: 'rgba(255, 255, 255, 0.7)' }}>
             There are currently no market creation requests awaiting approval.
