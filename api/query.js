@@ -151,7 +151,19 @@ module.exports = async function handler(req, res) {
 
     const data = await response.json()
     console.log('[api/query] Response data (first 500 chars):', JSON.stringify(data).substring(0, 500))
-    console.log('[api/query] Total contracts returned:', Array.isArray(data) ? data.length : 0)
+    const contractCount = Array.isArray(data) ? data.length : 0
+    console.log('[api/query] Total contracts returned:', contractCount)
+    
+    // Log full response if empty to help debug
+    if (contractCount === 0) {
+      console.log('[api/query] ⚠️ No contracts found. This could mean:')
+      console.log('[api/query]   1. No contracts exist for this party/template combination')
+      console.log('[api/query]   2. Contracts exist but are not yet synchronized (wait a few seconds)')
+      console.log('[api/query]   3. Contracts exist but party does not have visibility')
+      console.log('[api/query]   4. Contracts were created but immediately archived')
+    } else {
+      console.log('[api/query] ✅ Found contracts. Sample:', JSON.stringify(data[0]).substring(0, 200))
+    }
 
     // Transform response to match expected format
     // Response format: [{ createdEvent: { contractId, templateId, createArguments } }]
