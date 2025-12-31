@@ -44,9 +44,10 @@ module.exports = async function handler(req, res) {
 
   // Query endpoints do not exist in JSON API per OpenAPI documentation
   // Return empty results immediately with flag indicating endpoints are unavailable
-  console.warn('[api/query] Query endpoints are not available in JSON API (per OpenAPI documentation)')
-  console.warn('[api/query] Returning empty result set - contract querying requires gRPC or WebSocket APIs')
-  console.log('[api/query] Request body:', JSON.stringify(req.body || {}).substring(0, 200))
+  // Only log in development to reduce production log noise
+  if (process.env.VERCEL_ENV === 'development' || process.env.DEBUG === 'true') {
+    console.log('[api/query] Query endpoints unavailable in JSON API (expected - use gRPC/WebSocket for queries)')
+  }
   
   // Return empty result set in format expected by frontend
   // Use 200 status to prevent retries
