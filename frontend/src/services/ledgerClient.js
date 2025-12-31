@@ -48,7 +48,7 @@ class LedgerClient {
    * @returns {Promise<object[]>} Array of contract results
    */
   async query(templateIds, query = {}, options = {}) {
-    const { useCache = true, forceRefresh = false } = options
+    const { useCache = true, forceRefresh = false, walletParty = null } = options
     
     // Generate cache key
     const cacheKey = Cache.generateKey(templateIds, query)

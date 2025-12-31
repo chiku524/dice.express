@@ -33,7 +33,7 @@ module.exports = async function handler(req, res) {
 
   // Get request body
   const requestBody = req.body || {}
-  const { templateIds, query: queryFilters, party } = requestBody
+  const { templateIds, query: queryFilters, party, walletParty } = requestBody
 
   if (!templateIds || !Array.isArray(templateIds) || templateIds.length === 0) {
     return res.status(400).json({ 
