@@ -14,6 +14,7 @@ const Portfolio = lazy(() => import('./components/Portfolio'))
 const ContractTester = lazy(() => import('./components/ContractTester'))
 const AdminDashboard = lazy(() => import('./components/AdminDashboard'))
 const ContractHistory = lazy(() => import('./components/ContractHistory'))
+const ActiveContractsTest = lazy(() => import('./components/ActiveContractsTest'))
 import { analytics } from './utils/analytics'
 import ConnectionStatus from './components/ConnectionStatus'
 import ApiStatusBanner from './components/ApiStatusBanner'
@@ -78,6 +79,7 @@ function AppContent() {
                     <Route path="/portfolio" element={<Portfolio />} />
                     <Route path="/admin" element={<AdminDashboard />} />
                     <Route path="/history" element={<ContractHistory />} />
+                    <Route path="/test-active-contracts" element={<ActiveContractsTest />} />
                   </>
                 )}
               </Routes>
