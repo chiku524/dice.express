@@ -74,16 +74,24 @@ export default function AdminDashboard() {
       setError(null)
       apiRoutesWorkingRef.current = true
       
-      // If no requests found and this is the first attempt, retry after a short delay
+      // If no requests found and this is the first attempt, retry multiple times with increasing delays
       // This handles the case where contracts are created but not yet visible due to synchronization
-      if (requestsArray.length === 0 && retryCount === 0) {
-        console.log('[AdminDashboard] No contracts found. Retrying after 3 seconds in case of synchronization delay...')
+      if (requestsArray.length === 0 && retryCount < 3) {
+        const delays = [3000, 5000, 10000] // 3s, 5s, 10s
+        const delay = delays[retryCount] || 10000
+        console.log(`[AdminDashboard] No contracts found. Retrying after ${delay/1000} seconds (attempt ${retryCount + 1}/3)...`)
         setTimeout(() => {
           if (isMountedRef.current && apiRoutesWorkingRef.current) {
-            fetchRequests(1) // Retry once
+            fetchRequests(retryCount + 1) // Retry with incremented count
           }
-        }, 3000)
+        }, delay)
         return // Don't set loading to false yet
+      } else if (requestsArray.length === 0 && retryCount >= 3) {
+        console.warn('[AdminDashboard] No contracts found after multiple retries. This could mean:')
+        console.warn('[AdminDashboard]   1. No contracts exist for this admin party')
+        console.warn('[AdminDashboard]   2. Contracts were created with updateId and need more time to synchronize')
+        console.warn('[AdminDashboard]   3. Contracts exist but party does not have visibility')
+        console.warn('[AdminDashboard]   4. Check the explorer link from market creation to verify the contract exists')
       }
     } catch (err) {
       if (!isMountedRef.current) return
