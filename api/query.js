@@ -62,9 +62,10 @@ module.exports = async function handler(req, res) {
   }
 
   // Build request body for /v2/state/active-contracts
-  // Format: { filter: { filtersByParty: { party: { inclusive: { templateIds: [...] } } } } }
-  // If query filters are provided, we need to map them to the filter format
-  // For now, we'll use the party from the query or use a wildcard filter
+  // According to OpenAPI spec, the request should be GetActiveContractsRequest
+  // Format can be either:
+  // 1. Simple: { filter: { templateIds: [...] } }
+  // 2. Party-specific: { filter: { filtersByParty: { party: { inclusive: { templateIds: [...] } } } } }
   
   // Determine which party to filter by
   const filterParty = party || queryFilters?.party || queryFilters?.admin || queryFilters?.owner || queryFilters?.creator
@@ -73,7 +74,7 @@ module.exports = async function handler(req, res) {
   let filter = {}
   
   if (filterParty) {
-    // Filter by specific party
+    // Filter by specific party using filtersByParty
     filter = {
       filtersByParty: {
         [filterParty]: {
@@ -84,24 +85,19 @@ module.exports = async function handler(req, res) {
       }
     }
   } else {
-    // No party filter - use wildcard (all parties)
-    // Note: This might not work if Canton requires a party filter
+    // No party filter - use simple templateIds filter
+    // This should work for querying all contracts of a template
     filter = {
-      filtersByParty: {
-        '*': {
-          inclusive: {
-            templateIds: templateIds
-          }
-        }
-      }
+      templateIds: templateIds
     }
   }
 
+  // Build request body according to GetActiveContractsRequest schema
+  // Note: activeAtOffset might need to be a string or omitted
   const requestBodyV2 = {
-    filter: filter,
-    verbose: false,
-    activeAtOffset: null, // Use latest offset
-    eventFormat: null
+    filter: filter
+    // verbose, activeAtOffset, and eventFormat might not be in the schema
+    // Let's try without them first, or use offset if needed
   }
 
   console.log('[api/query] Calling endpoint:', endpoint)
