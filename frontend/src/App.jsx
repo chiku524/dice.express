@@ -20,6 +20,7 @@ import ApiStatusBanner from './components/ApiStatusBanner'
 import AnimatedBackground from './components/AnimatedBackground'
 import WalletModal from './components/WalletModal'
 import ErrorBoundary from './components/ErrorBoundary'
+import Navbar from './components/Navbar'
 import './App.css'
 
 // Component to track page views
@@ -55,37 +56,10 @@ function AppContent() {
       <AnimatedBackground />
       <ApiStatusBanner />
       <div className="app">
-        <header className="app-header">
-          <div className="container">
-            <Link to="/" className="logo">
-              <h1>Canton Prediction Markets</h1>
-            </Link>
-            <nav>
-              <Link to="/">Markets</Link>
-              <Link to="/create">Create Market</Link>
-              <Link to="/portfolio">Portfolio</Link>
-              <Link to="/admin">Admin</Link>
-              <Link to="/test" style={{ 
-                background: '#646cff', 
-                padding: '0.5rem 1rem', 
-                borderRadius: '4px',
-                fontWeight: '600',
-                fontSize: '0.9rem'
-              }}>
-                🧪 Test
-              </Link>
-              {wallet ? (
-                <div className="wallet-info">
-                  <span>{wallet.party.substring(0, 20)}...</span>
-                  <button onClick={() => setShowWalletModal(true)}>Wallet</button>
-                  <button onClick={disconnectWallet}>Disconnect</button>
-                </div>
-              ) : (
-                <button onClick={() => setShowWalletModal(true)}>Connect Wallet</button>
-              )}
-            </nav>
-          </div>
-        </header>
+        <Navbar 
+          showWalletModal={showWalletModal}
+          setShowWalletModal={setShowWalletModal}
+        />
 
         <main className="app-main">
           <div className="container">

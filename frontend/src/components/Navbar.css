@@ -1,0 +1,123 @@
+.nav-dropdown {
+  position: relative;
+  display: inline-block;
+}
+
+.nav-dropdown-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
+  color: rgba(255, 255, 255, 0.87);
+  font-size: 0.95rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.nav-dropdown-toggle:hover {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.2);
+  color: #646cff;
+}
+
+.nav-dropdown-toggle.active {
+  background: rgba(100, 108, 255, 0.1);
+  border-color: rgba(100, 108, 255, 0.3);
+  color: #646cff;
+}
+
+.dropdown-arrow {
+  font-size: 0.7rem;
+  transition: transform 0.2s;
+  opacity: 0.7;
+}
+
+.nav-dropdown-toggle:hover .dropdown-arrow,
+.nav-dropdown-toggle.active .dropdown-arrow {
+  opacity: 1;
+}
+
+.nav-dropdown-menu {
+  position: absolute;
+  top: calc(100% + 0.5rem);
+  left: 0;
+  background: #1a1a1a;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  padding: 0.5rem 0;
+  min-width: 180px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  z-index: 1000;
+  animation: slideDown 0.2s ease-out;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.nav-dropdown-menu a {
+  display: block;
+  padding: 0.75rem 1.25rem;
+  color: rgba(255, 255, 255, 0.87);
+  text-decoration: none;
+  font-size: 0.9rem;
+  transition: all 0.2s;
+  border-left: 3px solid transparent;
+}
+
+.nav-dropdown-menu a:hover {
+  background: rgba(100, 108, 255, 0.1);
+  color: #646cff;
+  border-left-color: #646cff;
+}
+
+.nav-dropdown-menu a.active {
+  background: rgba(100, 108, 255, 0.15);
+  color: #646cff;
+  border-left-color: #646cff;
+  font-weight: 600;
+}
+
+.btn-connect {
+  padding: 0.5rem 1rem;
+  background: #646cff;
+  border: none;
+  border-radius: 6px;
+  color: white;
+  font-size: 0.95rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.btn-connect:hover {
+  background: #535bf2;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(100, 108, 255, 0.3);
+}
+
+@media (max-width: 768px) {
+  .nav-dropdown-menu {
+    right: 0;
+    left: auto;
+  }
+  
+  .nav-dropdown-toggle {
+    font-size: 0.85rem;
+    padding: 0.4rem 0.75rem;
+  }
+}
+

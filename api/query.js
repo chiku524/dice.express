@@ -63,24 +63,24 @@ module.exports = async function handler(req, res) {
     // Remove trailing slash from LEDGER_URL if present
     const baseUrl = LEDGER_URL.replace(/\/$/, '')
     
-    // Try multiple endpoint formats - Canton 3.4 may use v2, but v1 might also work
-    // Also try GET requests and alternative paths
-    // Note: Query endpoints may not be enabled on this Canton participant
-    // If all return 404, the participant may only support commands, not queries
+    // IMPORTANT: Based on OpenAPI docs (https://participant.dev.canton.wolfedgelabs.com/json-api/docs/openapi),
+    // there are NO /v1/query or /v2/query endpoints in the JSON API.
+    // Available endpoints from OpenAPI:
+    // - /v2/commands/* (command submission)
+    // - /v2/events/events-by-contract-id (requires contract ID)
+    // - /v2/version
+    // 
+    // Query endpoints do not exist in JSON API. We'll try the events endpoint
+    // but it requires contract IDs, which we don't have for general queries.
+    // 
+    // The client confirmed: "/v1/query does not exist in json-api"
+    // 
+    // For now, we'll return empty results and indicate endpoints are unavailable.
+    // Contract querying may require gRPC API or WebSocket connections instead.
     const possibleEndpoints = [
-      // POST endpoints (standard)
-      { url: `${baseUrl}/v2/query`, method: 'POST' },
-      { url: `${baseUrl}/v1/query`, method: 'POST' },
-      { url: `${baseUrl}/query`, method: 'POST' },
-      { url: `${baseUrl}/v2/contracts/search`, method: 'POST' },
-      { url: `${baseUrl}/v1/contracts/search`, method: 'POST' },
-      // GET endpoints (alternative - some APIs use GET for queries)
-      { url: `${baseUrl}/v2/contracts`, method: 'GET' },
-      { url: `${baseUrl}/v1/contracts`, method: 'GET' },
-      { url: `${baseUrl}/contracts`, method: 'GET' },
-      // Alternative paths
-      { url: `${baseUrl}/v2/contracts/query`, method: 'POST' },
-      { url: `${baseUrl}/v1/contracts/query`, method: 'POST' },
+      // Try events endpoint (requires contract IDs, not template queries)
+      // This won't work for general template-based queries, but we'll try it
+      { url: `${baseUrl}/v2/events/events-by-contract-id`, method: 'POST' },
     ]
     
     console.log('[api/query] Trying endpoints:', possibleEndpoints)
