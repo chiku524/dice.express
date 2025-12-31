@@ -297,7 +297,16 @@ module.exports = async function handler(req, res) {
       })
     }
 
-    console.log('[api/command] Success! Contract created.')
+    console.log('[api/command] Success! Command submitted.')
+    console.log('[api/command] Response data:', JSON.stringify(data).substring(0, 1000))
+    
+    // Log contract creation details if available
+    if (data.result?.created && data.result.created.length > 0) {
+      console.log('[api/command] Contract created with ID:', data.result.created[0].contractId)
+    } else if (data.updateId) {
+      console.log('[api/command] Command submitted with updateId:', data.updateId)
+      console.log('[api/command] Note: Contract may take a few seconds to be visible in queries due to synchronization.')
+    }
 
     return res.status(200).json(data)
   } catch (error) {

@@ -166,19 +166,24 @@ export default function CreateMarket() {
       }
       
       // Log to console for easy access
+      console.log('📦 Full creation response:', JSON.stringify(result, null, 2))
+      
       if (contractId) {
         console.log('✅ Market created successfully!')
         console.log('📋 Contract ID:', contractId)
         console.log('🔗 View in explorer:', explorerUrl)
+        console.log('⏳ Note: Contract may take a few seconds to appear in queries due to synchronization.')
       } else if (updateId) {
-        console.log('✅ Market created successfully!')
+        console.log('✅ Market creation submitted successfully!')
         console.log('📋 Update ID:', updateId)
-        console.log('📅 Timestamp:', updateTimestamp)
+        console.log('📅 Completion Offset:', updateTimestamp)
         console.log('🔗 View in explorer:', explorerUrl)
-        console.log('ℹ️ Note: Using updateId format. The contract was created but contract ID will be available after the transaction is processed.')
+        console.log('⏳ Note: Contract is being processed. It may take a few seconds to appear in queries.')
+        console.log('💡 Tip: Wait a few seconds and refresh the Admin Dashboard to see the new request.')
       } else {
         console.log('⚠️ Market created but contract ID/updateId not found in response')
         console.log('Full response:', JSON.stringify(result, null, 2))
+        console.log('⚠️ This may indicate the contract was not actually created on the ledger.')
       }
       
       // Reset form after successful creation

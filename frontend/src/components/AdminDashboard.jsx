@@ -33,17 +33,30 @@ export default function AdminDashboard() {
     }
   }, [ledger, wallet])
 
-  const fetchRequests = async () => {
+  const fetchRequests = async (retryCount = 0) => {
     if (!ledger || !wallet || !apiRoutesWorkingRef.current) return
 
     try {
       setLoading(true)
+      console.log(`[AdminDashboard] Fetching requests (attempt ${retryCount + 1})...`)
+      console.log(`[AdminDashboard] Querying for admin: ${wallet.party}`)
+      
       // Query MarketCreationRequest contracts where admin matches wallet party
       const fetchedRequests = await ledger.query(
         [`${PACKAGE_ID}:PredictionMarkets:MarketCreationRequest`],
         { admin: wallet.party },
         { forceRefresh: true, walletParty: wallet.party }
       )
+      
+      console.log(`[AdminDashboard] Received ${Array.isArray(fetchedRequests) ? fetchedRequests.length : 0} contracts`)
+      if (Array.isArray(fetchedRequests) && fetchedRequests.length > 0) {
+        console.log('[AdminDashboard] Contract details:', fetchedRequests.map(r => ({
+          contractId: r.contractId,
+          title: r.payload?.title,
+          admin: r.payload?.admin,
+          creator: r.payload?.creator
+        })))
+      }
 
       if (!isMountedRef.current) return
 
