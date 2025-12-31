@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import LedgerClient from '../services/ledgerClient'
+import { startTokenRefreshMonitoring, stopTokenRefreshMonitoring } from '../utils/tokenRefresh'
 
 export function useLedger() {
   const [ledger, setLedger] = useState(null)
@@ -28,6 +29,12 @@ export function useLedger() {
     }
 
     connect()
+    
+    // Start token refresh monitoring if token exists
+    const token = localStorage.getItem('canton_token')
+    if (token) {
+      startTokenRefreshMonitoring()
+    }
     
     // Listen for token updates from WalletModal
     const handleTokenUpdate = (e) => {
@@ -60,6 +67,7 @@ export function useLedger() {
     return () => {
       window.removeEventListener('canton_token_updated', handleTokenUpdate)
       window.removeEventListener('storage', handleStorageChange)
+      stopTokenRefreshMonitoring()
     }
   }, [])
 

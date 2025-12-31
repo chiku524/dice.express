@@ -139,18 +139,23 @@ export default function WalletModal({ isOpen, onClose }) {
                 <div className="wallet-input-group">
                   <input
                     type="text"
-                    placeholder={`Enter Party ID (leave empty for default)`}
+                    placeholder="Enter Party ID (required)"
                     value={partyIdInput}
                     onChange={(e) => setPartyIdInput(e.target.value)}
                     className="party-id-input"
+                    required
                   />
                   <button
                     className="btn-primary"
                     onClick={async () => {
                       setWalletError(null)
+                      if (!partyIdInput.trim()) {
+                        setWalletError('Party ID is required')
+                        return
+                      }
                       setWalletLoading(true)
                       try {
-                        await connectWallet(partyIdInput || DEFAULT_PARTY_ID)
+                        await connectWallet(partyIdInput.trim())
                         setPartyIdInput('')
                       } catch (err) {
                         setWalletError(err.message)
@@ -158,9 +163,9 @@ export default function WalletModal({ isOpen, onClose }) {
                         setWalletLoading(false)
                       }
                     }}
-                    disabled={walletLoading}
+                    disabled={walletLoading || !partyIdInput.trim()}
                   >
-                    {walletLoading ? 'Connecting...' : 'Connect'}
+                    {walletLoading ? 'Connecting...' : 'Connect Wallet'}
                   </button>
                 </div>
                 
