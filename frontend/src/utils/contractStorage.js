@@ -1,20 +1,73 @@
 /**
  * Contract Storage Utility
- * Stores contract IDs locally so we can display them even when query endpoints are unavailable
+ * Stores contracts in cloud database (Supabase) with local storage as fallback
+ * Prioritizes cloud storage for cross-device access and reliability
  */
 
 const STORAGE_KEY = 'canton_contracts'
 const MAX_STORED_CONTRACTS = 100 // Limit to prevent storage bloat
 
+// API endpoints
+const API_BASE = '/api'
+const STORE_CONTRACT_ENDPOINT = `${API_BASE}/store-contract`
+const GET_CONTRACTS_ENDPOINT = `${API_BASE}/get-contracts`
+
 export const ContractStorage = {
   /**
    * Store a contract after creation
+   * Tries cloud storage first, falls back to local storage if cloud fails
    * @param {string} contractId - Contract ID
    * @param {string} templateId - Template ID (e.g., "PredictionMarkets:Market")
    * @param {object} payload - Contract payload data
    * @param {string} party - Party that created the contract
+   * @param {object} metadata - Optional metadata (updateId, completionOffset, explorerUrl, status)
    */
-  storeContract(contractId, templateId, payload = {}, party = null) {
+  async storeContract(contractId, templateId, payload = {}, party = null, metadata = {}) {
+    const contractData = {
+      contractId,
+      templateId,
+      payload,
+      party,
+      updateId: metadata.updateId || null,
+      completionOffset: metadata.completionOffset || null,
+      explorerUrl: metadata.explorerUrl || null,
+      status: metadata.status || 'PendingApproval'
+    }
+
+    // Try cloud storage first
+    try {
+      const response = await fetch(STORE_CONTRACT_ENDPOINT, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(contractData)
+      })
+
+      if (response.ok) {
+        const result = await response.json()
+        console.log('[ContractStorage] ✅ Contract stored in cloud:', contractId)
+        // Also store locally as backup
+        this._storeLocal(contractId, templateId, payload, party, metadata)
+        return result.contract || contractData
+      } else {
+        const error = await response.json()
+        console.warn('[ContractStorage] ⚠️ Cloud storage failed, using local storage:', error.message)
+        // Fall back to local storage
+        return this._storeLocal(contractId, templateId, payload, party, metadata)
+      }
+    } catch (error) {
+      console.warn('[ContractStorage] ⚠️ Cloud storage error, using local storage:', error.message)
+      // Fall back to local storage
+      return this._storeLocal(contractId, templateId, payload, party, metadata)
+    }
+  },
+
+  /**
+   * Internal method to store in local storage
+   * @private
+   */
+  _storeLocal(contractId, templateId, payload, party, metadata) {
     try {
       const contracts = this.getAllContracts()
       
@@ -24,8 +77,13 @@ export const ContractStorage = {
         templateId,
         payload,
         party,
+        updateId: metadata.updateId || null,
+        completionOffset: metadata.completionOffset || null,
+        explorerUrl: metadata.explorerUrl || null,
+        status: metadata.status || 'PendingApproval',
         createdAt: new Date().toISOString(),
-        viewed: false
+        viewed: false,
+        _fromLocalStorage: true
       }
       
       contracts.unshift(contract) // Add to beginning
@@ -38,7 +96,7 @@ export const ContractStorage = {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(contracts))
       return contract
     } catch (error) {
-      console.error('Failed to store contract:', error)
+      console.error('Failed to store contract locally:', error)
       return null
     }
   },
@@ -59,24 +117,103 @@ export const ContractStorage = {
 
   /**
    * Get contracts by template type
+   * Tries cloud storage first, falls back to local storage
    * @param {string} templateType - Template type (e.g., "Market", "MarketCreationRequest")
-   * @returns {Array} Filtered contracts
+   * @param {string} party - Optional party filter
+   * @param {string} status - Optional status filter
+   * @returns {Promise<Array>} Filtered contracts
    */
-  getContractsByType(templateType) {
+  async getContractsByType(templateType, party = null, status = null) {
+    // Try cloud storage first
+    try {
+      const params = new URLSearchParams({ templateType })
+      if (party) params.append('party', party)
+      if (status) params.append('status', status)
+
+      const response = await fetch(`${GET_CONTRACTS_ENDPOINT}?${params.toString()}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      })
+
+      if (response.ok) {
+        const result = await response.json()
+        console.log(`[ContractStorage] ✅ Retrieved ${result.contracts?.length || 0} contracts from cloud`)
+        return result.contracts || []
+      } else {
+        console.warn('[ContractStorage] ⚠️ Cloud retrieval failed, using local storage')
+        // Fall back to local storage
+        return this._getLocalContractsByType(templateType, party, status)
+      }
+    } catch (error) {
+      console.warn('[ContractStorage] ⚠️ Cloud retrieval error, using local storage:', error.message)
+      // Fall back to local storage
+      return this._getLocalContractsByType(templateType, party, status)
+    }
+  },
+
+  /**
+   * Internal method to get contracts from local storage by type
+   * @private
+   */
+  _getLocalContractsByType(templateType, party = null, status = null) {
     const contracts = this.getAllContracts()
-    return contracts.filter(c => 
-      c.templateId && c.templateId.includes(templateType)
-    )
+    return contracts.filter(c => {
+      const matchesType = c.templateId && c.templateId.includes(templateType)
+      const matchesParty = !party || c.party === party
+      const matchesStatus = !status || c.status === status
+      return matchesType && matchesParty && matchesStatus
+    })
   },
 
   /**
    * Get contracts by party
+   * Tries cloud storage first, falls back to local storage
    * @param {string} party - Party ID
-   * @returns {Array} Filtered contracts
+   * @param {string} status - Optional status filter
+   * @returns {Promise<Array>} Filtered contracts
    */
-  getContractsByParty(party) {
+  async getContractsByParty(party, status = null) {
+    // Try cloud storage first
+    try {
+      const params = new URLSearchParams({ party })
+      if (status) params.append('status', status)
+
+      const response = await fetch(`${GET_CONTRACTS_ENDPOINT}?${params.toString()}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      })
+
+      if (response.ok) {
+        const result = await response.json()
+        console.log(`[ContractStorage] ✅ Retrieved ${result.contracts?.length || 0} contracts from cloud`)
+        return result.contracts || []
+      } else {
+        console.warn('[ContractStorage] ⚠️ Cloud retrieval failed, using local storage')
+        // Fall back to local storage
+        return this._getLocalContractsByParty(party, status)
+      }
+    } catch (error) {
+      console.warn('[ContractStorage] ⚠️ Cloud retrieval error, using local storage:', error.message)
+      // Fall back to local storage
+      return this._getLocalContractsByParty(party, status)
+    }
+  },
+
+  /**
+   * Internal method to get contracts from local storage by party
+   * @private
+   */
+  _getLocalContractsByParty(party, status = null) {
     const contracts = this.getAllContracts()
-    return contracts.filter(c => c.party === party)
+    return contracts.filter(c => {
+      const matchesParty = c.party === party
+      const matchesStatus = !status || c.status === status
+      return matchesParty && matchesStatus
+    })
   },
 
   /**

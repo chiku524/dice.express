@@ -71,28 +71,34 @@ export default function AdminDashboard() {
       let localRequests = []
       
       if (!blockchainQuerySucceeded) {
-        // Blockchain query failed - use local storage as fallback
-        const localContracts = ContractStorage.getContractsByType('MarketCreationRequest')
-        localRequests = localContracts.filter(c => 
-          c.payload?.admin === wallet.party && 
-          c.payload?.status === 'PendingApproval'
+        // Blockchain query failed - use cloud storage as fallback
+        console.log('[AdminDashboard] 🔄 Querying cloud storage as fallback...')
+        localRequests = await ContractStorage.getContractsByType(
+          'MarketCreationRequest',
+          wallet.party,
+          'PendingApproval'
         )
-        console.log(`[AdminDashboard] 📦 Found ${localRequests.length} contracts in local storage (fallback)`)
+        // Filter by admin (client-side filter)
+        localRequests = localRequests.filter(c => 
+          c.payload?.admin === wallet.party
+        )
+        console.log(`[AdminDashboard] 📦 Found ${localRequests.length} contracts in cloud storage (fallback)`)
         
-        // Convert local storage format to expected format
+        // Convert to expected format
         allRequests = localRequests.map(localContract => ({
           contractId: localContract.contractId,
           templateId: localContract.templateId,
           payload: localContract.payload,
-          _fromLocalStorage: true // Flag to indicate this came from local storage
+          _fromCloudStorage: true // Flag to indicate this came from cloud storage
         }))
       } else if (blockchainRequests.length === 0) {
-        // Blockchain query succeeded but returned empty - check local storage for pending sync
+        // Blockchain query succeeded but returned empty - check cloud storage for pending sync
         // This handles the case where contracts are created but not yet visible on blockchain
-        const localContracts = ContractStorage.getContractsByType('MarketCreationRequest')
-        localRequests = localContracts.filter(c => 
-          c.payload?.admin === wallet.party && 
-          c.payload?.status === 'PendingApproval'
+        console.log('[AdminDashboard] 🔄 Querying cloud storage for pending sync contracts...')
+        localRequests = await ContractStorage.getContractsByType(
+          'MarketCreationRequest',
+          wallet.party,
+          'PendingApproval'
         )
         
         // Only add local contracts that aren't in blockchain (pending sync)
@@ -107,25 +113,25 @@ export default function AdminDashboard() {
               contractId: localId,
               templateId: localContract.templateId,
               payload: localContract.payload,
-              _fromLocalStorage: true,
+              _fromCloudStorage: true,
               _pendingSync: true // Flag to indicate this is pending blockchain sync
             })
           }
         })
         
         if (localRequests.length > 0) {
-          console.log(`[AdminDashboard] 📦 Added ${localRequests.length} contracts from local storage (pending blockchain sync)`)
+          console.log(`[AdminDashboard] 📦 Added ${localRequests.length} contracts from cloud storage (pending blockchain sync)`)
         }
       }
       
-      console.log(`[AdminDashboard] 📊 Total requests: ${allRequests.length} (${blockchainRequests.length} from blockchain, ${allRequests.length - blockchainRequests.length} from local storage)`)
+      console.log(`[AdminDashboard] 📊 Total requests: ${allRequests.length} (${blockchainRequests.length} from blockchain, ${allRequests.length - blockchainRequests.length} from cloud storage)`)
       if (Array.isArray(allRequests) && allRequests.length > 0) {
         console.log('[AdminDashboard] Contract details:', allRequests.map(r => ({
           contractId: r.contractId,
           title: r.payload?.title,
           admin: r.payload?.admin,
           creator: r.payload?.creator,
-          fromLocalStorage: r._fromLocalStorage || false
+          fromCloudStorage: r._fromCloudStorage || false
         })))
       }
 
@@ -157,11 +163,12 @@ export default function AdminDashboard() {
         console.warn('[AdminDashboard]   4. Check the explorer link from market creation to verify the contract exists')
         console.warn('[AdminDashboard]   💡 Note: If blockchain query failed, local storage contracts are shown as fallback')
       } else if (requestsArray.length === 0 && !blockchainQuerySucceeded) {
-        console.warn('[AdminDashboard] ⚠️ Blockchain query failed and no contracts found in local storage')
+        console.warn('[AdminDashboard] ⚠️ Blockchain query failed and no contracts found in cloud storage')
         console.warn('[AdminDashboard]   This may indicate:')
         console.warn('[AdminDashboard]   1. No contracts have been created yet')
-        console.warn('[AdminDashboard]   2. Contracts were created but not stored locally')
+        console.warn('[AdminDashboard]   2. Contracts were created but not stored in cloud database')
         console.warn('[AdminDashboard]   3. Blockchain connectivity issues')
+        console.warn('[AdminDashboard]   4. Cloud storage not configured (check SUPABASE_URL environment variable)')
       } else if (requestsArray.length > 0) {
         // Show success message if we found contracts (from either source)
         const localCount = requestsArray.filter(r => r._fromLocalStorage).length
