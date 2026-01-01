@@ -44,49 +44,81 @@ export default function AdminDashboard() {
       console.log(`[AdminDashboard] Template ID: ${PACKAGE_ID}:PredictionMarkets:MarketCreationRequest`)
       console.log(`[AdminDashboard] Query filters: { admin: ${wallet.party} }`)
       
-      // HYBRID APPROACH: Check local storage first, then query blockchain
-      // This ensures we show contracts even if blockchain query fails or is delayed
-      const localContracts = ContractStorage.getContractsByType('MarketCreationRequest')
-      const localRequests = localContracts.filter(c => 
-        c.payload?.admin === wallet.party && 
-        c.payload?.status === 'PendingApproval'
-      )
-      console.log(`[AdminDashboard] Found ${localRequests.length} contracts in local storage`)
-      
-      // Query blockchain for contracts
+      // BLOCKCHAIN-FIRST APPROACH: Query blockchain first, use local storage only as fallback
+      // This ensures blockchain is the source of truth, with local storage as backup
       let blockchainRequests = []
+      let blockchainQuerySucceeded = false
+      
+      // Step 1: Try blockchain query first (primary source)
       try {
+        console.log('[AdminDashboard] 🔗 Querying blockchain for contracts...')
         const fetchedRequests = await ledger.query(
           [`${PACKAGE_ID}:PredictionMarkets:MarketCreationRequest`],
           { admin: wallet.party }, // Client-side filter: only show contracts where payload.admin === wallet.party
           { forceRefresh: true, walletParty: wallet.party } // Server-side filter: only get contracts visible to wallet.party
         )
         blockchainRequests = Array.isArray(fetchedRequests) ? fetchedRequests : []
-        console.log(`[AdminDashboard] Received ${blockchainRequests.length} contracts from blockchain`)
+        blockchainQuerySucceeded = true
+        console.log(`[AdminDashboard] ✅ Blockchain query succeeded: ${blockchainRequests.length} contracts found`)
       } catch (blockchainError) {
-        console.warn('[AdminDashboard] Blockchain query failed, using local storage only:', blockchainError)
+        console.warn('[AdminDashboard] ⚠️ Blockchain query failed:', blockchainError)
+        console.warn('[AdminDashboard] 🔄 Falling back to local storage...')
+        blockchainQuerySucceeded = false
       }
       
-      // Merge local and blockchain contracts
-      // Prefer blockchain data if available, but include local contracts that aren't in blockchain yet
-      const allRequests = [...blockchainRequests]
-      const blockchainContractIds = new Set(blockchainRequests.map(r => r.contractId))
+      // Step 2: Only use local storage if blockchain query failed
+      let allRequests = [...blockchainRequests]
+      let localRequests = []
       
-      // Add local contracts that aren't in blockchain (pending sync)
-      localRequests.forEach(localContract => {
-        const localId = localContract.contractId
-        if (!blockchainContractIds.has(localId) && !localId.startsWith('pending-')) {
-          // Convert local storage format to expected format
-          allRequests.push({
-            contractId: localId,
-            templateId: localContract.templateId,
-            payload: localContract.payload,
-            _fromLocalStorage: true // Flag to indicate this came from local storage
-          })
+      if (!blockchainQuerySucceeded) {
+        // Blockchain query failed - use local storage as fallback
+        const localContracts = ContractStorage.getContractsByType('MarketCreationRequest')
+        localRequests = localContracts.filter(c => 
+          c.payload?.admin === wallet.party && 
+          c.payload?.status === 'PendingApproval'
+        )
+        console.log(`[AdminDashboard] 📦 Found ${localRequests.length} contracts in local storage (fallback)`)
+        
+        // Convert local storage format to expected format
+        allRequests = localRequests.map(localContract => ({
+          contractId: localContract.contractId,
+          templateId: localContract.templateId,
+          payload: localContract.payload,
+          _fromLocalStorage: true // Flag to indicate this came from local storage
+        }))
+      } else if (blockchainRequests.length === 0) {
+        // Blockchain query succeeded but returned empty - check local storage for pending sync
+        // This handles the case where contracts are created but not yet visible on blockchain
+        const localContracts = ContractStorage.getContractsByType('MarketCreationRequest')
+        localRequests = localContracts.filter(c => 
+          c.payload?.admin === wallet.party && 
+          c.payload?.status === 'PendingApproval'
+        )
+        
+        // Only add local contracts that aren't in blockchain (pending sync)
+        const blockchainContractIds = new Set(blockchainRequests.map(r => r.contractId))
+        localRequests.forEach(localContract => {
+          const localId = localContract.contractId
+          // Only add if it's a real contract ID (not pending-* or updateId:*) and not already in blockchain
+          if (!localId.startsWith('pending-') && 
+              !localId.startsWith('updateId:') && 
+              !blockchainContractIds.has(localId)) {
+            allRequests.push({
+              contractId: localId,
+              templateId: localContract.templateId,
+              payload: localContract.payload,
+              _fromLocalStorage: true,
+              _pendingSync: true // Flag to indicate this is pending blockchain sync
+            })
+          }
+        })
+        
+        if (localRequests.length > 0) {
+          console.log(`[AdminDashboard] 📦 Added ${localRequests.length} contracts from local storage (pending blockchain sync)`)
         }
-      })
+      }
       
-      console.log(`[AdminDashboard] Total requests (local + blockchain): ${allRequests.length}`)
+      console.log(`[AdminDashboard] 📊 Total requests: ${allRequests.length} (${blockchainRequests.length} from blockchain, ${allRequests.length - blockchainRequests.length} from local storage)`)
       if (Array.isArray(allRequests) && allRequests.length > 0) {
         console.log('[AdminDashboard] Contract details:', allRequests.map(r => ({
           contractId: r.contractId,
@@ -117,14 +149,19 @@ export default function AdminDashboard() {
           }
         }, delay)
         return // Don't set loading to false yet
-      } else if (requestsArray.length === 0 && localRequests.length === 0 && retryCount >= 3) {
-        console.warn('[AdminDashboard] No contracts found after multiple retries. This could mean:')
-        console.warn('[AdminDashboard]   1. No contracts exist for this admin party')
+      } else if (requestsArray.length === 0 && blockchainQuerySucceeded && retryCount >= 3) {
+        console.warn('[AdminDashboard] No contracts found after multiple blockchain retries. This could mean:')
+        console.warn('[AdminDashboard]   1. No contracts exist for this admin party on the blockchain')
         console.warn('[AdminDashboard]   2. Contracts were created with updateId and need more time to synchronize')
         console.warn('[AdminDashboard]   3. Contracts exist but party does not have visibility')
         console.warn('[AdminDashboard]   4. Check the explorer link from market creation to verify the contract exists')
-        console.warn('[AdminDashboard]   💡 Note: Contracts are stored in local storage immediately after creation')
-        console.warn('[AdminDashboard]   💡 If you see contracts here, they should appear even if blockchain query fails')
+        console.warn('[AdminDashboard]   💡 Note: If blockchain query failed, local storage contracts are shown as fallback')
+      } else if (requestsArray.length === 0 && !blockchainQuerySucceeded) {
+        console.warn('[AdminDashboard] ⚠️ Blockchain query failed and no contracts found in local storage')
+        console.warn('[AdminDashboard]   This may indicate:')
+        console.warn('[AdminDashboard]   1. No contracts have been created yet')
+        console.warn('[AdminDashboard]   2. Contracts were created but not stored locally')
+        console.warn('[AdminDashboard]   3. Blockchain connectivity issues')
       } else if (requestsArray.length > 0) {
         // Show success message if we found contracts (from either source)
         const localCount = requestsArray.filter(r => r._fromLocalStorage).length
