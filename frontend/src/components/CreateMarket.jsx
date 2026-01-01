@@ -117,9 +117,7 @@ export default function CreateMarket() {
         if (!contractId) {
           updateId = result.updateId || result.update_id || result.result?.updateId
           
-          // The explorer URL format is: /updates/{updateId}/{record_time}
-          // We need the record_time (ISO timestamp), not completionOffset
-          // Priority: recordTime > record_time > timestamp > current time (as fallback)
+          // Try to get record_time from API response first
           updateTimestamp = result.recordTime || 
                            result.record_time || 
                            result.timestamp || 
@@ -127,12 +125,72 @@ export default function CreateMarket() {
                            result.result?.record_time ||
                            result.result?.timestamp
           
-          // If we don't have a timestamp from the API response, use current time
-          // The explorer will accept this, though it might not be 100% accurate
-          // The actual record_time should be in the API response, but if it's not,
-          // using current time is better than using completionOffset
+          // If not in response, try to fetch it from update details
+          if (!updateTimestamp && updateId) {
+            console.log('[CreateMarket] No timestamp in response, fetching update details...')
+            try {
+              const updateDetailsResponse = await fetch('/api/get-update-details', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': `Bearer ${localStorage.getItem('canton_token')}`
+                },
+                body: JSON.stringify({
+                  updateId: updateId,
+                  completionOffset: result.completionOffset || result.completion_offset,
+                  party: wallet.party,
+                  applicationId: 'prediction-markets'
+                })
+              })
+              
+              if (updateDetailsResponse.ok) {
+                const updateDetails = await updateDetailsResponse.json()
+                if (updateDetails.recordTime) {
+                  updateTimestamp = updateDetails.recordTime
+                  console.log('[CreateMarket] ✅ Retrieved record_time from update details:', updateTimestamp)
+                }
+              }
+            } catch (updateError) {
+              console.warn('[CreateMarket] Failed to fetch update details:', updateError.message)
+            }
+          }
+          
+          // If we still don't have a timestamp, wait a moment and try again
+          // This handles the case where the update hasn't been processed yet
           if (!updateTimestamp) {
-            console.warn('[CreateMarket] No timestamp in API response, using current time for explorer URL')
+            console.warn('[CreateMarket] No timestamp available yet, waiting 1 second and retrying...')
+            await new Promise(resolve => setTimeout(resolve, 1000))
+            
+            try {
+              const retryResponse = await fetch('/api/get-update-details', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': `Bearer ${localStorage.getItem('canton_token')}`
+                },
+                body: JSON.stringify({
+                  updateId: updateId,
+                  completionOffset: result.completionOffset || result.completion_offset,
+                  party: wallet.party,
+                  applicationId: 'prediction-markets'
+                })
+              })
+              
+              if (retryResponse.ok) {
+                const retryDetails = await retryResponse.json()
+                if (retryDetails.recordTime) {
+                  updateTimestamp = retryDetails.recordTime
+                  console.log('[CreateMarket] ✅ Retrieved record_time on retry:', updateTimestamp)
+                }
+              }
+            } catch (retryError) {
+              console.warn('[CreateMarket] Retry also failed:', retryError.message)
+            }
+          }
+          
+          // Last resort: use current time (but this may not work correctly)
+          if (!updateTimestamp) {
+            console.warn('[CreateMarket] ⚠️ Using current time as fallback - explorer URL may not work correctly')
             updateTimestamp = new Date().toISOString()
           }
         }
@@ -148,25 +206,22 @@ export default function CreateMarket() {
         
         let timePart = updateTimestamp
         
-        // Ensure we have a valid timestamp string
-        if (!timePart || typeof timePart === 'number') {
-          // If we got a number (completionOffset) or no timestamp, use current time
-          // The explorer will accept this, though it might not be 100% accurate
-          // The actual record_time should ideally come from the API response
-          console.warn('[CreateMarket] No timestamp in response, using current time for explorer URL')
-          timePart = new Date().toISOString()
-        }
-        
         // Ensure it's a string and in ISO format
         if (typeof timePart === 'string') {
           // Remove extra precision if present (explorer expects format like: 2025-12-31T19:45:35.056Z)
           // Keep milliseconds but limit to 3 digits
           timePart = timePart.replace(/\.(\d{3})\d+Z$/, '.$1Z')
+        } else {
+          // Should not happen, but handle it
+          console.error('[CreateMarket] Invalid timestamp format:', timePart)
+          timePart = new Date().toISOString().replace(/\.(\d{3})\d+Z$/, '.$1Z')
         }
         
         // URL encode the timestamp
         const encodedTime = encodeURIComponent(timePart)
         explorerUrl = `https://devnet.ccexplorer.io/updates/${updateId}/${encodedTime}`
+        
+        console.log('[CreateMarket] 🔗 Built explorer URL with record_time:', timePart)
       }
 
       // Store display ID (contractId or updateId format)
