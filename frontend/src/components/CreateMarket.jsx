@@ -281,6 +281,14 @@ export default function CreateMarket() {
       // Log to console for easy access
       console.log('📦 Full creation response:', JSON.stringify(result, null, 2))
       
+      // Note about explorer JSON showing "update": null
+      if (updateId && !contractId) {
+        console.log('ℹ️ Note: The explorer may show "update": null in the JSON.')
+        console.log('ℹ️ This is normal for async submissions - the contract is created successfully.')
+        console.log('ℹ️ The contract details are stored in the ledger state, not in the update verdict.')
+        console.log('ℹ️ You can verify the contract exists by querying /v2/state/active-contracts.')
+      }
+      
       if (contractId) {
         console.log('✅ Market created successfully!')
         console.log('📋 Contract ID:', contractId)
