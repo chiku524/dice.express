@@ -176,21 +176,45 @@ export default function CreateMarket() {
       setContractId(displayId) // Store for display
       setExplorerUrl(explorerUrl) // Store explorer URL separately
       
-      // Store contract in local storage for history
-      if (displayId && displayId !== 'N/A' && !displayId.startsWith('updateId:')) {
-        ContractStorage.storeContract(
-          displayId,
-          getTemplateId('PredictionMarkets', 'MarketCreationRequest'),
-          {
-            title: formData.title,
-            description: formData.description,
-            marketType: formData.marketType,
-            marketId: `market-${Date.now()}`,
-            status: 'PendingApproval'
-          },
-          wallet.party
-        )
+      // ALWAYS store contract in local storage immediately after creation
+      // This ensures AdminDashboard can display it even if blockchain query fails
+      // Store with full form data so AdminDashboard can show all details
+      const contractPayload = {
+        creator: wallet.party,
+        admin: wallet.party, // Same as creator for now
+        marketId: `market-${Date.now()}`,
+        title: formData.title,
+        description: formData.description,
+        marketType: formData.marketType,
+        outcomes: outcomes,
+        settlementTrigger: settlementTrigger,
+        resolutionCriteria: formData.resolutionCriteria,
+        depositAmount: formData.depositAmount || '100.0',
+        depositCid: null,
+        configCid: null,
+        creatorBalance: null,
+        adminBalance: null,
+        status: 'PendingApproval',
+        // Store metadata
+        updateId: updateId,
+        completionOffset: result.completionOffset || result.completion_offset,
+        explorerUrl: explorerUrl,
+        createdAt: new Date().toISOString()
       }
+      
+      // Store in local storage - use updateId as contractId if we don't have a real one
+      // This ensures we can track it even before blockchain sync
+      const storageContractId = contractId || (updateId ? `updateId:${updateId}` : `pending-${Date.now()}`)
+      
+      ContractStorage.storeContract(
+        storageContractId,
+        getTemplateId('PredictionMarkets', 'MarketCreationRequest'),
+        contractPayload,
+        wallet.party
+      )
+      
+      console.log('[CreateMarket] ✅ Contract stored in local storage:', storageContractId)
+      console.log('[CreateMarket] 📦 Stored payload:', contractPayload)
       
       // Log to console for easy access
       console.log('📦 Full creation response:', JSON.stringify(result, null, 2))

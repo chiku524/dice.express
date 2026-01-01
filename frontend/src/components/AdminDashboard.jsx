@@ -63,23 +63,17 @@ export default function AdminDashboard() {
 
       if (!isMountedRef.current) return
 
-      // Check if endpoints are unavailable
-      if (fetchedRequests && fetchedRequests._endpointsUnavailable) {
-        apiRoutesWorkingRef.current = false
-        setRequests([])
-        setError(null)
-        setLoading(false)
-        return
-      }
-
-      const requestsArray = Array.isArray(fetchedRequests) ? fetchedRequests : []
+      // Check if endpoints are unavailable (only for blockchain requests)
+      // Local storage requests don't have this flag
+      const requestsArray = allRequests || []
       setRequests(requestsArray)
       setError(null)
       apiRoutesWorkingRef.current = true
       
       // If no requests found and this is the first attempt, retry multiple times with increasing delays
       // This handles the case where contracts are created but not yet visible due to synchronization
-      if (requestsArray.length === 0 && retryCount < 3) {
+      // But only retry if we have no local storage contracts either
+      if (requestsArray.length === 0 && localRequests.length === 0 && retryCount < 3) {
         const delays = [3000, 5000, 10000] // 3s, 5s, 10s
         const delay = delays[retryCount] || 10000
         console.log(`[AdminDashboard] No contracts found. Retrying after ${delay/1000} seconds (attempt ${retryCount + 1}/3)...`)
