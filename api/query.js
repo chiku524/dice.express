@@ -105,12 +105,16 @@ module.exports = async function handler(req, res) {
 
   // Build request body according to GetActiveContractsRequest schema
   // activeAtOffset is required and must be a Long (integer)
-  // Use 0 to start from the beginning, or use minOffset if provided
-  // Note: If contracts are created with updateId/completionOffset, they might not appear
-  // immediately. Using 0 should work, but we might need to wait for synchronization.
+  // This represents the offset at which to query active contracts
+  // Using 0 means "get all active contracts from the beginning"
+  // However, if contracts were created at a later offset, we might need to query differently
+  // Note: activeAtOffset might not be the same as completionOffset from contract creation
+  // For now, we'll use 0 to get all active contracts visible to the party
   const activeAtOffset = requestBody.minOffset !== undefined && requestBody.minOffset !== null 
     ? parseInt(requestBody.minOffset, 10) 
     : 0
+  
+  console.log('[api/query] Using activeAtOffset:', activeAtOffset, '(0 means query all active contracts)')
   const requestBodyV2 = {
     filter: filter,
     activeAtOffset: activeAtOffset // Required field - Long type, 0 means start from beginning
