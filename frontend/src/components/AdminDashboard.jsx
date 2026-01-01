@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useLedger } from '../hooks/useLedger'
 import { useWallet } from '../contexts/WalletContext'
+import { ContractStorage } from '../utils/contractStorage'
 import { SkeletonList } from './SkeletonLoader'
 import './AdminDashboard.css'
 
@@ -83,12 +84,21 @@ export default function AdminDashboard() {
           }
         }, delay)
         return // Don't set loading to false yet
-      } else if (requestsArray.length === 0 && retryCount >= 3) {
+      } else if (requestsArray.length === 0 && localRequests.length === 0 && retryCount >= 3) {
         console.warn('[AdminDashboard] No contracts found after multiple retries. This could mean:')
         console.warn('[AdminDashboard]   1. No contracts exist for this admin party')
         console.warn('[AdminDashboard]   2. Contracts were created with updateId and need more time to synchronize')
         console.warn('[AdminDashboard]   3. Contracts exist but party does not have visibility')
         console.warn('[AdminDashboard]   4. Check the explorer link from market creation to verify the contract exists')
+        console.warn('[AdminDashboard]   💡 Note: Contracts are stored in local storage immediately after creation')
+        console.warn('[AdminDashboard]   💡 If you see contracts here, they should appear even if blockchain query fails')
+      } else if (requestsArray.length > 0) {
+        // Show success message if we found contracts (from either source)
+        const localCount = requestsArray.filter(r => r._fromLocalStorage).length
+        const blockchainCount = requestsArray.length - localCount
+        if (localCount > 0) {
+          console.log(`[AdminDashboard] ✅ Showing ${requestsArray.length} requests (${localCount} from local storage, ${blockchainCount} from blockchain)`)
+        }
       }
     } catch (err) {
       if (!isMountedRef.current) return
