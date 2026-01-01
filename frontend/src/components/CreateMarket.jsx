@@ -202,18 +202,25 @@ export default function CreateMarket() {
         createdAt: new Date().toISOString()
       }
       
-      // Store in local storage - use updateId as contractId if we don't have a real one
+      // Store in cloud database (with local storage fallback)
+      // Use updateId as contractId if we don't have a real one
       // This ensures we can track it even before blockchain sync
       const storageContractId = contractId || (updateId ? `updateId:${updateId}` : `pending-${Date.now()}`)
       
-      ContractStorage.storeContract(
+      await ContractStorage.storeContract(
         storageContractId,
         getTemplateId('PredictionMarkets', 'MarketCreationRequest'),
         contractPayload,
-        wallet.party
+        wallet.party,
+        {
+          updateId: updateId,
+          completionOffset: result.completionOffset || result.completion_offset,
+          explorerUrl: explorerUrl,
+          status: 'PendingApproval'
+        }
       )
       
-      console.log('[CreateMarket] ✅ Contract stored in local storage:', storageContractId)
+      console.log('[CreateMarket] ✅ Contract stored in cloud database:', storageContractId)
       console.log('[CreateMarket] 📦 Stored payload:', contractPayload)
       
       // Log to console for easy access
