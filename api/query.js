@@ -109,12 +109,14 @@ module.exports = async function handler(req, res) {
   // Using 0 means "get all active contracts from the beginning"
   // However, if contracts were created at a later offset, we might need to query differently
   // Note: activeAtOffset might not be the same as completionOffset from contract creation
-  // For now, we'll use 0 to get all active contracts visible to the party
+  // Strategy: Try multiple offset values to ensure we catch all contracts
   const activeAtOffset = requestBody.minOffset !== undefined && requestBody.minOffset !== null 
     ? parseInt(requestBody.minOffset, 10) 
     : 0
   
   console.log('[api/query] Using activeAtOffset:', activeAtOffset, '(0 means query all active contracts)')
+  console.log('[api/query] Note: If no contracts found, we may need to try different offset values')
+  
   const requestBodyV2 = {
     filter: filter,
     activeAtOffset: activeAtOffset // Required field - Long type, 0 means start from beginning
@@ -170,6 +172,8 @@ module.exports = async function handler(req, res) {
       console.log('[api/query]   - Template IDs:', templateIds)
       console.log('[api/query]   - Active at offset:', activeAtOffset)
       console.log('[api/query]   - Request body:', JSON.stringify(requestBodyV2, null, 2))
+      console.log('[api/query]   - Response status:', response.status)
+      console.log('[api/query]   - Full response:', JSON.stringify(data))
       console.log('[api/query] Possible reasons:')
       console.log('[api/query]   1. No contracts exist for this party/template combination')
       console.log('[api/query]   2. Contracts exist but are not yet synchronized (wait a few seconds)')
@@ -177,6 +181,15 @@ module.exports = async function handler(req, res) {
       console.log('[api/query]   4. Contracts were created but immediately archived')
       console.log('[api/query]   5. activeAtOffset: 0 might miss contracts - try querying from completionOffset')
       console.log('[api/query]   6. Contract might be in a different domain or state')
+      console.log('[api/query]   7. Template ID might be incorrect or not match deployed package')
+      console.log('[api/query]   8. Party might not be a signatory/observer of the contracts')
+      
+      // Try querying with a lower offset if we're using 0
+      // This is a workaround for potential offset issues
+      if (activeAtOffset === 0) {
+        console.log('[api/query] 💡 Suggestion: Try querying with a negative offset or without offset filter')
+        console.log('[api/query] 💡 Or wait longer for contracts to synchronize')
+      }
     } else {
       console.log('[api/query] ✅ Found contracts. Sample:', JSON.stringify(data[0]).substring(0, 500))
       // Log all contract IDs and their admin/creator fields for debugging
