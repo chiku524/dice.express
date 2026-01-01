@@ -35,7 +35,7 @@ export default function AdminDashboard() {
   }, [ledger, wallet])
 
   const fetchRequests = async (retryCount = 0) => {
-    if (!ledger || !wallet || !apiRoutesWorkingRef.current) return
+    if (!ledger || !wallet) return
 
     try {
       setLoading(true)
@@ -44,28 +44,61 @@ export default function AdminDashboard() {
       console.log(`[AdminDashboard] Template ID: ${PACKAGE_ID}:PredictionMarkets:MarketCreationRequest`)
       console.log(`[AdminDashboard] Query filters: { admin: ${wallet.party} }`)
       
-      // Query MarketCreationRequest contracts where admin matches wallet party
-      const fetchedRequests = await ledger.query(
-        [`${PACKAGE_ID}:PredictionMarkets:MarketCreationRequest`],
-        { admin: wallet.party }, // Client-side filter: only show contracts where payload.admin === wallet.party
-        { forceRefresh: true, walletParty: wallet.party } // Server-side filter: only get contracts visible to wallet.party
+      // HYBRID APPROACH: Check local storage first, then query blockchain
+      // This ensures we show contracts even if blockchain query fails or is delayed
+      const localContracts = ContractStorage.getContractsByType('MarketCreationRequest')
+      const localRequests = localContracts.filter(c => 
+        c.payload?.admin === wallet.party && 
+        c.payload?.status === 'PendingApproval'
       )
+      console.log(`[AdminDashboard] Found ${localRequests.length} contracts in local storage`)
       
-      console.log(`[AdminDashboard] Received ${Array.isArray(fetchedRequests) ? fetchedRequests.length : 0} contracts`)
-      console.log(`[AdminDashboard] Response type:`, typeof fetchedRequests, Array.isArray(fetchedRequests) ? 'array' : 'not array')
-      if (Array.isArray(fetchedRequests) && fetchedRequests.length > 0) {
-        console.log('[AdminDashboard] Contract details:', fetchedRequests.map(r => ({
+      // Query blockchain for contracts
+      let blockchainRequests = []
+      try {
+        const fetchedRequests = await ledger.query(
+          [`${PACKAGE_ID}:PredictionMarkets:MarketCreationRequest`],
+          { admin: wallet.party }, // Client-side filter: only show contracts where payload.admin === wallet.party
+          { forceRefresh: true, walletParty: wallet.party } // Server-side filter: only get contracts visible to wallet.party
+        )
+        blockchainRequests = Array.isArray(fetchedRequests) ? fetchedRequests : []
+        console.log(`[AdminDashboard] Received ${blockchainRequests.length} contracts from blockchain`)
+      } catch (blockchainError) {
+        console.warn('[AdminDashboard] Blockchain query failed, using local storage only:', blockchainError)
+      }
+      
+      // Merge local and blockchain contracts
+      // Prefer blockchain data if available, but include local contracts that aren't in blockchain yet
+      const allRequests = [...blockchainRequests]
+      const blockchainContractIds = new Set(blockchainRequests.map(r => r.contractId))
+      
+      // Add local contracts that aren't in blockchain (pending sync)
+      localRequests.forEach(localContract => {
+        const localId = localContract.contractId
+        if (!blockchainContractIds.has(localId) && !localId.startsWith('pending-')) {
+          // Convert local storage format to expected format
+          allRequests.push({
+            contractId: localId,
+            templateId: localContract.templateId,
+            payload: localContract.payload,
+            _fromLocalStorage: true // Flag to indicate this came from local storage
+          })
+        }
+      })
+      
+      console.log(`[AdminDashboard] Total requests (local + blockchain): ${allRequests.length}`)
+      if (Array.isArray(allRequests) && allRequests.length > 0) {
+        console.log('[AdminDashboard] Contract details:', allRequests.map(r => ({
           contractId: r.contractId,
           title: r.payload?.title,
           admin: r.payload?.admin,
-          creator: r.payload?.creator
+          creator: r.payload?.creator,
+          fromLocalStorage: r._fromLocalStorage || false
         })))
       }
 
       if (!isMountedRef.current) return
 
-      // Check if endpoints are unavailable (only for blockchain requests)
-      // Local storage requests don't have this flag
       const requestsArray = allRequests || []
       setRequests(requestsArray)
       setError(null)
