@@ -34,9 +34,14 @@ module.exports = async function handler(req, res) {
   // Check if Supabase is configured
   if (!supabase) {
     console.error('[api/get-contracts] Supabase not configured')
-    return res.status(500).json({
-      error: 'Cloud storage not configured',
-      message: 'SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY environment variables are required'
+    // Return empty array instead of error - this allows the app to continue working
+    // Cloud storage is optional, not required
+    console.warn('[api/get-contracts] ⚠️ Cloud storage not configured - returning empty array')
+    return res.status(200).json({
+      success: true,
+      contracts: [],
+      count: 0,
+      _note: 'Cloud storage not configured - SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY environment variables are required'
     })
   }
 

@@ -66,12 +66,53 @@ export default function AdminDashboard() {
           }
         }
         
+        // Try active-contracts endpoint first
         const fetchedRequests = await ledger.query(
           [`${PACKAGE_ID}:PredictionMarkets:MarketCreationRequest`],
           { admin: wallet.party }, // Client-side filter: only show contracts where payload.admin === wallet.party
           { forceRefresh: true, walletParty: wallet.party } // Server-side filter: only get contracts visible to wallet.party
         )
         blockchainRequests = Array.isArray(fetchedRequests) ? fetchedRequests : []
+        
+        // If no contracts found, try completions endpoint as fallback
+        // This can find contracts that were created with updateId but aren't yet in active-contracts
+        if (blockchainRequests.length === 0 && retryCount >= 2) {
+          console.log('[AdminDashboard] 🔄 No contracts in active-contracts, trying completions endpoint...')
+          try {
+            const token = localStorage.getItem('canton_token')
+            const completionsResponse = await fetch('/api/get-contracts-from-completions', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                ...(token && { 'Authorization': `Bearer ${token}` })
+              },
+              body: JSON.stringify({
+                party: wallet.party,
+                applicationId: 'prediction-markets',
+                offset: '0',
+                templateId: `${PACKAGE_ID}:PredictionMarkets:MarketCreationRequest`
+              })
+            })
+            
+            if (completionsResponse.ok) {
+              const completionsData = await completionsResponse.json()
+              const completionsContracts = completionsData.contracts || []
+              
+              // Filter by admin (client-side)
+              const filteredCompletions = completionsContracts.filter(c => 
+                c.payload?.admin === wallet.party
+              )
+              
+              if (filteredCompletions.length > 0) {
+                console.log(`[AdminDashboard] ✅ Found ${filteredCompletions.length} contracts from completions endpoint`)
+                blockchainRequests = filteredCompletions
+              }
+            }
+          } catch (completionsError) {
+            console.warn('[AdminDashboard] ⚠️ Completions endpoint query failed:', completionsError.message)
+          }
+        }
+        
         blockchainQuerySucceeded = true
         console.log(`[AdminDashboard] ✅ Blockchain query succeeded: ${blockchainRequests.length} contracts found`)
       } catch (blockchainError) {
