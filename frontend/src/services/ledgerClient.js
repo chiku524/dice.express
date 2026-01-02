@@ -313,6 +313,29 @@ class LedgerClient {
     this.token = token
     this.client.defaults.headers.Authorization = token ? `Bearer ${token}` : null
   }
+  
+  /**
+   * Handle query response and extract result
+   * @private
+   */
+  _handleQueryResponse(response) {
+    // Check if endpoints are unavailable (all returned 404)
+    if (response.data._endpointsUnavailable) {
+      // Store flag in response so components can detect and stop polling
+      const emptyResult = []
+      emptyResult._endpointsUnavailable = true
+      return emptyResult
+    }
+    
+    // Handle both direct API response and proxy response
+    if (response.data.result) {
+      return response.data.result
+    } else if (Array.isArray(response.data)) {
+      return response.data
+    } else {
+      return []
+    }
+  }
 }
 
 export default LedgerClient
