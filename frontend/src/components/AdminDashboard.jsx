@@ -52,6 +52,20 @@ export default function AdminDashboard() {
       // Step 1: Try blockchain query first (primary source)
       try {
         console.log('[AdminDashboard] 🔗 Querying blockchain for contracts...')
+        
+        // Check token before querying
+        const { isTokenExpiredOrExpiringSoon, refreshToken } = await import('../utils/tokenManager')
+        if (isTokenExpiredOrExpiringSoon()) {
+          console.log('[AdminDashboard] ⚠️ Token expired, refreshing before query...')
+          try {
+            await refreshToken()
+            console.log('[AdminDashboard] ✅ Token refreshed successfully')
+          } catch (refreshError) {
+            console.warn('[AdminDashboard] ⚠️ Token refresh failed:', refreshError.message)
+            console.warn('[AdminDashboard] 💡 You may need to get a new token from the Wallet modal')
+          }
+        }
+        
         const fetchedRequests = await ledger.query(
           [`${PACKAGE_ID}:PredictionMarkets:MarketCreationRequest`],
           { admin: wallet.party }, // Client-side filter: only show contracts where payload.admin === wallet.party
@@ -62,7 +76,14 @@ export default function AdminDashboard() {
         console.log(`[AdminDashboard] ✅ Blockchain query succeeded: ${blockchainRequests.length} contracts found`)
       } catch (blockchainError) {
         console.warn('[AdminDashboard] ⚠️ Blockchain query failed:', blockchainError)
-        console.warn('[AdminDashboard] 🔄 Falling back to local storage...')
+        
+        // Check if it's an authentication error
+        if (blockchainError.message && blockchainError.message.includes('Authentication failed')) {
+          console.warn('[AdminDashboard] 🔐 Authentication error - token may be expired')
+          console.warn('[AdminDashboard] 💡 Please refresh your token in the Wallet modal')
+        }
+        
+        console.warn('[AdminDashboard] 🔄 Falling back to cloud storage...')
         blockchainQuerySucceeded = false
       }
       

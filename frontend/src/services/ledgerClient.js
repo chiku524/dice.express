@@ -89,14 +89,6 @@ class LedgerClient {
             return emptyResult
           }
           
-          // Handle both direct API response and proxy response
-          if (response.data.result) {
-            return response.data.result
-          } else if (Array.isArray(response.data)) {
-            return response.data
-          } else {
-            return []
-          }
         } catch (apiError) {
           // If Vercel API route returns 404, API routes aren't configured
           if (this.useProxy && apiError.response?.status === 404) {
