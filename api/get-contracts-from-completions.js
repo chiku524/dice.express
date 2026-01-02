@@ -28,7 +28,12 @@ module.exports = async function handler(req, res) {
   }
 
   const LEDGER_URL = process.env.VITE_LEDGER_URL || process.env.LEDGER_URL || 'https://participant.dev.canton.wolfedgelabs.com/json-api'
-  const baseUrl = LEDGER_URL.replace(/\/$/, '')
+  
+  // Ensure /json-api is in the URL
+  let baseUrl = LEDGER_URL.replace(/\/$/, '')
+  if (!baseUrl.includes('/json-api')) {
+    baseUrl = baseUrl.replace(/\/$/, '') + '/json-api'
+  }
   
   // Extract token from Authorization header or request body
   const authHeader = req.headers.authorization || req.headers.Authorization
@@ -79,6 +84,7 @@ module.exports = async function handler(req, res) {
         lastError = { contentType, status: 415 }
       } catch (error) {
         lastError = { contentType, error: error.message }
+        console.log(`[api/get-contracts-from-completions] ⚠️ Error with Content-Type ${contentType}:`, error.message)
         continue
       }
     }
