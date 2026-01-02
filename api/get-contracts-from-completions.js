@@ -47,15 +47,49 @@ module.exports = async function handler(req, res) {
     console.log('[api/get-contracts-from-completions] Querying completions:', completionsEndpoint)
     console.log('[api/get-contracts-from-completions] Request body:', JSON.stringify(completionsBody, null, 2))
 
-    const completionsResponse = await fetch(completionsEndpoint, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-        ...(token && { 'Authorization': `Bearer ${token}` }),
-      },
-      body: JSON.stringify(completionsBody),
-    })
+    // Try different Content-Type headers - Canton might be picky (similar to command.js)
+    const contentTypeOptions = [
+      'application/json; charset=utf-8',
+      'application/json',
+      'application/grpc-web+json',
+      'application/grpc-web',
+    ]
+    
+    let completionsResponse = null
+    let lastError = null
+    
+    for (const contentType of contentTypeOptions) {
+      try {
+        console.log(`[api/get-contracts-from-completions] Trying Content-Type: ${contentType}`)
+        completionsResponse = await fetch(completionsEndpoint, {
+          method: 'POST',
+          headers: {
+            'Content-Type': contentType,
+            'Accept': 'application/json',
+            ...(token && { 'Authorization': `Bearer ${token}` }),
+          },
+          body: JSON.stringify(completionsBody),
+        })
+        
+        // If we get a non-415 error, this Content-Type worked
+        if (completionsResponse.status !== 415) {
+          break
+        }
+        
+        lastError = { contentType, status: 415 }
+      } catch (error) {
+        lastError = { contentType, error: error.message }
+        continue
+      }
+    }
+    
+    if (!completionsResponse) {
+      return res.status(500).json({
+        error: 'Failed to query completions endpoint',
+        message: 'Could not find a supported Content-Type',
+        lastError: lastError
+      })
+    }
 
     if (!completionsResponse.ok) {
       const errorText = await completionsResponse.text()

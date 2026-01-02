@@ -143,6 +143,15 @@ module.exports = async function handler(req, res) {
     }
     
     console.log('[api/command] Full v2 request body:', JSON.stringify(requestBodyV2, null, 2))
+    
+    // Log the createArguments to verify all fields are being sent
+    if (requestBodyV2.commands && requestBodyV2.commands.length > 0) {
+      const firstCommand = requestBodyV2.commands[0]
+      if (firstCommand.CreateCommand && firstCommand.CreateCommand.createArguments) {
+        console.log('[api/command] CreateArguments being sent:', JSON.stringify(firstCommand.CreateCommand.createArguments, null, 2))
+        console.log('[api/command] Fields in createArguments:', Object.keys(firstCommand.CreateCommand.createArguments))
+      }
+    }
 
     // Try each endpoint
     let lastError = null
