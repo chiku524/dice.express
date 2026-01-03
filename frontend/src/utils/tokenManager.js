@@ -42,19 +42,20 @@ export function getRefreshToken() {
 }
 
 /**
- * Check if token is expired or will expire soon (within 1 minute)
+ * Check if token is expired or will expire soon (within 2 minutes)
+ * Extended buffer to ensure proactive refresh before expiration
  */
 export function isTokenExpiredOrExpiringSoon() {
   const expiresAt = localStorage.getItem(TOKEN_EXPIRY_STORAGE_KEY)
   if (!expiresAt) {
-    // No expiration info - assume expired if token exists
+    // No expiration info - assume expired if token exists (so we refresh it)
     return !!getToken()
   }
   
   const expiresAtTime = parseInt(expiresAt, 10)
-  const oneMinuteFromNow = Date.now() + 60000 // 1 minute buffer
+  const twoMinutesFromNow = Date.now() + (2 * 60000) // 2 minute buffer (increased from 1 minute)
   
-  return Date.now() >= expiresAtTime || oneMinuteFromNow >= expiresAtTime
+  return Date.now() >= expiresAtTime || twoMinutesFromNow >= expiresAtTime
 }
 
 /**
