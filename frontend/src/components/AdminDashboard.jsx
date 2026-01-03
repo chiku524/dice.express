@@ -159,15 +159,14 @@ export default function AdminDashboard() {
       })
       
       console.log(`[AdminDashboard] 📊 Total requests: ${allRequests.length} (${databaseRequests.length} from database, ${blockchainRequests.length} from blockchain)`)
-      
-      console.log(`[AdminDashboard] 📊 Total requests: ${allRequests.length} (${blockchainRequests.length} from blockchain, ${allRequests.length - blockchainRequests.length} from cloud storage)`)
       if (Array.isArray(allRequests) && allRequests.length > 0) {
         console.log('[AdminDashboard] Contract details:', allRequests.map(r => ({
           contractId: r.contractId,
           title: r.payload?.title,
           admin: r.payload?.admin,
           creator: r.payload?.creator,
-          fromCloudStorage: r._fromCloudStorage || false
+          fromDatabase: !r._fromBlockchain,
+          fromBlockchain: r._fromBlockchain || false
         })))
       }
 
@@ -178,45 +177,42 @@ export default function AdminDashboard() {
       setError(null)
       apiRoutesWorkingRef.current = true
       
-      // If no requests found and blockchain query succeeded (but returned empty), retry multiple times
-      // This handles the case where contracts are created but not yet visible due to synchronization
-      // Only retry if blockchain query succeeded (don't retry if it failed - we already have cloud storage fallback)
-      // Use longer delays to account for blockchain synchronization time
-      if (requestsArray.length === 0 && blockchainQuerySucceeded && retryCount < 5) {
-        const delays = [2000, 5000, 10000, 15000, 20000] // Longer delays for blockchain sync
-        const delay = delays[retryCount] || 20000
-        console.log(`[AdminDashboard] ⏳ No contracts found. Retrying after ${delay / 1000} seconds (attempt ${retryCount + 1}/5)...`)
-        console.log(`[AdminDashboard] 💡 This may be due to blockchain synchronization delay. Contracts created with updateId can take time to appear.`)
+      // If no requests found, retry a limited number of times
+      // Since database is primary, we mainly retry to catch newly created contracts
+      if (requestsArray.length === 0 && retryCount < MAX_RETRIES) {
+        const delays = [2000, 5000, 10000] // Shorter delays since database is primary
+        const delay = delays[retryCount] || 10000
+        console.log(`[AdminDashboard] ⏳ No contracts found. Retrying after ${delay / 1000} seconds (attempt ${retryCount + 1}/${MAX_RETRIES})...`)
+        console.log(`[AdminDashboard] 💡 This may be due to: newly created contracts not yet in database, or no contracts exist yet`)
         setTimeout(() => {
           if (isMountedRef.current && apiRoutesWorkingRef.current) {
             fetchRequests(retryCount + 1)
           }
         }, delay)
-        return
-      } else if (requestsArray.length === 0 && blockchainQuerySucceeded && retryCount >= 5) {
-        console.warn('[AdminDashboard] ⚠️ No contracts found after 5 blockchain retries. This could mean:')
-        console.warn('[AdminDashboard]   1. No contracts exist for this admin party on the blockchain')
-        console.warn('[AdminDashboard]   2. Contracts were created with updateId and need more time to synchronize (can take 30+ seconds)')
-        console.warn('[AdminDashboard]   3. Contracts exist but party does not have visibility (check signatories in DAML template)')
-        console.warn('[AdminDashboard]   4. Check the explorer link from market creation to verify the contract exists')
-        console.warn('[AdminDashboard]   5. Template ID might be incorrect or package not deployed')
-        console.warn('[AdminDashboard]   6. activeAtOffset: 0 might miss contracts - contracts may be at a later offset')
-        console.warn('[AdminDashboard]   💡 Note: If blockchain query failed, cloud storage contracts are shown as fallback')
-        console.warn('[AdminDashboard]   💡 Tip: Try refreshing the page after waiting 30+ seconds for blockchain sync')
-      } else if (requestsArray.length === 0 && !blockchainQuerySucceeded) {
-        console.warn('[AdminDashboard] ⚠️ Blockchain query failed and no contracts found in cloud storage')
-        console.warn('[AdminDashboard]   This may indicate:')
+        return // Don't set loading to false yet
+      } else if (requestsArray.length === 0 && retryCount >= MAX_RETRIES) {
+        console.warn('[AdminDashboard] ⚠️ No contracts found after maximum retries. This could mean:')
         console.warn('[AdminDashboard]   1. No contracts have been created yet')
-        console.warn('[AdminDashboard]   2. Contracts were created but not stored in cloud database')
-        console.warn('[AdminDashboard]   3. Blockchain connectivity issues')
-        console.warn('[AdminDashboard]   4. Cloud storage not configured (check SUPABASE_URL environment variable)')
+        console.warn('[AdminDashboard]   2. Database not configured (check SUPABASE_URL environment variable)')
+        console.warn('[AdminDashboard]   3. Contracts were created but not stored in database')
+        console.warn('[AdminDashboard]   💡 Tip: Create a new market contract to test the system')
       } else if (requestsArray.length > 0) {
-        // Show success message if we found contracts (from either source)
-        const localCount = requestsArray.filter(r => r._fromLocalStorage).length
-        const blockchainCount = requestsArray.length - localCount
-        if (localCount > 0) {
-          console.log(`[AdminDashboard] ✅ Showing ${requestsArray.length} requests (${localCount} from local storage, ${blockchainCount} from blockchain)`)
+        // Show success message with source breakdown
+        const databaseCount = requestsArray.filter(r => !r._fromBlockchain).length
+        const blockchainCount = requestsArray.filter(r => r._fromBlockchain).length
+        if (databaseCount > 0 && blockchainCount > 0) {
+          console.log(`[AdminDashboard] ✅ Showing ${requestsArray.length} requests (${databaseCount} from database, ${blockchainCount} from blockchain)`)
+        } else if (databaseCount > 0) {
+          console.log(`[AdminDashboard] ✅ Showing ${databaseCount} requests from database`)
+        } else if (blockchainCount > 0) {
+          console.log(`[AdminDashboard] ✅ Showing ${blockchainCount} requests from blockchain (database not available)`)
         }
+      }
+      
+      // Always set loading to false after MAX_RETRIES or if we have results
+      // This prevents infinite retry loops
+      if (isMountedRef.current && (retryCount >= MAX_RETRIES || requestsArray.length > 0)) {
+        setLoading(false)
       }
     } catch (err) {
       if (!isMountedRef.current) return
