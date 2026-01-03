@@ -16,6 +16,7 @@ export default function AdminDashboard() {
   const [processing, setProcessing] = useState(null)
   const isMountedRef = useRef(true)
   const apiRoutesWorkingRef = useRef(true)
+  const MAX_RETRIES = 3 // Maximum number of retry attempts
 
   useEffect(() => {
     isMountedRef.current = true
