@@ -44,147 +44,120 @@ export default function AdminDashboard() {
       console.log(`[AdminDashboard] Template ID: ${PACKAGE_ID}:PredictionMarkets:MarketCreationRequest`)
       console.log(`[AdminDashboard] Query filters: { admin: ${wallet.party} }`)
       
-      // BLOCKCHAIN-FIRST APPROACH: Query blockchain first, use local storage only as fallback
-      // This ensures blockchain is the source of truth, with local storage as backup
+      // DATABASE-FIRST APPROACH: Query database first (primary), blockchain as fallback
+      // Since Canton endpoints don't reliably return contracts, database is now primary
+      let databaseRequests = []
       let blockchainRequests = []
+      let databaseQuerySucceeded = false
       let blockchainQuerySucceeded = false
       
-      // Step 1: Try blockchain query first (primary source)
+      // Step 1: Query database first (primary source)
       try {
-        console.log('[AdminDashboard] 🔗 Querying blockchain for contracts...')
-        
-        // Check token before querying
-        const { isTokenExpiredOrExpiringSoon, refreshToken } = await import('../utils/tokenManager')
-        if (isTokenExpiredOrExpiringSoon()) {
-          console.log('[AdminDashboard] ⚠️ Token expired, refreshing before query...')
-          try {
-            await refreshToken()
-            console.log('[AdminDashboard] ✅ Token refreshed successfully')
-          } catch (refreshError) {
-            console.warn('[AdminDashboard] ⚠️ Token refresh failed:', refreshError.message)
-            console.warn('[AdminDashboard] 💡 You may need to get a new token from the Wallet modal')
-          }
-        }
-        
-        // Try active-contracts endpoint first
-        const fetchedRequests = await ledger.query(
-          [`${PACKAGE_ID}:PredictionMarkets:MarketCreationRequest`],
-          { admin: wallet.party }, // Client-side filter: only show contracts where payload.admin === wallet.party
-          { forceRefresh: true, walletParty: wallet.party } // Server-side filter: only get contracts visible to wallet.party
-        )
-        blockchainRequests = Array.isArray(fetchedRequests) ? fetchedRequests : []
-        
-        // If no contracts found, try completions endpoint as fallback
-        // This can find contracts that were created with updateId but aren't yet in active-contracts
-        if (blockchainRequests.length === 0 && retryCount >= 2) {
-          console.log('[AdminDashboard] 🔄 No contracts in active-contracts, trying completions endpoint...')
-          try {
-            const token = localStorage.getItem('canton_token')
-            const completionsResponse = await fetch('/api/get-contracts-from-completions', {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                ...(token && { 'Authorization': `Bearer ${token}` })
-              },
-              body: JSON.stringify({
-                party: wallet.party,
-                applicationId: 'prediction-markets',
-                offset: '0',
-                templateId: `${PACKAGE_ID}:PredictionMarkets:MarketCreationRequest`
-              })
-            })
-            
-            if (completionsResponse.ok) {
-              const completionsData = await completionsResponse.json()
-              const completionsContracts = completionsData.contracts || []
-              
-              // Filter by admin (client-side)
-              const filteredCompletions = completionsContracts.filter(c => 
-                c.payload?.admin === wallet.party
-              )
-              
-              if (filteredCompletions.length > 0) {
-                console.log(`[AdminDashboard] ✅ Found ${filteredCompletions.length} contracts from completions endpoint`)
-                blockchainRequests = filteredCompletions
-              }
-            }
-          } catch (completionsError) {
-            console.warn('[AdminDashboard] ⚠️ Completions endpoint query failed:', completionsError.message)
-          }
-        }
-        
-        blockchainQuerySucceeded = true
-        console.log(`[AdminDashboard] ✅ Blockchain query succeeded: ${blockchainRequests.length} contracts found`)
-      } catch (blockchainError) {
-        console.warn('[AdminDashboard] ⚠️ Blockchain query failed:', blockchainError)
-        
-        // Check if it's an authentication error
-        if (blockchainError.message && blockchainError.message.includes('Authentication failed')) {
-          console.warn('[AdminDashboard] 🔐 Authentication error - token may be expired')
-          console.warn('[AdminDashboard] 💡 Please refresh your token in the Wallet modal')
-        }
-        
-        console.warn('[AdminDashboard] 🔄 Falling back to cloud storage...')
-        blockchainQuerySucceeded = false
-      }
-      
-      // Step 2: Only use local storage if blockchain query failed
-      let allRequests = [...blockchainRequests]
-      let localRequests = []
-      
-      if (!blockchainQuerySucceeded) {
-        // Blockchain query failed - use cloud storage as fallback
-        console.log('[AdminDashboard] 🔄 Querying cloud storage as fallback...')
-        localRequests = await ContractStorage.getContractsByType(
+        console.log('[AdminDashboard] 💾 Querying database for contracts...')
+        databaseRequests = await ContractStorage.getContractsByType(
           'MarketCreationRequest',
           wallet.party,
           'PendingApproval'
         )
         // Filter by admin (client-side filter)
-        localRequests = localRequests.filter(c => 
+        databaseRequests = databaseRequests.filter(c => 
           c.payload?.admin === wallet.party
         )
-        console.log(`[AdminDashboard] 📦 Found ${localRequests.length} contracts in cloud storage (fallback)`)
-        
-        // Convert to expected format
-        allRequests = localRequests.map(localContract => ({
-          contractId: localContract.contractId,
-          templateId: localContract.templateId,
-          payload: localContract.payload,
-          _fromCloudStorage: true // Flag to indicate this came from cloud storage
-        }))
-      } else if (blockchainRequests.length === 0) {
-        // Blockchain query succeeded but returned empty - check cloud storage for pending sync
-        // This handles the case where contracts are created but not yet visible on blockchain
-        console.log('[AdminDashboard] 🔄 Querying cloud storage for pending sync contracts...')
-        localRequests = await ContractStorage.getContractsByType(
-          'MarketCreationRequest',
-          wallet.party,
-          'PendingApproval'
-        )
-        
-        // Only add local contracts that aren't in blockchain (pending sync)
-        const blockchainContractIds = new Set(blockchainRequests.map(r => r.contractId))
-        localRequests.forEach(localContract => {
-          const localId = localContract.contractId
-          // Only add if it's a real contract ID (not pending-* or updateId:*) and not already in blockchain
-          if (!localId.startsWith('pending-') && 
-              !localId.startsWith('updateId:') && 
-              !blockchainContractIds.has(localId)) {
-            allRequests.push({
-              contractId: localId,
-              templateId: localContract.templateId,
-              payload: localContract.payload,
-              _fromCloudStorage: true,
-              _pendingSync: true // Flag to indicate this is pending blockchain sync
-            })
+        databaseQuerySucceeded = true
+        console.log(`[AdminDashboard] ✅ Database query succeeded: ${databaseRequests.length} contracts found`)
+      } catch (databaseError) {
+        console.warn('[AdminDashboard] ⚠️ Database query failed:', databaseError)
+        console.warn('[AdminDashboard] 🔄 Falling back to blockchain...')
+        databaseQuerySucceeded = false
+      }
+      
+      // Step 2: Query blockchain as fallback/supplement (only if database has no results or failed)
+      // This helps sync contracts that might exist on blockchain but not in database yet
+      if (!databaseQuerySucceeded || databaseRequests.length === 0) {
+        try {
+          console.log('[AdminDashboard] 🔗 Querying blockchain as fallback...')
+          
+          // Check token before querying
+          const { isTokenExpiredOrExpiringSoon, refreshToken } = await import('../utils/tokenManager')
+          if (isTokenExpiredOrExpiringSoon()) {
+            console.log('[AdminDashboard] ⚠️ Token expired, refreshing before query...')
+            try {
+              await refreshToken()
+              console.log('[AdminDashboard] ✅ Token refreshed successfully')
+            } catch (refreshError) {
+              console.warn('[AdminDashboard] ⚠️ Token refresh failed:', refreshError.message)
+            }
           }
-        })
-        
-        if (localRequests.length > 0) {
-          console.log(`[AdminDashboard] 📦 Added ${localRequests.length} contracts from cloud storage (pending blockchain sync)`)
+          
+          // Try active-contracts endpoint
+          const fetchedRequests = await ledger.query(
+            [`${PACKAGE_ID}:PredictionMarkets:MarketCreationRequest`],
+            { admin: wallet.party },
+            { forceRefresh: true, walletParty: wallet.party }
+          )
+          blockchainRequests = Array.isArray(fetchedRequests) ? fetchedRequests : []
+          
+          // If no contracts found, try completions endpoint as additional fallback
+          if (blockchainRequests.length === 0 && retryCount >= 2) {
+            console.log('[AdminDashboard] 🔄 No contracts in active-contracts, trying completions endpoint...')
+            try {
+              const token = localStorage.getItem('canton_token')
+              const completionsResponse = await fetch('/api/get-contracts-from-completions', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  ...(token && { 'Authorization': `Bearer ${token}` })
+                },
+                body: JSON.stringify({
+                  party: wallet.party,
+                  applicationId: 'prediction-markets',
+                  offset: '0',
+                  templateId: `${PACKAGE_ID}:PredictionMarkets:MarketCreationRequest`
+                })
+              })
+              
+              if (completionsResponse.ok) {
+                const completionsData = await completionsResponse.json()
+                const completionsContracts = completionsData.contracts || []
+                const filteredCompletions = completionsContracts.filter(c => 
+                  c.payload?.admin === wallet.party
+                )
+                
+                if (filteredCompletions.length > 0) {
+                  console.log(`[AdminDashboard] ✅ Found ${filteredCompletions.length} contracts from completions endpoint`)
+                  blockchainRequests = filteredCompletions
+                }
+              }
+            } catch (completionsError) {
+              console.warn('[AdminDashboard] ⚠️ Completions endpoint query failed:', completionsError.message)
+            }
+          }
+          
+          blockchainQuerySucceeded = true
+          console.log(`[AdminDashboard] ✅ Blockchain query succeeded: ${blockchainRequests.length} contracts found`)
+        } catch (blockchainError) {
+          console.warn('[AdminDashboard] ⚠️ Blockchain query failed:', blockchainError)
+          blockchainQuerySucceeded = false
         }
       }
+      
+      // Step 3: Merge database and blockchain results
+      // Database is primary, blockchain supplements it
+      let allRequests = [...databaseRequests]
+      const databaseContractIds = new Set(databaseRequests.map(r => r.contractId))
+      
+      // Add blockchain contracts that aren't in database
+      blockchainRequests.forEach(blockchainContract => {
+        if (!databaseContractIds.has(blockchainContract.contractId)) {
+          allRequests.push({
+            ...blockchainContract,
+            _fromBlockchain: true,
+            _needsDatabaseSync: true // Flag to indicate this should be stored in database
+          })
+        }
+      })
+      
+      console.log(`[AdminDashboard] 📊 Total requests: ${allRequests.length} (${databaseRequests.length} from database, ${blockchainRequests.length} from blockchain)`)
       
       console.log(`[AdminDashboard] 📊 Total requests: ${allRequests.length} (${blockchainRequests.length} from blockchain, ${allRequests.length - blockchainRequests.length} from cloud storage)`)
       if (Array.isArray(allRequests) && allRequests.length > 0) {
