@@ -231,11 +231,8 @@ export default function AdminDashboard() {
         setError(err.message)
       }
     } finally {
-      if (isMountedRef.current && (retryCount >= 3 || requestsArray.length > 0)) {
-        // Set loading to false after all retries are complete OR if we found contracts
-        setLoading(false)
-      }
-      // If retrying, don't set loading to false yet
+      // Loading state is set to false in the main logic above
+      // This finally block is just for cleanup if needed
     }
   }
 
