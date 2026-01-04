@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { useLedger } from '../hooks/useLedger'
 import { useWallet } from '../contexts/WalletContext'
 import { SkeletonMarketGrid } from './SkeletonLoader'
+import { ContractStorage } from '../utils/contractStorage'
 
 export default function MarketsList() {
   const { ledger } = useLedger()
