@@ -252,6 +252,9 @@ export default function MarketDetail() {
       {marketData.status === 'Active' && (
         <div className="card" style={{ marginTop: '2rem' }}>
           <h2>Create Position</h2>
+          <div className="alert-info" style={{ marginBottom: '1rem' }}>
+            <strong>Note:</strong> Positions are stored in the database and market volumes are updated immediately. Full on-chain Canton blockchain implementation will be available once Canton provides the necessary endpoints and functionalities.
+          </div>
           <div className="form-group">
             <label>Position Type</label>
             <select
