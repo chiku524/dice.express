@@ -86,29 +86,10 @@ export default function MarketDetail() {
   }, [marketId, wallet])
 
   const handleCreatePosition = async () => {
-    if (!wallet || !market || !ledger) return
-
-    try {
-      await ledger.exercise(
-        'PredictionMarkets:Market',
-        market.contractId,
-        'CreatePosition',
-        {
-          positionId: `pos-${Date.now()}`,
-          owner: wallet.party,
-          positionType: positionType === 'Yes' ? { tag: 'Yes' } : { tag: 'No' },
-          amount: parseFloat(positionAmount),
-          price: parseFloat(positionPrice),
-        },
-        wallet.party
-      )
-
-      alert('Position created successfully!')
-      // Refresh market data
-      window.location.reload()
-    } catch (err) {
-      alert('Error creating position: ' + err.message)
-    }
+    // Position creation is disabled due to Canton API limitations
+    // We're using a database-first approach and don't have actual Market contracts on the blockchain
+    alert('Position creation is currently disabled due to Canton API limitations. We are using a database-first approach for market management.')
+    return
   }
 
   if (loading) {
