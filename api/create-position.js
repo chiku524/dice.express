@@ -161,6 +161,8 @@ module.exports = async function handler(req, res) {
       })
     }
 
+    console.log('[api/create-position] ✅ Position stored in database:', positionData.contract_id)
+
     // Step 5: Update market volumes
     const currentPayload = marketContract.payload || {}
     const currentTotalVolume = parseFloat(currentPayload.totalVolume || 0)

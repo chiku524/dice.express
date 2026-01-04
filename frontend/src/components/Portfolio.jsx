@@ -1,18 +1,16 @@
 import { useState, useEffect, useRef } from 'react'
 import { Link } from 'react-router-dom'
-import { useLedger } from '../hooks/useLedger'
 import { useWallet } from '../contexts/WalletContext'
+import { ContractStorage } from '../utils/contractStorage'
 import { SkeletonList } from './SkeletonLoader'
 
 export default function Portfolio() {
-  const { ledger } = useLedger()
   const { wallet } = useWallet()
   const [positions, setPositions] = useState([])
+  const [activityLog, setActivityLog] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const isMountedRef = useRef(true)
-  const isFetchingRef = useRef(false)
-  const apiRoutesWorkingRef = useRef(true)
 
   useEffect(() => {
     isMountedRef.current = true
@@ -25,67 +23,76 @@ export default function Portfolio() {
     }, 10000) // 10 second timeout
     
     const fetchPositions = async () => {
-      // Prevent multiple simultaneous requests
-      if (isFetchingRef.current || !ledger || !wallet || !isMountedRef.current) {
-        setLoading(false) // Make sure loading is false if we can't fetch
-        return
-      }
-      
-      // Stop if API routes are not working
-      if (!apiRoutesWorkingRef.current) {
-        setPositions([])
+      if (!wallet || !isMountedRef.current) {
         setLoading(false)
         return
       }
 
-      isFetchingRef.current = true
-
       try {
         setLoading(true)
-        // Query user's positions
-        const PACKAGE_ID = 'b87ef31c8ea5c53a940a7f71a4bc6513cf44048730c0551f1fc2e02adc7271f0'
-        const fetchedPositions = await ledger.query([`${PACKAGE_ID}:PredictionMarkets:Position`], { owner: wallet.party }, { walletParty: wallet.party })
         
-        if (!isMountedRef.current) return
+        // DATABASE-FIRST APPROACH: Query database for positions
+        console.log('[Portfolio] 💾 Querying database for positions...')
         
-        // Check if endpoints are unavailable
-        if (fetchedPositions && fetchedPositions._endpointsUnavailable) {
-          // Query endpoints don't exist - stop retrying
-          apiRoutesWorkingRef.current = false
-          setPositions([])
+        try {
+          // Query database for Position contracts owned by user
+          const databasePositions = await ContractStorage.getContractsByType(
+            'Position',
+            wallet.party,
+            'Active'
+          )
+          
+          // Filter by owner (client-side filter for safety)
+          const userPositions = databasePositions.filter(p => 
+            p.payload?.owner === wallet.party
+          )
+          
+          console.log(`[Portfolio] ✅ Retrieved ${userPositions.length} positions from database`)
+          
+          if (!isMountedRef.current) return
+          
+          // Sort by creation date (newest first)
+          const sortedPositions = userPositions.sort((a, b) => {
+            const dateA = new Date(a.createdAt || a.created_at || 0)
+            const dateB = new Date(b.createdAt || b.created_at || 0)
+            return dateB - dateA
+          })
+          
+          setPositions(sortedPositions)
+          
+          // Build activity log from positions (sorted by date, newest first)
+          const activities = sortedPositions.map(position => ({
+            id: position.contractId,
+            type: 'position_created',
+            timestamp: position.createdAt || position.created_at || new Date().toISOString(),
+            position: {
+              positionId: position.payload?.positionId,
+              marketId: position.payload?.marketId,
+              positionType: position.payload?.positionType,
+              amount: position.payload?.amount,
+              price: position.payload?.price,
+              depositAmount: position.payload?.depositAmount,
+              depositCurrency: position.payload?.depositCurrency || 'CC',
+              platformWallet: position.payload?.platformWallet
+            }
+          }))
+          
+          setActivityLog(activities)
           setError(null)
-          setLoading(false)
-          return
-        }
-        
-        // Handle results
-        if (Array.isArray(fetchedPositions)) {
-          setPositions(fetchedPositions)
-        } else {
+        } catch (databaseError) {
+          console.warn('[Portfolio] ⚠️ Database query failed:', databaseError)
           setPositions([])
+          setActivityLog([])
+          setError(null) // Don't show error, just empty state
         }
-        setError(null)
-        apiRoutesWorkingRef.current = true
       } catch (err) {
         if (!isMountedRef.current) return
         
-        // Don't set error if it's just empty results or 404
-        if (err.message?.includes('Resource not found') || 
-            err.message?.includes('404') || 
-            err.response?.status === 404) {
-          // API route not found - stop retrying to prevent excessive requests
-          apiRoutesWorkingRef.current = false
-          setPositions([]) // Show empty portfolio
-          setError(null)
-          setLoading(false) // Make sure loading is false so page renders
-        } else {
-          setError(err.message)
-          setLoading(false) // Make sure loading is false even on error
-        }
+        console.error('[Portfolio] Error fetching positions:', err)
+        setError(err.message)
       } finally {
-        isFetchingRef.current = false
         if (isMountedRef.current) {
-          setLoading(false) // Always set loading to false
+          setLoading(false)
         }
       }
     }
@@ -94,10 +101,9 @@ export default function Portfolio() {
 
     return () => {
       isMountedRef.current = false
-      isFetchingRef.current = false
       clearTimeout(loadingTimeout)
     }
-  }, [ledger, wallet])
+  }, [wallet])
 
   if (loading) {
     return (
@@ -264,4 +270,3 @@ export default function Portfolio() {
     </div>
   )
 }
-
