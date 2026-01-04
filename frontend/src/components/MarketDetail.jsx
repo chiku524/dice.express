@@ -16,6 +16,20 @@ export default function MarketDetail() {
   const [positionAmount, setPositionAmount] = useState('')
   const [positionType, setPositionType] = useState('Yes')
   const [positionPrice, setPositionPrice] = useState('0.5')
+  
+  // Reset position type when market changes
+  useEffect(() => {
+    if (market?.payload) {
+      const marketData = market.payload
+      // For binary markets, default to 'Yes'
+      // For multi-outcome markets, default to first outcome
+      if (marketData.marketType === 'MultiOutcome' && marketData.outcomes && marketData.outcomes.length > 0) {
+        setPositionType(marketData.outcomes[0])
+      } else {
+        setPositionType('Yes')
+      }
+    }
+  }, [market])
 
   useEffect(() => {
     const fetchMarket = async () => {
