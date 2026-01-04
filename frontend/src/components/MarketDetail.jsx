@@ -19,27 +19,57 @@ export default function MarketDetail() {
 
   useEffect(() => {
     const fetchMarket = async () => {
-      if (!ledger || !wallet) return
+      if (!wallet) return
 
       try {
         setLoading(true)
-        // Fetch market details
-        const PACKAGE_ID = 'b87ef31c8ea5c53a940a7f71a4bc6513cf44048730c0551f1fc2e02adc7271f0'
-        const markets = await ledger.query([`${PACKAGE_ID}:PredictionMarkets:Market`], { marketId: marketId })
-        if (markets && markets.length > 0) {
-          setMarket(markets[0])
-        } else {
-          setError('Market not found')
+        setError(null)
+        
+        // DATABASE-FIRST APPROACH: Query database for approved MarketCreationRequest by marketId
+        // Since Canton endpoints don't reliably return Market contracts, we use approved MarketCreationRequest from database
+        console.log('[MarketDetail] 💾 Querying database for market:', marketId)
+        
+        try {
+          // Query database for approved MarketCreationRequest contracts
+          const databaseMarkets = await ContractStorage.getContractsByType(
+            'MarketCreationRequest',
+            null, // No party filter - show all approved markets
+            'Approved'
+          )
+          
+          // Find the market with matching marketId
+          const matchingMarket = databaseMarkets.find(m => m.payload?.marketId === marketId)
+          
+          if (matchingMarket) {
+            // Transform database contract to match Market format
+            const transformedMarket = {
+              contractId: matchingMarket.contractId,
+              templateId: matchingMarket.templateId,
+              payload: {
+                ...matchingMarket.payload,
+                status: 'Active' // Approved MarketCreationRequest contracts are active markets
+              }
+            }
+            console.log('[MarketDetail] ✅ Found market in database:', marketId)
+            setMarket(transformedMarket)
+          } else {
+            console.warn('[MarketDetail] ⚠️ Market not found in database:', marketId)
+            setError('Market not found')
+          }
+        } catch (databaseError) {
+          console.error('[MarketDetail] ⚠️ Database query failed:', databaseError)
+          setError('Failed to fetch market from database')
         }
       } catch (err) {
-        setError(err.message)
+        console.error('[MarketDetail] Error:', err)
+        setError(err.message || 'Failed to fetch market')
       } finally {
         setLoading(false)
       }
     }
 
     fetchMarket()
-  }, [marketId, ledger, wallet])
+  }, [marketId, wallet])
 
   const handleCreatePosition = async () => {
     if (!wallet || !market || !ledger) return
