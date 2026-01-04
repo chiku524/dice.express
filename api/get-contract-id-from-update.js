@@ -64,15 +64,52 @@ module.exports = async function handler(req, res) {
     console.log('[api/get-contract-id-from-update] Querying active-contracts for updateId:', updateId)
     console.log('[api/get-contract-id-from-update] Request body:', JSON.stringify(requestBody, null, 2))
 
-    const response = await fetch(activeContractsEndpoint, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-        ...(token && { 'Authorization': `Bearer ${token}` }),
-      },
-      body: JSON.stringify(requestBody),
-    })
+    // Try different Content-Type headers - Canton might be picky
+    const contentTypeOptions = [
+      'application/json; charset=utf-8',
+      'application/json',
+      'application/grpc-web+json',
+      'application/grpc-web',
+    ]
+    
+    let response = null
+    let lastError = null
+    
+    for (const contentType of contentTypeOptions) {
+      try {
+        console.log(`[api/get-contract-id-from-update] Trying Content-Type: ${contentType}`)
+        response = await fetch(activeContractsEndpoint, {
+          method: 'POST',
+          headers: {
+            'Content-Type': contentType,
+            'Accept': 'application/json',
+            ...(token && { 'Authorization': `Bearer ${token}` }),
+          },
+          body: JSON.stringify(requestBody),
+        })
+        
+        // If we get a non-415 error, this Content-Type worked
+        if (response.status !== 415) {
+          console.log(`[api/get-contract-id-from-update] ✅ Content-Type ${contentType} worked (status: ${response.status})`)
+          break
+        }
+        
+        lastError = { contentType, status: 415 }
+        console.log(`[api/get-contract-id-from-update] ⚠️ Content-Type ${contentType} returned 415, trying next...`)
+      } catch (error) {
+        lastError = { contentType, error: error.message }
+        console.log(`[api/get-contract-id-from-update] ⚠️ Error with Content-Type ${contentType}:`, error.message)
+        continue
+      }
+    }
+    
+    if (!response) {
+      return res.status(500).json({
+        error: 'Failed to query active-contracts endpoint',
+        message: 'Could not find a supported Content-Type',
+        lastError: lastError
+      })
+    }
 
     if (response.ok) {
       const contractsData = await response.json()
