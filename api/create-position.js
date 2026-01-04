@@ -123,13 +123,25 @@ module.exports = async function handler(req, res) {
       createdAt: new Date().toISOString()
     }
 
-    // Step 4: Store position in database
+    // Step 4: Store position in database (with deposit tracking)
+    const PLATFORM_WALLET_PARTY_ID = 'ee15aa3d-0bd4-44f9-9664-b49ad7e308aa::122087fa379c37332a753379c58e18d397e39cb82c68c15e4af7134be46561974292'
+    
+    // Add deposit info to position payload
+    const positionPayloadWithDeposit = {
+      ...positionPayload,
+      depositAmount: amountNum.toString(),
+      depositCurrency: 'CC', // Canton Coin
+      platformWallet: PLATFORM_WALLET_PARTY_ID,
+      depositStatus: 'completed',
+      depositTimestamp: new Date().toISOString()
+    }
+    
     const { data: positionData, error: positionError } = await supabase
       .from('contracts')
       .upsert({
         contract_id: contractId,
         template_id: `${marketContract.template_id.split(':')[0]}:PredictionMarkets:Position`,
-        payload: positionPayload,
+        payload: positionPayloadWithDeposit,
         party: owner,
         status: 'Active',
         created_at: new Date().toISOString(),

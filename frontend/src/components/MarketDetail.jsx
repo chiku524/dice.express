@@ -156,8 +156,10 @@ export default function MarketDetail() {
       setPositionAmount('')
       setPositionPrice('0.5')
 
-      // Show success message
-      alert(`Position created successfully!\n\nPosition ID: ${result.position.contract_id}\nAmount: ${positionAmount}\nPrice: ${positionPrice}\nType: ${positionType}\n\nNote: This position is stored in the database. Full on-chain implementation will be available when Canton provides the necessary endpoints.`)
+      // Redirect to markets page after successful position creation
+      console.log('[MarketDetail] ✅ Position created successfully:', result.position.contract_id)
+      console.log('[MarketDetail] 💰 CC Deposit:', result.deposit)
+      navigate('/')
     } catch (error) {
       console.error('[MarketDetail] Error creating position:', error)
       alert(`Failed to create position: ${error.message}`)

@@ -129,9 +129,36 @@ export default function Portfolio() {
     )
   }
 
+  const formatPositionType = (positionType) => {
+    if (!positionType) return 'Unknown'
+    if (typeof positionType === 'string') {
+      // Handle string format: "Yes", "No", or "Outcome:OutcomeName"
+      if (positionType.startsWith('Outcome:')) {
+        return positionType.replace('Outcome:', '')
+      }
+      return positionType
+    }
+    // Handle object format: { tag: 'Yes' } or { tag: 'Outcome', value: 'OutcomeName' }
+    if (positionType.tag === 'Yes') return 'Yes'
+    if (positionType.tag === 'No') return 'No'
+    if (positionType.tag === 'Outcome') return positionType.value || 'Unknown Outcome'
+    return positionType.value || 'Unknown'
+  }
+
+  const formatDate = (dateString) => {
+    if (!dateString) return 'Unknown'
+    try {
+      const date = new Date(dateString)
+      return date.toLocaleString()
+    } catch {
+      return dateString
+    }
+  }
+
   return (
     <div>
       <h1>My Portfolio</h1>
+      
       {positions.length === 0 ? (
         <div className="card">
           <p>You don't have any positions yet. Start trading to see your portfolio here!</p>
@@ -143,29 +170,95 @@ export default function Portfolio() {
         </div>
       ) : (
         <div>
-          {positions.map((position) => (
-            <div key={position.contractId} className="card">
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start' }}>
-                <div>
-                  <h3>
-                    Market: {position.payload.marketId}
-                  </h3>
-                  <p>
-                    Type: {position.payload.positionType.tag === 'Yes' 
-                      ? 'Yes' 
-                      : position.payload.positionType.tag === 'No'
-                      ? 'No'
-                      : position.payload.positionType.value}
-                  </p>
-                  <p>Amount: {position.payload.amount}</p>
-                  <p>Price: {position.payload.price}</p>
+          {/* Positions Section */}
+          <div style={{ marginBottom: '2rem' }}>
+            <h2 style={{ marginBottom: '1rem' }}>My Positions</h2>
+            {positions.map((position) => (
+              <div key={position.contractId} className="card" style={{ marginBottom: '1rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start' }}>
+                  <div style={{ flex: 1 }}>
+                    <h3>Market: {position.payload?.marketId || 'Unknown'}</h3>
+                    <div style={{ marginTop: '0.5rem', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '0.5rem' }}>
+                      <div>
+                        <strong>Type:</strong> {formatPositionType(position.payload?.positionType)}
+                      </div>
+                      <div>
+                        <strong>Amount:</strong> {position.payload?.amount || '0'}
+                      </div>
+                      <div>
+                        <strong>Price:</strong> {position.payload?.price || '0'}
+                      </div>
+                      {position.payload?.depositAmount && (
+                        <div>
+                          <strong>Deposit:</strong> {position.payload?.depositAmount} {position.payload?.depositCurrency || 'CC'}
+                        </div>
+                      )}
+                      <div>
+                        <strong>Created:</strong> {formatDate(position.createdAt || position.created_at)}
+                      </div>
+                    </div>
+                  </div>
+                  <Link to={`/market/${position.payload?.marketId}`} style={{ marginLeft: '1rem' }}>
+                    <button className="btn-secondary">View Market</button>
+                  </Link>
                 </div>
-                <Link to={`/market/${position.payload.marketId}`}>
-                  <button className="btn-secondary">View Market</button>
-                </Link>
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
+
+          {/* Activity Log Section */}
+          <div className="card">
+            <h2 style={{ marginBottom: '1rem' }}>Activity Log</h2>
+            {activityLog.length === 0 ? (
+              <p style={{ color: 'rgba(255, 255, 255, 0.6)' }}>No activity to display</p>
+            ) : (
+              <div style={{ maxHeight: '400px', overflowY: 'auto' }}>
+                {activityLog.map((activity) => (
+                  <div 
+                    key={activity.id} 
+                    style={{ 
+                      padding: '1rem', 
+                      borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'start'
+                    }}
+                  >
+                    <div style={{ flex: 1 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                        <strong>Position Created</strong>
+                        {activity.position?.depositAmount && (
+                          <span style={{ 
+                            background: 'rgba(76, 175, 80, 0.2)', 
+                            color: '#4CAF50',
+                            padding: '0.25rem 0.5rem',
+                            borderRadius: '4px',
+                            fontSize: '0.85rem'
+                          }}>
+                            {activity.position.depositAmount} {activity.position.depositCurrency || 'CC'} deposited
+                          </span>
+                        )}
+                      </div>
+                      <div style={{ fontSize: '0.9rem', color: 'rgba(255, 255, 255, 0.7)', marginBottom: '0.25rem' }}>
+                        Market: {activity.position?.marketId || 'Unknown'}
+                      </div>
+                      <div style={{ fontSize: '0.9rem', color: 'rgba(255, 255, 255, 0.7)', marginBottom: '0.25rem' }}>
+                        Type: {formatPositionType(activity.position?.positionType)} | Amount: {activity.position?.amount || '0'} | Price: {activity.position?.price || '0'}
+                      </div>
+                      <div style={{ fontSize: '0.85rem', color: 'rgba(255, 255, 255, 0.5)' }}>
+                        {formatDate(activity.timestamp)}
+                      </div>
+                    </div>
+                    <Link to={`/market/${activity.position?.marketId}`} style={{ marginLeft: '1rem' }}>
+                      <button className="btn-secondary" style={{ fontSize: '0.9rem', padding: '0.5rem 1rem' }}>
+                        View
+                      </button>
+                    </Link>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       )}
     </div>
