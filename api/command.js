@@ -102,11 +102,24 @@ module.exports = async function handler(req, res) {
 
     // Transform commands to v2 format if needed
     const transformedCommands = commandList.map(cmd => {
-      // If already in CreateCommand format, use as-is
-      if (cmd.CreateCommand) {
+      // If already in CreateCommand or ExerciseCommand format, use as-is
+      if (cmd.CreateCommand || cmd.ExerciseCommand) {
         return cmd
       }
-      // If in old format, transform it
+      
+      // Handle ExerciseCommand format (templateId + contractId + choice + argument)
+      if (cmd.templateId && cmd.contractId && cmd.choice) {
+        return {
+          ExerciseCommand: {
+            templateId: cmd.templateId,
+            contractId: cmd.contractId,
+            choice: cmd.choice,
+            argument: cmd.argument || {}
+          }
+        }
+      }
+      
+      // Handle CreateCommand format (templateId + createArguments)
       if (cmd.templateId && cmd.createArguments) {
         return {
           CreateCommand: {
@@ -115,7 +128,8 @@ module.exports = async function handler(req, res) {
           }
         }
       }
-      // If in templateId + payload format, transform
+      
+      // If in templateId + payload format, transform to CreateCommand
       if (cmd.templateId && cmd.payload) {
         return {
           CreateCommand: {
@@ -124,7 +138,8 @@ module.exports = async function handler(req, res) {
           }
         }
       }
-      // Otherwise pass through
+      
+      // Otherwise pass through (might be already in correct format)
       return cmd
     })
 

@@ -247,6 +247,67 @@ export default function AdminDashboard() {
     }
   }
 
+  // Helper function to resolve contract ID (handles updateId: prefix)
+  const resolveContractId = async (contractId, request) => {
+    // If contractId doesn't have updateId: prefix, return as-is
+    if (!contractId.startsWith('updateId:')) {
+      return contractId
+    }
+    
+    const updateId = contractId.replace('updateId:', '')
+    console.log(`[AdminDashboard] Resolving contract ID for updateId: ${updateId}`)
+    
+    // First, try to find it in the current requests list
+    // Contracts from blockchain should have the actual contract ID
+    const matchingRequest = requests.find(r => {
+      if (r.contractId && !r.contractId.startsWith('updateId:')) {
+        // Check if this contract's updateId matches
+        const rUpdateId = r.updateId || r.payload?.updateId
+        return rUpdateId === updateId
+      }
+      return false
+    })
+    
+    if (matchingRequest && matchingRequest.contractId) {
+      console.log(`[AdminDashboard] ✅ Found actual contract ID in current list: ${matchingRequest.contractId}`)
+      return matchingRequest.contractId
+    }
+    
+    // Try querying blockchain to get the actual contract ID
+    console.log(`[AdminDashboard] Querying blockchain for contract ID...`)
+    try {
+      const templateId = `${PACKAGE_ID}:PredictionMarkets:MarketCreationRequest`
+      const token = localStorage.getItem('canton_token')
+      
+      const response = await fetch('/api/get-contract-id-from-update', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token && { 'Authorization': `Bearer ${token}` })
+        },
+        body: JSON.stringify({
+          updateId: updateId,
+          templateId: templateId,
+          party: wallet.party,
+          applicationId: 'prediction-markets'
+        })
+      })
+      
+      if (response.ok) {
+        const data = await response.json()
+        if (data.contractId) {
+          console.log(`[AdminDashboard] ✅ Found actual contract ID from API: ${data.contractId}`)
+          return data.contractId
+        }
+      }
+    } catch (apiError) {
+      console.warn('[AdminDashboard] Failed to query contract ID from API:', apiError.message)
+    }
+    
+    // If we still can't find it, throw an error
+    throw new Error(`Cannot find actual contract ID for updateId ${updateId}. The contract may not be synchronized on the blockchain yet. Please wait 10-30 seconds and refresh the Admin Dashboard, then try again.`)
+  }
+
   const approveMarket = async (contractId) => {
     if (!ledger || !wallet || processing) return
 
@@ -254,10 +315,13 @@ export default function AdminDashboard() {
     setError(null)
 
     try {
+      // Resolve contract ID if it has updateId: prefix
+      const actualContractId = await resolveContractId(contractId, requests.find(r => r.contractId === contractId))
+      
       // Exercise ApproveMarket choice
       // The choice will fetch configCid from the contract's payload
       await ledger.exerciseChoice(
-        contractId,
+        actualContractId,
         'PredictionMarkets:MarketCreationRequest:ApproveMarket',
         {}, // Empty argument - the choice will fetch configCid from the contract
         wallet.party,
@@ -287,9 +351,12 @@ export default function AdminDashboard() {
     setError(null)
 
     try {
+      // Resolve contract ID if it has updateId: prefix
+      const actualContractId = await resolveContractId(contractId, requests.find(r => r.contractId === contractId))
+      
       // Exercise RejectMarket choice
       await ledger.exerciseChoice(
-        contractId,
+        actualContractId,
         'PredictionMarkets:MarketCreationRequest:RejectMarket',
         {},
         wallet.party,
