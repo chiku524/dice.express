@@ -436,27 +436,10 @@ export default function AdminDashboard() {
 
       console.log('[AdminDashboard] ✅ Database status updated to Approved')
 
-      // Try to exercise the choice on the blockchain (optional - may fail due to Canton limitations)
-      // If this fails, at least the database is updated
-      if (ledger) {
-        try {
-          console.log('[AdminDashboard] 🔗 Attempting to exercise choice on blockchain...')
-          const actualContractId = await resolveContractId(contractId, requests.find(r => r.contractId === contractId))
-          
-          await ledger.exerciseChoice(
-            actualContractId,
-            'PredictionMarkets:MarketCreationRequest:ApproveMarket',
-            {},
-            wallet.party,
-            PACKAGE_ID
-          )
-          
-          console.log('[AdminDashboard] ✅ Choice exercised successfully on blockchain')
-        } catch (blockchainError) {
-          console.warn('[AdminDashboard] ⚠️ Blockchain interaction failed (database updated):', blockchainError.message)
-          // Don't throw - database update succeeded, that's what matters for the UI
-        }
-      }
+      // Skip blockchain interaction for now - Canton's API is too unreliable
+      // Database update is the source of truth for the UI
+      console.log('[AdminDashboard] ⚠️ Skipping blockchain interaction due to Canton API limitations')
+      console.log('[AdminDashboard] 💡 Database update succeeded - UI will reflect the approval')
 
       // Refresh requests after approval
       setTimeout(() => {
