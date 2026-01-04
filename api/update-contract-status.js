@@ -75,28 +75,40 @@ module.exports = async function handler(req, res) {
       usingUpdateId: !!updateId
     })
 
-    // Build the update query
-    // We can update by contract_id OR by update_id (if contract_id has updateId: prefix)
-    let query = supabase.from('contracts')
+    // Determine which field to use for matching
+    let matchField = null
+    let matchValue = null
 
     if (contractId) {
-      // If contractId starts with updateId:, also try matching by update_id field
+      // If contractId starts with updateId:, match by update_id field
       if (contractId.startsWith('updateId:')) {
-        const updateIdValue = contractId.replace('updateId:', '')
-        query = query.eq('update_id', updateIdValue)
+        matchField = 'update_id'
+        matchValue = contractId.replace('updateId:', '')
       } else {
-        query = query.eq('contract_id', contractId)
+        matchField = 'contract_id'
+        matchValue = contractId
       }
     } else if (updateId) {
-      query = query.eq('update_id', updateId)
+      matchField = 'update_id'
+      matchValue = updateId
     }
 
-    // Update the status
-    const { data, error } = await query
+    if (!matchField || !matchValue) {
+      return res.status(400).json({
+        error: 'Cannot determine match field',
+        message: 'Need either contractId or updateId to update contract'
+      })
+    }
+
+    // Build the update query - update() must be called directly on from(), not on a query builder
+    // Use match field to filter and update
+    const { data, error } = await supabase
+      .from('contracts')
       .update({
         status: status,
         updated_at: new Date().toISOString()
       })
+      .eq(matchField, matchValue)
       .select()
       .single()
 
