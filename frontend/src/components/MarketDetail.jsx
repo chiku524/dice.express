@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useLedger } from '../hooks/useLedger'
 import { useWallet } from '../contexts/WalletContext'
+import { ContractStorage } from '../utils/contractStorage'
 import MarketResolution from './MarketResolution'
 
 export default function MarketDetail() {
