@@ -277,21 +277,46 @@ export default function AdminDashboard() {
       return matchingRequest.contractId
     }
     
-    // Try querying the blockchain to get the real contract ID using completions endpoint
-    // The completions endpoint can find contracts by updateId even if active-contracts doesn't return them
+    // Try querying the blockchain to get the real contract ID
+    // Use the dedicated endpoint that queries completions intelligently
     try {
-      console.log(`[AdminDashboard] 🔗 Querying completions endpoint for contract with updateId: ${updateId}`)
+      console.log(`[AdminDashboard] 🔗 Querying blockchain for contract with updateId: ${updateId}`)
       
-      // Get the request to find completionOffset
+      const token = localStorage.getItem('canton_token')
+      const templateId = `${PACKAGE_ID}:PredictionMarkets:MarketCreationRequest`
+      
+      // Use the dedicated contract ID resolution endpoint
+      const resolveResponse = await fetch('/api/get-contract-id-from-update', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token && { 'Authorization': `Bearer ${token}` })
+        },
+        body: JSON.stringify({
+          updateId: updateId,
+          templateId: templateId,
+          party: wallet.party,
+          applicationId: 'prediction-markets'
+        })
+      })
+      
+      if (resolveResponse.ok) {
+        const resolveData = await resolveResponse.json()
+        if (resolveData.contractId && !resolveData.contractId.startsWith('updateId:')) {
+          console.log(`[AdminDashboard] ✅ Found real contract ID from resolution endpoint: ${resolveData.contractId}`)
+          return resolveData.contractId
+        }
+      }
+      
+      // Fallback: Try completions endpoint directly
+      console.log(`[AdminDashboard] 🔄 Resolution endpoint didn't work, trying completions endpoint directly...`)
       const currentRequest = request || requests.find(r => {
         const rUpdateId = r.updateId || r.payload?.updateId || (r.contractId && r.contractId.startsWith('updateId:') ? r.contractId.replace('updateId:', '') : null)
         return rUpdateId === updateId
       })
       
       const completionOffset = currentRequest?.completionOffset || currentRequest?.payload?.completionOffset
-      const token = localStorage.getItem('canton_token')
       
-      // Try completions endpoint - it can find contracts by updateId
       const completionsResponse = await fetch('/api/get-contracts-from-completions', {
         method: 'POST',
         headers: {
@@ -302,7 +327,7 @@ export default function AdminDashboard() {
           party: wallet.party,
           applicationId: 'prediction-markets',
           offset: completionOffset ? completionOffset.toString() : '0',
-          templateId: `${PACKAGE_ID}:PredictionMarkets:MarketCreationRequest`
+          templateId: templateId
         })
       })
       
@@ -335,7 +360,6 @@ export default function AdminDashboard() {
       
       // Fallback: Try active-contracts endpoint (may not work due to Canton limitations)
       console.log(`[AdminDashboard] 🔄 Completions didn't find it, trying active-contracts endpoint...`)
-      const templateId = `${PACKAGE_ID}:PredictionMarkets:MarketCreationRequest`
       const blockchainContracts = await ledger.query(
         [templateId],
         { admin: wallet.party },
