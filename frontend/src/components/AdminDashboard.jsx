@@ -419,9 +419,20 @@ export default function AdminDashboard() {
       })
 
       if (!updateResponse.ok) {
-        const errorData = await updateResponse.json()
-        throw new Error(errorData.message || 'Failed to update contract status in database')
+        let errorMessage = 'Failed to update contract status in database'
+        try {
+          const errorData = await updateResponse.json()
+          errorMessage = errorData.message || errorData.error || errorMessage
+        } catch (parseError) {
+          const errorText = await updateResponse.text()
+          errorMessage = errorText || errorMessage
+        }
+        console.error('[AdminDashboard] ❌ Database update failed:', errorMessage)
+        throw new Error(errorMessage)
       }
+      
+      const updateData = await updateResponse.json()
+      console.log('[AdminDashboard] ✅ Database update response:', updateData)
 
       console.log('[AdminDashboard] ✅ Database status updated to Approved')
 
@@ -490,33 +501,27 @@ export default function AdminDashboard() {
       })
 
       if (!updateResponse.ok) {
-        const errorData = await updateResponse.json()
-        throw new Error(errorData.message || 'Failed to update contract status in database')
+        let errorMessage = 'Failed to update contract status in database'
+        try {
+          const errorData = await updateResponse.json()
+          errorMessage = errorData.message || errorData.error || errorMessage
+        } catch (parseError) {
+          const errorText = await updateResponse.text()
+          errorMessage = errorText || errorMessage
+        }
+        console.error('[AdminDashboard] ❌ Database update failed:', errorMessage)
+        throw new Error(errorMessage)
       }
+      
+      const updateData = await updateResponse.json()
+      console.log('[AdminDashboard] ✅ Database update response:', updateData)
 
       console.log('[AdminDashboard] ✅ Database status updated to Rejected')
 
-      // Try to exercise the choice on the blockchain (optional - may fail due to Canton limitations)
-      // If this fails, at least the database is updated
-      if (ledger) {
-        try {
-          console.log('[AdminDashboard] 🔗 Attempting to exercise choice on blockchain...')
-          const actualContractId = await resolveContractId(contractId, requests.find(r => r.contractId === contractId))
-          
-          await ledger.exerciseChoice(
-            actualContractId,
-            'PredictionMarkets:MarketCreationRequest:RejectMarket',
-            {},
-            wallet.party,
-            PACKAGE_ID
-          )
-          
-          console.log('[AdminDashboard] ✅ Choice exercised successfully on blockchain')
-        } catch (blockchainError) {
-          console.warn('[AdminDashboard] ⚠️ Blockchain interaction failed (database updated):', blockchainError.message)
-          // Don't throw - database update succeeded, that's what matters for the UI
-        }
-      }
+      // Skip blockchain interaction for now - Canton's API is too unreliable
+      // Database update is the source of truth for the UI
+      console.log('[AdminDashboard] ⚠️ Skipping blockchain interaction due to Canton API limitations')
+      console.log('[AdminDashboard] 💡 Database update succeeded - UI will reflect the rejection')
 
       // Refresh requests after rejection
       setTimeout(() => {
