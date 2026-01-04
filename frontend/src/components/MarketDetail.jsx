@@ -86,10 +86,82 @@ export default function MarketDetail() {
   }, [marketId, wallet])
 
   const handleCreatePosition = async () => {
-    // Position creation is disabled due to Canton API limitations
-    // We're using a database-first approach and don't have actual Market contracts on the blockchain
-    alert('Position creation is currently disabled due to Canton API limitations. We are using a database-first approach for market management.')
-    return
+    if (!wallet) {
+      alert('Please connect a wallet to create a position')
+      return
+    }
+
+    if (!positionAmount || parseFloat(positionAmount) <= 0) {
+      alert('Please enter a valid amount')
+      return
+    }
+
+    if (!positionPrice || parseFloat(positionPrice) < 0 || parseFloat(positionPrice) > 1) {
+      alert('Please enter a valid price between 0.0 and 1.0')
+      return
+    }
+
+    if (!market?.payload?.marketId) {
+      alert('Market ID not found. Please refresh the page.')
+      return
+    }
+
+    try {
+      console.log('[MarketDetail] Creating position:', {
+        marketId: market.payload.marketId,
+        positionType,
+        amount: positionAmount,
+        price: positionPrice,
+        owner: wallet.party
+      })
+
+      // Call API to create position in database
+      const response = await fetch('/api/create-position', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          marketId: market.payload.marketId,
+          positionType,
+          amount: positionAmount,
+          price: positionPrice,
+          owner: wallet.party
+        })
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.message || errorData.error || 'Failed to create position')
+      }
+
+      const result = await response.json()
+      console.log('[MarketDetail] ✅ Position created successfully:', result)
+
+      // Update market data with new volumes
+      if (result.market && result.market.payload) {
+        setMarket({
+          ...market,
+          payload: {
+            ...market.payload,
+            totalVolume: result.volumes.totalVolume.toString(),
+            yesVolume: result.volumes.yesVolume.toString(),
+            noVolume: result.volumes.noVolume.toString(),
+            outcomeVolumes: result.volumes.outcomeVolumes
+          }
+        })
+      }
+
+      // Reset form
+      setPositionAmount('')
+      setPositionPrice('0.5')
+
+      // Show success message
+      alert(`Position created successfully!\n\nPosition ID: ${result.position.contract_id}\nAmount: ${positionAmount}\nPrice: ${positionPrice}\nType: ${positionType}\n\nNote: This position is stored in the database. Full on-chain implementation will be available when Canton provides the necessary endpoints.`)
+    } catch (error) {
+      console.error('[MarketDetail] Error creating position:', error)
+      alert(`Failed to create position: ${error.message}`)
+    }
   }
 
   if (loading) {
@@ -209,8 +281,8 @@ export default function MarketDetail() {
               step="0.01"
             />
           </div>
-          <button className="btn-primary" onClick={handleCreatePosition} disabled>
-            Create Position (Disabled)
+          <button className="btn-primary" onClick={handleCreatePosition}>
+            Create Position
           </button>
         </div>
       )}
