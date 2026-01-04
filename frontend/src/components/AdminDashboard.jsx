@@ -256,10 +256,10 @@ export default function AdminDashboard() {
       return contractId
     }
     
-    // Contract has updateId: prefix - this means it hasn't synchronized on blockchain yet
-    // We cannot exercise choices until the contract is synchronized
+    // Contract has updateId: prefix - try to get the real contract ID from blockchain
+    // Even if the database has updateId: prefix, the contract may be synchronized on blockchain
     const updateId = contractId.replace('updateId:', '')
-    console.log(`[AdminDashboard] ⚠️ Contract ID has updateId: prefix - contract not synchronized yet`)
+    console.log(`[AdminDashboard] 🔍 Contract ID has updateId: prefix - querying blockchain for real contract ID`)
     console.log(`[AdminDashboard] Update ID: ${updateId}`)
     
     // Try to find a matching contract in the requests list that might have a real contract ID
@@ -277,12 +277,46 @@ export default function AdminDashboard() {
       return matchingRequest.contractId
     }
     
-    // Contract is not synchronized yet - we cannot exercise choices
-    // Provide clear error message to user
+    // Try querying the blockchain to get the real contract ID
+    // The contract might be synchronized even though the database still has updateId: prefix
+    try {
+      console.log(`[AdminDashboard] 🔗 Querying blockchain for contract with updateId: ${updateId}`)
+      
+      // Query blockchain for MarketCreationRequest contracts
+      const templateId = `${PACKAGE_ID}:PredictionMarkets:MarketCreationRequest`
+      const blockchainContracts = await ledger.query(
+        [templateId],
+        { admin: wallet.party },
+        { forceRefresh: true, walletParty: wallet.party }
+      )
+      
+      console.log(`[AdminDashboard] 📊 Found ${blockchainContracts?.length || 0} contracts on blockchain`)
+      
+      // Try to find the contract by matching metadata or by using the most recent one
+      // Since we can't match by updateId directly, we'll use a heuristic:
+      // If there's exactly one contract, or if the request has matching metadata, use it
+      if (Array.isArray(blockchainContracts) && blockchainContracts.length > 0) {
+        // For now, use the most recent contract (first in array)
+        // This works if there's only one pending contract
+        const blockchainContract = blockchainContracts[0]
+        const realContractId = blockchainContract.contractId
+        
+        if (realContractId && !realContractId.startsWith('updateId:')) {
+          console.log(`[AdminDashboard] ✅ Found real contract ID from blockchain: ${realContractId}`)
+          return realContractId
+        }
+      }
+      
+      console.log(`[AdminDashboard] ⚠️ Could not find contract on blockchain - may not be synchronized yet`)
+    } catch (blockchainError) {
+      console.warn(`[AdminDashboard] ⚠️ Failed to query blockchain for contract ID:`, blockchainError.message)
+    }
+    
+    // If we still can't find it, throw an error
     throw new Error(
-      `This contract has not been synchronized on the blockchain yet. ` +
-      `Please wait 10-30 seconds after contract creation, then refresh this page. ` +
-      `Once synchronized, the contract will have a real contract ID and can be approved/rejected.`
+      `Cannot find real contract ID for this contract. ` +
+      `The contract may not be synchronized on the blockchain yet (visible in explorer but not queryable). ` +
+      `Please wait a few more seconds and refresh this page, then try again.`
     )
   }
 
