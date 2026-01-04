@@ -95,7 +95,7 @@ module.exports = async function handler(req, res) {
     const contracts = (data || []).map(contract => ({
       contractId: contract.contract_id,
       templateId: contract.template_id,
-      payload: contract.payload,
+      payload: contract.payload || {},
       party: contract.party,
       status: contract.status,
       updateId: contract.update_id,
@@ -103,7 +103,9 @@ module.exports = async function handler(req, res) {
       explorerUrl: contract.explorer_url,
       createdAt: contract.created_at,
       updatedAt: contract.updated_at,
-      _fromCloudStorage: true // Flag to indicate this came from cloud storage
+      _fromCloudStorage: true, // Flag to indicate this came from cloud storage
+      // Ensure updateId is accessible at top level for easy lookup
+      ...(contract.update_id && { updateId: contract.update_id })
     }))
 
     console.log(`[api/get-contracts] ✅ Retrieved ${contracts.length} contracts`)

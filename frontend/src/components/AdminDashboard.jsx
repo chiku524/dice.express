@@ -165,10 +165,25 @@ export default function AdminDashboard() {
           title: r.payload?.title,
           admin: r.payload?.admin,
           creator: r.payload?.creator,
+          updateId: r.updateId || r.payload?.updateId,
           fromDatabase: !r._fromBlockchain,
           fromBlockchain: r._fromBlockchain || false
         })))
       }
+      
+      // Store updateId mapping for later use when exercising choices
+      // This helps us resolve updateId:... to actual contract IDs
+      allRequests.forEach(request => {
+        if (request.contractId && request.contractId.startsWith('updateId:')) {
+          const updateId = request.contractId.replace('updateId:', '')
+          // Store the updateId in the request object for reference
+          request.updateId = updateId
+        }
+        // Also check if updateId is in payload or metadata
+        if (!request.updateId) {
+          request.updateId = request.payload?.updateId || request.updateId
+        }
+      })
 
       if (!isMountedRef.current) return
 
