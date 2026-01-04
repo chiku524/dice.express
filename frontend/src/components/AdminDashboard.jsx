@@ -277,12 +277,64 @@ export default function AdminDashboard() {
       return matchingRequest.contractId
     }
     
-    // Try querying the blockchain to get the real contract ID
-    // The contract might be synchronized even though the database still has updateId: prefix
+    // Try querying the blockchain to get the real contract ID using completions endpoint
+    // The completions endpoint can find contracts by updateId even if active-contracts doesn't return them
     try {
-      console.log(`[AdminDashboard] 🔗 Querying blockchain for contract with updateId: ${updateId}`)
+      console.log(`[AdminDashboard] 🔗 Querying completions endpoint for contract with updateId: ${updateId}`)
       
-      // Query blockchain for MarketCreationRequest contracts
+      // Get the request to find completionOffset
+      const currentRequest = request || requests.find(r => {
+        const rUpdateId = r.updateId || r.payload?.updateId || (r.contractId && r.contractId.startsWith('updateId:') ? r.contractId.replace('updateId:', '') : null)
+        return rUpdateId === updateId
+      })
+      
+      const completionOffset = currentRequest?.completionOffset || currentRequest?.payload?.completionOffset
+      const token = localStorage.getItem('canton_token')
+      
+      // Try completions endpoint - it can find contracts by updateId
+      const completionsResponse = await fetch('/api/get-contracts-from-completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token && { 'Authorization': `Bearer ${token}` })
+        },
+        body: JSON.stringify({
+          party: wallet.party,
+          applicationId: 'prediction-markets',
+          offset: completionOffset ? completionOffset.toString() : '0',
+          templateId: `${PACKAGE_ID}:PredictionMarkets:MarketCreationRequest`
+        })
+      })
+      
+      if (completionsResponse.ok) {
+        const completionsData = await completionsResponse.json()
+        const completionsContracts = completionsData.contracts || []
+        
+        console.log(`[AdminDashboard] 📊 Found ${completionsContracts.length} contracts from completions endpoint`)
+        
+        // Find the contract that matches this updateId
+        const matchingContract = completionsContracts.find(c => 
+          c.updateId === updateId || 
+          c.payload?.updateId === updateId
+        )
+        
+        if (matchingContract && matchingContract.contractId && !matchingContract.contractId.startsWith('updateId:')) {
+          console.log(`[AdminDashboard] ✅ Found real contract ID from completions: ${matchingContract.contractId}`)
+          return matchingContract.contractId
+        }
+        
+        // If no exact match but we have contracts, try the most recent one (if there's only one)
+        if (completionsContracts.length === 1) {
+          const contract = completionsContracts[0]
+          if (contract.contractId && !contract.contractId.startsWith('updateId:')) {
+            console.log(`[AdminDashboard] ✅ Using single contract from completions: ${contract.contractId}`)
+            return contract.contractId
+          }
+        }
+      }
+      
+      // Fallback: Try active-contracts endpoint (may not work due to Canton limitations)
+      console.log(`[AdminDashboard] 🔄 Completions didn't find it, trying active-contracts endpoint...`)
       const templateId = `${PACKAGE_ID}:PredictionMarkets:MarketCreationRequest`
       const blockchainContracts = await ledger.query(
         [templateId],
@@ -290,19 +342,15 @@ export default function AdminDashboard() {
         { forceRefresh: true, walletParty: wallet.party }
       )
       
-      console.log(`[AdminDashboard] 📊 Found ${blockchainContracts?.length || 0} contracts on blockchain`)
+      console.log(`[AdminDashboard] 📊 Found ${blockchainContracts?.length || 0} contracts from active-contracts`)
       
-      // Try to find the contract by matching metadata or by using the most recent one
-      // Since we can't match by updateId directly, we'll use a heuristic:
-      // If there's exactly one contract, or if the request has matching metadata, use it
       if (Array.isArray(blockchainContracts) && blockchainContracts.length > 0) {
-        // For now, use the most recent contract (first in array)
-        // This works if there's only one pending contract
+        // Use the most recent contract (first in array)
         const blockchainContract = blockchainContracts[0]
         const realContractId = blockchainContract.contractId
         
         if (realContractId && !realContractId.startsWith('updateId:')) {
-          console.log(`[AdminDashboard] ✅ Found real contract ID from blockchain: ${realContractId}`)
+          console.log(`[AdminDashboard] ✅ Found real contract ID from active-contracts: ${realContractId}`)
           return realContractId
         }
       }
