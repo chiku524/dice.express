@@ -40,30 +40,37 @@ export default function MarketsList() {
           return prev
         })
         
-        // Query active markets from the ledger
-        // Force refresh to get latest data
-        const PACKAGE_ID = 'b87ef31c8ea5c53a940a7f71a4bc6513cf44048730c0551f1fc2e02adc7271f0'
-        const fetchedMarkets = await ledger.query([`${PACKAGE_ID}:PredictionMarkets:Market`], {}, { forceRefresh: true, walletParty: wallet?.party })
+        // DATABASE-FIRST APPROACH: Query database for approved MarketCreationRequest contracts
+        // Since Canton endpoints don't reliably return Market contracts, we use approved MarketCreationRequest from database
+        console.log('[MarketsList] 💾 Querying database for approved markets...')
+        
+        let databaseMarkets = []
+        try {
+          // Query database for approved MarketCreationRequest contracts
+          databaseMarkets = await ContractStorage.getContractsByType(
+            'MarketCreationRequest',
+            null, // No party filter - show all approved markets
+            'Approved'
+          )
+          console.log(`[MarketsList] ✅ Retrieved ${databaseMarkets.length} approved markets from database`)
+        } catch (databaseError) {
+          console.warn('[MarketsList] ⚠️ Database query failed:', databaseError)
+        }
         
         if (!isMountedRef.current) return
         
-        // Check if endpoints are unavailable
-        if (fetchedMarkets && fetchedMarkets._endpointsUnavailable) {
-          // Query endpoints don't exist - stop polling immediately
-          apiRoutesWorkingRef.current = false
-          if (pollIntervalRef.current) {
-            clearInterval(pollIntervalRef.current)
-            pollIntervalRef.current = null
+        // Use database results (database is primary source)
+        // Transform database contracts to match Market format
+        const transformedMarkets = databaseMarkets.map(contract => ({
+          contractId: contract.contractId,
+          templateId: contract.templateId,
+          payload: {
+            ...contract.payload,
+            status: 'Active' // Approved MarketCreationRequest contracts are active markets
           }
-          setMarkets([])
-          setError(null)
-          setLoading(false)
-          return
-        }
+        }))
         
-        // If we get empty results, it could mean no markets OR endpoints don't work
-        // For now, just show empty state - user can still create markets
-        setMarkets(Array.isArray(fetchedMarkets) ? fetchedMarkets : [])
+        setMarkets(transformedMarkets)
         setError(null)
         apiRoutesWorkingRef.current = true // Mark API as working
       } catch (err) {
