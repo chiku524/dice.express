@@ -278,11 +278,42 @@ class LedgerClient {
       throw new Error(`Invalid choice path format: ${choicePath}. Expected "Module:Template:Choice"`)
     }
     
+    // Handle contractId that starts with "updateId:" prefix
+    // This happens when contracts are stored with updateId before the real contract ID is available
+    let actualContractId = contractId
+    if (contractId.startsWith('updateId:')) {
+      const updateId = contractId.replace('updateId:', '')
+      console.warn(`[LedgerClient] Contract ID has "updateId:" prefix. Attempting to find actual contract ID for updateId: ${updateId}`)
+      
+      // Try to query the blockchain to get the actual contract ID
+      // Query for contracts created by this updateId
+      try {
+        // Query active contracts to find the contract created by this updateId
+        // We'll search for MarketCreationRequest contracts and match by updateId metadata
+        const templateId = `${packageId || 'b87ef31c8ea5c53a940a7f71a4bc6513cf44048730c0551f1fc2e02adc7271f0'}:${parts[0]}:${parts[1]}`
+        const contracts = await this.query([templateId], {}, { forceRefresh: true, walletParty: party })
+        
+        // Look for contract that matches (we can't directly match by updateId, so we'll need to check metadata)
+        // For now, if we can't find it, we'll throw an error asking user to wait
+        if (Array.isArray(contracts) && contracts.length > 0) {
+          // Try to find contract - this is a best-effort approach
+          // The contract might not be visible yet if it was just created
+          console.warn(`[LedgerClient] Found ${contracts.length} contracts, but cannot reliably match to updateId. Contract may not be synchronized yet.`)
+          throw new Error(`Contract with updateId ${updateId} may not be synchronized yet. Please wait a few seconds and try again, or the contract may need to be queried from the database first.`)
+        } else {
+          throw new Error(`Contract with updateId ${updateId} not found on blockchain yet. Please wait a few seconds for synchronization, or check the database for the actual contract ID.`)
+        }
+      } catch (queryError) {
+        // If query fails, throw a helpful error
+        throw new Error(`Cannot exercise choice: Contract ID "${contractId}" is an updateId, not a real contract ID. The contract may not be synchronized yet. Please wait a few seconds and try again, or refresh the Admin Dashboard to get the actual contract ID.`)
+      }
+    }
+    
     // If packageId not provided, try to extract from contractId or use default
     // Contract IDs in Canton are in format: #contractId:packageId:module:template
     let finalPackageId = packageId
-    if (!finalPackageId && contractId.includes(':')) {
-      const contractParts = contractId.split(':')
+    if (!finalPackageId && actualContractId.includes(':')) {
+      const contractParts = actualContractId.split(':')
       if (contractParts.length >= 2) {
         finalPackageId = contractParts[1]
       }
@@ -302,7 +333,7 @@ class LedgerClient {
       throw new Error('Party is required to exercise a choice. Please connect a wallet.')
     }
     
-    return this.exercise(templateId, contractId, choice, argument, finalParty)
+    return this.exercise(templateId, actualContractId, choice, argument, finalParty)
   }
 
   /**
