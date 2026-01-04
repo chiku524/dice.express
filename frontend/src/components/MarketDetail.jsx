@@ -215,16 +215,32 @@ export default function MarketDetail() {
         <div style={{ marginTop: '2rem', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
           <div>
             <h3>Total Volume</h3>
-            <p style={{ fontSize: '1.5rem', fontWeight: 'bold' }}>{marketData.totalVolume}</p>
+            <p style={{ fontSize: '1.5rem', fontWeight: 'bold' }}>{marketData.totalVolume || 0}</p>
           </div>
-          <div>
-            <h3>Yes Volume</h3>
-            <p style={{ fontSize: '1.5rem', fontWeight: 'bold' }}>{marketData.yesVolume}</p>
-          </div>
-          <div>
-            <h3>No Volume</h3>
-            <p style={{ fontSize: '1.5rem', fontWeight: 'bold' }}>{marketData.noVolume}</p>
-          </div>
+          {marketData.marketType === 'Binary' && (
+            <>
+              <div>
+                <h3>Yes Volume</h3>
+                <p style={{ fontSize: '1.5rem', fontWeight: 'bold' }}>{marketData.yesVolume || 0}</p>
+              </div>
+              <div>
+                <h3>No Volume</h3>
+                <p style={{ fontSize: '1.5rem', fontWeight: 'bold' }}>{marketData.noVolume || 0}</p>
+              </div>
+            </>
+          )}
+          {marketData.marketType === 'MultiOutcome' && marketData.outcomeVolumes && Object.keys(marketData.outcomeVolumes).length > 0 && (
+            <div style={{ gridColumn: '1 / -1' }}>
+              <h3>Outcome Volumes</h3>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '0.5rem', marginTop: '0.5rem' }}>
+                {Object.entries(marketData.outcomeVolumes).map(([outcome, volume]) => (
+                  <div key={outcome} style={{ padding: '0.5rem', background: 'rgba(255, 255, 255, 0.05)', borderRadius: '4px' }}>
+                    <strong>{outcome}:</strong> {volume}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
