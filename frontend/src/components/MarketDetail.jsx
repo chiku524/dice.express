@@ -195,7 +195,6 @@ export default function MarketDetail() {
               placeholder="Enter amount"
               min="0"
               step="0.01"
-              disabled
             />
           </div>
           <div className="form-group">
@@ -208,7 +207,6 @@ export default function MarketDetail() {
               min="0"
               max="1"
               step="0.01"
-              disabled
             />
           </div>
           <button className="btn-primary" onClick={handleCreatePosition} disabled>
