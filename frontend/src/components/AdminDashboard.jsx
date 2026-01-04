@@ -248,64 +248,42 @@ export default function AdminDashboard() {
   }
 
   // Helper function to resolve contract ID (handles updateId: prefix)
+  // Since contracts come from database, we check if the contract ID is real or needs resolution
   const resolveContractId = async (contractId, request) => {
-    // If contractId doesn't have updateId: prefix, return as-is
+    // If contractId doesn't have updateId: prefix, it's already a real contract ID - use it directly
     if (!contractId.startsWith('updateId:')) {
+      console.log(`[AdminDashboard] ✅ Using real contract ID directly: ${contractId}`)
       return contractId
     }
     
+    // Contract has updateId: prefix - this means it hasn't synchronized on blockchain yet
+    // We cannot exercise choices until the contract is synchronized
     const updateId = contractId.replace('updateId:', '')
-    console.log(`[AdminDashboard] Resolving contract ID for updateId: ${updateId}`)
+    console.log(`[AdminDashboard] ⚠️ Contract ID has updateId: prefix - contract not synchronized yet`)
+    console.log(`[AdminDashboard] Update ID: ${updateId}`)
     
-    // First, try to find it in the current requests list
-    // Contracts from blockchain should have the actual contract ID
+    // Try to find a matching contract in the requests list that might have a real contract ID
+    // This could happen if we mixed database and blockchain results
     const matchingRequest = requests.find(r => {
-      if (r.contractId && !r.contractId.startsWith('updateId:')) {
-        // Check if this contract's updateId matches
-        const rUpdateId = r.updateId || r.payload?.updateId
-        return rUpdateId === updateId
+      const rUpdateId = r.updateId || r.payload?.updateId || (r.contractId && r.contractId.startsWith('updateId:') ? r.contractId.replace('updateId:', '') : null)
+      if (rUpdateId === updateId && r.contractId && !r.contractId.startsWith('updateId:')) {
+        return true
       }
       return false
     })
     
     if (matchingRequest && matchingRequest.contractId) {
-      console.log(`[AdminDashboard] ✅ Found actual contract ID in current list: ${matchingRequest.contractId}`)
+      console.log(`[AdminDashboard] ✅ Found actual contract ID in mixed results: ${matchingRequest.contractId}`)
       return matchingRequest.contractId
     }
     
-    // Try querying blockchain to get the actual contract ID
-    console.log(`[AdminDashboard] Querying blockchain for contract ID...`)
-    try {
-      const templateId = `${PACKAGE_ID}:PredictionMarkets:MarketCreationRequest`
-      const token = localStorage.getItem('canton_token')
-      
-      const response = await fetch('/api/get-contract-id-from-update', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token && { 'Authorization': `Bearer ${token}` })
-        },
-        body: JSON.stringify({
-          updateId: updateId,
-          templateId: templateId,
-          party: wallet.party,
-          applicationId: 'prediction-markets'
-        })
-      })
-      
-      if (response.ok) {
-        const data = await response.json()
-        if (data.contractId) {
-          console.log(`[AdminDashboard] ✅ Found actual contract ID from API: ${data.contractId}`)
-          return data.contractId
-        }
-      }
-    } catch (apiError) {
-      console.warn('[AdminDashboard] Failed to query contract ID from API:', apiError.message)
-    }
-    
-    // If we still can't find it, throw an error
-    throw new Error(`Cannot find actual contract ID for updateId ${updateId}. The contract may not be synchronized on the blockchain yet. Please wait 10-30 seconds and refresh the Admin Dashboard, then try again.`)
+    // Contract is not synchronized yet - we cannot exercise choices
+    // Provide clear error message to user
+    throw new Error(
+      `This contract has not been synchronized on the blockchain yet. ` +
+      `Please wait 10-30 seconds after contract creation, then refresh this page. ` +
+      `Once synchronized, the contract will have a real contract ID and can be approved/rejected.`
+    )
   }
 
   const approveMarket = async (contractId) => {
