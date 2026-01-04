@@ -189,8 +189,20 @@ export default function MarketDetail() {
               value={positionType}
               onChange={(e) => setPositionType(e.target.value)}
             >
-              <option value="Yes">Yes</option>
-              <option value="No">No</option>
+              {marketData.marketType === 'MultiOutcome' && marketData.outcomes && marketData.outcomes.length > 0 ? (
+                // Multi-outcome markets: show outcomes
+                marketData.outcomes.map((outcome, index) => (
+                  <option key={index} value={outcome}>
+                    {outcome}
+                  </option>
+                ))
+              ) : (
+                // Binary markets: show Yes/No
+                <>
+                  <option value="Yes">Yes</option>
+                  <option value="No">No</option>
+                </>
+              )}
             </select>
           </div>
           <div className="form-group">
@@ -202,6 +214,7 @@ export default function MarketDetail() {
               placeholder="Enter amount"
               min="0"
               step="0.01"
+              disabled
             />
           </div>
           <div className="form-group">
@@ -214,10 +227,11 @@ export default function MarketDetail() {
               min="0"
               max="1"
               step="0.01"
+              disabled
             />
           </div>
-          <button className="btn-primary" onClick={handleCreatePosition}>
-            Create Position
+          <button className="btn-primary" onClick={handleCreatePosition} disabled>
+            Create Position (Disabled)
           </button>
         </div>
       )}
