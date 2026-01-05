@@ -10,12 +10,12 @@
   --color-primary-light: rgba(100, 108, 255, 0.1);
   --color-primary-border: rgba(100, 108, 255, 0.3);
   
-  --color-background: #1a1a1a;
-  --color-background-transparent: rgba(26, 26, 46, 0.85);
-  --color-surface: rgba(30, 30, 46, 0.9);
-  --color-surface-hover: rgba(37, 37, 56, 0.95);
-  --color-border: rgba(100, 108, 255, 0.2);
-  --color-border-light: rgba(255, 255, 255, 0.1);
+  --color-background: #0f0f1a;
+  --color-background-transparent: rgba(15, 15, 26, 0.9);
+  --color-surface: rgba(30, 30, 46, 0.85);
+  --color-surface-hover: rgba(40, 40, 60, 0.9);
+  --color-border: rgba(100, 108, 255, 0.25);
+  --color-border-light: rgba(255, 255, 255, 0.12);
   
   --color-text-primary: rgba(255, 255, 255, 0.87);
   --color-text-secondary: rgba(255, 255, 255, 0.7);

@@ -12,6 +12,7 @@ export default function Documentation() {
     { id: 'deposit-withdraw', title: 'Deposit & Withdraw' },
     { id: 'portfolio', title: 'Portfolio' },
     { id: 'admin-dashboard', title: 'Admin Dashboard' },
+    { id: 'blockchain', title: 'Blockchain Integration' },
     { id: 'architecture', title: 'Architecture' },
     { id: 'security', title: 'Security' },
     { id: 'api-reference', title: 'API Reference' }
@@ -33,6 +34,8 @@ export default function Documentation() {
         return <PortfolioContent />
       case 'admin-dashboard':
         return <AdminDashboardContent />
+      case 'blockchain':
+        return <BlockchainContent />
       case 'architecture':
         return <ArchitectureContent />
       case 'security':
@@ -533,6 +536,114 @@ function AdminDashboardContent() {
   )
 }
 
+function BlockchainContent() {
+  return (
+    <div className="doc-section">
+      <h1>Blockchain Integration</h1>
+      
+      <h2>Overview</h2>
+      <p>
+        The application uses a <strong>dynamic blockchain integration system</strong> that allows seamless 
+        support for multiple blockchain networks while maintaining a consistent interface. The architecture 
+        is designed to be network-agnostic, extensible, and future-proof.
+      </p>
+
+      <h2>Current Implementation: Canton</h2>
+      <p>
+        The application currently uses the <strong>Canton blockchain</strong> via the Canton JSON API. 
+        Due to current limitations in the JSON API, the application uses a <strong>hybrid approach</strong> 
+        combining on-chain operations with database-backed storage.
+      </p>
+
+      <h3>Hybrid Architecture</h3>
+      <ul>
+        <li><strong>On-Chain:</strong> Contract creation, choice exercising, and CC deposits/withdrawals</li>
+        <li><strong>Database-Backed:</strong> Contract queries, position tracking, and market listings</li>
+        <li><strong>Rationale:</strong> Canton JSON API does not provide general contract query endpoints</li>
+      </ul>
+
+      <h3>Supported Operations</h3>
+      <ul>
+        <li>✅ <strong>Contract Creation:</strong> Market creation requests submitted to Canton blockchain</li>
+        <li>✅ <strong>Choice Exercising:</strong> Admin approval/rejection, market resolution</li>
+        <li>✅ <strong>CC Transfers:</strong> Deposits and withdrawals via TokenBalance contracts</li>
+        <li>⚠️ <strong>Contract Querying:</strong> Limited - uses database as primary source</li>
+        <li>❌ <strong>Real-Time Events:</strong> Not yet supported (requires WebSocket/gRPC)</li>
+      </ul>
+
+      <h2>Blockchain Provider System</h2>
+      <p>
+        The application uses a provider-based architecture that makes it easy to add support for additional 
+        blockchain networks in the future.
+      </p>
+
+      <h3>Core Components</h3>
+      <ul>
+        <li><strong>BlockchainProvider:</strong> Abstract interface for blockchain operations</li>
+        <li><strong>BlockchainRegistry:</strong> Central registry for network providers</li>
+        <li><strong>CantonProvider:</strong> Current implementation for Canton blockchain</li>
+      </ul>
+
+      <h3>Provider Interface</h3>
+      <p>All blockchain providers implement a consistent interface:</p>
+      <pre><code>{`class BlockchainProvider {
+  async connect()                    // Initialize connection
+  async disconnect()                 // Close connection
+  async getAccount()                 // Get current account/party
+  async createContract(...)          // Create a contract
+  async exerciseChoice(...)          // Exercise a contract choice
+  async queryContracts(...)          // Query contracts
+  async getContract(...)             // Get contract by ID
+  getSupportedFeatures()             // List supported features
+}`}</code></pre>
+
+      <h2>Future: Full On-Chain Support</h2>
+      <p>
+        When Canton provides the necessary capabilities (contract query endpoints, real-time events, etc.), 
+        the application will migrate to a full on-chain approach. The architecture is already prepared for 
+        this transition.
+      </p>
+
+      <h3>Required Canton Features</h3>
+      <ul>
+        <li><strong>Contract Query Endpoints:</strong> General contract querying via JSON API</li>
+        <li><strong>Contract Retrieval:</strong> Get contract by ID endpoint</li>
+        <li><strong>Real-Time Events:</strong> WebSocket/SSE support for contract updates</li>
+        <li><strong>Transaction History:</strong> Query transaction history for accounts</li>
+      </ul>
+
+      <h3>Migration Path</h3>
+      <p>The migration will happen in phases:</p>
+      <ol>
+        <li><strong>Phase 1:</strong> Add query endpoints (database as cache/fallback)</li>
+        <li><strong>Phase 2:</strong> Add contract retrieval (remove database dependency)</li>
+        <li><strong>Phase 3:</strong> Add real-time events (remove polling)</li>
+        <li><strong>Phase 4:</strong> Full on-chain (database for indexing only)</li>
+      </ol>
+
+      <h2>Adding New Blockchain Networks</h2>
+      <p>
+        The provider system makes it straightforward to add support for additional blockchain networks 
+        (Ethereum, Polygon, etc.) in the future. See the <code>BLOCKCHAIN_INTEGRATION.md</code> documentation 
+        for detailed instructions.
+      </p>
+
+      <h2>Configuration</h2>
+      <p>Blockchain providers are configured via environment variables:</p>
+      <pre><code>{`# Canton Configuration
+VITE_CANTON_LEDGER_URL=https://participant.dev.canton.wolfedgelabs.com/json-api
+VITE_CANTON_PACKAGE_ID=b87ef31c8ea5c53a940a7f71a4bc6513cf44048730c0551f1fc2e02adc7271f0`}</code></pre>
+
+      <h2>Documentation</h2>
+      <p>For more detailed information, see:</p>
+      <ul>
+        <li><strong>Blockchain Integration Guide:</strong> Architecture and provider system</li>
+        <li><strong>Canton Integration Guide:</strong> Canton-specific integration details and migration path</li>
+      </ul>
+    </div>
+  )
+}
+
 function ArchitectureContent() {
   return (
     <div className="doc-section">
@@ -815,13 +926,78 @@ function APIReferenceContent() {
   "status": "string"
 }`}</pre>
 
+      <h2>Oracle Endpoints</h2>
+      
+      <h3>GET /api/oracle</h3>
+      <p>Fetch price data from RedStone Oracle for market resolution.</p>
+      <p><strong>Query Parameters:</strong></p>
+      <ul>
+        <li><code>symbol</code> - Asset symbol (e.g., "BTC", "ETH")</li>
+      </ul>
+      <p><strong>Response:</strong></p>
+      <pre><code>{`{
+  "symbol": "BTC",
+  "value": 50000.00,
+  "timestamp": 1234567890,
+  "source": "redstone"
+}`}</code></pre>
+
       <h2>Canton API Proxies</h2>
       
       <h3>POST /api/command</h3>
-      <p>Proxy for Canton JSON API command submission.</p>
+      <p>Proxy for Canton JSON API command submission (create contracts, exercise choices).</p>
+      <p><strong>Headers:</strong> Authorization: Bearer {token}</p>
+      <p><strong>Request:</strong></p>
+      <pre><code>{`{
+  "commands": {
+    "party": "string",
+    "applicationId": "string",
+    "commandId": "string",
+    "list": [
+      {
+        "templateId": "string",
+        "payload": {...},
+        "contractId": "string",
+        "choice": "string",
+        "argument": {...}
+      }
+    ]
+  }
+}`}</code></pre>
+      <p><strong>Response:</strong></p>
+      <pre><code>{`{
+  "updateId": "string",
+  "contractId": "string",
+  "result": {...},
+  "transactionHash": "string"
+}`}</code></pre>
       
       <h3>POST /api/query</h3>
-      <p>Proxy for Canton JSON API queries (active-contracts endpoint).</p>
+      <p>Proxy for Canton JSON API queries (active-contracts endpoint). Note: Limited support - returns empty array if endpoints unavailable.</p>
+      <p><strong>Request:</strong></p>
+      <pre><code>{`{
+  "templateIds": ["string"],
+  "query": {},
+  "walletParty": "string"
+}`}</code></pre>
+      <p><strong>Response:</strong></p>
+      <pre><code>{`[
+  {
+    "contractId": "string",
+    "templateId": "string",
+    "payload": {...}
+  }
+]`}</code></pre>
+
+      <h2>Health & Diagnostics</h2>
+      
+      <h3>GET /api/health</h3>
+      <p>Check API health status.</p>
+      <p><strong>Response:</strong></p>
+      <pre><code>{`{
+  "status": "ok",
+  "timestamp": "2025-01-01T00:00:00Z"
+}`}</code></pre>
 
       <h2>Error Responses</h2>
       <p>All endpoints may return error responses in the format:</p>
