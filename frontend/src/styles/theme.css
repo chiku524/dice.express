@@ -173,7 +173,7 @@
 
 /* Market Card Enhancements */
 .market-card {
-  background: var(--color-surface, rgba(30, 30, 46, 0.75));
+  background: var(--color-surface, rgba(30, 30, 46, 0.5));
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
   border: 1px solid var(--color-border, rgba(100, 108, 255, 0.2));
