@@ -220,10 +220,24 @@
     min-width: 100%;
     position: relative;
     top: 0;
+    left: 0;
     height: auto;
     max-height: 300px;
     border-right: none;
-    border-bottom: 1px solid rgba(100, 108, 255, 0.2);
+    border-bottom: 1px solid rgba(100, 108, 255, 0.25);
+    /* Show scrollbar on mobile for horizontal nav */
+    scrollbar-width: thin;
+    -ms-overflow-style: auto;
+  }
+
+  .documentation-sidebar::-webkit-scrollbar {
+    display: block;
+    height: 4px;
+  }
+
+  .documentation-content {
+    margin-left: 0;
+    margin-top: var(--spacing-md, 1rem);
   }
 
   .documentation-nav {
