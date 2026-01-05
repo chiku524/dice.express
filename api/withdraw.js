@@ -148,28 +148,48 @@ module.exports = async function handler(req, res) {
     // Step 3: Update user's virtual CC balance in database
     if (supabase) {
       try {
-        // Update user balance (subtract the withdrawn amount)
-        // Use environment variable or construct from request
-        const baseUrl = process.env.VERCEL_URL 
-          ? `https://${process.env.VERCEL_URL}` 
-          : (req.headers.host ? `https://${req.headers.host}` : 'http://localhost:3000')
-        const balanceUpdateResponse = await fetch(`${baseUrl}/api/update-user-balance`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            userParty,
-            amount: amountNum.toString(),
-            operation: 'subtract'
-          })
-        })
+        // Get current balance
+        const { data: currentBalance, error: fetchError } = await supabase
+          .from('user_balances')
+          .select('balance')
+          .eq('party', userParty)
+          .single()
 
-        if (balanceUpdateResponse.ok) {
-          const balanceResult = await balanceUpdateResponse.json()
-          console.log('[api/withdraw] ✅ User balance updated:', balanceResult)
+        let currentBalanceNum = 0
+        if (fetchError && fetchError.code === 'PGRST116') {
+          // No balance record exists - create one with 0
+          currentBalanceNum = 0
+        } else if (fetchError) {
+          console.warn('[api/withdraw] ⚠️ Error fetching balance:', fetchError)
         } else {
-          console.warn('[api/withdraw] ⚠️ Failed to update user balance')
+          currentBalanceNum = parseFloat(currentBalance?.balance || '0')
+        }
+
+        // Calculate new balance (subtract withdrawal amount)
+        const newBalanceNum = Math.max(0, currentBalanceNum - amountNum) // Ensure non-negative
+
+        // Update or create balance record
+        const { data: updatedBalance, error: updateError } = await supabase
+          .from('user_balances')
+          .upsert({
+            party: userParty,
+            balance: newBalanceNum.toString(),
+            updated_at: new Date().toISOString()
+          }, {
+            onConflict: 'party',
+            ignoreDuplicates: false
+          })
+          .select()
+          .single()
+
+        if (updateError) {
+          console.warn('[api/withdraw] ⚠️ Failed to update user balance:', updateError)
+        } else {
+          console.log('[api/withdraw] ✅ User balance updated:', {
+            previousBalance: currentBalanceNum.toString(),
+            newBalance: newBalanceNum.toString(),
+            withdrawalAmount: amountNum.toString()
+          })
         }
 
         // Track transaction in database
