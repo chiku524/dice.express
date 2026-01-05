@@ -86,11 +86,11 @@ export default function CreateMarket() {
           outcomes: outcomes,
           settlementTrigger: settlementTrigger, // SettlementTrigger is a variant, so { tag: '...', value: '...' } is correct
           resolutionCriteria: formData.resolutionCriteria,
-          depositAmount: '100.0', // Decimal type - use string
-          depositCid: null, // Would need to create holding first
+          depositAmount: '100.0', // Decimal type - use string (virtual tracking only, NOT on-chain transfer)
+          depositCid: null, // No actual on-chain deposit - market creation is virtual (database-only)
           configCid: null, // Would need to fetch from config
-          creatorBalance: null, // Fixed: was creatorAccount
-          adminBalance: null, // Fixed: was adminAccount
+          creatorBalance: null, // No actual balance transfer - virtual tracking only
+          adminBalance: null, // No actual balance transfer - virtual tracking only
         },
         wallet.party
       )
@@ -244,11 +244,11 @@ export default function CreateMarket() {
         outcomes: outcomes,
         settlementTrigger: settlementTrigger,
         resolutionCriteria: formData.resolutionCriteria,
-        depositAmount: formData.depositAmount || '100.0',
-        depositCid: null,
+        depositAmount: formData.depositAmount || '100.0', // Virtual tracking only (NOT on-chain)
+        depositCid: null, // No on-chain deposit - virtual tracking only
         configCid: null,
-        creatorBalance: null,
-        adminBalance: null,
+        creatorBalance: null, // Virtual tracking only
+        adminBalance: null, // Virtual tracking only
         status: 'PendingApproval',
         // Store metadata
         updateId: updateId,

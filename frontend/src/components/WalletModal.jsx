@@ -93,8 +93,8 @@ export default function WalletModal({ isOpen, onClose }) {
     }
   }
 
-  const clearToken = () => {
-    const { clearToken } = require('../utils/tokenManager')
+  const clearToken = async () => {
+    const { clearToken } = await import('../utils/tokenManager')
     clearToken()
     setTokenInput('')
     setTokenSuccess(true)
@@ -169,9 +169,6 @@ export default function WalletModal({ isOpen, onClose }) {
                   </button>
                 </div>
                 
-                <div className="default-party-info-compact">
-                  <p className="hint">💡 Leave empty to use default: <code>{DEFAULT_PARTY_ID.substring(0, 30)}...</code></p>
-                </div>
               </div>
             )}
           </section>

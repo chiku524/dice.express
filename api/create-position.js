@@ -123,16 +123,18 @@ module.exports = async function handler(req, res) {
       createdAt: new Date().toISOString()
     }
 
-    // Step 4: Store position in database (with deposit tracking)
+    // Step 4: Store position in database (virtual deposit tracking - NOT on-chain)
+    // NOTE: Position creation uses virtual CC (database-only), NOT on-chain transfers
+    // Actual CC deposits/withdrawals must be done via /api/deposit and /api/withdraw endpoints
     const PLATFORM_WALLET_PARTY_ID = 'ee15aa3d-0bd4-44f9-9664-b49ad7e308aa::122087fa379c37332a753379c58e18d397e39cb82c68c15e4af7134be46561974292'
     
-    // Add deposit info to position payload
+    // Add deposit info to position payload (virtual tracking only)
     const positionPayloadWithDeposit = {
       ...positionPayload,
       depositAmount: amountNum.toString(),
-      depositCurrency: 'CC', // Canton Coin
+      depositCurrency: 'CC', // Canton Coin (virtual - tracked in database only)
       platformWallet: PLATFORM_WALLET_PARTY_ID,
-      depositStatus: 'completed',
+      depositStatus: 'completed', // Virtual status - assumes user has already deposited CC via /api/deposit
       depositTimestamp: new Date().toISOString()
     }
     
