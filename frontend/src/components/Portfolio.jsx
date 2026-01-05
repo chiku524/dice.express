@@ -375,7 +375,10 @@ export default function Portfolio() {
 
   return (
     <div>
-      <h1>My Portfolio</h1>
+      <div className="page-header">
+        <h1>My Portfolio</h1>
+        <p>Manage your positions, deposits, and trading activity</p>
+      </div>
       
       {/* User Balance Display */}
       <div className="card" style={{ marginBottom: '2rem', background: 'rgba(100, 108, 255, 0.1)', border: '1px solid rgba(100, 108, 255, 0.3)' }}>

@@ -25,6 +25,7 @@ import WalletModal from './components/WalletModal'
 import ErrorBoundary from './components/ErrorBoundary'
 import Navbar from './components/Navbar'
 import Footer from './components/Footer'
+import './styles/theme.css'
 import './App.css'
 
 // Component to track page views
