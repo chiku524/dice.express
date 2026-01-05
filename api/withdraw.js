@@ -145,9 +145,34 @@ module.exports = async function handler(req, res) {
 
     console.log('[api/withdraw] ✅ On-chain transfer successful:', data.updateId || data.result)
 
-    // Step 3: Track transaction in database
+    // Step 3: Update user's virtual CC balance in database
     if (supabase) {
       try {
+        // Update user balance (subtract the withdrawn amount)
+        // Use environment variable or construct from request
+        const baseUrl = process.env.VERCEL_URL 
+          ? `https://${process.env.VERCEL_URL}` 
+          : (req.headers.host ? `https://${req.headers.host}` : 'http://localhost:3000')
+        const balanceUpdateResponse = await fetch(`${baseUrl}/api/update-user-balance`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            userParty,
+            amount: amountNum.toString(),
+            operation: 'subtract'
+          })
+        })
+
+        if (balanceUpdateResponse.ok) {
+          const balanceResult = await balanceUpdateResponse.json()
+          console.log('[api/withdraw] ✅ User balance updated:', balanceResult)
+        } else {
+          console.warn('[api/withdraw] ⚠️ Failed to update user balance')
+        }
+
+        // Track transaction in database
         const transactionId = `withdraw-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
         await supabase.from('contracts').upsert({
           contract_id: transactionId,

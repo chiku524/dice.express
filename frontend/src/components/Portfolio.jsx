@@ -18,6 +18,9 @@ export default function Portfolio() {
   const [withdrawError, setWithdrawError] = useState(null)
   const [depositSuccess, setDepositSuccess] = useState(false)
   const [withdrawSuccess, setWithdrawSuccess] = useState(false)
+  const [userBalance, setUserBalance] = useState('0')
+  const [balanceLoading, setBalanceLoading] = useState(true)
+  const [marketTitles, setMarketTitles] = useState({}) // Map of marketId -> title
   const isMountedRef = useRef(true)
 
   useEffect(() => {
@@ -30,6 +33,61 @@ export default function Portfolio() {
       }
     }, 10000) // 10 second timeout
     
+    const fetchUserBalance = async () => {
+      if (!wallet) return
+
+      try {
+        const response = await fetch('/api/get-user-balance', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            userParty: wallet.party
+          })
+        })
+
+        if (response.ok) {
+          const data = await response.json()
+          setUserBalance(data.balance || '0')
+        } else {
+          console.warn('[Portfolio] ⚠️ Failed to fetch user balance')
+          setUserBalance('0')
+        }
+      } catch (err) {
+        console.warn('[Portfolio] ⚠️ Error fetching user balance:', err)
+        setUserBalance('0')
+      } finally {
+        setBalanceLoading(false)
+      }
+    }
+
+    const fetchMarketTitles = async (marketIds) => {
+      if (!marketIds || marketIds.length === 0) return {}
+
+      try {
+        // Fetch all approved markets
+        const markets = await ContractStorage.getContractsByType(
+          'MarketCreationRequest',
+          null,
+          'Approved'
+        )
+
+        // Create a map of marketId -> title
+        const titlesMap = {}
+        markets.forEach(market => {
+          if (market.payload?.marketId && market.payload?.title) {
+            titlesMap[market.payload.marketId] = market.payload.title
+          }
+        })
+
+        return titlesMap
+      } catch (err) {
+        console.warn('[Portfolio] ⚠️ Error fetching market titles:', err)
+        return {}
+      }
+    }
+
     const fetchPositions = async () => {
       if (!wallet || !isMountedRef.current) {
         setLoading(false)
@@ -58,6 +116,13 @@ export default function Portfolio() {
           console.log(`[Portfolio] ✅ Retrieved ${userPositions.length} positions from database`)
           
           if (!isMountedRef.current) return
+          
+          // Get unique market IDs
+          const marketIds = [...new Set(userPositions.map(p => p.payload?.marketId).filter(Boolean))]
+          
+          // Fetch market titles
+          const titles = await fetchMarketTitles(marketIds)
+          setMarketTitles(titles)
           
           // Sort by creation date (newest first)
           const sortedPositions = userPositions.sort((a, b) => {
@@ -104,6 +169,9 @@ export default function Portfolio() {
         }
       }
     }
+
+    // Fetch user balance
+    fetchUserBalance()
 
     fetchPositions()
 
@@ -221,7 +289,8 @@ export default function Portfolio() {
       setDepositSuccess(true)
       setDepositAmount('')
       
-      // Refresh positions after deposit
+      // Refresh balance and positions after deposit
+      await fetchUserBalance()
       setTimeout(() => {
         window.location.reload()
       }, 2000)
@@ -288,7 +357,8 @@ export default function Portfolio() {
       setWithdrawSuccess(true)
       setWithdrawAmount('')
       
-      // Refresh positions after withdrawal
+      // Refresh balance and positions after withdrawal
+      await fetchUserBalance()
       setTimeout(() => {
         window.location.reload()
       }, 2000)
@@ -306,6 +376,17 @@ export default function Portfolio() {
   return (
     <div>
       <h1>My Portfolio</h1>
+      
+      {/* User Balance Display */}
+      <div className="card" style={{ marginBottom: '2rem', background: 'rgba(100, 108, 255, 0.1)', border: '1px solid rgba(100, 108, 255, 0.3)' }}>
+        <h2 style={{ marginBottom: '0.5rem' }}>Virtual CC Balance</h2>
+        <p style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#646cff', margin: 0 }}>
+          {balanceLoading ? 'Loading...' : `${parseFloat(userBalance).toFixed(2)} CC`}
+        </p>
+        <p style={{ fontSize: '0.9rem', color: 'rgba(255, 255, 255, 0.6)', marginTop: '0.5rem', marginBottom: 0 }}>
+          This is your virtual CC balance tracked in the database. Deposit CC to increase your balance.
+        </p>
+      </div>
       
       {/* Deposit/Withdraw Section */}
       <div className="card" style={{ marginBottom: '2rem' }}>
@@ -413,7 +494,12 @@ export default function Portfolio() {
               <div key={position.contractId} className="card" style={{ marginBottom: '1rem' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start' }}>
                   <div style={{ flex: 1 }}>
-                    <h3>Market: {position.payload?.marketId || 'Unknown'}</h3>
+                    <h3>{marketTitles[position.payload?.marketId] || position.payload?.marketId || 'Unknown Market'}</h3>
+                    {marketTitles[position.payload?.marketId] && (
+                      <p style={{ fontSize: '0.85rem', color: 'rgba(255, 255, 255, 0.5)', marginTop: '0.25rem', marginBottom: '0.5rem' }}>
+                        Market ID: {position.payload?.marketId}
+                      </p>
+                    )}
                     <div style={{ marginTop: '0.5rem', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '0.5rem' }}>
                       <div>
                         <strong>Type:</strong> {formatPositionType(position.payload?.positionType)}
@@ -476,7 +562,7 @@ export default function Portfolio() {
                         )}
                       </div>
                       <div style={{ fontSize: '0.9rem', color: 'rgba(255, 255, 255, 0.7)', marginBottom: '0.25rem' }}>
-                        Market: {activity.position?.marketId || 'Unknown'}
+                        Market: {marketTitles[activity.position?.marketId] || activity.position?.marketId || 'Unknown'}
                       </div>
                       <div style={{ fontSize: '0.9rem', color: 'rgba(255, 255, 255, 0.7)', marginBottom: '0.25rem' }}>
                         Type: {formatPositionType(activity.position?.positionType)} | Amount: {activity.position?.amount || '0'} | Price: {activity.position?.price || '0'}

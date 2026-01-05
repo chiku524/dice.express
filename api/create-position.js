@@ -83,6 +83,48 @@ module.exports = async function handler(req, res) {
       owner
     })
 
+    // Step 0: Check user's virtual CC balance
+    if (supabase) {
+      try {
+        // Use environment variable or construct from request
+        const baseUrl = process.env.VERCEL_URL 
+          ? `https://${process.env.VERCEL_URL}` 
+          : (req.headers.host ? `https://${req.headers.host}` : 'http://localhost:3000')
+        const balanceResponse = await fetch(`${baseUrl}/api/get-user-balance`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            userParty: owner
+          })
+        })
+
+        if (balanceResponse.ok) {
+          const balanceData = await balanceResponse.json()
+          const currentBalance = parseFloat(balanceData.balance || '0')
+          
+          if (currentBalance < amountNum) {
+            return res.status(400).json({
+              error: 'Insufficient balance',
+              message: `You have ${currentBalance} CC but need ${amountNum} CC to create this position. Please deposit more CC first.`,
+              currentBalance: currentBalance.toString(),
+              requiredAmount: amountNum.toString()
+            })
+          }
+
+          console.log('[api/create-position] ✅ Balance check passed:', {
+            currentBalance,
+            requiredAmount: amountNum
+          })
+        } else {
+          console.warn('[api/create-position] ⚠️ Could not check balance, proceeding anyway')
+        }
+      } catch (balanceError) {
+        console.warn('[api/create-position] ⚠️ Balance check failed, proceeding anyway:', balanceError.message)
+      }
+    }
+
     // Step 1: Find the market contract in the database
     const { data: marketContracts, error: marketError } = await supabase
       .from('contracts')

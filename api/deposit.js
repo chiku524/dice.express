@@ -142,9 +142,30 @@ module.exports = async function handler(req, res) {
 
     console.log('[api/deposit] ✅ On-chain transfer successful:', data.updateId || data.result)
 
-    // Step 3: Track transaction in database
+    // Step 3: Update user's virtual CC balance in database
     if (supabase) {
       try {
+        // Update user balance (add the deposited amount)
+        const balanceUpdateResponse = await fetch(`${req.headers.host ? `https://${req.headers.host}` : 'http://localhost:3000'}/api/update-user-balance`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            userParty,
+            amount: amountNum.toString(),
+            operation: 'add'
+          })
+        })
+
+        if (balanceUpdateResponse.ok) {
+          const balanceResult = await balanceUpdateResponse.json()
+          console.log('[api/deposit] ✅ User balance updated:', balanceResult)
+        } else {
+          console.warn('[api/deposit] ⚠️ Failed to update user balance')
+        }
+
+        // Track transaction in database
         const transactionId = `deposit-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
         await supabase.from('contracts').upsert({
           contract_id: transactionId,
