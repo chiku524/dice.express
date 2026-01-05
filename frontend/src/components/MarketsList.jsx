@@ -203,14 +203,13 @@ export default function MarketsList() {
         <div className="error">
           <strong>Error loading markets:</strong> {error}
           <br />
-          <small style={{ marginTop: '0.5rem', display: 'block' }}>
+          <small className="mt-sm" style={{ display: 'block' }}>
             Please check your connection and try again. If the problem persists, the ledger may be temporarily unavailable.
           </small>
         </div>
         <button 
-          className="btn-primary" 
+          className="btn-primary mt-md" 
           onClick={() => window.location.reload()}
-          style={{ marginTop: '1rem' }}
         >
           Retry
         </button>
@@ -249,7 +248,7 @@ export default function MarketsList() {
               <li>✅ Verify markets on the <a href="https://devnet.ccexplorer.io/" target="_blank" rel="noopener noreferrer">block explorer</a></li>
               <li>✅ Use gRPC or WebSocket APIs for contract queries (requires different implementation)</li>
             </ul>
-            <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem' }}>
+            <div style={{ display: 'flex', gap: 'var(--spacing-md)', marginTop: 'var(--spacing-md)' }}>
               <Link to="/create">
                 <button className="btn-primary">
                   Create Market
@@ -267,7 +266,7 @@ export default function MarketsList() {
         <div className="card">
           <p>No markets found. Create your first market to get started!</p>
           <Link to="/create">
-            <button className="btn-primary" style={{ marginTop: '1rem' }}>
+            <button className="btn-primary mt-md">
               Create Market
             </button>
           </Link>
@@ -285,14 +284,14 @@ export default function MarketsList() {
                 <span className={`status ${getStatusClass(market.payload.status)}`}>
                   {market.payload.status}
                 </span>
-                <p style={{ marginTop: '1rem', fontSize: '0.9rem' }}>
+                <p className="mt-md" style={{ fontSize: 'var(--font-size-sm)' }}>
                   {market.payload.description.substring(0, 100)}...
                 </p>
-                <div style={{ marginTop: '1rem', display: 'flex', justifyContent: 'space-between' }}>
-                  <span>
+                <div className="mt-md" style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span className="text-secondary">
                     Volume: {market.payload.totalVolume}
                   </span>
-                  <span>
+                  <span className="text-secondary">
                     {market.payload.marketType === 'Binary' ? 'Binary' : 'Multi-Outcome'}
                   </span>
                 </div>

@@ -170,7 +170,7 @@ export default function MarketDetail() {
     return (
       <div className="loading">
         <p>Loading market...</p>
-        <p style={{ fontSize: '0.9rem', color: 'rgba(255, 255, 255, 0.6)', marginTop: '0.5rem' }}>
+        <p className="text-secondary mt-sm" style={{ fontSize: 'var(--font-size-sm)' }}>
           Fetching market details...
         </p>
       </div>
@@ -183,11 +183,11 @@ export default function MarketDetail() {
         <div className="error">
           <strong>Error:</strong> {error || 'Market not found'}
           <br />
-          <small style={{ marginTop: '0.5rem', display: 'block' }}>
+          <small className="mt-sm" style={{ display: 'block' }}>
             The market may not exist or there was a connection error.
           </small>
         </div>
-        <div style={{ marginTop: '1rem', display: 'flex', gap: '1rem' }}>
+        <div className="mt-md" style={{ display: 'flex', gap: 'var(--spacing-md)' }}>
           <button className="btn-secondary" onClick={() => navigate('/')}>
             Back to Markets
           </button>
@@ -203,7 +203,7 @@ export default function MarketDetail() {
 
   return (
     <div>
-      <button className="btn-secondary" onClick={() => navigate('/')} style={{ marginBottom: '2rem' }}>
+      <button className="btn-secondary mb-xl" onClick={() => navigate('/')}>
         ← Back to Markets
       </button>
 
@@ -212,31 +212,31 @@ export default function MarketDetail() {
         <span className={`status status-${marketData.status.toLowerCase()}`}>
           {marketData.status}
         </span>
-        <p style={{ marginTop: '1rem' }}>{marketData.description}</p>
+        <p className="mt-md">{marketData.description}</p>
 
-        <div style={{ marginTop: '2rem', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
+        <div className="grid-auto-fit-md mt-xl">
           <div>
             <h3>Total Volume</h3>
-            <p style={{ fontSize: '1.5rem', fontWeight: 'bold' }}>{marketData.totalVolume || 0}</p>
+            <p className="volume-display">{marketData.totalVolume || 0}</p>
           </div>
           {marketData.marketType === 'Binary' && (
             <>
               <div>
                 <h3>Yes Volume</h3>
-                <p style={{ fontSize: '1.5rem', fontWeight: 'bold' }}>{marketData.yesVolume || 0}</p>
+                <p className="volume-display">{marketData.yesVolume || 0}</p>
               </div>
               <div>
                 <h3>No Volume</h3>
-                <p style={{ fontSize: '1.5rem', fontWeight: 'bold' }}>{marketData.noVolume || 0}</p>
+                <p className="volume-display">{marketData.noVolume || 0}</p>
               </div>
             </>
           )}
           {marketData.marketType === 'MultiOutcome' && marketData.outcomeVolumes && Object.keys(marketData.outcomeVolumes).length > 0 && (
             <div style={{ gridColumn: '1 / -1' }}>
               <h3>Outcome Volumes</h3>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '0.5rem', marginTop: '0.5rem' }}>
+              <div className="grid-auto-fit-xs mt-sm">
                 {Object.entries(marketData.outcomeVolumes).map(([outcome, volume]) => (
-                  <div key={outcome} style={{ padding: '0.5rem', background: 'rgba(255, 255, 255, 0.05)', borderRadius: '4px' }}>
+                  <div key={outcome} className="outcome-item">
                     <strong>{outcome}:</strong> {volume}
                   </div>
                 ))}
@@ -252,9 +252,9 @@ export default function MarketDetail() {
       )}
 
       {marketData.status === 'Active' && (
-        <div className="card" style={{ marginTop: '2rem' }}>
+        <div className="card mt-xl">
           <h2>Create Position</h2>
-          <div className="alert-info" style={{ marginBottom: '1rem' }}>
+          <div className="alert-info mb-md">
             <strong>Note:</strong> Positions are stored in the database and market volumes are updated immediately. Full on-chain Canton blockchain implementation will be available once Canton provides the necessary endpoints and functionalities.
           </div>
           <div className="form-group">

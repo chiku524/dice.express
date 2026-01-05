@@ -85,5 +85,5 @@ button:focus-visible {
   }
 }
 
-/* Import theme variables - ensure they're available */
+/* Import theme variables FIRST - ensure they're available before other styles */
 @import './styles/theme.css';

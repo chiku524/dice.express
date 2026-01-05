@@ -535,7 +535,7 @@ export default function AdminDashboard() {
         <div className="error">
           <strong>Error loading requests:</strong> {error}
         </div>
-        <button className="btn-primary" onClick={fetchRequests} style={{ marginTop: '1rem' }}>
+        <button className="btn-primary mt-md" onClick={fetchRequests}>
           Retry
         </button>
       </div>
@@ -585,17 +585,17 @@ export default function AdminDashboard() {
       ) : requests.length === 0 ? (
         <div className="card">
           <h3>No Pending Requests</h3>
-          <p style={{ marginTop: '1rem', color: 'rgba(255, 255, 255, 0.7)' }}>
+          <p className="text-secondary mt-md">
             There are currently no market creation requests awaiting approval.
           </p>
-          <div style={{ marginTop: '1.5rem', padding: '1rem', background: 'rgba(255, 255, 255, 0.05)', borderRadius: '8px' }}>
-            <p style={{ fontSize: '0.9rem', color: 'rgba(255, 255, 255, 0.6)', marginBottom: '0.5rem' }}>
+          <div className="info-message mt-lg">
+            <p style={{ fontSize: 'var(--font-size-sm)', marginBottom: 'var(--spacing-sm)' }}>
               <strong>Note:</strong> If you just created a market, it may take a few seconds to appear here due to synchronization delays.
             </p>
-            <p style={{ fontSize: '0.9rem', color: 'rgba(255, 255, 255, 0.6)' }}>
+            <p style={{ fontSize: 'var(--font-size-sm)' }}>
               Contracts created with <code>updateId</code> (async submission) may take 10-30 seconds to become visible in queries.
             </p>
-            <p style={{ fontSize: '0.9rem', color: 'rgba(255, 255, 255, 0.6)', marginTop: '0.5rem' }}>
+            <p style={{ fontSize: 'var(--font-size-sm)', marginTop: 'var(--spacing-sm)' }}>
               You can verify contracts were created by checking the explorer link provided after market creation.
             </p>
           </div>

@@ -90,11 +90,11 @@ export default function ActiveContractsTest() {
   return (
     <div className="active-contracts-test">
       <h1>Test Active Contracts Endpoint</h1>
-      <p style={{ marginBottom: '2rem', color: 'rgba(255, 255, 255, 0.6)' }}>
+      <p className="text-secondary mb-xl">
         Test the <code>/v2/state/active-contracts</code> endpoint to query contracts by template ID.
       </p>
 
-      <div className="card" style={{ marginBottom: '2rem' }}>
+      <div className="card mb-xl">
         <h2>Configuration</h2>
         
         <div className="form-group">
@@ -104,9 +104,9 @@ export default function ActiveContractsTest() {
             value={templateId}
             onChange={(e) => setTemplateId(e.target.value)}
             placeholder="packageId:module:template"
-            style={{ width: '100%', padding: '0.75rem' }}
+            style={{ width: '100%', padding: 'var(--spacing-md)' }}
           />
-          <div style={{ marginTop: '0.5rem', display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+          <div className="mt-sm" style={{ display: 'flex', gap: 'var(--spacing-sm)', flexWrap: 'wrap' }}>
             <button 
               className="btn-secondary"
               onClick={() => setTemplateId(getTemplateId('PredictionMarkets', 'Market'))}
@@ -144,7 +144,7 @@ export default function ActiveContractsTest() {
             style={{ width: '100%', padding: '0.75rem' }}
           />
           {wallet?.party && (
-            <p style={{ marginTop: '0.5rem', fontSize: '0.9rem', color: 'rgba(255, 255, 255, 0.6)' }}>
+            <p className="text-secondary mt-sm" style={{ fontSize: 'var(--font-size-sm)' }}>
               Current wallet party: {wallet.party}
             </p>
           )}
@@ -154,7 +154,7 @@ export default function ActiveContractsTest() {
           className="btn-primary"
           onClick={testActiveContracts}
           disabled={loading || !templateId}
-          style={{ width: '100%', marginTop: '1rem' }}
+          style={{ width: '100%', marginTop: 'var(--spacing-md)' }}
         >
           {loading ? 'Testing...' : 'Test Active Contracts Endpoint'}
         </button>

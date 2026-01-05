@@ -373,73 +373,52 @@ export default function CreateMarket() {
   return (
     <div>
       <h1>Create New Market</h1>
-      <p style={{ marginBottom: '2rem', color: 'rgba(255, 255, 255, 0.6)' }}>
+      <p className="text-secondary mb-xl">
         Create a new prediction market. Market creation uses virtual CC tracking (database-only). 
         To deposit CC for trading, use the Deposit/Withdraw feature in the Portfolio page.
       </p>
 
       {error && <div className="error">{error}</div>}
       {success && (
-        <div className="success" style={{ marginBottom: '2rem' }}>
+        <div className="success mb-xl">
           <h3>✅ Market Creation Request Submitted Successfully!</h3>
-          <p style={{ marginTop: '0.5rem' }}>
+          <p className="mt-sm">
             Your market creation request has been submitted and is pending admin approval.
           </p>
           
           {contractId ? (
-            <div style={{ marginTop: '1.5rem' }}>
+            <div className="mt-lg">
               <p><strong>Contract ID:</strong></p>
-              <code style={{ 
-                display: 'block', 
-                padding: '0.75rem', 
-                background: '#f5f5f5', 
-                borderRadius: '4px',
-                wordBreak: 'break-all',
-                marginTop: '0.5rem',
-                fontSize: '0.9rem',
-                border: '1px solid #ddd'
-              }}>
+              <code className="code-block">
                 {contractId}
               </code>
               {explorerUrl && (
-                <div style={{ marginTop: '1rem' }}>
+                <div className="mt-md">
                   <a 
                     href={explorerUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    style={{
-                      display: 'inline-block',
-                      padding: '0.75rem 1.5rem',
-                      background: '#646cff',
-                      color: 'white',
-                      textDecoration: 'none',
-                      borderRadius: '4px',
-                      marginTop: '0.5rem',
-                      fontWeight: '500',
-                      transition: 'background 0.2s'
-                    }}
-                    onMouseOver={(e) => e.target.style.background = '#535bf2'}
-                    onMouseOut={(e) => e.target.style.background = '#646cff'}
+                    className="link-button"
                   >
                     🔗 View Contract in Block Explorer →
                   </a>
                 </div>
               )}
-              <p style={{ marginTop: '1rem', fontSize: '0.9rem', color: '#666' }}>
+              <p className="text-muted mt-md" style={{ fontSize: 'var(--font-size-sm)' }}>
                 <strong>Tip:</strong> Click the link above to view your market contract details (title, description, etc.) on the block explorer. 
                 You can also copy the Contract ID and search for it manually.
               </p>
             </div>
           ) : (
-            <div style={{ marginTop: '1.5rem', padding: '1rem', background: '#fff3cd', borderRadius: '4px', border: '1px solid #ffc107' }}>
-              <p style={{ margin: 0, color: '#856404' }}>
+            <div className="warning-message mt-lg">
+              <p style={{ margin: 0 }}>
                 <strong>⚠️ Note:</strong> Contract ID not found in response. Check the browser console (F12) for full response details.
               </p>
             </div>
           )}
           
-          <div style={{ marginTop: '1.5rem', padding: '1rem', background: '#e7f3ff', borderRadius: '4px', border: '1px solid #b3d9ff' }}>
-            <p style={{ margin: 0, fontSize: '0.9rem', color: '#004085' }}>
+          <div className="info-message mt-lg">
+            <p style={{ margin: 0, fontSize: 'var(--font-size-sm)' }}>
               <strong>📋 Next Steps:</strong> Your market creation request is now pending admin approval. 
               Once approved, it will appear in the Markets page. You can view the contract details using the link above.
             </p>
@@ -583,7 +562,7 @@ export default function CreateMarket() {
           type="submit"
           className="btn-primary"
           disabled={loading}
-          style={{ width: '100%' }}
+          style={{ width: '100%', marginTop: 'var(--spacing-md)' }}
         >
           {loading ? 'Creating Market...' : 'Create Market'}
         </button>

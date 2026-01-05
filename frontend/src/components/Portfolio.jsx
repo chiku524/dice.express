@@ -196,14 +196,13 @@ export default function Portfolio() {
         <div className="error">
           <strong>Error loading portfolio:</strong> {error}
           <br />
-          <small style={{ marginTop: '0.5rem', display: 'block' }}>
+          <small className="mt-sm" style={{ display: 'block' }}>
             Please check your connection and try again.
           </small>
         </div>
         <button 
-          className="btn-primary" 
+          className="btn-primary mt-md" 
           onClick={() => window.location.reload()}
-          style={{ marginTop: '1rem' }}
         >
           Retry
         </button>
@@ -381,24 +380,24 @@ export default function Portfolio() {
       </div>
       
       {/* User Balance Display */}
-      <div className="card" style={{ marginBottom: '2rem', background: 'rgba(100, 108, 255, 0.1)', border: '1px solid rgba(100, 108, 255, 0.3)' }}>
-        <h2 style={{ marginBottom: '0.5rem' }}>Virtual CC Balance</h2>
-        <p style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#646cff', margin: 0 }}>
+      <div className="card balance-card mb-xl">
+        <h2 className="mb-sm">Virtual CC Balance</h2>
+        <p className="balance-amount">
           {balanceLoading ? 'Loading...' : `${parseFloat(userBalance).toFixed(2)} CC`}
         </p>
-        <p style={{ fontSize: '0.9rem', color: 'rgba(255, 255, 255, 0.6)', marginTop: '0.5rem', marginBottom: 0 }}>
+        <p className="balance-hint">
           This is your virtual CC balance tracked in the database. Deposit CC to increase your balance.
         </p>
       </div>
       
       {/* Deposit/Withdraw Section */}
-      <div className="card" style={{ marginBottom: '2rem' }}>
-        <h2 style={{ marginBottom: '1rem' }}>Deposit / Withdraw CC</h2>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1rem' }}>
+      <div className="card mb-xl">
+        <h2 className="mb-md">Deposit / Withdraw CC</h2>
+        <div className="grid-auto-fit-sm">
           {/* Deposit */}
           <div>
-            <h3 style={{ marginBottom: '0.5rem' }}>Deposit CC</h3>
-            <p style={{ fontSize: '0.9rem', color: 'rgba(255, 255, 255, 0.7)', marginBottom: '0.5rem' }}>
+            <h3 className="mb-sm">Deposit CC</h3>
+            <p className="text-secondary mb-sm" style={{ fontSize: 'var(--font-size-sm)' }}>
               Transfer CC from your wallet to the platform wallet (on-chain)
             </p>
             <div className="form-group">
@@ -414,12 +413,12 @@ export default function Portfolio() {
               />
             </div>
             {depositError && (
-              <div className="error" style={{ marginTop: '0.5rem', fontSize: '0.9rem' }}>
+              <div className="error mt-sm" style={{ fontSize: 'var(--font-size-sm)' }}>
                 {depositError}
               </div>
             )}
             {depositSuccess && (
-              <div style={{ marginTop: '0.5rem', padding: '0.5rem', background: 'rgba(76, 175, 80, 0.2)', color: '#4CAF50', borderRadius: '4px', fontSize: '0.9rem' }}>
+              <div className="success-message mt-sm">
                 ✅ Deposit successful! Transaction submitted to blockchain.
               </div>
             )}
@@ -427,19 +426,19 @@ export default function Portfolio() {
               className="btn-primary" 
               onClick={handleDeposit}
               disabled={depositLoading || !depositAmount}
-              style={{ marginTop: '0.5rem', width: '100%' }}
+              style={{ marginTop: 'var(--spacing-sm)', width: '100%' }}
             >
               {depositLoading ? 'Processing...' : 'Deposit'}
             </button>
-            <p style={{ fontSize: '0.8rem', color: 'rgba(255, 255, 255, 0.5)', marginTop: '0.5rem' }}>
+            <p className="text-muted mt-sm" style={{ fontSize: 'var(--font-size-xs)' }}>
               Note: Requires TokenBalance contract. Use /test page to create one.
             </p>
           </div>
 
           {/* Withdraw */}
           <div>
-            <h3 style={{ marginBottom: '0.5rem' }}>Withdraw CC</h3>
-            <p style={{ fontSize: '0.9rem', color: 'rgba(255, 255, 255, 0.7)', marginBottom: '0.5rem' }}>
+            <h3 className="mb-sm">Withdraw CC</h3>
+            <p className="text-secondary mb-sm" style={{ fontSize: 'var(--font-size-sm)' }}>
               Transfer CC from platform wallet to your wallet (on-chain)
             </p>
             <div className="form-group">
@@ -455,12 +454,12 @@ export default function Portfolio() {
               />
             </div>
             {withdrawError && (
-              <div className="error" style={{ marginTop: '0.5rem', fontSize: '0.9rem' }}>
+              <div className="error mt-sm" style={{ fontSize: 'var(--font-size-sm)' }}>
                 {withdrawError}
               </div>
             )}
             {withdrawSuccess && (
-              <div style={{ marginTop: '0.5rem', padding: '0.5rem', background: 'rgba(76, 175, 80, 0.2)', color: '#4CAF50', borderRadius: '4px', fontSize: '0.9rem' }}>
+              <div className="success-message mt-sm">
                 ✅ Withdrawal successful! Transaction submitted to blockchain.
               </div>
             )}
@@ -468,11 +467,11 @@ export default function Portfolio() {
               className="btn-primary" 
               onClick={handleWithdraw}
               disabled={withdrawLoading || !withdrawAmount}
-              style={{ marginTop: '0.5rem', width: '100%' }}
+              style={{ marginTop: 'var(--spacing-sm)', width: '100%' }}
             >
               {withdrawLoading ? 'Processing...' : 'Withdraw'}
             </button>
-            <p style={{ fontSize: '0.8rem', color: 'rgba(255, 255, 255, 0.5)', marginTop: '0.5rem' }}>
+            <p className="text-muted mt-sm" style={{ fontSize: 'var(--font-size-xs)' }}>
               Note: Requires platform wallet TokenBalance contract ID.
             </p>
           </div>
@@ -483,7 +482,7 @@ export default function Portfolio() {
         <div className="card">
           <p>You don't have any positions yet. Start trading to see your portfolio here!</p>
           <Link to="/">
-            <button className="btn-primary" style={{ marginTop: '1rem' }}>
+            <button className="btn-primary mt-md">
               Browse Markets
             </button>
           </Link>
@@ -491,19 +490,19 @@ export default function Portfolio() {
       ) : (
         <div>
           {/* Positions Section */}
-          <div style={{ marginBottom: '2rem' }}>
-            <h2 style={{ marginBottom: '1rem' }}>My Positions</h2>
+          <div className="mb-xl">
+            <h2 className="mb-md">My Positions</h2>
             {positions.map((position) => (
-              <div key={position.contractId} className="card" style={{ marginBottom: '1rem' }}>
+              <div key={position.contractId} className="card mb-md">
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start' }}>
                   <div style={{ flex: 1 }}>
                     <h3>{marketTitles[position.payload?.marketId] || position.payload?.marketId || 'Unknown Market'}</h3>
                     {marketTitles[position.payload?.marketId] && (
-                      <p style={{ fontSize: '0.85rem', color: 'rgba(255, 255, 255, 0.5)', marginTop: '0.25rem', marginBottom: '0.5rem' }}>
+                      <p className="text-muted" style={{ fontSize: 'var(--font-size-xs)', marginTop: 'var(--spacing-xs)', marginBottom: 'var(--spacing-sm)' }}>
                         Market ID: {position.payload?.marketId}
                       </p>
                     )}
-                    <div style={{ marginTop: '0.5rem', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '0.5rem' }}>
+                    <div className="grid-auto-fit-xs mt-sm">
                       <div>
                         <strong>Type:</strong> {formatPositionType(position.payload?.positionType)}
                       </div>
@@ -533,49 +532,37 @@ export default function Portfolio() {
 
           {/* Activity Log Section */}
           <div className="card">
-            <h2 style={{ marginBottom: '1rem' }}>Activity Log</h2>
+            <h2 className="mb-md">Activity Log</h2>
             {activityLog.length === 0 ? (
-              <p style={{ color: 'rgba(255, 255, 255, 0.6)' }}>No activity to display</p>
+              <p className="text-secondary">No activity to display</p>
             ) : (
               <div style={{ maxHeight: '400px', overflowY: 'auto' }}>
                 {activityLog.map((activity) => (
                   <div 
                     key={activity.id} 
-                    style={{ 
-                      padding: '1rem', 
-                      borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'start'
-                    }}
+                    className="activity-item"
                   >
-                    <div style={{ flex: 1 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                    <div className="activity-content">
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-sm)', marginBottom: 'var(--spacing-sm)' }}>
                         <strong>Position Created</strong>
                         {activity.position?.depositAmount && (
-                          <span style={{ 
-                            background: 'rgba(76, 175, 80, 0.2)', 
-                            color: '#4CAF50',
-                            padding: '0.25rem 0.5rem',
-                            borderRadius: '4px',
-                            fontSize: '0.85rem'
-                          }}>
+                          <span className="activity-badge">
                             {activity.position.depositAmount} {activity.position.depositCurrency || 'CC'} deposited
                           </span>
                         )}
                       </div>
-                      <div style={{ fontSize: '0.9rem', color: 'rgba(255, 255, 255, 0.7)', marginBottom: '0.25rem' }}>
+                      <div className="text-secondary" style={{ fontSize: 'var(--font-size-sm)', marginBottom: 'var(--spacing-xs)' }}>
                         Market: {marketTitles[activity.position?.marketId] || activity.position?.marketId || 'Unknown'}
                       </div>
-                      <div style={{ fontSize: '0.9rem', color: 'rgba(255, 255, 255, 0.7)', marginBottom: '0.25rem' }}>
+                      <div className="text-secondary" style={{ fontSize: 'var(--font-size-sm)', marginBottom: 'var(--spacing-xs)' }}>
                         Type: {formatPositionType(activity.position?.positionType)} | Amount: {activity.position?.amount || '0'} | Price: {activity.position?.price || '0'}
                       </div>
-                      <div style={{ fontSize: '0.85rem', color: 'rgba(255, 255, 255, 0.5)' }}>
+                      <div className="text-muted" style={{ fontSize: 'var(--font-size-xs)' }}>
                         {formatDate(activity.timestamp)}
                       </div>
                     </div>
-                    <Link to={`/market/${activity.position?.marketId}`} style={{ marginLeft: '1rem' }}>
-                      <button className="btn-secondary" style={{ fontSize: '0.9rem', padding: '0.5rem 1rem' }}>
+                    <Link to={`/market/${activity.position?.marketId}`} style={{ marginLeft: 'var(--spacing-md)' }}>
+                      <button className="btn-secondary" style={{ fontSize: 'var(--font-size-sm)', padding: 'var(--spacing-sm) var(--spacing-md)' }}>
                         View
                       </button>
                     </Link>
