@@ -88,6 +88,9 @@ export default function Navbar({ showWalletModal, setShowWalletModal }) {
                 <Link to="/history" className={isActive('/history') ? 'active' : ''}>
                   Contract History
                 </Link>
+                <Link to="/docs" className={isActive('/docs') || isActive('/documentation') ? 'active' : ''}>
+                  📚 Documentation
+                </Link>
                 <Link to="/test" className={isActive('/test') ? 'active' : ''}>
                   🧪 Test Contracts
                 </Link>
