@@ -71,7 +71,7 @@ export default function Navbar({ showWalletModal, setShowWalletModal }) {
           {/* Tools Dropdown */}
           <div className="nav-dropdown" ref={toolsMenuRef}>
             <button
-              className={`nav-dropdown-toggle ${isActive('/admin') || isActive('/history') || isActive('/test') ? 'active' : ''}`}
+              className={`nav-dropdown-toggle ${isActive('/admin') || isActive('/history') || isActive('/docs') || isActive('/documentation') || isActive('/test') ? 'active' : ''}`}
               onClick={() => {
                 setShowToolsMenu(!showToolsMenu)
                 setShowMarketsMenu(false)
