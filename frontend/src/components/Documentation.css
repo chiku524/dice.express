@@ -20,12 +20,13 @@
 }
 
 .documentation-sidebar h2 {
-  padding: 0 1.5rem;
-  margin: 0 0 1.5rem 0;
-  font-size: 1.5rem;
-  color: #fff;
-  border-bottom: 1px solid rgba(100, 108, 255, 0.2);
-  padding-bottom: 1rem;
+  padding: 0 var(--spacing-lg, 1.5rem);
+  margin: 0 0 var(--spacing-lg, 1.5rem) 0;
+  font-size: var(--font-size-2xl, 1.5rem);
+  color: var(--color-text-primary, rgba(255, 255, 255, 0.87));
+  border-bottom: 1px solid var(--color-border, rgba(100, 108, 255, 0.2));
+  padding-bottom: var(--spacing-md, 1rem);
+  font-weight: var(--font-weight-semibold, 600);
 }
 
 .documentation-nav {
@@ -82,26 +83,26 @@
 }
 
 .doc-section h1 {
-  font-size: 2.5rem;
-  margin: 0 0 1.5rem 0;
-  color: #fff;
-  font-weight: 700;
-  border-bottom: 2px solid rgba(100, 108, 255, 0.3);
-  padding-bottom: 1rem;
+  font-size: var(--font-size-3xl, 2.5rem);
+  margin: 0 0 var(--spacing-lg, 1.5rem) 0;
+  color: var(--color-text-primary, rgba(255, 255, 255, 0.87));
+  font-weight: var(--font-weight-bold, 700);
+  border-bottom: 2px solid var(--color-primary-border, rgba(100, 108, 255, 0.3));
+  padding-bottom: var(--spacing-md, 1rem);
 }
 
 .doc-section h2 {
-  font-size: 1.75rem;
-  margin: 2.5rem 0 1rem 0;
-  color: #fff;
-  font-weight: 600;
+  font-size: var(--font-size-2xl, 1.75rem);
+  margin: var(--spacing-2xl, 2.5rem) 0 var(--spacing-md, 1rem) 0;
+  color: var(--color-text-primary, rgba(255, 255, 255, 0.87));
+  font-weight: var(--font-weight-semibold, 600);
 }
 
 .doc-section h3 {
-  font-size: 1.35rem;
-  margin: 2rem 0 0.75rem 0;
-  color: rgba(255, 255, 255, 0.9);
-  font-weight: 600;
+  font-size: var(--font-size-xl, 1.35rem);
+  margin: var(--spacing-xl, 2rem) 0 var(--spacing-md, 0.75rem) 0;
+  color: var(--color-text-primary, rgba(255, 255, 255, 0.9));
+  font-weight: var(--font-weight-semibold, 600);
 }
 
 .doc-section p {
@@ -123,13 +124,13 @@
 }
 
 .doc-section code {
-  background: rgba(0, 0, 0, 0.4);
-  padding: 0.2rem 0.5rem;
-  border-radius: 4px;
-  font-family: 'Courier New', monospace;
+  background: var(--color-background, rgba(0, 0, 0, 0.4));
+  padding: var(--spacing-xs, 0.2rem) var(--spacing-sm, 0.5rem);
+  border-radius: var(--radius-sm, 4px);
+  font-family: var(--font-family-mono, 'Courier New', monospace);
   font-size: 0.9em;
-  color: #646cff;
-  border: 1px solid rgba(100, 108, 255, 0.2);
+  color: var(--color-primary, #646cff);
+  border: 1px solid var(--color-primary-border, rgba(100, 108, 255, 0.2));
 }
 
 .doc-section pre {
@@ -156,13 +157,14 @@
 }
 
 .doc-section a {
-  color: #646cff;
+  color: var(--color-primary, #646cff);
   text-decoration: none;
-  transition: color 0.2s;
+  transition: color var(--transition-base, 0.2s);
+  font-weight: var(--font-weight-medium, 500);
 }
 
 .doc-section a:hover {
-  color: #535bf2;
+  color: var(--color-primary-hover, #535bf2);
   text-decoration: underline;
 }
 

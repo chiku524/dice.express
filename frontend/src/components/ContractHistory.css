@@ -1,6 +1,7 @@
 .contract-history {
-  max-width: 1200px;
+  max-width: var(--container-max-width, 1200px);
   margin: 0 auto;
+  width: 100%;
 }
 
 .history-header {
@@ -33,17 +34,21 @@
 }
 
 .contract-item {
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 8px;
-  padding: 1.5rem;
-  transition: all 0.2s ease;
+  background: var(--color-surface, rgba(30, 30, 46, 0.9));
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid var(--color-border, rgba(100, 108, 255, 0.2));
+  border-radius: var(--radius-lg, 8px);
+  padding: var(--card-padding, 1.5rem);
+  transition: all var(--transition-base, 0.2s ease);
+  box-shadow: var(--shadow-sm, 0 1px 2px rgba(0, 0, 0, 0.1));
 }
 
 .contract-item:hover {
-  background: rgba(255, 255, 255, 0.08);
-  border-color: rgba(255, 255, 255, 0.2);
+  background: var(--color-surface-hover, rgba(37, 37, 56, 0.95));
+  border-color: var(--color-primary-border, rgba(100, 108, 255, 0.3));
   transform: translateY(-2px);
+  box-shadow: var(--shadow-md, 0 4px 6px rgba(0, 0, 0, 0.2));
 }
 
 .contract-header {
@@ -67,25 +72,27 @@
 }
 
 .contract-id-badge {
-  background: rgba(100, 108, 255, 0.2);
-  border: 1px solid rgba(100, 108, 255, 0.3);
-  border-radius: 4px;
-  padding: 0.25rem 0.75rem;
-  font-size: 0.8rem;
-  font-family: monospace;
-  color: rgba(255, 255, 255, 0.8);
+  background: var(--color-primary-light, rgba(100, 108, 255, 0.2));
+  border: 1px solid var(--color-primary-border, rgba(100, 108, 255, 0.3));
+  border-radius: var(--radius-sm, 4px);
+  padding: var(--spacing-xs, 0.25rem) var(--spacing-md, 0.75rem);
+  font-size: var(--font-size-xs, 0.8rem);
+  font-family: var(--font-family-mono, monospace);
+  color: var(--color-text-secondary, rgba(255, 255, 255, 0.8));
 }
 
 .contract-details {
-  margin: 1rem 0;
-  padding: 1rem;
-  background: rgba(0, 0, 0, 0.2);
-  border-radius: 4px;
+  margin: var(--spacing-md, 1rem) 0;
+  padding: var(--spacing-md, 1rem);
+  background: var(--color-background, rgba(0, 0, 0, 0.2));
+  border-radius: var(--radius-md, 4px);
+  border: 1px solid var(--color-border, rgba(100, 108, 255, 0.2));
 }
 
 .contract-details p {
-  margin: 0.5rem 0;
-  font-size: 0.9rem;
+  margin: var(--spacing-sm, 0.5rem) 0;
+  font-size: var(--font-size-sm, 0.9rem);
+  color: var(--color-text-secondary, rgba(255, 255, 255, 0.8));
 }
 
 .contract-actions {
@@ -98,15 +105,16 @@
 .contract-actions .btn-link {
   display: inline-flex;
   align-items: center;
-  gap: 0.5rem;
-  color: #646cff;
+  gap: var(--spacing-sm, 0.5rem);
+  color: var(--color-primary, #646cff);
   text-decoration: none;
-  font-size: 0.9rem;
-  transition: color 0.2s;
+  font-size: var(--font-size-sm, 0.9rem);
+  transition: color var(--transition-base, 0.2s);
+  font-weight: var(--font-weight-medium, 500);
 }
 
 .contract-actions .btn-link:hover {
-  color: #535bf2;
+  color: var(--color-primary-hover, #535bf2);
 }
 
 @media (max-width: 768px) {
