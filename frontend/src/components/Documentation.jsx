@@ -13,6 +13,7 @@ export default function Documentation() {
     { id: 'portfolio', title: 'Portfolio' },
     { id: 'admin-dashboard', title: 'Admin Dashboard' },
     { id: 'blockchain', title: 'Blockchain Integration' },
+    { id: 'apis-oracles', title: 'APIs & Oracles' },
     { id: 'architecture', title: 'Architecture' },
     { id: 'security', title: 'Security' },
     { id: 'api-reference', title: 'API Reference' }
@@ -36,6 +37,8 @@ export default function Documentation() {
         return <AdminDashboardContent />
       case 'blockchain':
         return <BlockchainContent />
+      case 'apis-oracles':
+        return <APIsAndOraclesContent />
       case 'architecture':
         return <ArchitectureContent />
       case 'security':
@@ -639,6 +642,233 @@ VITE_CANTON_PACKAGE_ID=b87ef31c8ea5c53a940a7f71a4bc6513cf44048730c0551f1fc2e02ad
       <ul>
         <li><strong>Blockchain Integration Guide:</strong> Architecture and provider system</li>
         <li><strong>Canton Integration Guide:</strong> Canton-specific integration details and migration path</li>
+      </ul>
+    </div>
+  )
+}
+
+function APIsAndOraclesContent() {
+  return (
+    <div className="doc-section">
+      <h1>APIs & Oracles</h1>
+      
+      <h2>Overview</h2>
+      <p>
+        The application integrates with various APIs and oracles to provide data for market resolution 
+        and blockchain interactions. This section documents all currently used APIs and oracles, as well 
+        as potential future integrations.
+      </p>
+
+      <h2>Current APIs & Oracles</h2>
+
+      <h3>RedStone Oracle ✅</h3>
+      <p><strong>Status:</strong> Implemented and Active</p>
+      <p><strong>Purpose:</strong> Financial market data for market resolution</p>
+      <p><strong>What it provides:</strong></p>
+      <ul>
+        <li>Real-time price data for cryptocurrencies (BTC, ETH, USDC, USDT, etc.)</li>
+        <li>Stock prices (AAPL, TSLA, GOOGL, etc.)</li>
+        <li>Commodities (Gold, Oil, etc.)</li>
+        <li>Market indices (S&P 500, NASDAQ, etc.)</li>
+      </ul>
+      <p><strong>API Endpoint:</strong> <code>GET /api/oracle?symbol={symbol}</code></p>
+      <p><strong>Usage:</strong> Market resolution for price-based markets</p>
+      <p><strong>Limitations:</strong> Primarily financial/crypto data, may not cover sports, politics, etc.</p>
+      <p><strong>Cost:</strong> Free (no API key required for basic usage)</p>
+      <p><strong>Documentation:</strong> <a href="https://docs.redstone.finance/" target="_blank" rel="noopener noreferrer">RedStone Documentation</a></p>
+
+      <h3>Canton JSON API ✅</h3>
+      <p><strong>Status:</strong> Implemented and Active</p>
+      <p><strong>Purpose:</strong> Blockchain interactions (contract creation, choice exercising)</p>
+      <p><strong>What it provides:</strong></p>
+      <ul>
+        <li>Command submission for contract creation</li>
+        <li>Choice exercising for contract interactions</li>
+        <li>Limited contract querying (via active-contracts endpoint)</li>
+      </ul>
+      <p><strong>API Endpoints:</strong></p>
+      <ul>
+        <li><code>POST /api/command</code> - Proxy for Canton command submission</li>
+        <li><code>POST /api/query</code> - Proxy for Canton contract queries</li>
+      </ul>
+      <p><strong>Base URL:</strong> <code>https://participant.dev.canton.wolfedgelabs.com/json-api</code></p>
+      <p><strong>Authentication:</strong> JWT token via Keycloak</p>
+      <p><strong>Limitations:</strong> General contract querying not available via JSON API</p>
+
+      <h3>Keycloak Authentication API ✅</h3>
+      <p><strong>Status:</strong> Implemented and Active</p>
+      <p><strong>Purpose:</strong> User authentication and JWT token management</p>
+      <p><strong>What it provides:</strong></p>
+      <ul>
+        <li>User authentication (username/password)</li>
+        <li>JWT token generation</li>
+        <li>Token refresh</li>
+      </ul>
+      <p><strong>API Endpoints:</strong></p>
+      <ul>
+        <li><code>POST /api/get-token</code> - Get authentication token</li>
+        <li><code>POST /api/refresh-token</code> - Refresh authentication token</li>
+      </ul>
+      <p><strong>Usage:</strong> Required for all blockchain interactions</p>
+
+      <h3>Supabase Database API ✅</h3>
+      <p><strong>Status:</strong> Implemented and Active</p>
+      <p><strong>Purpose:</strong> Data storage and retrieval (markets, positions, contracts)</p>
+      <p><strong>What it provides:</strong></p>
+      <ul>
+        <li>Market data storage</li>
+        <li>Position tracking</li>
+        <li>Contract metadata storage</li>
+        <li>Transaction history</li>
+      </ul>
+      <p><strong>API Endpoints:</strong></p>
+      <ul>
+        <li><code>POST /api/get-contracts</code> - Get contracts from database</li>
+        <li><code>POST /api/store-contract</code> - Store contract in database</li>
+        <li><code>PUT /api/update-contract-status</code> - Update contract status</li>
+        <li><code>POST /api/create-position</code> - Create position (database)</li>
+      </ul>
+      <p><strong>Usage:</strong> Primary data source for market listings and position tracking</p>
+
+      <h2>Potential Future APIs & Oracles</h2>
+
+      <h3>Sports Data APIs ⚠️</h3>
+      <p><strong>Status:</strong> Not Implemented</p>
+      <p><strong>Purpose:</strong> Sports event results for market resolution</p>
+      <p><strong>Recommended Providers:</strong></p>
+      <ul>
+        <li><strong>The Odds API</strong> - Sports odds and results (~$10-50/month)</li>
+        <li><strong>SportsDataIO</strong> - Comprehensive sports data (~$50-200/month)</li>
+        <li><strong>API-Football</strong> - Football/soccer specific</li>
+        <li><strong>RapidAPI Sports</strong> - Multiple sports coverage</li>
+      </ul>
+      <p><strong>Use Cases:</strong> "Will Team A win the game on [date]?" markets</p>
+      <p><strong>Trust Level:</strong> High for official results, Medium for odds</p>
+      <p><strong>Priority:</strong> High (popular market type)</p>
+
+      <h3>Political/Election APIs ⚠️</h3>
+      <p><strong>Status:</strong> Not Implemented</p>
+      <p><strong>Purpose:</strong> Election results and political data</p>
+      <p><strong>Recommended Providers:</strong></p>
+      <ul>
+        <li><strong>NewsAPI</strong> - News aggregation (free tier available)</li>
+        <li><strong>Official Election APIs</strong> - Government election results</li>
+        <li><strong>RealClearPolitics API</strong> - Political polling data</li>
+      </ul>
+      <p><strong>Use Cases:</strong> "Will Candidate X win the election?" markets</p>
+      <p><strong>Trust Level:</strong> Very High for official results, Medium for polling</p>
+      <p><strong>Priority:</strong> Medium</p>
+
+      <h3>Weather APIs ⚠️</h3>
+      <p><strong>Status:</strong> Not Implemented</p>
+      <p><strong>Purpose:</strong> Weather data for climate-based markets</p>
+      <p><strong>Recommended Providers:</strong></p>
+      <ul>
+        <li><strong>OpenWeatherMap</strong> - Weather data (free tier available)</li>
+        <li><strong>WeatherAPI</strong> - Comprehensive weather (~$5-20/month)</li>
+        <li><strong>NOAA API</strong> - Official US weather data (free)</li>
+      </ul>
+      <p><strong>Use Cases:</strong> "Will it rain in [location] on [date]?" markets</p>
+      <p><strong>Trust Level:</strong> High (official weather services)</p>
+      <p><strong>Priority:</strong> Low-Medium</p>
+
+      <h3>News/General Knowledge APIs ⚠️</h3>
+      <p><strong>Status:</strong> Not Implemented</p>
+      <p><strong>Purpose:</strong> News events and factual information</p>
+      <p><strong>Recommended Providers:</strong></p>
+      <ul>
+        <li><strong>NewsAPI</strong> - News aggregation (free tier available)</li>
+        <li><strong>Wikipedia API</strong> - Factual information (free)</li>
+        <li><strong>Fact-checking APIs</strong> - Verification services</li>
+      </ul>
+      <p><strong>Use Cases:</strong> General knowledge and event-based markets</p>
+      <p><strong>Trust Level:</strong> Medium-High depending on source</p>
+      <p><strong>Priority:</strong> Low</p>
+
+      <h2>Oracle Selection by Market Type</h2>
+      <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: '1rem' }}>
+        <thead>
+          <tr style={{ borderBottom: '2px solid var(--color-border)' }}>
+            <th style={{ padding: '0.75rem', textAlign: 'left' }}>Market Type</th>
+            <th style={{ padding: '0.75rem', textAlign: 'left' }}>Recommended Oracle</th>
+            <th style={{ padding: '0.75rem', textAlign: 'left' }}>Trust Level</th>
+            <th style={{ padding: '0.75rem', textAlign: 'left' }}>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr style={{ borderBottom: '1px solid var(--color-border)' }}>
+            <td style={{ padding: '0.75rem' }}>Crypto Prices</td>
+            <td style={{ padding: '0.75rem' }}>RedStone</td>
+            <td style={{ padding: '0.75rem' }}>High</td>
+            <td style={{ padding: '0.75rem', color: 'var(--color-success)' }}>✅ Implemented</td>
+          </tr>
+          <tr style={{ borderBottom: '1px solid var(--color-border)' }}>
+            <td style={{ padding: '0.75rem' }}>Stock Prices</td>
+            <td style={{ padding: '0.75rem' }}>RedStone</td>
+            <td style={{ padding: '0.75rem' }}>High</td>
+            <td style={{ padding: '0.75rem', color: 'var(--color-success)' }}>✅ Implemented</td>
+          </tr>
+          <tr style={{ borderBottom: '1px solid var(--color-border)' }}>
+            <td style={{ padding: '0.75rem' }}>Sports Results</td>
+            <td style={{ padding: '0.75rem' }}>The Odds API / SportsDataIO</td>
+            <td style={{ padding: '0.75rem' }}>High</td>
+            <td style={{ padding: '0.75rem', color: 'var(--color-warning)' }}>⚠️ Not Implemented</td>
+          </tr>
+          <tr style={{ borderBottom: '1px solid var(--color-border)' }}>
+            <td style={{ padding: '0.75rem' }}>Elections</td>
+            <td style={{ padding: '0.75rem' }}>Official Election APIs</td>
+            <td style={{ padding: '0.75rem' }}>Very High</td>
+            <td style={{ padding: '0.75rem', color: 'var(--color-warning)' }}>⚠️ Not Implemented</td>
+          </tr>
+          <tr style={{ borderBottom: '1px solid var(--color-border)' }}>
+            <td style={{ padding: '0.75rem' }}>Weather</td>
+            <td style={{ padding: '0.75rem' }}>OpenWeatherMap / NOAA</td>
+            <td style={{ padding: '0.75rem' }}>High</td>
+            <td style={{ padding: '0.75rem', color: 'var(--color-warning)' }}>⚠️ Not Implemented</td>
+          </tr>
+          <tr style={{ borderBottom: '1px solid var(--color-border)' }}>
+            <td style={{ padding: '0.75rem' }}>News Events</td>
+            <td style={{ padding: '0.75rem' }}>NewsAPI</td>
+            <td style={{ padding: '0.75rem' }}>Medium-High</td>
+            <td style={{ padding: '0.75rem', color: 'var(--color-warning)' }}>⚠️ Not Implemented</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h2>Implementation Roadmap</h2>
+      <ol>
+        <li><strong>Phase 1 (Current):</strong> ✅ Financial markets via RedStone Oracle</li>
+        <li><strong>Phase 2 (Next):</strong> ⚠️ Sports markets - Integrate The Odds API or SportsDataIO</li>
+        <li><strong>Phase 3:</strong> ⚠️ Political markets - Integrate election/news APIs</li>
+        <li><strong>Phase 4:</strong> ⚠️ Weather markets - Integrate weather APIs</li>
+        <li><strong>Phase 5:</strong> ⚠️ Multi-oracle support - Allow market creators to choose oracle</li>
+      </ol>
+
+      <h2>Oracle Requirements</h2>
+      <p>All oracles must meet these minimum requirements:</p>
+      <ul>
+        <li><strong>Reliability:</strong> 99%+ uptime</li>
+        <li><strong>Accuracy:</strong> Data from official/trusted sources</li>
+        <li><strong>Timeliness:</strong> Real-time or near-real-time data</li>
+        <li><strong>API Access:</strong> Public API or reasonable pricing</li>
+        <li><strong>Documentation:</strong> Clear API documentation</li>
+        <li><strong>Rate Limits:</strong> Sufficient for market resolution needs</li>
+      </ul>
+
+      <h2>Security & Best Practices</h2>
+      <ul>
+        <li><strong>API Key Management:</strong> Store keys securely in environment variables</li>
+        <li><strong>Rate Limiting:</strong> Implement rate limiting to prevent abuse</li>
+        <li><strong>Data Validation:</strong> Validate oracle data before using for resolution</li>
+        <li><strong>Multiple Sources:</strong> Consider aggregating from multiple sources for critical markets</li>
+        <li><strong>Timestamp Verification:</strong> Ensure data timestamps are recent and valid</li>
+      </ul>
+
+      <h2>Documentation</h2>
+      <p>For more detailed information, see:</p>
+      <ul>
+        <li><strong>Oracle Strategy:</strong> <code>docs/ORACLE_STRATEGY.md</code> - Comprehensive oracle strategy and recommendations</li>
+        <li><strong>API Reference:</strong> See API Reference section for endpoint documentation</li>
       </ul>
     </div>
   )
