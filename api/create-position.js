@@ -86,40 +86,38 @@ module.exports = async function handler(req, res) {
     // Step 0: Check user's virtual CC balance
     if (supabase) {
       try {
-        // Use environment variable or construct from request
-        const baseUrl = process.env.VERCEL_URL 
-          ? `https://${process.env.VERCEL_URL}` 
-          : (req.headers.host ? `https://${req.headers.host}` : 'http://localhost:3000')
-        const balanceResponse = await fetch(`${baseUrl}/api/get-user-balance`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            userParty: owner
-          })
-        })
+        // Get current balance
+        const { data: currentBalance, error: fetchError } = await supabase
+          .from('user_balances')
+          .select('balance')
+          .eq('party', owner)
+          .single()
 
-        if (balanceResponse.ok) {
-          const balanceData = await balanceResponse.json()
-          const currentBalance = parseFloat(balanceData.balance || '0')
-          
-          if (currentBalance < amountNum) {
-            return res.status(400).json({
-              error: 'Insufficient balance',
-              message: `You have ${currentBalance} CC but need ${amountNum} CC to create this position. Please deposit more CC first.`,
-              currentBalance: currentBalance.toString(),
-              requiredAmount: amountNum.toString()
-            })
-          }
-
-          console.log('[api/create-position] ✅ Balance check passed:', {
-            currentBalance,
-            requiredAmount: amountNum
-          })
+        let currentBalanceNum = 0
+        if (fetchError && fetchError.code === 'PGRST116') {
+          // No balance record exists - balance is 0
+          currentBalanceNum = 0
+        } else if (fetchError) {
+          console.warn('[api/create-position] ⚠️ Error fetching balance:', fetchError)
+          // Don't block position creation if balance check fails
         } else {
-          console.warn('[api/create-position] ⚠️ Could not check balance, proceeding anyway')
+          currentBalanceNum = parseFloat(currentBalance?.balance || '0')
         }
+
+        // Check if user has sufficient balance
+        if (currentBalanceNum < amountNum) {
+          return res.status(400).json({
+            error: 'Insufficient balance',
+            message: `You have ${currentBalanceNum} CC but need ${amountNum} CC to create this position. Please deposit more CC first.`,
+            currentBalance: currentBalanceNum.toString(),
+            requiredAmount: amountNum.toString()
+          })
+        }
+
+        console.log('[api/create-position] ✅ Balance check passed:', {
+          currentBalance: currentBalanceNum,
+          requiredAmount: amountNum
+        })
       } catch (balanceError) {
         console.warn('[api/create-position] ⚠️ Balance check failed, proceeding anyway:', balanceError.message)
       }
