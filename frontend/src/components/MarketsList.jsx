@@ -4,6 +4,7 @@ import { useLedger } from '../hooks/useLedger'
 import { useWallet } from '../contexts/WalletContext'
 import { SkeletonMarketGrid } from './SkeletonLoader'
 import { ContractStorage } from '../utils/contractStorage'
+import { useDebounce } from '../utils/useDebounce'
 
 export default function MarketsList() {
   const { ledger } = useLedger()
@@ -21,6 +22,10 @@ export default function MarketsList() {
   const [selectedType, setSelectedType] = useState('all')
   const [selectedStatus, setSelectedStatus] = useState('all')
   const [sortBy, setSortBy] = useState('volume') // 'volume', 'newest', 'oldest'
+  const [filtersExpanded, setFiltersExpanded] = useState(true)
+
+  // Debounce search query for better performance
+  const debouncedSearchQuery = useDebounce(searchQuery, 300)
 
   const PACKAGE_ID = 'b87ef31c8ea5c53a940a7f71a4bc6513cf44048730c0551f1fc2e02adc7271f0'
   
@@ -41,6 +46,16 @@ export default function MarketsList() {
     })
     return Array.from(topics).sort()
   }, [markets])
+  
+  // Count active filters
+  const activeFilterCount = useMemo(() => {
+    let count = 0
+    if (debouncedSearchQuery.trim()) count++
+    if (selectedTopic !== 'all') count++
+    if (selectedType !== 'all') count++
+    if (selectedStatus !== 'all') count++
+    return count
+  }, [debouncedSearchQuery, selectedTopic, selectedType, selectedStatus])
 
   useEffect(() => {
     isMountedRef.current = true
@@ -206,9 +221,9 @@ export default function MarketsList() {
   const filteredAndSortedMarkets = useMemo(() => {
     let filtered = [...markets]
     
-    // Apply search filter
-    if (searchQuery.trim()) {
-      const query = searchQuery.toLowerCase()
+    // Apply search filter (using debounced value)
+    if (debouncedSearchQuery.trim()) {
+      const query = debouncedSearchQuery.toLowerCase()
       filtered = filtered.filter(market => 
         market.payload.title?.toLowerCase().includes(query) ||
         market.payload.description?.toLowerCase().includes(query) ||
@@ -260,7 +275,7 @@ export default function MarketsList() {
     })
     
     return filtered
-  }, [markets, searchQuery, selectedTopic, selectedType, selectedStatus, sortBy])
+  }, [markets, debouncedSearchQuery, selectedTopic, selectedType, selectedStatus, sortBy])
 
   if (loading) {
     return (
@@ -300,20 +315,53 @@ export default function MarketsList() {
       
       {/* Filters Section */}
       {markets.length > 0 && (
-        <div className="card mb-xl">
-          <div className="filters-container">
-            {/* Search */}
-            <div className="filter-group">
-              <label htmlFor="search">Search Markets</label>
-              <input
-                id="search"
-                type="text"
-                placeholder="Search by title, description, or market ID..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="filter-input"
-              />
+        <div className="card mb-xl filters-card">
+          <div className="filters-header">
+            <div className="filters-header-left">
+              <h3 className="filters-title">Filters</h3>
+              {activeFilterCount > 0 && (
+                <span className="filter-badge">{activeFilterCount} active</span>
+              )}
             </div>
+            <button
+              type="button"
+              className="btn-icon"
+              onClick={() => setFiltersExpanded(!filtersExpanded)}
+              aria-label={filtersExpanded ? 'Collapse filters' : 'Expand filters'}
+            >
+              <span className={filtersExpanded ? 'icon-chevron-up' : 'icon-chevron-down'}>
+                {filtersExpanded ? '▲' : '▼'}
+              </span>
+            </button>
+          </div>
+          
+          {filtersExpanded && (
+            <>
+              <div className="filters-container">
+                {/* Search */}
+                <div className="filter-group filter-group-full">
+                  <label htmlFor="search">
+                    <span>Search Markets</span>
+                    {searchQuery && (
+                      <button
+                        type="button"
+                        className="filter-clear"
+                        onClick={() => setSearchQuery('')}
+                        aria-label="Clear search"
+                      >
+                        ×
+                      </button>
+                    )}
+                  </label>
+                  <input
+                    id="search"
+                    type="text"
+                    placeholder="Search by title, description, or market ID..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="filter-input"
+                  />
+                </div>
             
             {/* Topic Filter */}
             {availableTopics.length > 0 && (
@@ -380,29 +428,110 @@ export default function MarketsList() {
               </select>
             </div>
             
-            {/* Clear Filters */}
-            {(searchQuery || selectedTopic !== 'all' || selectedType !== 'all' || selectedStatus !== 'all') && (
-              <div className="filter-group">
-                <button
-                  className="btn-secondary"
-                  onClick={() => {
-                    setSearchQuery('')
-                    setSelectedTopic('all')
-                    setSelectedType('all')
-                    setSelectedStatus('all')
-                    setSortBy('volume')
-                  }}
-                  style={{ marginTop: 'var(--spacing-lg)' }}
-                >
-                  Clear Filters
-                </button>
               </div>
-            )}
-          </div>
+              
+              {/* Active Filter Badges */}
+              {activeFilterCount > 0 && (
+                <div className="active-filters">
+                  {debouncedSearchQuery && (
+                    <span className="filter-chip">
+                      Search: "{debouncedSearchQuery}"
+                      <button
+                        type="button"
+                        onClick={() => setSearchQuery('')}
+                        className="filter-chip-remove"
+                        aria-label="Remove search filter"
+                      >
+                        ×
+                      </button>
+                    </span>
+                  )}
+                  {selectedTopic !== 'all' && (
+                    <span className="filter-chip">
+                      Topic: {selectedTopic}
+                      <button
+                        type="button"
+                        onClick={() => setSelectedTopic('all')}
+                        className="filter-chip-remove"
+                        aria-label="Remove topic filter"
+                      >
+                        ×
+                      </button>
+                    </span>
+                  )}
+                  {selectedType !== 'all' && (
+                    <span className="filter-chip">
+                      Type: {selectedType === 'binary' ? 'Binary' : 'Multi-Outcome'}
+                      <button
+                        type="button"
+                        onClick={() => setSelectedType('all')}
+                        className="filter-chip-remove"
+                        aria-label="Remove type filter"
+                      >
+                        ×
+                      </button>
+                    </span>
+                  )}
+                  {selectedStatus !== 'all' && (
+                    <span className="filter-chip">
+                      Status: {selectedStatus}
+                      <button
+                        type="button"
+                        onClick={() => setSelectedStatus('all')}
+                        className="filter-chip-remove"
+                        aria-label="Remove status filter"
+                      >
+                        ×
+                      </button>
+                    </span>
+                  )}
+                  <button
+                    type="button"
+                    className="filter-chip-clear-all"
+                    onClick={() => {
+                      setSearchQuery('')
+                      setSelectedTopic('all')
+                      setSelectedType('all')
+                      setSelectedStatus('all')
+                      setSortBy('volume')
+                    }}
+                  >
+                    Clear All
+                  </button>
+                </div>
+              )}
+              
+              {/* Clear Filters Button */}
+              {activeFilterCount > 0 && (
+                <div className="filters-actions">
+                  <button
+                    type="button"
+                    className="btn-secondary btn-clear-filters"
+                    onClick={() => {
+                      setSearchQuery('')
+                      setSelectedTopic('all')
+                      setSelectedType('all')
+                      setSelectedStatus('all')
+                      setSortBy('volume')
+                    }}
+                  >
+                    Clear All Filters
+                  </button>
+                </div>
+              )}
+            </>
+          )}
           
           {/* Results Count */}
           <div className="filter-results">
-            Showing {filteredAndSortedMarkets.length} of {markets.length} markets
+            <span className="filter-results-text">
+              Showing <strong>{filteredAndSortedMarkets.length}</strong> of <strong>{markets.length}</strong> markets
+            </span>
+            {activeFilterCount > 0 && filteredAndSortedMarkets.length === 0 && (
+              <span className="filter-no-results">
+                No markets match your filters. Try adjusting your criteria.
+              </span>
+            )}
           </div>
         </div>
       )}
@@ -456,21 +585,24 @@ export default function MarketsList() {
         </div>
       ) : (
         <>
-          {filteredAndSortedMarkets.length === 0 ? (
-            <div className="card">
-              <p>No markets match your filters. Try adjusting your search criteria.</p>
-              <button
-                className="btn-secondary mt-md"
-                onClick={() => {
-                  setSearchQuery('')
-                  setSelectedTopic('all')
-                  setSelectedType('all')
-                  setSelectedStatus('all')
-                  setSortBy('volume')
-                }}
-              >
-                Clear All Filters
-              </button>
+          {filteredAndSortedMarkets.length === 0 && activeFilterCount > 0 ? (
+            <div className="card empty-state">
+              <div className="empty-state-content">
+                <h3>No markets found</h3>
+                <p>No markets match your current filters. Try adjusting your search criteria.</p>
+                <button
+                  className="btn-primary mt-md"
+                  onClick={() => {
+                    setSearchQuery('')
+                    setSelectedTopic('all')
+                    setSelectedType('all')
+                    setSelectedStatus('all')
+                    setSortBy('volume')
+                  }}
+                >
+                  Clear All Filters
+                </button>
+              </div>
             </div>
           ) : (
             <div className="market-grid">
