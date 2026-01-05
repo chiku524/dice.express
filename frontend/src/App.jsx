@@ -92,6 +92,7 @@ function AppContent() {
           </div>
         </main>
         <ConnectionStatus />
+        <Footer />
         
         <WalletModal 
           isOpen={showWalletModal} 
