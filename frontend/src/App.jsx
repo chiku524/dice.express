@@ -25,6 +25,8 @@ import WalletModal from './components/WalletModal'
 import ErrorBoundary from './components/ErrorBoundary'
 import Navbar from './components/Navbar'
 import Footer from './components/Footer'
+import { ToastContainer } from './components/Toast'
+import { useToast } from './hooks/useToast'
 // Import theme.css FIRST to ensure variables are available
 import './styles/theme.css'
 import './App.css'
