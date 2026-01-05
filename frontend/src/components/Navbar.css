@@ -7,17 +7,18 @@
 .nav-dropdown-toggle {
   display: flex;
   align-items: center;
-  gap: var(--spacing-xs, 0.375rem);
-  padding: var(--spacing-xs, 0.375rem) var(--spacing-sm, 0.75rem);
+  gap: var(--spacing-xs, 0.25rem);
+  padding: var(--spacing-xs, 0.25rem) var(--spacing-sm, 0.625rem);
   background: transparent;
   border: 1px solid var(--color-border-light, rgba(255, 255, 255, 0.1));
   border-radius: var(--radius-md, 6px);
   color: var(--color-text-primary, rgba(255, 255, 255, 0.87));
-  font-size: var(--font-size-sm, 0.875rem);
+  font-size: var(--font-size-xs, 0.85rem);
   font-weight: var(--font-weight-medium, 500);
   cursor: pointer;
   transition: all var(--transition-base, 0.2s ease);
   white-space: nowrap;
+  line-height: 1.2;
 }
 
 .nav-dropdown-toggle:hover {
@@ -100,17 +101,18 @@
 }
 
 .btn-connect {
-  padding: var(--spacing-sm, 0.5rem) var(--spacing-md, 1rem);
+  padding: var(--spacing-xs, 0.375rem) var(--spacing-sm, 0.75rem);
   background: var(--color-primary, #646cff);
   border: none;
   border-radius: var(--radius-md, 6px);
   color: var(--color-text-primary, white);
-  font-size: var(--font-size-base, 0.95rem);
+  font-size: var(--font-size-xs, 0.85rem);
   font-weight: var(--font-weight-medium, 500);
   cursor: pointer;
   transition: all var(--transition-base, 0.2s ease);
   white-space: nowrap;
   box-shadow: var(--shadow-sm, 0 1px 2px rgba(0, 0, 0, 0.1));
+  line-height: 1.2;
 }
 
 .btn-connect:hover:not(:disabled) {
