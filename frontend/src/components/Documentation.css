@@ -1,0 +1,234 @@
+.documentation-container {
+  display: flex;
+  min-height: calc(100vh - 80px); /* Adjust based on navbar height */
+  background: #0f0f1e;
+  color: #fff;
+}
+
+.documentation-sidebar {
+  width: 280px;
+  min-width: 280px;
+  background: rgba(26, 26, 46, 0.95);
+  border-right: 1px solid rgba(100, 108, 255, 0.2);
+  padding: 2rem 0;
+  position: sticky;
+  top: 80px; /* Adjust based on navbar height */
+  height: calc(100vh - 80px);
+  overflow-y: auto;
+}
+
+.documentation-sidebar h2 {
+  padding: 0 1.5rem;
+  margin: 0 0 1.5rem 0;
+  font-size: 1.5rem;
+  color: #fff;
+  border-bottom: 1px solid rgba(100, 108, 255, 0.2);
+  padding-bottom: 1rem;
+}
+
+.documentation-nav {
+  padding: 0;
+}
+
+.documentation-nav ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.documentation-nav li {
+  margin: 0;
+  padding: 0;
+}
+
+.documentation-nav button {
+  width: 100%;
+  padding: 0.875rem 1.5rem;
+  background: transparent;
+  border: none;
+  color: rgba(255, 255, 255, 0.7);
+  text-align: left;
+  cursor: pointer;
+  font-size: 0.95rem;
+  transition: all 0.2s;
+  border-left: 3px solid transparent;
+}
+
+.documentation-nav button:hover {
+  background: rgba(100, 108, 255, 0.1);
+  color: #fff;
+  border-left-color: rgba(100, 108, 255, 0.5);
+}
+
+.documentation-nav button.active {
+  background: rgba(100, 108, 255, 0.15);
+  color: #646cff;
+  border-left-color: #646cff;
+  font-weight: 600;
+}
+
+.documentation-content {
+  flex: 1;
+  padding: 3rem 4rem;
+  max-width: 900px;
+  overflow-y: auto;
+}
+
+.doc-section {
+  line-height: 1.7;
+}
+
+.doc-section h1 {
+  font-size: 2.5rem;
+  margin: 0 0 1.5rem 0;
+  color: #fff;
+  font-weight: 700;
+  border-bottom: 2px solid rgba(100, 108, 255, 0.3);
+  padding-bottom: 1rem;
+}
+
+.doc-section h2 {
+  font-size: 1.75rem;
+  margin: 2.5rem 0 1rem 0;
+  color: #fff;
+  font-weight: 600;
+}
+
+.doc-section h3 {
+  font-size: 1.35rem;
+  margin: 2rem 0 0.75rem 0;
+  color: rgba(255, 255, 255, 0.9);
+  font-weight: 600;
+}
+
+.doc-section p {
+  margin: 1rem 0;
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 1rem;
+}
+
+.doc-section ul,
+.doc-section ol {
+  margin: 1rem 0;
+  padding-left: 2rem;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.doc-section li {
+  margin: 0.5rem 0;
+  line-height: 1.6;
+}
+
+.doc-section code {
+  background: rgba(0, 0, 0, 0.4);
+  padding: 0.2rem 0.5rem;
+  border-radius: 4px;
+  font-family: 'Courier New', monospace;
+  font-size: 0.9em;
+  color: #646cff;
+  border: 1px solid rgba(100, 108, 255, 0.2);
+}
+
+.doc-section pre {
+  background: rgba(0, 0, 0, 0.5);
+  padding: 1.25rem;
+  border-radius: 8px;
+  overflow-x: auto;
+  border: 1px solid rgba(100, 108, 255, 0.2);
+  margin: 1.5rem 0;
+}
+
+.doc-section pre code {
+  background: transparent;
+  padding: 0;
+  border: none;
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 0.9rem;
+  line-height: 1.6;
+}
+
+.doc-section strong {
+  color: #fff;
+  font-weight: 600;
+}
+
+.doc-section a {
+  color: #646cff;
+  text-decoration: none;
+  transition: color 0.2s;
+}
+
+.doc-section a:hover {
+  color: #535bf2;
+  text-decoration: underline;
+}
+
+/* Responsive Design */
+@media (max-width: 968px) {
+  .documentation-container {
+    flex-direction: column;
+  }
+
+  .documentation-sidebar {
+    width: 100%;
+    min-width: 100%;
+    position: relative;
+    top: 0;
+    height: auto;
+    max-height: 300px;
+    border-right: none;
+    border-bottom: 1px solid rgba(100, 108, 255, 0.2);
+  }
+
+  .documentation-nav {
+    display: flex;
+    overflow-x: auto;
+  }
+
+  .documentation-nav ul {
+    display: flex;
+    padding: 0 1rem;
+  }
+
+  .documentation-nav li {
+    flex-shrink: 0;
+  }
+
+  .documentation-nav button {
+    white-space: nowrap;
+    border-left: none;
+    border-bottom: 3px solid transparent;
+    padding: 1rem 1.25rem;
+  }
+
+  .documentation-nav button.active {
+    border-left: none;
+    border-bottom-color: #646cff;
+  }
+
+  .documentation-content {
+    padding: 2rem 1.5rem;
+  }
+
+  .doc-section h1 {
+    font-size: 2rem;
+  }
+
+  .doc-section h2 {
+    font-size: 1.5rem;
+  }
+
+  .doc-section h3 {
+    font-size: 1.25rem;
+  }
+}
+
+@media (max-width: 640px) {
+  .documentation-content {
+    padding: 1.5rem 1rem;
+  }
+
+  .doc-section h1 {
+    font-size: 1.75rem;
+  }
+}
