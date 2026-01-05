@@ -11,9 +11,10 @@
   --color-primary-border: rgba(100, 108, 255, 0.3);
   
   --color-background: #1a1a1a;
-  --color-surface: #1e1e1e;
-  --color-surface-hover: #252525;
-  --color-border: #333;
+  --color-background-transparent: rgba(26, 26, 46, 0.85);
+  --color-surface: rgba(30, 30, 46, 0.9);
+  --color-surface-hover: rgba(37, 37, 56, 0.95);
+  --color-border: rgba(100, 108, 255, 0.2);
   --color-border-light: rgba(255, 255, 255, 0.1);
   
   --color-text-primary: rgba(255, 255, 255, 0.87);
@@ -104,8 +105,10 @@
 
 /* Enhanced Card Variants */
 .card {
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
+  background: var(--color-surface, rgba(30, 30, 46, 0.9));
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid var(--color-border, rgba(100, 108, 255, 0.2));
   border-radius: var(--radius-lg);
   padding: var(--card-padding);
   margin-bottom: var(--spacing-md);
@@ -114,14 +117,17 @@
 }
 
 .card:hover {
-  border-color: var(--color-primary-border);
+  background: var(--color-surface-hover, rgba(37, 37, 56, 0.95));
+  border-color: var(--color-primary-border, rgba(100, 108, 255, 0.3));
   box-shadow: var(--shadow-md);
   transform: translateY(-2px);
 }
 
 .card-elevated {
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
+  background: var(--color-surface, rgba(30, 30, 46, 0.9));
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid var(--color-border, rgba(100, 108, 255, 0.2));
   border-radius: var(--radius-lg);
   padding: var(--card-padding);
   margin-bottom: var(--spacing-md);
@@ -146,8 +152,10 @@
 
 /* Market Card Enhancements */
 .market-card {
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
+  background: var(--color-surface, rgba(30, 30, 46, 0.9));
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid var(--color-border, rgba(100, 108, 255, 0.2));
   border-radius: var(--radius-lg);
   padding: var(--card-padding);
   transition: all var(--transition-base);
@@ -171,9 +179,9 @@
 
 .market-card:hover {
   transform: translateY(-4px);
-  border-color: var(--color-primary-border);
+  border-color: var(--color-primary-border, rgba(100, 108, 255, 0.3));
   box-shadow: var(--shadow-lg);
-  background: var(--color-surface-hover);
+  background: var(--color-surface-hover, rgba(37, 37, 56, 0.95));
 }
 
 .market-card:hover::before {
