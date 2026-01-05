@@ -145,24 +145,48 @@ module.exports = async function handler(req, res) {
     // Step 3: Update user's virtual CC balance in database
     if (supabase) {
       try {
-        // Update user balance (add the deposited amount)
-        const balanceUpdateResponse = await fetch(`${req.headers.host ? `https://${req.headers.host}` : 'http://localhost:3000'}/api/update-user-balance`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            userParty,
-            amount: amountNum.toString(),
-            operation: 'add'
-          })
-        })
+        // Get current balance
+        const { data: currentBalance, error: fetchError } = await supabase
+          .from('user_balances')
+          .select('balance')
+          .eq('party', userParty)
+          .single()
 
-        if (balanceUpdateResponse.ok) {
-          const balanceResult = await balanceUpdateResponse.json()
-          console.log('[api/deposit] ✅ User balance updated:', balanceResult)
+        let currentBalanceNum = 0
+        if (fetchError && fetchError.code === 'PGRST116') {
+          // No balance record exists - create one
+          currentBalanceNum = 0
+        } else if (fetchError) {
+          console.warn('[api/deposit] ⚠️ Error fetching balance:', fetchError)
         } else {
-          console.warn('[api/deposit] ⚠️ Failed to update user balance')
+          currentBalanceNum = parseFloat(currentBalance?.balance || '0')
+        }
+
+        // Calculate new balance (add deposit amount)
+        const newBalanceNum = currentBalanceNum + amountNum
+
+        // Update or create balance record
+        const { data: updatedBalance, error: updateError } = await supabase
+          .from('user_balances')
+          .upsert({
+            party: userParty,
+            balance: newBalanceNum.toString(),
+            updated_at: new Date().toISOString()
+          }, {
+            onConflict: 'party',
+            ignoreDuplicates: false
+          })
+          .select()
+          .single()
+
+        if (updateError) {
+          console.warn('[api/deposit] ⚠️ Failed to update user balance:', updateError)
+        } else {
+          console.log('[api/deposit] ✅ User balance updated:', {
+            previousBalance: currentBalanceNum.toString(),
+            newBalance: newBalanceNum.toString(),
+            depositAmount: amountNum.toString()
+          })
         }
 
         // Track transaction in database
