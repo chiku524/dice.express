@@ -84,7 +84,7 @@
 
 .wallet-info span {
   white-space: nowrap;
-  font-size: var(--font-size-sm, 0.875rem);
+  font-size: var(--font-size-xs, 0.8rem);
   color: var(--color-text-secondary, rgba(255, 255, 255, 0.7));
   font-family: var(--font-family-mono, 'Courier New', monospace);
 }
@@ -92,7 +92,7 @@
 .wallet-info button {
   white-space: nowrap;
   padding: var(--spacing-xs, 0.25rem) var(--spacing-sm, 0.5rem);
-  font-size: var(--font-size-sm, 0.875rem);
+  font-size: var(--font-size-xs, 0.8rem);
   background: var(--color-primary-light, rgba(100, 108, 255, 0.2));
   border: 1px solid var(--color-primary-border, rgba(100, 108, 255, 0.3));
   color: var(--color-text-primary, rgba(255, 255, 255, 0.9));
