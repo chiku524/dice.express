@@ -14,19 +14,6 @@
   padding-right: 0 !important;
 }
 
-/* Override app-main padding for documentation */
-.app-main:has(.documentation-container) {
-  padding-top: 0 !important;
-  padding-bottom: 0 !important;
-}
-
-/* Override container padding for documentation */
-.container:has(.documentation-container) {
-  padding-left: 0 !important;
-  padding-right: 0 !important;
-  max-width: 100% !important;
-}
-
 .documentation-sidebar {
   width: 280px;
   min-width: 280px;

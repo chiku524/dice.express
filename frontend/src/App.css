@@ -134,10 +134,23 @@
   z-index: 1;
 }
 
+/* Remove padding for documentation page */
+.app-main:has(.documentation-container) {
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
 .container {
   max-width: var(--container-max-width, 1200px);
   margin: 0 auto;
   padding: 0 var(--spacing-xl, 2rem);
+}
+
+/* Remove padding for documentation page */
+.container:has(.documentation-container) {
+  padding-left: 0;
+  padding-right: 0;
+  max-width: 100%;
 }
 
 /* Card styles are now in theme.css */
