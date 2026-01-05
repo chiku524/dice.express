@@ -81,6 +81,8 @@ function AppContent() {
                     <Route path="/portfolio" element={<Portfolio />} />
                     <Route path="/admin" element={<AdminDashboard />} />
                     <Route path="/history" element={<ContractHistory />} />
+                    <Route path="/docs" element={<Documentation />} />
+                    <Route path="/documentation" element={<Documentation />} />
                     <Route path="/test-active-contracts" element={<ActiveContractsTest />} />
                   </>
                 )}
