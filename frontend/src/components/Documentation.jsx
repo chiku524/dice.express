@@ -589,7 +589,7 @@ function BlockchainContent() {
 
       <h3>Provider Interface</h3>
       <p>All blockchain providers implement a consistent interface:</p>
-      <pre><code>{`class BlockchainProvider {
+      <pre>{`class BlockchainProvider {
   async connect()                    // Initialize connection
   async disconnect()                 // Close connection
   async getAccount()                 // Get current account/party
@@ -598,7 +598,7 @@ function BlockchainContent() {
   async queryContracts(...)          // Query contracts
   async getContract(...)             // Get contract by ID
   getSupportedFeatures()             // List supported features
-}`}</code></pre>
+}`}</pre>
 
       <h2>Future: Full On-Chain Support</h2>
       <p>
@@ -633,9 +633,9 @@ function BlockchainContent() {
 
       <h2>Configuration</h2>
       <p>Blockchain providers are configured via environment variables:</p>
-      <pre><code>{`# Canton Configuration
+      <pre>{`# Canton Configuration
 VITE_CANTON_LEDGER_URL=https://participant.dev.canton.wolfedgelabs.com/json-api
-VITE_CANTON_PACKAGE_ID=b87ef31c8ea5c53a940a7f71a4bc6513cf44048730c0551f1fc2e02adc7271f0`}</code></pre>
+VITE_CANTON_PACKAGE_ID=b87ef31c8ea5c53a940a7f71a4bc6513cf44048730c0551f1fc2e02adc7271f0`}</pre>
 
       <h2>Documentation</h2>
       <p>For more detailed information, see:</p>
