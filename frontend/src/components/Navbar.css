@@ -1,6 +1,7 @@
 .nav-dropdown {
   position: relative;
   display: inline-block;
+  z-index: 1000;
 }
 
 .nav-dropdown-toggle {
@@ -55,8 +56,9 @@
   padding: var(--spacing-xs, 0.25rem) 0;
   min-width: 180px;
   box-shadow: var(--shadow-lg, 0 10px 15px rgba(0, 0, 0, 0.3));
-  z-index: 1000;
+  z-index: 10000;
   animation: slideDown var(--transition-base, 0.2s ease-out);
+  pointer-events: auto;
 }
 
 @keyframes slideDown {
@@ -79,6 +81,10 @@
   transition: all var(--transition-base, 0.2s ease);
   border-radius: var(--radius-sm, 4px);
   margin: var(--spacing-xs, 0.125rem) var(--spacing-xs, 0.25rem);
+  pointer-events: auto;
+  cursor: pointer;
+  position: relative;
+  z-index: 10001;
 }
 
 .nav-dropdown-menu a:hover {

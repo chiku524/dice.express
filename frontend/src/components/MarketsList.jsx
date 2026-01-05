@@ -220,7 +220,10 @@ export default function MarketsList() {
 
   return (
     <div>
-      <h1>Prediction Markets</h1>
+      <div className="page-header">
+        <h1>Prediction Markets</h1>
+        <p>Discover and trade on prediction markets built on Canton blockchain</p>
+      </div>
       {!apiRoutesWorkingRef.current ? (
         <div className="card">
           <div className="alert-warning">
@@ -286,10 +289,10 @@ export default function MarketsList() {
                   {market.payload.description.substring(0, 100)}...
                 </p>
                 <div style={{ marginTop: '1rem', display: 'flex', justifyContent: 'space-between' }}>
-                  <span style={{ color: 'rgba(255, 255, 255, 0.6)' }}>
+                  <span>
                     Volume: {market.payload.totalVolume}
                   </span>
-                  <span style={{ color: 'rgba(255, 255, 255, 0.6)' }}>
+                  <span>
                     {market.payload.marketType === 'Binary' ? 'Binary' : 'Multi-Outcome'}
                   </span>
                 </div>
