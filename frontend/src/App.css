@@ -349,59 +349,9 @@
   margin-top: var(--spacing-xl, 2rem);
 }
 
-/* Market card styles are now in theme.css */
-/* Keeping this for backward compatibility */
-.market-card {
-  background: var(--color-surface, rgba(30, 30, 46, 0.9));
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  border: 1px solid var(--color-border, rgba(100, 108, 255, 0.2));
-  border-radius: var(--radius-lg, 8px);
-  padding: var(--card-padding, 1.5rem);
-  transition: all var(--transition-base, 0.2s ease);
-  cursor: pointer;
-  box-shadow: var(--shadow-sm, 0 1px 2px rgba(0, 0, 0, 0.1));
-  position: relative;
-  overflow: hidden;
-}
+/* Market card styles are now in theme.css - removed duplicate to ensure theme.css takes precedence */
 
-.market-card::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 3px;
-  background: linear-gradient(90deg, var(--color-primary, #646cff), transparent);
-  opacity: 0;
-  transition: opacity var(--transition-base, 0.2s ease);
-}
-
-.market-card:hover {
-  transform: translateY(-4px);
-  border-color: var(--color-primary-border, rgba(100, 108, 255, 0.3));
-  box-shadow: var(--shadow-lg, 0 10px 15px rgba(0, 0, 0, 0.3));
-  background: var(--color-surface-hover, rgba(37, 37, 56, 0.95));
-}
-
-.market-card:hover::before {
-  opacity: 1;
-}
-
-.market-card h3 {
-  margin-bottom: var(--spacing-sm, 0.5rem);
-  color: var(--color-text-primary, rgba(255, 255, 255, 0.87));
-  font-size: var(--font-size-lg, 1.125rem);
-  font-weight: var(--font-weight-semibold, 600);
-}
-
-.market-card p {
-  color: var(--color-text-secondary, rgba(255, 255, 255, 0.7));
-}
-
-.market-card span {
-  color: var(--color-text-tertiary, rgba(255, 255, 255, 0.6));
-}
+/* Market card styles are now in theme.css - removed duplicate to ensure theme.css takes precedence */
 
 .market-card .status {
   display: inline-block;

@@ -14,8 +14,33 @@ export default function MarketsList() {
   const pollIntervalRef = useRef(null)
   const apiRoutesWorkingRef = useRef(true)
   const isMountedRef = useRef(true)
+  
+  // Filter states
+  const [searchQuery, setSearchQuery] = useState('')
+  const [selectedTopic, setSelectedTopic] = useState('all')
+  const [selectedType, setSelectedType] = useState('all')
+  const [selectedStatus, setSelectedStatus] = useState('all')
+  const [sortBy, setSortBy] = useState('volume') // 'volume', 'newest', 'oldest'
 
   const PACKAGE_ID = 'b87ef31c8ea5c53a940a7f71a4bc6513cf44048730c0551f1fc2e02adc7271f0'
+  
+  // Extract unique topics from markets
+  // Topics can come from payload.topic or be extracted from title/description
+  const availableTopics = useMemo(() => {
+    const topics = new Set()
+    markets.forEach(market => {
+      // Check for explicit topic field
+      if (market.payload.topic) {
+        topics.add(market.payload.topic)
+      }
+      // Extract topic from title if it follows a pattern like "[Topic] Question"
+      const titleMatch = market.payload.title?.match(/^\[([^\]]+)\]/)
+      if (titleMatch) {
+        topics.add(titleMatch[1])
+      }
+    })
+    return Array.from(topics).sort()
+  }, [markets])
 
   useEffect(() => {
     isMountedRef.current = true
@@ -178,15 +203,64 @@ export default function MarketsList() {
   }, [])
 
   // Memoize filtered/sorted markets for performance
-  const sortedMarkets = useMemo(() => {
-    return [...markets].sort((a, b) => {
-      // Sort by status (Active first) then by volume
+  const filteredAndSortedMarkets = useMemo(() => {
+    let filtered = [...markets]
+    
+    // Apply search filter
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase()
+      filtered = filtered.filter(market => 
+        market.payload.title?.toLowerCase().includes(query) ||
+        market.payload.description?.toLowerCase().includes(query) ||
+        market.payload.marketId?.toLowerCase().includes(query)
+      )
+    }
+    
+    // Apply topic filter
+    if (selectedTopic !== 'all') {
+      filtered = filtered.filter(market => {
+        // Check explicit topic field
+        if (market.payload.topic === selectedTopic) return true
+        // Check if topic is in title pattern [Topic]
+        const titleMatch = market.payload.title?.match(/^\[([^\]]+)\]/)
+        if (titleMatch && titleMatch[1] === selectedTopic) return true
+        return false
+      })
+    }
+    
+    // Apply type filter
+    if (selectedType !== 'all') {
+      filtered = filtered.filter(market => {
+        if (selectedType === 'binary') return market.payload.marketType === 'Binary'
+        if (selectedType === 'multi') return market.payload.marketType === 'MultiOutcome'
+        return true
+      })
+    }
+    
+    // Apply status filter
+    if (selectedStatus !== 'all') {
+      filtered = filtered.filter(market => market.payload.status === selectedStatus)
+    }
+    
+    // Apply sorting
+    filtered.sort((a, b) => {
+      if (sortBy === 'volume') {
+        return (b.payload.totalVolume || 0) - (a.payload.totalVolume || 0)
+      } else if (sortBy === 'newest') {
+        // Sort by contractId (newer contracts typically have later IDs)
+        return b.contractId.localeCompare(a.contractId)
+      } else if (sortBy === 'oldest') {
+        return a.contractId.localeCompare(b.contractId)
+      }
+      // Default: status priority then volume
       const statusOrder = { Active: 0, Resolving: 1, PendingApproval: 2, Settled: 3 }
       const statusDiff = (statusOrder[a.payload.status] || 99) - (statusOrder[b.payload.status] || 99)
       if (statusDiff !== 0) return statusDiff
       return (b.payload.totalVolume || 0) - (a.payload.totalVolume || 0)
     })
-  }, [markets])
+    
+    return filtered
+  }, [markets, searchQuery, selectedTopic, selectedType, selectedStatus, sortBy])
 
   if (loading) {
     return (
@@ -223,6 +297,115 @@ export default function MarketsList() {
         <h1>Prediction Markets</h1>
         <p>Discover and trade on prediction markets built on Canton blockchain</p>
       </div>
+      
+      {/* Filters Section */}
+      {markets.length > 0 && (
+        <div className="card mb-xl">
+          <div className="filters-container">
+            {/* Search */}
+            <div className="filter-group">
+              <label htmlFor="search">Search Markets</label>
+              <input
+                id="search"
+                type="text"
+                placeholder="Search by title, description, or market ID..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="filter-input"
+              />
+            </div>
+            
+            {/* Topic Filter */}
+            {availableTopics.length > 0 && (
+              <div className="filter-group">
+                <label htmlFor="topic">Topic</label>
+                <select
+                  id="topic"
+                  value={selectedTopic}
+                  onChange={(e) => setSelectedTopic(e.target.value)}
+                  className="filter-select"
+                >
+                  <option value="all">All Topics</option>
+                  {availableTopics.map(topic => (
+                    <option key={topic} value={topic}>{topic}</option>
+                  ))}
+                </select>
+              </div>
+            )}
+            
+            {/* Type Filter */}
+            <div className="filter-group">
+              <label htmlFor="type">Market Type</label>
+              <select
+                id="type"
+                value={selectedType}
+                onChange={(e) => setSelectedType(e.target.value)}
+                className="filter-select"
+              >
+                <option value="all">All Types</option>
+                <option value="binary">Binary</option>
+                <option value="multi">Multi-Outcome</option>
+              </select>
+            </div>
+            
+            {/* Status Filter */}
+            <div className="filter-group">
+              <label htmlFor="status">Status</label>
+              <select
+                id="status"
+                value={selectedStatus}
+                onChange={(e) => setSelectedStatus(e.target.value)}
+                className="filter-select"
+              >
+                <option value="all">All Statuses</option>
+                <option value="Active">Active</option>
+                <option value="Resolving">Resolving</option>
+                <option value="Settled">Settled</option>
+                <option value="PendingApproval">Pending Approval</option>
+              </select>
+            </div>
+            
+            {/* Sort */}
+            <div className="filter-group">
+              <label htmlFor="sort">Sort By</label>
+              <select
+                id="sort"
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value)}
+                className="filter-select"
+              >
+                <option value="volume">Volume (High to Low)</option>
+                <option value="newest">Newest First</option>
+                <option value="oldest">Oldest First</option>
+              </select>
+            </div>
+            
+            {/* Clear Filters */}
+            {(searchQuery || selectedTopic !== 'all' || selectedType !== 'all' || selectedStatus !== 'all') && (
+              <div className="filter-group">
+                <button
+                  className="btn-secondary"
+                  onClick={() => {
+                    setSearchQuery('')
+                    setSelectedTopic('all')
+                    setSelectedType('all')
+                    setSelectedStatus('all')
+                    setSortBy('volume')
+                  }}
+                  style={{ marginTop: 'var(--spacing-lg)' }}
+                >
+                  Clear Filters
+                </button>
+              </div>
+            )}
+          </div>
+          
+          {/* Results Count */}
+          <div className="filter-results">
+            Showing {filteredAndSortedMarkets.length} of {markets.length} markets
+          </div>
+        </div>
+      )}
       {!apiRoutesWorkingRef.current ? (
         <div className="card">
           <div className="alert-warning">
@@ -272,33 +455,55 @@ export default function MarketsList() {
           </Link>
         </div>
       ) : (
-        <div className="market-grid">
-          {sortedMarkets.map((market) => (
+        <>
+          {filteredAndSortedMarkets.length === 0 ? (
+            <div className="card">
+              <p>No markets match your filters. Try adjusting your search criteria.</p>
+              <button
+                className="btn-secondary mt-md"
+                onClick={() => {
+                  setSearchQuery('')
+                  setSelectedTopic('all')
+                  setSelectedType('all')
+                  setSelectedStatus('all')
+                  setSortBy('volume')
+                }}
+              >
+                Clear All Filters
+              </button>
+            </div>
+          ) : (
+            <div className="market-grid">
+              {filteredAndSortedMarkets.map((market) => (
             <Link
               key={market.contractId}
               to={`/market/${market.payload.marketId}`}
               style={{ textDecoration: 'none' }}
             >
               <div className="market-card">
-                <h3>{market.payload.title}</h3>
-                <span className={`status ${getStatusClass(market.payload.status)}`}>
-                  {market.payload.status}
-                </span>
-                <p className="mt-md" style={{ fontSize: 'var(--font-size-sm)' }}>
+                <div>
+                  <h3>{market.payload.title}</h3>
+                  <span className={`status ${getStatusClass(market.payload.status)}`}>
+                    {market.payload.status}
+                  </span>
+                </div>
+                <p className="mt-md">
                   {market.payload.description.substring(0, 100)}...
                 </p>
-                <div className="mt-md" style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span className="text-secondary">
+                <div className="mt-md" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 'auto' }}>
+                  <span className="text-secondary" style={{ fontSize: 'var(--font-size-sm)' }}>
                     Volume: {market.payload.totalVolume}
                   </span>
-                  <span className="text-secondary">
+                  <span className="text-secondary" style={{ fontSize: 'var(--font-size-sm)' }}>
                     {market.payload.marketType === 'Binary' ? 'Binary' : 'Multi-Outcome'}
                   </span>
                 </div>
               </div>
             </Link>
           ))}
-        </div>
+            </div>
+          )}
+        </>
       )}
     </div>
   )
