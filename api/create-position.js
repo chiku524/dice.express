@@ -263,6 +263,58 @@ module.exports = async function handler(req, res) {
       outcomeVolumes: newOutcomeVolumes
     })
 
+    // Step 7: Deduct amount from user's virtual CC balance
+    if (supabase) {
+      try {
+        // Get current balance
+        const { data: currentBalance, error: fetchError } = await supabase
+          .from('user_balances')
+          .select('balance')
+          .eq('party', owner)
+          .single()
+
+        let currentBalanceNum = 0
+        if (fetchError && fetchError.code === 'PGRST116') {
+          // No balance record exists - balance is 0
+          currentBalanceNum = 0
+        } else if (fetchError) {
+          console.warn('[api/create-position] ⚠️ Error fetching balance for deduction:', fetchError)
+        } else {
+          currentBalanceNum = parseFloat(currentBalance?.balance || '0')
+        }
+
+        // Calculate new balance (subtract position amount)
+        const newBalanceNum = currentBalanceNum - amountNum
+
+        // Update balance record
+        const { data: updatedBalance, error: updateError } = await supabase
+          .from('user_balances')
+          .upsert({
+            party: owner,
+            balance: newBalanceNum.toString(),
+            updated_at: new Date().toISOString()
+          }, {
+            onConflict: 'party',
+            ignoreDuplicates: false
+          })
+          .select()
+          .single()
+
+        if (updateError) {
+          console.warn('[api/create-position] ⚠️ Failed to deduct from user balance:', updateError)
+        } else {
+          console.log('[api/create-position] ✅ User balance deducted:', {
+            previousBalance: currentBalanceNum.toString(),
+            newBalance: newBalanceNum.toString(),
+            deductedAmount: amountNum.toString()
+          })
+        }
+      } catch (balanceError) {
+        console.warn('[api/create-position] ⚠️ Balance update failed:', balanceError.message)
+        // Don't fail the request if balance update fails - position was already created
+      }
+    }
+
     return res.status(200).json({
       success: true,
       position: positionData,
