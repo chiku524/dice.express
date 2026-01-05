@@ -51,7 +51,7 @@ export default function Documentation() {
   }
 
   return (
-    <div className="documentation-container">
+    <div className="documentation-container" style={{ marginTop: 0, paddingTop: 0 }}>
       <div className="documentation-sidebar">
         <h2>Documentation</h2>
         <nav className="documentation-nav">
