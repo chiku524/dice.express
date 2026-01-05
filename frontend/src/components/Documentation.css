@@ -1,7 +1,7 @@
 /* Override container padding for documentation page */
 .documentation-container {
   display: flex;
-  height: calc(100vh - 50px - 200px); /* Full viewport minus navbar (50px) and footer (~200px) */
+  height: calc(100vh - 50px - 120px); /* Full viewport minus navbar (50px) and footer (~120px) */
   background: transparent;
   color: var(--color-text-primary, #fff);
   margin-top: 0 !important; /* Remove gap between navbar and sidebar */
@@ -18,15 +18,15 @@
 .documentation-sidebar {
   width: 280px;
   min-width: 280px;
-  background: var(--color-background-transparent, rgba(15, 15, 26, 0.95));
-  backdrop-filter: blur(15px);
-  -webkit-backdrop-filter: blur(15px);
+  background: var(--color-background-transparent, rgba(15, 15, 26, 0.6));
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
   border-right: 1px solid var(--color-border, rgba(100, 108, 255, 0.25));
   padding: 1.5rem 0;
   position: fixed;
   top: 50px; /* Navbar height (reduced from 70px) */
   left: 0;
-  height: calc(100vh - 50px - 200px); /* Full height minus navbar and footer */
+  height: calc(100vh - 50px - 120px); /* Full height minus navbar and footer (reduced footer) */
   overflow-y: auto;
   overflow-x: hidden;
   /* Hide scrollbar but keep functionality */
@@ -110,20 +110,45 @@
 .documentation-content {
   flex: 1;
   padding: 3rem 4rem;
-  max-width: 900px;
+  max-width: none; /* Remove max-width to fill remaining space */
+  width: calc(100% - 280px); /* Fill remaining width after sidebar */
   margin-left: 280px; /* Account for fixed sidebar */
   margin-top: 0;
-  margin-right: var(--spacing-lg, 1.5rem);
+  margin-right: 0;
   margin-bottom: 0;
   overflow-y: auto; /* Only content scrolls */
   overflow-x: hidden;
-  background: var(--color-surface, rgba(30, 30, 46, 0.85));
-  backdrop-filter: blur(15px);
-  -webkit-backdrop-filter: blur(15px);
-  border-radius: var(--radius-lg, 12px);
-  border: 1px solid var(--color-border, rgba(100, 108, 255, 0.25));
-  box-shadow: var(--shadow-lg, 0 10px 25px rgba(0, 0, 0, 0.3));
+  background: var(--color-surface, rgba(30, 30, 46, 0.6));
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border-radius: 0; /* Remove border radius to fill edge to edge */
+  border: none;
+  border-left: 1px solid var(--color-border, rgba(100, 108, 255, 0.25));
+  box-shadow: none; /* Remove shadow for seamless look */
   height: 100%; /* Full height of container */
+  /* Hide scrollbar but keep functionality */
+  scrollbar-width: thin; /* Firefox - thin scrollbar */
+  scrollbar-color: rgba(100, 108, 255, 0.3) transparent; /* Firefox scrollbar color */
+  -ms-overflow-style: -ms-autohiding-scrollbar; /* IE and Edge */
+}
+
+/* Custom scrollbar styling for Chrome, Safari, Opera */
+.documentation-content::-webkit-scrollbar {
+  width: 8px;
+}
+
+.documentation-content::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.documentation-content::-webkit-scrollbar-thumb {
+  background: rgba(100, 108, 255, 0.3);
+  border-radius: 4px;
+  transition: background var(--transition-base, 0.2s ease);
+}
+
+.documentation-content::-webkit-scrollbar-thumb:hover {
+  background: rgba(100, 108, 255, 0.5);
 }
 
 .doc-section {

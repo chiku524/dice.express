@@ -4,7 +4,7 @@
   -webkit-backdrop-filter: blur(10px);
   border-top: 1px solid var(--color-border, rgba(100, 108, 255, 0.2));
   margin-top: auto;
-  padding: 3rem 0 1.5rem;
+  padding: 1.5rem 0 1rem;
   color: var(--color-text-secondary, rgba(255, 255, 255, 0.8));
   position: relative;
   z-index: 1;
@@ -19,14 +19,14 @@
 .footer-content {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-  gap: 2.5rem;
-  margin-bottom: 2rem;
+  gap: 1.5rem;
+  margin-bottom: 1rem;
 }
 
 .footer-section h3 {
   color: var(--color-text-primary, #fff);
-  font-size: var(--font-size-lg, 1.125rem);
-  margin: 0 0 var(--spacing-md, 1rem) 0;
+  font-size: var(--font-size-base, 1rem);
+  margin: 0 0 var(--spacing-sm, 0.5rem) 0;
   font-weight: var(--font-weight-semibold, 600);
 }
 
@@ -44,7 +44,7 @@
   color: var(--color-text-secondary, rgba(255, 255, 255, 0.7));
   text-decoration: none;
   transition: color var(--transition-base, 0.2s ease);
-  font-size: var(--font-size-base, 0.95rem);
+  font-size: var(--font-size-sm, 0.875rem);
 }
 
 .footer-section ul li a:hover {
@@ -53,21 +53,21 @@
 
 .footer-section p {
   color: var(--color-text-secondary, rgba(255, 255, 255, 0.7));
-  font-size: var(--font-size-sm, 0.9rem);
-  line-height: 1.6;
+  font-size: var(--font-size-xs, 0.8rem);
+  line-height: 1.5;
   margin: 0;
 }
 
 .footer-bottom {
   border-top: 1px solid var(--color-border, rgba(100, 108, 255, 0.1));
-  padding-top: var(--spacing-lg, 1.5rem);
+  padding-top: var(--spacing-sm, 0.5rem);
   text-align: center;
 }
 
 .footer-bottom p {
-  margin: var(--spacing-sm, 0.5rem) 0;
+  margin: var(--spacing-xs, 0.25rem) 0;
   color: var(--color-text-tertiary, rgba(255, 255, 255, 0.6));
-  font-size: var(--font-size-sm, 0.9rem);
+  font-size: var(--font-size-xs, 0.75rem);
 }
 
 .footer-tech {
