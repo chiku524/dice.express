@@ -30,6 +30,12 @@ body {
   position: relative;
 }
 
+/* Prevent body scrolling on documentation page */
+body:has(.documentation-container) {
+  overflow: hidden !important;
+  height: 100vh !important;
+}
+
 #root {
   width: 100%;
   min-height: 100vh;
