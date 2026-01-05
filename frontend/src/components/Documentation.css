@@ -103,7 +103,7 @@
   flex: 1;
   padding: 3rem 4rem;
   max-width: 900px;
-  margin-left: 280px; /* Account for fixed sidebar */
+  margin-left: 0; /* No margin needed with sticky sidebar */
   overflow-y: visible;
   background: var(--color-surface, rgba(30, 30, 46, 0.85));
   backdrop-filter: blur(15px);
