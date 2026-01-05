@@ -10,6 +10,14 @@ export default function Portfolio() {
   const [activityLog, setActivityLog] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+  const [depositAmount, setDepositAmount] = useState('')
+  const [withdrawAmount, setWithdrawAmount] = useState('')
+  const [depositLoading, setDepositLoading] = useState(false)
+  const [withdrawLoading, setWithdrawLoading] = useState(false)
+  const [depositError, setDepositError] = useState(null)
+  const [withdrawError, setWithdrawError] = useState(null)
+  const [depositSuccess, setDepositSuccess] = useState(false)
+  const [withdrawSuccess, setWithdrawSuccess] = useState(false)
   const isMountedRef = useRef(true)
 
   useEffect(() => {
