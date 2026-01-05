@@ -8,19 +8,20 @@
 }
 
 .app-header {
-  background-color: #1a1a1a;
-  border-bottom: 1px solid #333;
-  padding: 1rem 0;
+  background-color: var(--color-background, #1a1a1a);
+  border-bottom: 1px solid var(--color-border, #333);
+  padding: var(--spacing-md, 1rem) 0;
+  transition: all var(--transition-base, 0.2s ease);
 }
 
 .app-header .container {
-  max-width: 1200px;
+  max-width: var(--container-max-width, 1200px);
   margin: 0 auto;
-  padding: 0 2rem;
+  padding: 0 var(--spacing-xl, 2rem);
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: 1rem;
+  gap: var(--spacing-md, 1rem);
   flex-wrap: nowrap;
 }
 
@@ -30,98 +31,124 @@
 }
 
 .logo h1 {
-  font-size: 1.5rem;
-  font-weight: 600;
+  font-size: var(--font-size-xl, 1.5rem);
+  font-weight: var(--font-weight-semibold, 600);
   white-space: nowrap;
   margin: 0;
+  color: var(--color-text-primary, rgba(255, 255, 255, 0.87));
+  transition: color var(--transition-base, 0.2s ease);
 }
 
 .app-header nav {
   display: flex;
-  gap: 1rem;
+  gap: var(--spacing-md, 1rem);
   align-items: center;
   flex-wrap: nowrap;
 }
 
 .app-header nav a {
-  color: rgba(255, 255, 255, 0.87);
+  color: var(--color-text-primary, rgba(255, 255, 255, 0.87));
   text-decoration: none;
-  font-weight: 500;
-  transition: color 0.2s;
+  font-weight: var(--font-weight-medium, 500);
+  transition: color var(--transition-base, 0.2s ease);
+  padding: var(--spacing-xs, 0.25rem) var(--spacing-sm, 0.5rem);
+  border-radius: var(--radius-md, 6px);
 }
 
 .app-header nav a:hover {
-  color: #646cff;
+  color: var(--color-primary, #646cff);
+  background-color: var(--color-primary-light, rgba(100, 108, 255, 0.1));
 }
 
 .wallet-info {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: var(--spacing-sm, 0.5rem);
   flex-wrap: nowrap;
-  padding: 0.25rem 0.5rem;
-  background: rgba(100, 108, 255, 0.1);
-  border-radius: 6px;
-  border: 1px solid rgba(100, 108, 255, 0.2);
+  padding: var(--spacing-xs, 0.25rem) var(--spacing-sm, 0.5rem);
+  background: var(--color-primary-light, rgba(100, 108, 255, 0.1));
+  border-radius: var(--radius-md, 6px);
+  border: 1px solid var(--color-primary-border, rgba(100, 108, 255, 0.2));
+  transition: all var(--transition-base, 0.2s ease);
+}
+
+.wallet-info:hover {
+  background: var(--color-primary-light, rgba(100, 108, 255, 0.15));
+  border-color: var(--color-primary-border, rgba(100, 108, 255, 0.3));
 }
 
 .wallet-info span {
   white-space: nowrap;
-  font-size: 0.8rem;
-  color: rgba(255, 255, 255, 0.7);
-  font-family: 'Courier New', monospace;
+  font-size: var(--font-size-sm, 0.875rem);
+  color: var(--color-text-secondary, rgba(255, 255, 255, 0.7));
+  font-family: var(--font-family-mono, 'Courier New', monospace);
 }
 
 .wallet-info button {
   white-space: nowrap;
-  padding: 0.4rem 0.75rem;
-  font-size: 0.85rem;
-  background: rgba(100, 108, 255, 0.2);
-  border: 1px solid rgba(100, 108, 255, 0.3);
-  color: rgba(255, 255, 255, 0.9);
-  border-radius: 4px;
+  padding: var(--spacing-xs, 0.25rem) var(--spacing-sm, 0.5rem);
+  font-size: var(--font-size-sm, 0.875rem);
+  background: var(--color-primary-light, rgba(100, 108, 255, 0.2));
+  border: 1px solid var(--color-primary-border, rgba(100, 108, 255, 0.3));
+  color: var(--color-text-primary, rgba(255, 255, 255, 0.9));
+  border-radius: var(--radius-sm, 4px);
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all var(--transition-base, 0.2s ease);
+  font-weight: var(--font-weight-medium, 500);
 }
 
 .wallet-info button:hover {
-  background: rgba(100, 108, 255, 0.3);
-  border-color: rgba(100, 108, 255, 0.5);
+  background: var(--color-primary-light, rgba(100, 108, 255, 0.3));
+  border-color: var(--color-primary-border, rgba(100, 108, 255, 0.5));
+  transform: translateY(-1px);
 }
 
 .app-header nav button {
-  padding: 0.5rem 1rem;
-  font-size: 0.9rem;
-  background: #646cff;
+  padding: var(--spacing-sm, 0.5rem) var(--spacing-md, 1rem);
+  font-size: var(--font-size-sm, 0.9rem);
+  background: var(--color-primary, #646cff);
   border: none;
-  border-radius: 4px;
-  color: #fff;
+  border-radius: var(--radius-sm, 4px);
+  color: var(--color-text-primary, #fff);
   cursor: pointer;
-  transition: all 0.2s;
-  font-weight: 500;
+  transition: all var(--transition-base, 0.2s ease);
+  font-weight: var(--font-weight-medium, 500);
+  box-shadow: var(--shadow-sm, 0 1px 2px rgba(0, 0, 0, 0.1));
 }
 
-.app-header nav button:hover {
-  background: #535bf2;
+.app-header nav button:hover:not(:disabled) {
+  background: var(--color-primary-hover, #535bf2);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md, 0 4px 6px rgba(0, 0, 0, 0.2));
 }
 
 .app-main {
   flex: 1;
-  padding: 2rem 0;
+  padding: var(--spacing-xl, 2rem) 0;
 }
 
 .container {
-  max-width: 1200px;
+  max-width: var(--container-max-width, 1200px);
   margin: 0 auto;
-  padding: 0 2rem;
+  padding: 0 var(--spacing-xl, 2rem);
 }
 
+/* Card styles are now in theme.css */
+/* Keeping this for backward compatibility */
 .card {
-  background: #1e1e1e;
-  border: 1px solid #333;
-  border-radius: 8px;
-  padding: 1.5rem;
-  margin-bottom: 1rem;
+  background: var(--color-surface, #1e1e1e);
+  border: 1px solid var(--color-border, #333);
+  border-radius: var(--radius-lg, 8px);
+  padding: var(--card-padding, 1.5rem);
+  margin-bottom: var(--spacing-md, 1rem);
+  transition: all var(--transition-base, 0.2s ease);
+  box-shadow: var(--shadow-sm, 0 1px 2px rgba(0, 0, 0, 0.1));
+}
+
+.card:hover {
+  border-color: var(--color-primary-border, rgba(100, 108, 255, 0.3));
+  box-shadow: var(--shadow-md, 0 4px 6px rgba(0, 0, 0, 0.2));
+  transform: translateY(-2px);
 }
 
 .card h2 {
@@ -135,32 +162,35 @@
 }
 
 .alert-warning {
-  background: rgba(255, 193, 7, 0.2);
-  border: 1px solid rgba(255, 193, 7, 0.5);
-  border-radius: 8px;
-  padding: 1.5rem;
-  color: rgba(255, 255, 255, 0.87);
+  background: var(--color-warning-bg, rgba(245, 158, 11, 0.2));
+  border: 1px solid var(--color-warning, rgba(245, 158, 11, 0.5));
+  border-radius: var(--radius-lg, 8px);
+  padding: var(--card-padding, 1.5rem);
+  color: var(--color-text-primary, rgba(255, 255, 255, 0.87));
+  transition: all var(--transition-base, 0.2s ease);
 }
 
 .alert-warning h3 {
-  margin: 0 0 1rem 0;
-  color: #ffc107;
-  font-size: 1.2rem;
+  margin: 0 0 var(--spacing-md, 1rem) 0;
+  color: var(--color-warning, #f59e0b);
+  font-size: var(--font-size-xl, 1.25rem);
+  font-weight: var(--font-weight-semibold, 600);
 }
 
 .alert-warning p {
-  margin: 0.75rem 0;
-  color: rgba(255, 255, 255, 0.8);
+  margin: var(--spacing-sm, 0.5rem) 0;
+  color: var(--color-text-secondary, rgba(255, 255, 255, 0.8));
+  line-height: 1.6;
 }
 
 .alert-warning ul {
-  margin: 0.75rem 0;
-  padding-left: 1.5rem;
-  color: rgba(255, 255, 255, 0.8);
+  margin: var(--spacing-sm, 0.5rem) 0;
+  padding-left: var(--spacing-lg, 1.5rem);
+  color: var(--color-text-secondary, rgba(255, 255, 255, 0.8));
 }
 
 .alert-warning li {
-  margin: 0.5rem 0;
+  margin: var(--spacing-xs, 0.25rem) 0;
 }
 
 .form-group {
@@ -176,10 +206,10 @@
 
 .field-error {
   display: block;
-  color: #ff4444;
-  font-size: 0.85rem;
-  margin-top: 0.25rem;
-  animation: slideDown 0.2s ease-out;
+  color: var(--color-error, #ef4444);
+  font-size: var(--font-size-sm, 0.875rem);
+  margin-top: var(--spacing-xs, 0.25rem);
+  animation: slideDown var(--transition-base, 0.2s ease-out);
 }
 
 @keyframes slideDown {
@@ -205,11 +235,35 @@
 .form-group textarea {
   width: 100%;
   padding: 0.75rem;
-  border: 1px solid #333;
-  border-radius: 4px;
-  background: #2a2a2a;
-  color: rgba(255, 255, 255, 0.87);
-  font-size: 1rem;
+  border: 1px solid var(--color-border, #333);
+  border-radius: var(--radius-md, 4px);
+  background: var(--color-background, #2a2a2a);
+  color: var(--color-text-primary, rgba(255, 255, 255, 0.87));
+  font-size: var(--font-size-base, 1rem);
+  transition: all var(--transition-base, 0.2s ease);
+  font-family: var(--font-family-base, -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif);
+}
+
+.form-group input:focus,
+.form-group select:focus,
+.form-group textarea:focus {
+  outline: none;
+  border-color: var(--color-primary, #646cff);
+  box-shadow: 0 0 0 3px var(--color-primary-light, rgba(100, 108, 255, 0.1));
+}
+
+.form-group input:hover:not(:disabled),
+.form-group select:hover:not(:disabled),
+.form-group textarea:hover:not(:disabled) {
+  border-color: var(--color-primary-border, rgba(100, 108, 255, 0.3));
+}
+
+.form-group input:disabled,
+.form-group select:disabled,
+.form-group textarea:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  background: var(--color-surface, #1e1e1e);
 }
 
 .form-group textarea {
@@ -217,56 +271,114 @@
   resize: vertical;
 }
 
+/* Button styles are now in theme.css */
+/* Keeping this for backward compatibility */
 .btn-primary {
-  background-color: #646cff;
+  background-color: var(--color-primary, #646cff);
   color: white;
   border: none;
   padding: 0.75rem 1.5rem;
-  font-size: 1rem;
-  font-weight: 500;
+  font-size: var(--font-size-base, 1rem);
+  font-weight: var(--font-weight-medium, 500);
   cursor: pointer;
-  border-radius: 4px;
-  transition: background-color 0.2s;
+  border-radius: var(--radius-md, 4px);
+  transition: all var(--transition-base, 0.2s ease);
+  box-shadow: var(--shadow-sm, 0 1px 2px rgba(0, 0, 0, 0.1));
 }
 
-.btn-primary:hover {
-  background-color: #535bf2;
+.btn-primary:hover:not(:disabled) {
+  background-color: var(--color-primary-hover, #535bf2);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-primary, 0 4px 12px rgba(100, 108, 255, 0.3));
+}
+
+.btn-primary:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.btn-primary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 .btn-secondary {
-  background-color: #333;
-  color: white;
-  border: 1px solid #444;
+  background-color: var(--color-surface, #333);
+  color: var(--color-text-primary, white);
+  border: 1px solid var(--color-border, #444);
+  padding: 0.75rem 1.5rem;
+  font-size: var(--font-size-base, 1rem);
+  font-weight: var(--font-weight-medium, 500);
+  cursor: pointer;
+  border-radius: var(--radius-md, 4px);
+  transition: all var(--transition-base, 0.2s ease);
 }
 
-.btn-secondary:hover {
-  background-color: #444;
+.btn-secondary:hover:not(:disabled) {
+  background-color: var(--color-surface-hover, #444);
+  border-color: var(--color-primary-border, rgba(100, 108, 255, 0.3));
+  color: var(--color-primary, #646cff);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md, 0 4px 6px rgba(0, 0, 0, 0.2));
+}
+
+.btn-secondary:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.btn-secondary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 .market-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: 1.5rem;
-  margin-top: 2rem;
+  gap: var(--spacing-lg, 1.5rem);
+  margin-top: var(--spacing-xl, 2rem);
 }
 
+/* Market card styles are now in theme.css */
+/* Keeping this for backward compatibility */
 .market-card {
-  background: #1e1e1e;
-  border: 1px solid #333;
-  border-radius: 8px;
-  padding: 1.5rem;
-  transition: transform 0.2s, border-color 0.2s;
+  background: var(--color-surface, #1e1e1e);
+  border: 1px solid var(--color-border, #333);
+  border-radius: var(--radius-lg, 8px);
+  padding: var(--card-padding, 1.5rem);
+  transition: all var(--transition-base, 0.2s ease);
   cursor: pointer;
+  box-shadow: var(--shadow-sm, 0 1px 2px rgba(0, 0, 0, 0.1));
+  position: relative;
+  overflow: hidden;
+}
+
+.market-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, var(--color-primary, #646cff), transparent);
+  opacity: 0;
+  transition: opacity var(--transition-base, 0.2s ease);
 }
 
 .market-card:hover {
-  transform: translateY(-2px);
-  border-color: #646cff;
+  transform: translateY(-4px);
+  border-color: var(--color-primary-border, rgba(100, 108, 255, 0.3));
+  box-shadow: var(--shadow-lg, 0 10px 15px rgba(0, 0, 0, 0.3));
+  background: var(--color-surface-hover, #252525);
+}
+
+.market-card:hover::before {
+  opacity: 1;
 }
 
 .market-card h3 {
-  margin-bottom: 0.5rem;
-  color: rgba(255, 255, 255, 0.87);
+  margin-bottom: var(--spacing-sm, 0.5rem);
+  color: var(--color-text-primary, rgba(255, 255, 255, 0.87));
+  font-size: var(--font-size-lg, 1.125rem);
+  font-weight: var(--font-weight-semibold, 600);
 }
 
 .market-card .status {
@@ -278,30 +390,46 @@
   margin-bottom: 1rem;
 }
 
+/* Status badge styles are now in theme.css */
+/* Keeping this for backward compatibility */
+.status {
+  display: inline-block;
+  padding: var(--spacing-xs, 0.25rem) var(--spacing-md, 0.75rem);
+  border-radius: var(--radius-full, 12px);
+  font-size: var(--font-size-sm, 0.875rem);
+  font-weight: var(--font-weight-medium, 500);
+  white-space: nowrap;
+}
+
 .status-active {
-  background-color: #22c55e;
+  background-color: var(--status-active, #22c55e);
   color: white;
 }
 
 .status-resolving {
-  background-color: #f59e0b;
+  background-color: var(--status-resolving, #f59e0b);
   color: white;
 }
 
 .status-settled {
-  background-color: #6b7280;
+  background-color: var(--status-settled, #6b7280);
   color: white;
 }
 
 .status-pending {
-  background-color: #3b82f6;
+  background-color: var(--status-pending, #3b82f6);
+  color: white;
+}
+
+.status-rejected {
+  background-color: var(--status-rejected, #ef4444);
   color: white;
 }
 
 .loading {
   text-align: center;
-  padding: 2rem;
-  color: rgba(255, 255, 255, 0.6);
+  padding: var(--spacing-xl, 2rem);
+  color: var(--color-text-tertiary, rgba(255, 255, 255, 0.6));
   min-height: 200px;
   display: flex;
   flex-direction: column;
@@ -310,18 +438,22 @@
 }
 
 .error {
-  background-color: #ef4444;
-  color: white;
-  padding: 1rem;
-  border-radius: 4px;
-  margin-bottom: 1rem;
+  background-color: var(--color-error, #ef4444);
+  color: var(--color-text-primary, white);
+  padding: var(--spacing-md, 1rem);
+  border-radius: var(--radius-md, 6px);
+  margin-bottom: var(--spacing-md, 1rem);
+  border: 1px solid var(--color-error, #ef4444);
+  transition: all var(--transition-base, 0.2s ease);
 }
 
 .success {
-  background-color: #22c55e;
-  color: white;
-  padding: 1rem;
-  border-radius: 4px;
-  margin-bottom: 1rem;
+  background-color: var(--color-success, #22c55e);
+  color: var(--color-text-primary, white);
+  padding: var(--spacing-md, 1rem);
+  border-radius: var(--radius-md, 6px);
+  margin-bottom: var(--spacing-md, 1rem);
+  border: 1px solid var(--color-success, #22c55e);
+  transition: all var(--transition-base, 0.2s ease);
 }
 

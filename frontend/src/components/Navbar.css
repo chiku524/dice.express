@@ -6,29 +6,30 @@
 .nav-dropdown-toggle {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  padding: 0.5rem 1rem;
+  gap: var(--spacing-sm, 0.5rem);
+  padding: var(--spacing-sm, 0.5rem) var(--spacing-md, 1rem);
   background: transparent;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 6px;
-  color: rgba(255, 255, 255, 0.87);
-  font-size: 0.95rem;
-  font-weight: 500;
+  border: 1px solid var(--color-border-light, rgba(255, 255, 255, 0.1));
+  border-radius: var(--radius-md, 6px);
+  color: var(--color-text-primary, rgba(255, 255, 255, 0.87));
+  font-size: var(--font-size-base, 0.95rem);
+  font-weight: var(--font-weight-medium, 500);
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all var(--transition-base, 0.2s ease);
   white-space: nowrap;
 }
 
 .nav-dropdown-toggle:hover {
-  background: rgba(255, 255, 255, 0.05);
-  border-color: rgba(255, 255, 255, 0.2);
-  color: #646cff;
+  background: var(--color-surface-hover, rgba(255, 255, 255, 0.05));
+  border-color: var(--color-border-light, rgba(255, 255, 255, 0.2));
+  color: var(--color-primary, #646cff);
+  transform: translateY(-1px);
 }
 
 .nav-dropdown-toggle.active {
-  background: rgba(100, 108, 255, 0.1);
-  border-color: rgba(100, 108, 255, 0.3);
-  color: #646cff;
+  background: var(--color-primary-light, rgba(100, 108, 255, 0.1));
+  border-color: var(--color-primary-border, rgba(100, 108, 255, 0.3));
+  color: var(--color-primary, #646cff);
 }
 
 .dropdown-arrow {
@@ -44,16 +45,16 @@
 
 .nav-dropdown-menu {
   position: absolute;
-  top: calc(100% + 0.5rem);
+  top: calc(100% + var(--spacing-sm, 0.5rem));
   left: 0;
-  background: #1a1a1a;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 8px;
-  padding: 0.5rem 0;
+  background: var(--color-background, #1a1a1a);
+  border: 1px solid var(--color-border-light, rgba(255, 255, 255, 0.1));
+  border-radius: var(--radius-lg, 8px);
+  padding: var(--spacing-sm, 0.5rem) 0;
   min-width: 180px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  box-shadow: var(--shadow-lg, 0 10px 15px rgba(0, 0, 0, 0.3));
   z-index: 1000;
-  animation: slideDown 0.2s ease-out;
+  animation: slideDown var(--transition-base, 0.2s ease-out);
 }
 
 @keyframes slideDown {
@@ -69,44 +70,46 @@
 
 .nav-dropdown-menu a {
   display: block;
-  padding: 0.75rem 1.25rem;
-  color: rgba(255, 255, 255, 0.87);
+  padding: var(--spacing-sm, 0.5rem) var(--spacing-lg, 1.25rem);
+  color: var(--color-text-primary, rgba(255, 255, 255, 0.87));
   text-decoration: none;
-  font-size: 0.9rem;
-  transition: all 0.2s;
+  font-size: var(--font-size-sm, 0.9rem);
+  transition: all var(--transition-base, 0.2s ease);
   border-left: 3px solid transparent;
 }
 
 .nav-dropdown-menu a:hover {
-  background: rgba(100, 108, 255, 0.1);
-  color: #646cff;
-  border-left-color: #646cff;
+  background: var(--color-primary-light, rgba(100, 108, 255, 0.1));
+  color: var(--color-primary, #646cff);
+  border-left-color: var(--color-primary, #646cff);
+  transform: translateX(2px);
 }
 
 .nav-dropdown-menu a.active {
-  background: rgba(100, 108, 255, 0.15);
-  color: #646cff;
-  border-left-color: #646cff;
-  font-weight: 600;
+  background: var(--color-primary-light, rgba(100, 108, 255, 0.15));
+  color: var(--color-primary, #646cff);
+  border-left-color: var(--color-primary, #646cff);
+  font-weight: var(--font-weight-semibold, 600);
 }
 
 .btn-connect {
-  padding: 0.5rem 1rem;
-  background: #646cff;
+  padding: var(--spacing-sm, 0.5rem) var(--spacing-md, 1rem);
+  background: var(--color-primary, #646cff);
   border: none;
-  border-radius: 6px;
-  color: white;
-  font-size: 0.95rem;
-  font-weight: 500;
+  border-radius: var(--radius-md, 6px);
+  color: var(--color-text-primary, white);
+  font-size: var(--font-size-base, 0.95rem);
+  font-weight: var(--font-weight-medium, 500);
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all var(--transition-base, 0.2s ease);
   white-space: nowrap;
+  box-shadow: var(--shadow-sm, 0 1px 2px rgba(0, 0, 0, 0.1));
 }
 
-.btn-connect:hover {
-  background: #535bf2;
+.btn-connect:hover:not(:disabled) {
+  background: var(--color-primary-hover, #535bf2);
   transform: translateY(-1px);
-  box-shadow: 0 2px 8px rgba(100, 108, 255, 0.3);
+  box-shadow: var(--shadow-primary, 0 4px 12px rgba(100, 108, 255, 0.3));
 }
 
 @media (max-width: 768px) {

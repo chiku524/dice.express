@@ -1,11 +1,11 @@
 :root {
-  font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
+  font-family: var(--font-family-base, Inter, system-ui, Avenir, Helvetica, Arial, sans-serif);
   line-height: 1.5;
-  font-weight: 400;
+  font-weight: var(--font-weight-normal, 400);
 
   color-scheme: dark;
-  color: rgba(255, 255, 255, 0.87);
-  background-color: #121212;
+  color: var(--color-text-primary, rgba(255, 255, 255, 0.87));
+  background-color: var(--color-background, #121212);
 
   font-synthesis: none;
   text-rendering: optimizeLegibility;
@@ -25,7 +25,7 @@ body {
   place-items: center;
   min-width: 320px;
   min-height: 100vh;
-  background-color: #121212;
+  background-color: var(--color-background, #121212);
   overflow-x: hidden;
   position: relative;
 }
@@ -38,30 +38,32 @@ body {
 }
 
 a {
-  font-weight: 500;
-  color: #646cff;
+  font-weight: var(--font-weight-medium, 500);
+  color: var(--color-primary, #646cff);
   text-decoration: inherit;
+  transition: color var(--transition-base, 0.2s ease);
 }
 
 a:hover {
-  color: #535bf2;
+  color: var(--color-primary-hover, #535bf2);
 }
 
 button {
-  border-radius: 8px;
+  border-radius: var(--radius-md, 8px);
   border: 1px solid transparent;
   padding: 0.6em 1.2em;
-  font-size: 1em;
-  font-weight: 500;
-  font-family: inherit;
-  background-color: #1a1a1a;
-  color: white;
+  font-size: var(--font-size-base, 1em);
+  font-weight: var(--font-weight-medium, 500);
+  font-family: var(--font-family-base, inherit);
+  background-color: var(--color-surface, #1a1a1a);
+  color: var(--color-text-primary, white);
   cursor: pointer;
-  transition: border-color 0.25s;
+  transition: all var(--transition-base, 0.2s ease);
 }
 
-button:hover {
-  border-color: #646cff;
+button:hover:not(:disabled) {
+  border-color: var(--color-primary, #646cff);
+  transform: translateY(-1px);
 }
 
 button:focus,
@@ -83,3 +85,5 @@ button:focus-visible {
   }
 }
 
+/* Import theme variables - ensure they're available */
+@import './styles/theme.css';
