@@ -55,12 +55,25 @@ function AppContent() {
   const { ledger, isConnected } = useLedger()
   const { wallet, connectWallet, disconnectWallet } = useWallet()
   const [showWalletModal, setShowWalletModal] = useState(false)
+  const { toasts, removeToast } = useToast()
+
+  // Global toast context (can be accessed via context if needed)
+  useEffect(() => {
+    window.showToast = (message, type, duration) => {
+      // This will be replaced with a proper context provider
+      console.log('Toast:', message, type)
+    }
+    return () => {
+      delete window.showToast
+    }
+  }, [])
 
   return (
     <>
       <PageViewTracker />
       <AnimatedBackground />
       <ApiStatusBanner />
+      <ToastContainer toasts={toasts} onRemove={removeToast} />
       <div className="app">
         <Navbar 
           showWalletModal={showWalletModal}
