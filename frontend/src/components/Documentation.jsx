@@ -671,7 +671,7 @@ function APIsAndOraclesContent() {
         <li>Commodities (Gold, Oil, etc.)</li>
         <li>Market indices (S&P 500, NASDAQ, etc.)</li>
       </ul>
-      <p><strong>API Endpoint:</strong> <code>GET /api/oracle?symbol={symbol}</code></p>
+      <p><strong>API Endpoint:</strong> <code>GET /api/oracle?symbol={'{symbol}'}</code></p>
       <p><strong>Usage:</strong> Market resolution for price-based markets</p>
       <p><strong>Limitations:</strong> Primarily financial/crypto data, may not cover sports, politics, etc.</p>
       <p><strong>Cost:</strong> Free (no API key required for basic usage)</p>
@@ -1078,7 +1078,7 @@ function APIReferenceContent() {
       
       <h3>POST /api/deposit</h3>
       <p>Deposit CC to platform wallet (on-chain transfer).</p>
-      <p><strong>Headers:</strong> Authorization: Bearer {token}</p>
+      <p><strong>Headers:</strong> Authorization: Bearer {'{token}'}</p>
       <p><strong>Request:</strong></p>
       <pre>{`{
   "amount": number,
@@ -1088,7 +1088,7 @@ function APIReferenceContent() {
 
       <h3>POST /api/withdraw</h3>
       <p>Withdraw CC from platform wallet (on-chain transfer).</p>
-      <p><strong>Headers:</strong> Authorization: Bearer {token}</p>
+      <p><strong>Headers:</strong> Authorization: Bearer {'{token}'}</p>
       <p><strong>Request:</strong></p>
       <pre>{`{
   "amount": number,
@@ -1176,7 +1176,7 @@ function APIReferenceContent() {
       
       <h3>POST /api/command</h3>
       <p>Proxy for Canton JSON API command submission (create contracts, exercise choices).</p>
-      <p><strong>Headers:</strong> Authorization: Bearer {token}</p>
+      <p><strong>Headers:</strong> Authorization: Bearer {'{token}'}</p>
       <p><strong>Request:</strong></p>
       <pre>{`{
   "commands": {
