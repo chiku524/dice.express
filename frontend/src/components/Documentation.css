@@ -1,3 +1,9 @@
+/* Prevent body scrolling on documentation page */
+body:has(.documentation-container) {
+  overflow: hidden !important;
+  height: 100vh !important;
+}
+
 /* Override container padding for documentation page */
 .documentation-container {
   display: flex;
@@ -13,12 +19,13 @@
   padding-left: 0 !important;
   padding-right: 0 !important;
   overflow: hidden; /* Prevent page scrolling */
+  position: relative;
 }
 
 .documentation-sidebar {
   width: 280px;
   min-width: 280px;
-  background: var(--color-background-transparent, rgba(15, 15, 26, 0.6));
+  background: var(--color-background-transparent, rgba(15, 15, 26, 0.5));
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
   border-right: 1px solid var(--color-border, rgba(100, 108, 255, 0.25));
@@ -26,6 +33,7 @@
   position: fixed;
   top: 50px; /* Navbar height (reduced from 70px) */
   left: 0;
+  bottom: 120px; /* Footer height */
   height: calc(100vh - 50px - 120px); /* Full height minus navbar and footer (reduced footer) */
   overflow-y: auto;
   overflow-x: hidden;
@@ -118,14 +126,18 @@
   margin-bottom: 0;
   overflow-y: auto; /* Only content scrolls */
   overflow-x: hidden;
-  background: var(--color-surface, rgba(30, 30, 46, 0.6));
+  background: var(--color-surface, rgba(30, 30, 46, 0.5));
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
   border-radius: 0; /* Remove border radius to fill edge to edge */
   border: none;
   border-left: 1px solid var(--color-border, rgba(100, 108, 255, 0.25));
   box-shadow: none; /* Remove shadow for seamless look */
-  height: 100%; /* Full height of container */
+  height: calc(100vh - 50px - 120px); /* Match container height exactly */
+  position: fixed;
+  top: 50px;
+  right: 0;
+  bottom: 120px;
   /* Hide scrollbar but keep functionality */
   scrollbar-width: thin; /* Firefox - thin scrollbar */
   scrollbar-color: rgba(100, 108, 255, 0.3) transparent; /* Firefox scrollbar color */

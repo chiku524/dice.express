@@ -11,9 +11,9 @@
   --color-primary-border: rgba(100, 108, 255, 0.3);
   
   --color-background: #0f0f1a;
-  --color-background-transparent: rgba(15, 15, 26, 0.9);
-  --color-surface: rgba(30, 30, 46, 0.85);
-  --color-surface-hover: rgba(40, 40, 60, 0.9);
+  --color-background-transparent: rgba(15, 15, 26, 0.5);
+  --color-surface: rgba(30, 30, 46, 0.5);
+  --color-surface-hover: rgba(40, 40, 60, 0.6);
   --color-border: rgba(100, 108, 255, 0.25);
   --color-border-light: rgba(255, 255, 255, 0.12);
   
@@ -123,7 +123,7 @@
 
 /* Enhanced Card Variants */
 .card {
-  background: var(--color-surface, rgba(30, 30, 46, 0.9));
+  background: var(--color-surface, rgba(30, 30, 46, 0.5));
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
   border: 1px solid var(--color-border, rgba(100, 108, 255, 0.2));
@@ -138,14 +138,14 @@
 }
 
 .card:hover {
-  background: var(--color-surface-hover, rgba(37, 37, 56, 0.95));
+  background: var(--color-surface-hover, rgba(37, 37, 56, 0.6));
   border-color: var(--color-primary-border, rgba(100, 108, 255, 0.3));
   box-shadow: var(--shadow-md);
   transform: translateY(-2px);
 }
 
 .card-elevated {
-  background: var(--color-surface, rgba(30, 30, 46, 0.9));
+  background: var(--color-surface, rgba(30, 30, 46, 0.5));
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
   border: 1px solid var(--color-border, rgba(100, 108, 255, 0.2));
@@ -231,7 +231,7 @@
   transform: translateY(-4px);
   border-color: var(--color-primary-border, rgba(100, 108, 255, 0.3));
   box-shadow: var(--shadow-lg);
-  background: var(--color-surface-hover, rgba(37, 37, 56, 0.85));
+  background: var(--color-surface-hover, rgba(37, 37, 56, 0.6));
 }
 
 .market-card:hover::before {
