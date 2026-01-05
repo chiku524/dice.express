@@ -66,6 +66,8 @@
   max-width: var(--container-max-width, 1200px);
   margin: 0 auto;
   padding: 0 var(--spacing-xl, 2rem);
+  position: relative;
+  z-index: 1;
 }
 
 .footer-content {
