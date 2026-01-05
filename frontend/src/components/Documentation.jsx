@@ -1165,12 +1165,12 @@ function APIReferenceContent() {
         <li><code>symbol</code> - Asset symbol (e.g., "BTC", "ETH")</li>
       </ul>
       <p><strong>Response:</strong></p>
-      <pre><code>{`{
+      <pre>{`{
   "symbol": "BTC",
   "value": 50000.00,
   "timestamp": 1234567890,
   "source": "redstone"
-}`}</code></pre>
+}`}</pre>
 
       <h2>Canton API Proxies</h2>
       
@@ -1178,7 +1178,7 @@ function APIReferenceContent() {
       <p>Proxy for Canton JSON API command submission (create contracts, exercise choices).</p>
       <p><strong>Headers:</strong> Authorization: Bearer {token}</p>
       <p><strong>Request:</strong></p>
-      <pre><code>{`{
+      <pre>{`{
   "commands": {
     "party": "string",
     "applicationId": "string",
@@ -1193,31 +1193,31 @@ function APIReferenceContent() {
       }
     ]
   }
-}`}</code></pre>
+}`}</pre>
       <p><strong>Response:</strong></p>
-      <pre><code>{`{
+      <pre>{`{
   "updateId": "string",
   "contractId": "string",
   "result": {...},
   "transactionHash": "string"
-}`}</code></pre>
+}`}</pre>
       
       <h3>POST /api/query</h3>
       <p>Proxy for Canton JSON API queries (active-contracts endpoint). Note: Limited support - returns empty array if endpoints unavailable.</p>
       <p><strong>Request:</strong></p>
-      <pre><code>{`{
+      <pre>{`{
   "templateIds": ["string"],
   "query": {},
   "walletParty": "string"
-}`}</code></pre>
+}`}</pre>
       <p><strong>Response:</strong></p>
-      <pre><code>{`[
+      <pre>{`[
   {
     "contractId": "string",
     "templateId": "string",
     "payload": {...}
   }
-]`}</code></pre>
+]`}</pre>
 
       <h2>Health & Diagnostics</h2>
       
