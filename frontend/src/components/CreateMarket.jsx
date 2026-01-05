@@ -374,7 +374,8 @@ export default function CreateMarket() {
     <div>
       <h1>Create New Market</h1>
       <p style={{ marginBottom: '2rem', color: 'rgba(255, 255, 255, 0.6)' }}>
-        Create a new prediction market. A 100 CC deposit is required and will be returned after admin approval.
+        Create a new prediction market. Market creation uses virtual CC tracking (database-only). 
+        To deposit CC for trading, use the Deposit/Withdraw feature in the Portfolio page.
       </p>
 
       {error && <div className="error">{error}</div>}
@@ -584,7 +585,7 @@ export default function CreateMarket() {
           disabled={loading}
           style={{ width: '100%' }}
         >
-          {loading ? 'Creating Market...' : 'Create Market (100 CC deposit required)'}
+          {loading ? 'Creating Market...' : 'Create Market'}
         </button>
       </form>
     </div>
