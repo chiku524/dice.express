@@ -169,10 +169,232 @@ export default function Portfolio() {
     }
   }
 
+  const handleDeposit = async () => {
+    if (!wallet) {
+      setDepositError('Please connect a wallet')
+      return
+    }
+
+    if (!depositAmount || parseFloat(depositAmount) <= 0) {
+      setDepositError('Please enter a valid amount')
+      return
+    }
+
+    setDepositLoading(true)
+    setDepositError(null)
+    setDepositSuccess(false)
+
+    try {
+      // TODO: Get user's TokenBalance contract ID
+      // For now, we'll need it from localStorage or user input
+      const userTokenBalanceContractId = localStorage.getItem('userTokenBalanceContractId')
+      
+      if (!userTokenBalanceContractId) {
+        throw new Error('TokenBalance contract ID not found. Please create a TokenBalance contract first using the Contract Tester (/test page).')
+      }
+
+      const token = localStorage.getItem('canton_token')
+      if (!token) {
+        throw new Error('Authentication token not found. Please connect your wallet.')
+      }
+
+      const response = await fetch('/api/deposit', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          amount: depositAmount,
+          userParty: wallet.party,
+          userTokenBalanceContractId: userTokenBalanceContractId
+        })
+      })
+
+      const result = await response.json()
+
+      if (!response.ok) {
+        throw new Error(result.message || result.error || 'Deposit failed')
+      }
+
+      console.log('[Portfolio] ✅ Deposit successful:', result)
+      setDepositSuccess(true)
+      setDepositAmount('')
+      
+      // Refresh positions after deposit
+      setTimeout(() => {
+        window.location.reload()
+      }, 2000)
+    } catch (err) {
+      console.error('[Portfolio] Deposit error:', err)
+      setDepositError(err.message)
+    } finally {
+      setDepositLoading(false)
+      setTimeout(() => {
+        setDepositSuccess(false)
+      }, 5000)
+    }
+  }
+
+  const handleWithdraw = async () => {
+    if (!wallet) {
+      setWithdrawError('Please connect a wallet')
+      return
+    }
+
+    if (!withdrawAmount || parseFloat(withdrawAmount) <= 0) {
+      setWithdrawError('Please enter a valid amount')
+      return
+    }
+
+    setWithdrawLoading(true)
+    setWithdrawError(null)
+    setWithdrawSuccess(false)
+
+    try {
+      // TODO: Get platform wallet's TokenBalance contract ID
+      // This should be configured as an environment variable or stored in database
+      const platformTokenBalanceContractId = localStorage.getItem('platformTokenBalanceContractId')
+      
+      if (!platformTokenBalanceContractId) {
+        throw new Error('Platform TokenBalance contract ID not found. Please configure the platform wallet TokenBalance contract ID.')
+      }
+
+      const token = localStorage.getItem('canton_token')
+      if (!token) {
+        throw new Error('Authentication token not found. Please connect your wallet.')
+      }
+
+      const response = await fetch('/api/withdraw', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          amount: withdrawAmount,
+          userParty: wallet.party,
+          platformTokenBalanceContractId: platformTokenBalanceContractId
+        })
+      })
+
+      const result = await response.json()
+
+      if (!response.ok) {
+        throw new Error(result.message || result.error || 'Withdrawal failed')
+      }
+
+      console.log('[Portfolio] ✅ Withdrawal successful:', result)
+      setWithdrawSuccess(true)
+      setWithdrawAmount('')
+      
+      // Refresh positions after withdrawal
+      setTimeout(() => {
+        window.location.reload()
+      }, 2000)
+    } catch (err) {
+      console.error('[Portfolio] Withdrawal error:', err)
+      setWithdrawError(err.message)
+    } finally {
+      setWithdrawLoading(false)
+      setTimeout(() => {
+        setWithdrawSuccess(false)
+      }, 5000)
+    }
+  }
+
   return (
     <div>
       <h1>My Portfolio</h1>
       
+      {/* Deposit/Withdraw Section */}
+      <div className="card" style={{ marginBottom: '2rem' }}>
+        <h2 style={{ marginBottom: '1rem' }}>Deposit / Withdraw CC</h2>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1rem' }}>
+          {/* Deposit */}
+          <div>
+            <h3 style={{ marginBottom: '0.5rem' }}>Deposit CC</h3>
+            <p style={{ fontSize: '0.9rem', color: 'rgba(255, 255, 255, 0.7)', marginBottom: '0.5rem' }}>
+              Transfer CC from your wallet to the platform wallet (on-chain)
+            </p>
+            <div className="form-group">
+              <label>Amount</label>
+              <input
+                type="number"
+                value={depositAmount}
+                onChange={(e) => setDepositAmount(e.target.value)}
+                placeholder="Enter amount"
+                min="0"
+                step="0.01"
+                disabled={depositLoading}
+              />
+            </div>
+            {depositError && (
+              <div className="error" style={{ marginTop: '0.5rem', fontSize: '0.9rem' }}>
+                {depositError}
+              </div>
+            )}
+            {depositSuccess && (
+              <div style={{ marginTop: '0.5rem', padding: '0.5rem', background: 'rgba(76, 175, 80, 0.2)', color: '#4CAF50', borderRadius: '4px', fontSize: '0.9rem' }}>
+                ✅ Deposit successful! Transaction submitted to blockchain.
+              </div>
+            )}
+            <button 
+              className="btn-primary" 
+              onClick={handleDeposit}
+              disabled={depositLoading || !depositAmount}
+              style={{ marginTop: '0.5rem', width: '100%' }}
+            >
+              {depositLoading ? 'Processing...' : 'Deposit'}
+            </button>
+            <p style={{ fontSize: '0.8rem', color: 'rgba(255, 255, 255, 0.5)', marginTop: '0.5rem' }}>
+              Note: Requires TokenBalance contract. Use /test page to create one.
+            </p>
+          </div>
+
+          {/* Withdraw */}
+          <div>
+            <h3 style={{ marginBottom: '0.5rem' }}>Withdraw CC</h3>
+            <p style={{ fontSize: '0.9rem', color: 'rgba(255, 255, 255, 0.7)', marginBottom: '0.5rem' }}>
+              Transfer CC from platform wallet to your wallet (on-chain)
+            </p>
+            <div className="form-group">
+              <label>Amount</label>
+              <input
+                type="number"
+                value={withdrawAmount}
+                onChange={(e) => setWithdrawAmount(e.target.value)}
+                placeholder="Enter amount"
+                min="0"
+                step="0.01"
+                disabled={withdrawLoading}
+              />
+            </div>
+            {withdrawError && (
+              <div className="error" style={{ marginTop: '0.5rem', fontSize: '0.9rem' }}>
+                {withdrawError}
+              </div>
+            )}
+            {withdrawSuccess && (
+              <div style={{ marginTop: '0.5rem', padding: '0.5rem', background: 'rgba(76, 175, 80, 0.2)', color: '#4CAF50', borderRadius: '4px', fontSize: '0.9rem' }}>
+                ✅ Withdrawal successful! Transaction submitted to blockchain.
+              </div>
+            )}
+            <button 
+              className="btn-primary" 
+              onClick={handleWithdraw}
+              disabled={withdrawLoading || !withdrawAmount}
+              style={{ marginTop: '0.5rem', width: '100%' }}
+            >
+              {withdrawLoading ? 'Processing...' : 'Withdraw'}
+            </button>
+            <p style={{ fontSize: '0.8rem', color: 'rgba(255, 255, 255, 0.5)', marginTop: '0.5rem' }}>
+              Note: Requires platform wallet TokenBalance contract ID.
+            </p>
+          </div>
+        </div>
+      </div>
+
       {positions.length === 0 ? (
         <div className="card">
           <p>You don't have any positions yet. Start trading to see your portfolio here!</p>
