@@ -36,18 +36,15 @@ body:has(.documentation-container) {
   left: 0;
   bottom: 120px; /* Footer height */
   height: calc(100vh - 50px - 120px); /* Full height minus navbar and footer (reduced footer) */
-  overflow-y: auto;
-  overflow-x: hidden;
-  /* Hide scrollbar but keep functionality */
-  scrollbar-width: none; /* Firefox */
-  -ms-overflow-style: none; /* IE and Edge */
+  overflow: hidden; /* Prevent sidebar from scrolling - nav will scroll instead */
   z-index: 10;
   display: flex;
   flex-direction: column;
 }
 
 /* Hide scrollbar for Chrome, Safari, Opera */
-.documentation-sidebar::-webkit-scrollbar {
+.documentation-sidebar::-webkit-scrollbar,
+.documentation-nav::-webkit-scrollbar {
   display: none;
 }
 
@@ -59,8 +56,6 @@ body:has(.documentation-container) {
   border-bottom: 1px solid var(--color-border, rgba(100, 108, 255, 0.25));
   font-weight: var(--font-weight-bold, 700);
   letter-spacing: 0.5px;
-  position: sticky;
-  top: 0;
   background: var(--color-background-transparent, rgba(15, 15, 26, 0.5)) !important;
   backdrop-filter: blur(10px) !important;
   -webkit-backdrop-filter: blur(10px) !important;
@@ -80,9 +75,14 @@ body:has(.documentation-container) {
   -webkit-backdrop-filter: blur(10px);
   margin-top: 0;
   padding-top: var(--spacing-sm, 0.5rem);
-  padding-bottom: calc(120px + var(--spacing-lg, 1.5rem)); /* Extra padding to prevent items from going under footer */
+  padding-bottom: calc(120px + var(--spacing-xl, 2rem)); /* Extra padding to prevent items from going under footer */
   flex: 1; /* Take remaining space */
   min-height: 0; /* Allow flex item to shrink */
+  overflow-y: auto; /* Make nav scrollable instead of sidebar */
+  overflow-x: hidden;
+  /* Hide scrollbar but keep functionality */
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE and Edge */
 }
 
 .documentation-nav ul {
