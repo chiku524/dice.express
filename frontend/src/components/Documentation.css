@@ -30,8 +30,7 @@ body:has(.documentation-container) {
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
   border-right: 1px solid var(--color-border, rgba(100, 108, 255, 0.25));
-  padding: 1.5rem 0;
-  padding-top: 0; /* Remove top padding to start content immediately */
+  padding: 0;
   position: fixed;
   top: 50px; /* Navbar height (reduced from 70px) */
   left: 0;
@@ -43,6 +42,8 @@ body:has(.documentation-container) {
   scrollbar-width: none; /* Firefox */
   -ms-overflow-style: none; /* IE and Edge */
   z-index: 10;
+  display: flex;
+  flex-direction: column;
 }
 
 /* Hide scrollbar for Chrome, Safari, Opera */
@@ -67,6 +68,7 @@ body:has(.documentation-container) {
   margin-top: 0;
   padding-top: var(--spacing-lg, 1.5rem);
   margin-bottom: 0;
+  flex-shrink: 0; /* Prevent title from shrinking */
   /* Ensure background covers content when scrolling */
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
@@ -78,7 +80,10 @@ body:has(.documentation-container) {
   -webkit-backdrop-filter: blur(10px);
   margin-top: 0;
   padding-top: var(--spacing-sm, 0.5rem);
-  padding-bottom: var(--spacing-lg, 1.5rem);
+  padding-bottom: calc(120px + var(--spacing-lg, 1.5rem)); /* Extra padding to prevent items from going under footer */
+  flex: 1; /* Take remaining space */
+  overflow-y: auto;
+  min-height: 0; /* Allow flex item to shrink */
 }
 
 .documentation-nav ul {
