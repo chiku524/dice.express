@@ -19,6 +19,7 @@
   width: 100%;
   z-index: 1000;
   overflow: hidden;
+  pointer-events: auto;
 }
 
 /* Animated background for navbar */
