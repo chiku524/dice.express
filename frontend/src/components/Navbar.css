@@ -1,7 +1,7 @@
 .nav-dropdown {
   position: relative;
   display: inline-block;
-  z-index: 1000;
+  z-index: 1001;
 }
 
 .nav-dropdown-toggle {
@@ -57,7 +57,7 @@
   padding: var(--spacing-xs, 0.25rem) 0;
   min-width: 180px;
   box-shadow: var(--shadow-lg, 0 10px 15px rgba(0, 0, 0, 0.3));
-  z-index: 10000;
+  z-index: 10001;
   animation: slideDown var(--transition-base, 0.2s ease-out);
   pointer-events: auto;
 }
