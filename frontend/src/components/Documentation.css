@@ -4,11 +4,6 @@ body:has(.documentation-container) {
   height: 100vh !important;
 }
 
-/* Ensure navbar is visible above documentation */
-.app-header {
-  z-index: 1000 !important;
-}
-
 /* Override container padding for documentation page */
 .documentation-container {
   display: flex;
