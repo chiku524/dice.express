@@ -7,7 +7,7 @@ body:has(.documentation-container) {
 /* Override container padding for documentation page */
 .documentation-container {
   display: flex;
-  height: calc(100vh - 50px - 120px); /* Full viewport minus navbar (50px) and footer (~120px) */
+  height: calc(100vh - 50px - 80px); /* Full viewport minus navbar (50px) and footer (~80px) */
   background: transparent;
   color: var(--color-text-primary, #fff);
   margin-top: 50px !important; /* Account for fixed navbar */
@@ -34,7 +34,7 @@ body:has(.documentation-container) {
   position: fixed;
   top: 50px; /* Navbar height (reduced from 70px) */
   left: 0;
-  bottom: 120px; /* Footer height */
+  bottom: 80px; /* Footer height */
   height: calc(100vh - 50px - 120px); /* Full height minus navbar and footer (reduced footer) */
   overflow: hidden; /* Prevent sidebar from scrolling - nav will scroll instead */
   z-index: 10;
