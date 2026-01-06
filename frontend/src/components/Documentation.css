@@ -65,6 +65,7 @@ body:has(.documentation-container) {
   z-index: 2; /* Above sidebar content but below navbar */
   margin-top: 0;
   padding-top: var(--spacing-lg, 1.5rem);
+  margin-bottom: var(--spacing-lg, 1.5rem);
 }
 
 .documentation-nav {
