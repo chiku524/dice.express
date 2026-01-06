@@ -15,28 +15,39 @@ export default function ContractHistory() {
       return
     }
 
-    // Get contracts for current party
-    const allContracts = ContractStorage.getContractsByParty(wallet.party)
-    
-    // Filter by type
-    let filtered = allContracts
-    if (filter === 'markets') {
-      filtered = allContracts.filter(c => 
-        c.templateId && c.templateId.includes('Market') && 
-        !c.templateId.includes('MarketCreationRequest')
-      )
-    } else if (filter === 'requests') {
-      filtered = allContracts.filter(c => 
-        c.templateId && c.templateId.includes('MarketCreationRequest')
-      )
+    // Get contracts for current party (async)
+    const loadContracts = async () => {
+      try {
+        const allContracts = await ContractStorage.getContractsByParty(wallet.party)
+        
+        // Filter by type
+        let filtered = allContracts
+        if (filter === 'markets') {
+          filtered = allContracts.filter(c => 
+            c.templateId && c.templateId.includes('Market') && 
+            !c.templateId.includes('MarketCreationRequest')
+          )
+        } else if (filter === 'requests') {
+          filtered = allContracts.filter(c => 
+            c.templateId && c.templateId.includes('MarketCreationRequest')
+          )
+        }
+
+        // Sort by creation date (newest first)
+        filtered.sort((a, b) => {
+          const dateA = new Date(a.createdAt || 0)
+          const dateB = new Date(b.createdAt || 0)
+          return dateB - dateA
+        })
+
+        setContracts(filtered)
+      } catch (error) {
+        console.error('[ContractHistory] Error loading contracts:', error)
+        setContracts([])
+      }
     }
 
-    // Sort by creation date (newest first)
-    filtered.sort((a, b) => 
-      new Date(b.createdAt) - new Date(a.createdAt)
-    )
-
-    setContracts(filtered)
+    loadContracts()
   }, [wallet, filter])
 
   const getContractTypeLabel = (templateId) => {

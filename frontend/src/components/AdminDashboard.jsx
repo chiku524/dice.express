@@ -72,9 +72,10 @@ export default function AdminDashboard() {
         databaseQuerySucceeded = false
       }
       
-      // Step 2: Query blockchain as fallback/supplement (only if database has no results or failed)
-      // This helps sync contracts that might exist on blockchain but not in database yet
-      if (!databaseQuerySucceeded || databaseRequests.length === 0) {
+      // Step 2: Query blockchain as fallback/supplement (only if database query failed)
+      // If database query succeeded (even with 0 results), skip blockchain to speed up loading
+      // Only query blockchain if database query actually failed
+      if (!databaseQuerySucceeded) {
         try {
           console.log('[AdminDashboard] 🔗 Querying blockchain as fallback...')
           
@@ -192,20 +193,20 @@ export default function AdminDashboard() {
       setError(null)
       apiRoutesWorkingRef.current = true
       
-      // If no requests found, retry a limited number of times
-      // Since database is primary, we mainly retry to catch newly created contracts
-      if (requestsArray.length === 0 && retryCount < MAX_RETRIES) {
-        const delays = [2000, 5000, 10000] // Shorter delays since database is primary
-        const delay = delays[retryCount] || 10000
+      // If no requests found and database query succeeded, don't retry - just show empty state
+      // Only retry if database query failed (meaning we're relying on blockchain)
+      if (requestsArray.length === 0 && !databaseQuerySucceeded && retryCount < MAX_RETRIES) {
+        const delays = [1000, 2000, 3000] // Shorter delays for faster loading
+        const delay = delays[retryCount] || 3000
         console.log(`[AdminDashboard] ⏳ No contracts found. Retrying after ${delay / 1000} seconds (attempt ${retryCount + 1}/${MAX_RETRIES})...`)
-        console.log(`[AdminDashboard] 💡 This may be due to: newly created contracts not yet in database, or no contracts exist yet`)
+        console.log(`[AdminDashboard] 💡 This may be due to: newly created contracts not yet synced, or no contracts exist yet`)
         setTimeout(() => {
           if (isMountedRef.current && apiRoutesWorkingRef.current) {
             fetchRequests(retryCount + 1)
           }
         }, delay)
         return // Don't set loading to false yet
-      } else if (requestsArray.length === 0 && retryCount >= MAX_RETRIES) {
+      } else if (requestsArray.length === 0 && (retryCount >= MAX_RETRIES || databaseQuerySucceeded)) {
         console.warn('[AdminDashboard] ⚠️ No contracts found after maximum retries. This could mean:')
         console.warn('[AdminDashboard]   1. No contracts have been created yet')
         console.warn('[AdminDashboard]   2. Database not configured (check SUPABASE_URL environment variable)')
@@ -224,9 +225,9 @@ export default function AdminDashboard() {
         }
       }
       
-      // Always set loading to false after MAX_RETRIES or if we have results
-      // This prevents infinite retry loops
-      if (isMountedRef.current && (retryCount >= MAX_RETRIES || requestsArray.length > 0)) {
+      // Always set loading to false after MAX_RETRIES, if we have results, or if database query succeeded
+      // This prevents infinite retry loops and speeds up loading when database has results
+      if (isMountedRef.current && (retryCount >= MAX_RETRIES || requestsArray.length > 0 || databaseQuerySucceeded)) {
         setLoading(false)
       }
     } catch (err) {
