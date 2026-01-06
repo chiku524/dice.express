@@ -10,7 +10,7 @@ body:has(.documentation-container) {
   height: calc(100vh - 50px - 120px); /* Full viewport minus navbar (50px) and footer (~120px) */
   background: transparent;
   color: var(--color-text-primary, #fff);
-  margin-top: 0 !important; /* Remove gap between navbar and sidebar */
+  margin-top: 50px !important; /* Account for fixed navbar */
   padding-top: 0 !important; /* Ensure no top padding */
   align-items: stretch; /* Stretch sidebar and content to full height */
   width: 100%;
@@ -62,7 +62,9 @@ body:has(.documentation-container) {
   background: var(--color-background-transparent, rgba(15, 15, 26, 0.5));
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
-  z-index: 1;
+  z-index: 2; /* Above sidebar content but below navbar */
+  margin-top: 0;
+  padding-top: var(--spacing-lg, 1.5rem);
 }
 
 .documentation-nav {
@@ -144,6 +146,7 @@ body:has(.documentation-container) {
   top: 50px;
   right: 0;
   bottom: 120px;
+  z-index: 5; /* Below navbar (100) but above sidebar (10) */
   /* Hide scrollbar but keep functionality */
   scrollbar-width: thin; /* Firefox - thin scrollbar */
   scrollbar-color: rgba(100, 108, 255, 0.3) transparent; /* Firefox scrollbar color */
