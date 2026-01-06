@@ -82,7 +82,6 @@ body:has(.documentation-container) {
   padding-top: var(--spacing-sm, 0.5rem);
   padding-bottom: calc(120px + var(--spacing-lg, 1.5rem)); /* Extra padding to prevent items from going under footer */
   flex: 1; /* Take remaining space */
-  overflow-y: auto;
   min-height: 0; /* Allow flex item to shrink */
 }
 
