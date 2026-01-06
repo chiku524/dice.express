@@ -83,6 +83,9 @@
   align-items: center;
   gap: var(--spacing-md, 1rem);
   flex-wrap: nowrap;
+  position: relative;
+  z-index: 1;
+  pointer-events: auto;
 }
 
 .logo {
@@ -189,10 +192,12 @@
   background-color: transparent;
   position: relative;
   z-index: 1;
+  margin-top: 50px; /* Account for fixed navbar */
 }
 
-/* Remove padding for documentation page */
+/* Remove margin-top and padding for documentation page since it handles its own spacing */
 .app-main:has(.documentation-container) {
+  margin-top: 0;
   padding-top: 0;
   padding-bottom: 0;
 }
