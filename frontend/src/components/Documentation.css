@@ -130,6 +130,7 @@ body:has(.documentation-container) {
 .documentation-content {
   flex: 1;
   padding: 3rem 4rem;
+  padding-bottom: 6rem; /* Extra padding to prevent content from being hidden behind footer */
   max-width: none; /* Remove max-width to fill remaining space */
   width: calc(100% - 280px); /* Fill remaining width after sidebar */
   margin-left: 280px; /* Account for fixed sidebar */
