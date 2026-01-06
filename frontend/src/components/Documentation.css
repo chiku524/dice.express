@@ -150,7 +150,7 @@ body:has(.documentation-container) {
   top: 50px;
   right: 0;
   bottom: 120px;
-  z-index: 5; /* Below navbar (100) but above sidebar (10) */
+  z-index: 5; /* Below navbar (1000) but above sidebar (10) */
   /* Hide scrollbar but keep functionality */
   scrollbar-width: thin; /* Firefox - thin scrollbar */
   scrollbar-color: rgba(100, 108, 255, 0.3) transparent; /* Firefox scrollbar color */
