@@ -66,6 +66,8 @@ body:has(.documentation-container) {
   margin-top: 0;
   padding-top: var(--spacing-lg, 1.5rem);
   margin-bottom: var(--spacing-lg, 1.5rem);
+  /* Ensure background covers content when scrolling */
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .documentation-nav {
