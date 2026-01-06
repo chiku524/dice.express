@@ -4,6 +4,11 @@ body:has(.documentation-container) {
   height: 100vh !important;
 }
 
+/* Ensure navbar is visible above documentation */
+.app-header {
+  z-index: 1000 !important;
+}
+
 /* Override container padding for documentation page */
 .documentation-container {
   display: flex;
@@ -20,6 +25,7 @@ body:has(.documentation-container) {
   padding-right: 0 !important;
   overflow: hidden; /* Prevent page scrolling */
   position: relative;
+  z-index: 1; /* Below navbar */
 }
 
 .documentation-sidebar {
