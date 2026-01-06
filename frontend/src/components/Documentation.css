@@ -20,7 +20,7 @@ body:has(.documentation-container) {
   padding-right: 0 !important;
   overflow: hidden; /* Prevent page scrolling */
   position: relative;
-  z-index: 1; /* Below navbar */
+  z-index: 1; /* Below navbar (1000) */
 }
 
 .documentation-sidebar {
