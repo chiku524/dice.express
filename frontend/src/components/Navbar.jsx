@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { useWallet } from '../contexts/WalletContext'
+import { getVirtualBalance } from '../services/balance'
 import './Navbar.css'
 
 export default function Navbar({ showWalletModal, setShowWalletModal }) {
@@ -8,8 +9,22 @@ export default function Navbar({ showWalletModal, setShowWalletModal }) {
   const location = useLocation()
   const [showMarketsMenu, setShowMarketsMenu] = useState(false)
   const [showToolsMenu, setShowToolsMenu] = useState(false)
+  const [balanceFormatted, setBalanceFormatted] = useState(null)
   const marketsMenuRef = useRef(null)
   const toolsMenuRef = useRef(null)
+
+  // Fetch virtual balance when wallet is connected
+  useEffect(() => {
+    if (!wallet?.party) {
+      setBalanceFormatted(null)
+      return
+    }
+    let cancelled = false
+    getVirtualBalance(wallet.party).then(({ formatted }) => {
+      if (!cancelled) setBalanceFormatted(formatted)
+    })
+    return () => { cancelled = true }
+  }, [wallet?.party])
 
   // Close dropdowns when clicking outside
   useEffect(() => {
@@ -101,6 +116,11 @@ export default function Navbar({ showWalletModal, setShowWalletModal }) {
           {/* Wallet Section */}
           {wallet ? (
             <div className="wallet-info">
+              {balanceFormatted != null && (
+                <Link to="/portfolio" className="nav-balance" title="View in Portfolio">
+                  {balanceFormatted}
+                </Link>
+              )}
               <span>{wallet.party.substring(0, 20)}...</span>
               <button onClick={() => setShowWalletModal(true)}>Wallet</button>
               <button onClick={disconnectWallet}>Disconnect</button>

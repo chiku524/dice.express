@@ -195,11 +195,19 @@ RedStone API → Oracle Service → OracleDataFeed Contract → Market Resolutio
 3. **Efficient Queries**: Indexed queries by market ID and party
 4. **WebSocket Updates**: Real-time updates without polling
 
-## Future Enhancements
+## Future Enhancements & Platform Vision
+
+See **[PLATFORM_VISION_AND_ROADMAP.md](./PLATFORM_VISION_AND_ROADMAP.md)** for the full strategy:
+
+- **Virtual currency** (Credits) for all platform activity; multi-chain **deposits/withdrawals** only
+- **Prediction styles**: Yes/No, True/False, Happens/Doesn't, Multi-outcome (see [PREDICTION_STYLES_SPEC.md](./PREDICTION_STYLES_SPEC.md))
+- **Categories** (Finance, Sports, Politics, etc.) and **oracles** per category ([ORACLE_STRATEGY.md](./ORACLE_STRATEGY.md))
+- **AMM & algorithms**: [AMM.md](./AMM.md)
+- **Multi-chain**: [VIRTUAL_CURRENCY_AND_MULTICHAIN.md](./VIRTUAL_CURRENCY_AND_MULTICHAIN.md), [BLOCKCHAIN_AND_CANTON.md](./BLOCKCHAIN_AND_CANTON.md)
 
 1. **Governance**: Replace admin controls with governance mechanism
 2. **Advanced Analytics**: Market analytics and charts
 3. **Mobile App**: Native mobile application
-4. **Multi-Chain**: Support for multiple blockchain networks
+4. **Multi-Chain**: Support for multiple blockchain networks (deposit/withdraw)
 5. **Advanced Settlement**: Automated settlement with more complex logic
 

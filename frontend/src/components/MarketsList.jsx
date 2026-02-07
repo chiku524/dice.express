@@ -5,6 +5,8 @@ import { useWallet } from '../contexts/WalletContext'
 import { SkeletonMarketGrid } from './SkeletonLoader'
 import { ContractStorage } from '../utils/contractStorage'
 import { useDebounce } from '../utils/useDebounce'
+import { MARKET_CATEGORIES, PREDICTION_STYLES } from '../constants/marketConfig'
+import { formatCredits } from '../constants/currency'
 
 export default function MarketsList() {
   const { ledger } = useLedger()
@@ -18,6 +20,7 @@ export default function MarketsList() {
   
   // Filter states
   const [searchQuery, setSearchQuery] = useState('')
+  const [selectedCategory, setSelectedCategory] = useState('all')
   const [selectedTopic, setSelectedTopic] = useState('all')
   const [selectedType, setSelectedType] = useState('all')
   const [selectedStatus, setSelectedStatus] = useState('all')
@@ -51,11 +54,12 @@ export default function MarketsList() {
   const activeFilterCount = useMemo(() => {
     let count = 0
     if (debouncedSearchQuery.trim()) count++
+    if (selectedCategory !== 'all') count++
     if (selectedTopic !== 'all') count++
     if (selectedType !== 'all') count++
     if (selectedStatus !== 'all') count++
     return count
-  }, [debouncedSearchQuery, selectedTopic, selectedType, selectedStatus])
+  }, [debouncedSearchQuery, selectedCategory, selectedTopic, selectedType, selectedStatus])
 
   useEffect(() => {
     isMountedRef.current = true
@@ -231,6 +235,11 @@ export default function MarketsList() {
       )
     }
     
+    // Apply category filter (payload.category from Create Market)
+    if (selectedCategory !== 'all') {
+      filtered = filtered.filter(market => market.payload?.category === selectedCategory)
+    }
+
     // Apply topic filter
     if (selectedTopic !== 'all') {
       filtered = filtered.filter(market => {
@@ -275,7 +284,7 @@ export default function MarketsList() {
     })
     
     return filtered
-  }, [markets, debouncedSearchQuery, selectedTopic, selectedType, selectedStatus, sortBy])
+  }, [markets, debouncedSearchQuery, selectedCategory, selectedTopic, selectedType, selectedStatus, sortBy])
 
   if (loading) {
     return (
@@ -362,6 +371,22 @@ export default function MarketsList() {
                     className="filter-input"
                   />
                 </div>
+
+            {/* Category Filter */}
+            <div className="filter-group">
+              <label htmlFor="category">Category</label>
+              <select
+                id="category"
+                value={selectedCategory}
+                onChange={(e) => setSelectedCategory(e.target.value)}
+                className="filter-select"
+              >
+                <option value="all">All Categories</option>
+                {MARKET_CATEGORIES.map(c => (
+                  <option key={c.value} value={c.value}>{c.label}</option>
+                ))}
+              </select>
+            </div>
             
             {/* Topic Filter */}
             {availableTopics.length > 0 && (
@@ -446,6 +471,19 @@ export default function MarketsList() {
                       </button>
                     </span>
                   )}
+                  {selectedCategory !== 'all' && (
+                    <span className="filter-chip">
+                      Category: {selectedCategory}
+                      <button
+                        type="button"
+                        onClick={() => setSelectedCategory('all')}
+                        className="filter-chip-remove"
+                        aria-label="Remove category filter"
+                      >
+                        ×
+                      </button>
+                    </span>
+                  )}
                   {selectedTopic !== 'all' && (
                     <span className="filter-chip">
                       Topic: {selectedTopic}
@@ -490,6 +528,7 @@ export default function MarketsList() {
                     className="filter-chip-clear-all"
                     onClick={() => {
                       setSearchQuery('')
+                      setSelectedCategory('all')
                       setSelectedTopic('all')
                       setSelectedType('all')
                       setSelectedStatus('all')
@@ -509,6 +548,7 @@ export default function MarketsList() {
                     className="btn-secondary btn-clear-filters"
                     onClick={() => {
                       setSearchQuery('')
+                      setSelectedCategory('all')
                       setSelectedTopic('all')
                       setSelectedType('all')
                       setSelectedStatus('all')
@@ -594,6 +634,7 @@ export default function MarketsList() {
                   className="btn-primary mt-md"
                   onClick={() => {
                     setSearchQuery('')
+                    setSelectedCategory('all')
                     setSelectedTopic('all')
                     setSelectedType('all')
                     setSelectedStatus('all')
@@ -614,20 +655,32 @@ export default function MarketsList() {
             >
               <div className="market-card">
                 <div>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--spacing-xs)', marginBottom: 'var(--spacing-sm)' }}>
+                    {market.payload?.category && (
+                      <span className="filter-chip" style={{ margin: 0, padding: '2px 6px', fontSize: 'var(--font-size-xs)' }}>
+                        {market.payload.category}
+                      </span>
+                    )}
+                    {market.payload?.styleLabel && (
+                      <span className="status-badge status-pending" style={{ fontSize: 'var(--font-size-xs)' }}>
+                        {PREDICTION_STYLES.find(s => s.value === market.payload.styleLabel)?.label || market.payload.styleLabel}
+                      </span>
+                    )}
+                  </div>
                   <h3>{market.payload.title}</h3>
                   <span className={`status ${getStatusClass(market.payload.status)}`}>
                     {market.payload.status}
                   </span>
                 </div>
                 <p className="mt-md">
-                  {market.payload.description.substring(0, 100)}...
+                  {market.payload.description?.substring(0, 100) || ''}...
                 </p>
                 <div className="mt-md" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 'auto' }}>
                   <span className="text-secondary" style={{ fontSize: 'var(--font-size-sm)' }}>
-                    Volume: {market.payload.totalVolume}
+                    Volume: {formatCredits(market.payload.totalVolume ?? 0)}
                   </span>
                   <span className="text-secondary" style={{ fontSize: 'var(--font-size-sm)' }}>
-                    {market.payload.marketType === 'Binary' ? 'Binary' : 'Multi-Outcome'}
+                    {market.payload.marketType === 'Binary' ? (PREDICTION_STYLES.find(s => s.value === market.payload?.styleLabel)?.label || 'Binary') : 'Multi-Outcome'}
                   </span>
                 </div>
               </div>

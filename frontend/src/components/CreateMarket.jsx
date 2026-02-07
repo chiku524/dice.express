@@ -4,6 +4,7 @@ import { useLedger } from '../hooks/useLedger'
 import { useWallet } from '../contexts/WalletContext'
 import { ContractStorage } from '../utils/contractStorage'
 import { validators, validateForm } from '../utils/formValidation'
+import { MARKET_CATEGORIES, PREDICTION_STYLES, getStyleByValue, getDefaultOutcomesForStyle } from '../constants/marketConfig'
 
 const PACKAGE_ID = 'b87ef31c8ea5c53a940a7f71a4bc6513cf44048730c0551f1fc2e02adc7271f0'
 const getTemplateId = (module, template) => `${PACKAGE_ID}:${module}:${template}`
@@ -15,6 +16,8 @@ export default function CreateMarket() {
   const [formData, setFormData] = useState({
     title: '',
     description: '',
+    category: 'Other',
+    predictionStyle: 'yesNo',
     marketType: 'Binary',
     outcomes: '',
     settlementType: 'TimeBased',
@@ -39,7 +42,7 @@ export default function CreateMarket() {
     const validationSchema = {
       title: [validators.required, validators.minLength(5), validators.maxLength(200)],
       description: [validators.required, validators.minLength(20), validators.maxLength(1000)],
-      outcomes: formData.marketType === 'MultiOutcome' 
+      outcomes: getStyleByValue(formData.predictionStyle).marketType === 'MultiOutcome'
         ? [validators.required, validators.outcomes]
         : [],
       settlementTime: formData.settlementType === 'TimeBased'
@@ -60,11 +63,12 @@ export default function CreateMarket() {
     setFieldErrors({})
 
     try {
-      // Create market creation request
-      // This requires a 100 CC deposit
-      const outcomes = formData.marketType === 'MultiOutcome' 
+      // Resolve market type and outcomes from prediction style
+      const style = getStyleByValue(formData.predictionStyle)
+      const marketType = style.marketType
+      const outcomes = marketType === 'MultiOutcome'
         ? formData.outcomes.split(',').map(o => o.trim()).filter(o => o)
-        : []
+        : getDefaultOutcomesForStyle(formData.predictionStyle)
 
       // SettlementTrigger is a variant type - needs { tag, value } format
       // For TimeBased, value should be ISO timestamp
@@ -82,15 +86,17 @@ export default function CreateMarket() {
           marketId: `market-${Date.now()}`,
           title: formData.title,
           description: formData.description,
-          marketType: formData.marketType === 'Binary' ? 'Binary' : 'MultiOutcome', // MarketType enum - use plain string, not { tag: '...' }
+          marketType: marketType === 'Binary' ? 'Binary' : 'MultiOutcome',
           outcomes: outcomes,
-          settlementTrigger: settlementTrigger, // SettlementTrigger is a variant, so { tag: '...', value: '...' } is correct
+          settlementTrigger: settlementTrigger,
           resolutionCriteria: formData.resolutionCriteria,
-          depositAmount: '100.0', // Decimal type - use string (virtual tracking only, NOT on-chain transfer)
-          depositCid: null, // No actual on-chain deposit - market creation is virtual (database-only)
-          configCid: null, // Would need to fetch from config
-          creatorBalance: null, // No actual balance transfer - virtual tracking only
-          adminBalance: null, // No actual balance transfer - virtual tracking only
+          depositAmount: '100.0',
+          depositCid: null,
+          configCid: null,
+          creatorBalance: null,
+          adminBalance: null,
+          category: formData.category || null,
+          styleLabel: formData.predictionStyle || null,
         },
         wallet.party
       )
@@ -236,11 +242,13 @@ export default function CreateMarket() {
       // Store with full form data so AdminDashboard can show all details
       const contractPayload = {
         creator: wallet.party,
-        admin: wallet.party, // Same as creator for now
+        admin: wallet.party,
         marketId: `market-${Date.now()}`,
         title: formData.title,
         description: formData.description,
-        marketType: formData.marketType,
+        category: formData.category,
+        styleLabel: formData.predictionStyle,
+        marketType: marketType,
         outcomes: outcomes,
         settlementTrigger: settlementTrigger,
         resolutionCriteria: formData.resolutionCriteria,
@@ -311,6 +319,8 @@ export default function CreateMarket() {
       setFormData({
         title: '',
         description: '',
+        category: 'Other',
+        predictionStyle: 'yesNo',
         marketType: 'Binary',
         outcomes: '',
         settlementType: 'TimeBased',
@@ -347,7 +357,7 @@ export default function CreateMarket() {
     const validationSchema = {
       title: [validators.required, validators.minLength(5), validators.maxLength(200)],
       description: [validators.required, validators.minLength(20), validators.maxLength(1000)],
-      outcomes: formData.marketType === 'MultiOutcome' 
+      outcomes: getStyleByValue(formData.predictionStyle).marketType === 'MultiOutcome'
         ? [validators.required, validators.outcomes]
         : [],
       settlementTime: formData.settlementType === 'TimeBased'
@@ -374,8 +384,8 @@ export default function CreateMarket() {
     <div>
       <h1>Create New Market</h1>
       <p className="text-secondary mb-xl">
-        Create a new prediction market. Market creation uses virtual CC tracking (database-only). 
-        To deposit CC for trading, use the Deposit/Withdraw feature in the Portfolio page.
+        Create a new prediction market. All platform activity uses Credits. 
+        To add Credits for trading, use Deposit/Withdraw in the Portfolio page.
       </p>
 
       {error && <div className="error">{error}</div>}
@@ -468,19 +478,42 @@ export default function CreateMarket() {
         </div>
 
         <div className="form-group">
-          <label>Market Type *</label>
+          <label>Category *</label>
           <select
-            name="marketType"
-            value={formData.marketType}
+            name="category"
+            value={formData.category}
             onChange={handleChange}
             required
           >
-            <option value="Binary">Binary (Yes/No)</option>
-            <option value="MultiOutcome">Multi-Outcome</option>
+            {MARKET_CATEGORIES.map((c) => (
+              <option key={c.value} value={c.value}>{c.label}</option>
+            ))}
           </select>
         </div>
 
-        {formData.marketType === 'MultiOutcome' && (
+        <div className="form-group">
+          <label>Prediction style *</label>
+          <select
+            name="predictionStyle"
+            value={formData.predictionStyle}
+            onChange={(e) => {
+              const style = getStyleByValue(e.target.value)
+              setFormData(prev => ({
+                ...prev,
+                predictionStyle: e.target.value,
+                marketType: style.marketType,
+                outcomes: style.outcomes ? style.outcomes.join(', ') : prev.outcomes,
+              }))
+            }}
+            required
+          >
+            {PREDICTION_STYLES.map((s) => (
+              <option key={s.value} value={s.value}>{s.label}</option>
+            ))}
+          </select>
+        </div>
+
+        {getStyleByValue(formData.predictionStyle).marketType === 'MultiOutcome' && (
           <div className="form-group">
             <label>Outcomes (comma-separated) *</label>
             <input

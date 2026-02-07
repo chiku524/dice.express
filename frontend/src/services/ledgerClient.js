@@ -92,7 +92,7 @@ class LedgerClient {
         } catch (apiError) {
           // If Vercel API route returns 404, API routes aren't configured
           if (this.useProxy && apiError.response?.status === 404) {
-            console.warn('Vercel API route not found. Please configure API routes. See docs/VERCEL_FIX.md')
+            console.warn('Vercel API route not found. Please configure API routes. See docs/README.md')
             // Return empty array so app doesn't break
             // User will see empty state and API status banner
             return []
@@ -179,7 +179,7 @@ class LedgerClient {
           // If Vercel API route returns 404, API routes aren't configured
           if (this.useProxy && apiError.response?.status === 404) {
             console.error('Vercel API route not found. Commands require API routes to be configured.')
-            throw new Error('API routes not configured. Please set up Vercel API routes. See docs/VERCEL_FIX.md for instructions.')
+            throw new Error('API routes not configured. Please set up Vercel API routes. See docs/README.md for instructions.')
           }
           // For 500 errors, provide more helpful message
           if (apiError.response?.status === 500) {

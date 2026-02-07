@@ -94,7 +94,7 @@ console.log('')
 // Check Setup scripts
 console.log('📝 Setup Scripts:')
 const setupScripts = [
-  { path: 'daml/Setup.daml', sdk: '3.4.9', type: 'Script' },
+  { path: 'contracts/Setup.daml', sdk: '3.4.9', type: 'Script' },
   // Setup-2.10.0.daml removed - project uses SDK 3.4.9 only
 ]
 

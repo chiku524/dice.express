@@ -66,7 +66,7 @@ template MarketCreationRequest
     title : Text
     description : Text
     marketType : MarketType
-    outcomes : [Text]  -- For multi-outcome markets
+    outcomes : [Text]  -- For multi-outcome markets; for Binary can be ["Yes","No"], ["True","False"], ["Happens","Doesn't"]
     settlementTrigger : SettlementTrigger
     resolutionCriteria : Text  -- Description of how market resolves
     depositAmount : Decimal
@@ -74,6 +74,8 @@ template MarketCreationRequest
     configCid : Optional (ContractId MarketConfig)  -- Optional - can be fetched during approval
     creatorBalance : Optional (ContractId TokenBalance)  -- Optional - can be set during approval
     adminBalance : Optional (ContractId TokenBalance)  -- Optional - can be set during approval
+    category : Optional Text  -- e.g. Finance, Sports, Politics (for discovery/filtering)
+    styleLabel : Optional Text  -- e.g. yesNo, trueFalse, happensDoesnt, multiOutcome (for UI)
   where
     signatory creator, admin
 
@@ -130,7 +132,9 @@ template MarketCreationRequest
           settlementStep = 0
           createdAt = currentTime
           configCid = configCidValue
-        
+          category = category
+          styleLabel = styleLabel
+
         -- Return deposit (would need proper account transfer in production)
         -- For now, the deposit holding remains and can be returned via separate choice
         
@@ -165,6 +169,8 @@ template Market
     settlementStep : Int
     createdAt : Time
     configCid : ContractId MarketConfig
+    category : Optional Text  -- e.g. Finance, Sports (for discovery)
+    styleLabel : Optional Text  -- e.g. yesNo, trueFalse (for UI)
   where
     signatory creator, admin
 
@@ -379,10 +385,10 @@ template Market
         _ <- if status /= Resolving then abort "Market must be in resolving state" else pure ()
         _ <- if settlementStep /= 1 then abort "Must be at resolution step" else pure ()
         
-        -- Validate outcome
+        -- Validate outcome: for Binary, accept outcome in market's outcomes list or legacy Yes/No; for MultiOutcome, must be in list
         let
           validOutcome = case marketType of
-            Binary -> outcome == "Yes" || outcome == "No"
+            Binary -> outcome `elem` outcomes || (List.null outcomes && (outcome == "Yes" || outcome == "No"))
             MultiOutcome -> outcome `elem` outcomes
         
         _ <- if not validOutcome then abort "Invalid outcome for market type" else pure ()

@@ -6,17 +6,17 @@ The application uses the Canton JSON API for all ledger interactions.
 
 Base URL: `https://participant.dev.canton.wolfedgelabs.com`
 
+### Query Endpoints (Canton JSON API)
+
+**Query endpoints do NOT exist in the Canton JSON API** per the official OpenAPI documentation. This is by design:
+
+- The JSON API is **command submission only** (security, performance).
+- For contract data we use a **database-first approach**: contracts are stored in Supabase; markets, history, admin, and portfolio query the database.
+- Alternatives if you need direct ledger query: gRPC Ledger API, WebSocket, or request enablement from Canton admin.
+
+**Current status**: ✅ Database-first (Supabase); ✅ Command submission works; ❌ JSON API query endpoints unavailable (not part of design).
+
 ### Endpoints
-
-#### Query Contracts
-
-**Note**: Query endpoints do NOT exist in the JSON API per OpenAPI documentation.
-Contract querying requires gRPC API or WebSocket connections.
-
-For contract queries, use:
-- gRPC Ledger API
-- WebSocket connections
-- Contract storage system (local tracking of created contracts)
 
 #### Create Contract
 

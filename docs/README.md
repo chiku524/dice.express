@@ -1,44 +1,28 @@
 # Documentation Index
 
-## Essential Documentation
+## Getting Started
 
-### Getting Started
-- **README.md** (root) - Project overview and quick start
-- **QUICKSTART.md** (root) - 5-minute setup guide
+- **[../README.md](../README.md)** – Project overview and setup
+- **[../QUICKSTART.md](../QUICKSTART.md)** – Quick start guide
 
-### Architecture & Design
-- **ARCHITECTURE.md** - System architecture and design decisions
-- **AMM_DVP_DESIGN.md** - AMM design following CIP-0056 DVP workflows
-- **AMM_IMPLEMENTATION.md** - AMM implementation details
-- **API.md** - API reference and endpoints
+## Architecture & Design
 
-### Build & Deployment
-- **BUILD_SOLUTION.md** - Current build issues and solutions (consolidated)
-- **DAML_DEPLOYMENT.md** - How to build and deploy to Canton
-- **DPM_BUILD_INSTRUCTIONS.md** - Using DPM for building
-- **ATTEMPTED_SOLUTIONS.md** - Detailed log of troubleshooting attempts
+- **[ARCHITECTURE.md](./ARCHITECTURE.md)** – System architecture, DAML contracts, lifecycle
+- **[PLATFORM_VISION_AND_ROADMAP.md](./PLATFORM_VISION_AND_ROADMAP.md)** – Vision, virtual currency, multi-chain, roadmap
+- **[BLOCKCHAIN_AND_CANTON.md](./BLOCKCHAIN_AND_CANTON.md)** – Multi-chain architecture and Canton integration
+- **[AMM.md](./AMM.md)** – AMM design, implementation, and algorithms
 
-### Support & Troubleshooting
-- **DAML_SUPPORT_EXPLANATION.md** - Comprehensive explanation for DAML support team
-  - What we're building
-  - Why DA.Finance packages are required
-  - Current issues and questions
+## Platform Specs
 
-### Setup & Configuration
-- **ORACLE_SETUP.md** - Oracle integration setup
-- **ENHANCEMENTS.md** - Planned enhancements
+- **[VIRTUAL_CURRENCY_AND_MULTICHAIN.md](./VIRTUAL_CURRENCY_AND_MULTICHAIN.md)** – Credits, deposits/withdrawals, multi-chain
+- **[PREDICTION_STYLES_SPEC.md](./PREDICTION_STYLES_SPEC.md)** – Market styles (Yes/No, True/False, Multi-outcome, etc.)
+- **[ORACLE_STRATEGY.md](./ORACLE_STRATEGY.md)** – Oracles by category (finance, sports, politics, etc.)
 
-## Quick Reference
+## API & Implementation
 
-### Build Issues?
-→ See `BUILD_SOLUTION.md` and `DAML_SUPPORT_EXPLANATION.md`
+- **[API.md](./API.md)** – API reference, Canton JSON API, query endpoints note, contract interfaces
+- **[CLOUD_STORAGE_SETUP.md](./CLOUD_STORAGE_SETUP.md)** – Cloud storage (Supabase) setup
 
-### Deployment?
-→ See `DAML_DEPLOYMENT.md`
+## History
 
-### Using DPM?
-→ See `DPM_BUILD_INSTRUCTIONS.md`
-
-### Need to explain project to support?
-→ See `DAML_SUPPORT_EXPLANATION.md`
-
+- **[CHANGELOG.md](./CHANGELOG.md)** – Cleanup history and improvements summary

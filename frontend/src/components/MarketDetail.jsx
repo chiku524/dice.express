@@ -4,6 +4,8 @@ import { useLedger } from '../hooks/useLedger'
 import { useWallet } from '../contexts/WalletContext'
 import { ContractStorage } from '../utils/contractStorage'
 import MarketResolution from './MarketResolution'
+import { formatCredits } from '../constants/currency'
+import { PREDICTION_STYLES } from '../constants/marketConfig'
 
 export default function MarketDetail() {
   const { marketId } = useParams()
@@ -21,9 +23,9 @@ export default function MarketDetail() {
   useEffect(() => {
     if (market?.payload) {
       const marketData = market.payload
-      // For binary markets, default to 'Yes'
-      // For multi-outcome markets, default to first outcome
-      if (marketData.marketType === 'MultiOutcome' && marketData.outcomes && marketData.outcomes.length > 0) {
+      if (marketData.marketType === 'MultiOutcome' && marketData.outcomes?.length > 0) {
+        setPositionType(marketData.outcomes[0])
+      } else if (marketData.outcomes?.length >= 2) {
         setPositionType(marketData.outcomes[0])
       } else {
         setPositionType('Yes')
@@ -208,8 +210,20 @@ export default function MarketDetail() {
       </button>
 
       <div className="card">
+        {(marketData.category || marketData.styleLabel) && (
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--spacing-sm)', marginBottom: 'var(--spacing-md)' }}>
+            {marketData.category && (
+              <span className="filter-chip" style={{ margin: 0 }}>{marketData.category}</span>
+            )}
+            {marketData.styleLabel && (
+              <span className="status-badge status-pending">
+                {PREDICTION_STYLES.find(s => s.value === marketData.styleLabel)?.label || marketData.styleLabel}
+              </span>
+            )}
+          </div>
+        )}
         <h1>{marketData.title}</h1>
-        <span className={`status status-${marketData.status.toLowerCase()}`}>
+        <span className={`status status-${marketData.status?.toLowerCase() || 'active'}`}>
           {marketData.status}
         </span>
         <p className="mt-md">{marketData.description}</p>
@@ -217,17 +231,17 @@ export default function MarketDetail() {
         <div className="grid-auto-fit-md mt-xl">
           <div>
             <h3>Total Volume</h3>
-            <p className="volume-display">{marketData.totalVolume || 0}</p>
+            <p className="volume-display">{formatCredits(marketData.totalVolume ?? 0)}</p>
           </div>
           {marketData.marketType === 'Binary' && (
             <>
               <div>
-                <h3>Yes Volume</h3>
-                <p className="volume-display">{marketData.yesVolume || 0}</p>
+                <h3>{marketData.outcomes?.[0] || 'Yes'} Volume</h3>
+                <p className="volume-display">{formatCredits(marketData.yesVolume ?? 0)}</p>
               </div>
               <div>
-                <h3>No Volume</h3>
-                <p className="volume-display">{marketData.noVolume || 0}</p>
+                <h3>{marketData.outcomes?.[1] || 'No'} Volume</h3>
+                <p className="volume-display">{formatCredits(marketData.noVolume ?? 0)}</p>
               </div>
             </>
           )}
@@ -237,7 +251,7 @@ export default function MarketDetail() {
               <div className="grid-auto-fit-xs mt-sm">
                 {Object.entries(marketData.outcomeVolumes).map(([outcome, volume]) => (
                   <div key={outcome} className="outcome-item">
-                    <strong>{outcome}:</strong> {volume}
+                    <strong>{outcome}:</strong> {formatCredits(volume)}
                   </div>
                 ))}
               </div>
@@ -255,7 +269,7 @@ export default function MarketDetail() {
         <div className="card mt-xl">
           <h2>Create Position</h2>
           <div className="alert-info mb-md">
-            <strong>Note:</strong> Positions are stored in the database and market volumes are updated immediately. Full on-chain Canton blockchain implementation will be available once Canton provides the necessary endpoints and functionalities.
+            <strong>Note:</strong> Amounts are in platform Credits. Positions are stored in the database and market volumes are updated immediately.
           </div>
           <div className="form-group">
             <label>Position Type</label>
@@ -264,18 +278,21 @@ export default function MarketDetail() {
               onChange={(e) => setPositionType(e.target.value)}
             >
               {marketData.marketType === 'MultiOutcome' && marketData.outcomes && marketData.outcomes.length > 0 ? (
-                // Multi-outcome markets: show outcomes
                 marketData.outcomes.map((outcome, index) => (
-                  <option key={index} value={outcome}>
-                    {outcome}
-                  </option>
+                  <option key={index} value={outcome}>{outcome}</option>
                 ))
               ) : (
-                // Binary markets: show Yes/No
-                <>
-                  <option value="Yes">Yes</option>
-                  <option value="No">No</option>
-                </>
+                // Binary: use market outcomes if set (True/False, Happens/Doesn't), else Yes/No
+                (marketData.outcomes && marketData.outcomes.length >= 2)
+                  ? marketData.outcomes.map((outcome, index) => (
+                      <option key={index} value={outcome}>{outcome}</option>
+                    ))
+                  : (
+                    <>
+                      <option value="Yes">Yes</option>
+                      <option value="No">No</option>
+                    </>
+                  )
               )}
             </select>
           </div>

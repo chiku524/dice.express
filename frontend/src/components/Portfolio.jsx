@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { useWallet } from '../contexts/WalletContext'
 import { ContractStorage } from '../utils/contractStorage'
 import { SkeletonList } from './SkeletonLoader'
+import { formatCredits, PLATFORM_CURRENCY_SYMBOL } from '../constants/currency'
 
 export default function Portfolio() {
   const { wallet } = useWallet()
@@ -379,26 +380,26 @@ export default function Portfolio() {
         <p>Manage your positions, deposits, and trading activity</p>
       </div>
       
-      {/* User Balance Display */}
+      {/* User Balance Display - Platform virtual currency (Credits) */}
       <div className="card balance-card mb-xl">
-        <h2 className="mb-sm">Virtual CC Balance</h2>
+        <h2 className="mb-sm">Balance ({PLATFORM_CURRENCY_SYMBOL})</h2>
         <p className="balance-amount">
-          {balanceLoading ? 'Loading...' : `${parseFloat(userBalance).toFixed(2)} CC`}
+          {balanceLoading ? 'Loading...' : formatCredits(userBalance)}
         </p>
         <p className="balance-hint">
-          This is your virtual CC balance tracked in the database. Deposit CC to increase your balance.
+          Platform Credits for all trading and fees. Deposit from a supported chain to add Credits.
         </p>
       </div>
       
       {/* Deposit/Withdraw Section */}
       <div className="card mb-xl">
-        <h2 className="mb-md">Deposit / Withdraw CC</h2>
+        <h2 className="mb-md">Deposit / Withdraw Credits</h2>
         <div className="grid-auto-fit-sm">
           {/* Deposit */}
           <div>
-            <h3 className="mb-sm">Deposit CC</h3>
+            <h3 className="mb-sm">Deposit Credits</h3>
             <p className="text-secondary mb-sm" style={{ fontSize: 'var(--font-size-sm)' }}>
-              Transfer CC from your wallet to the platform wallet (on-chain)
+              Transfer from your wallet to the platform (on-chain). Your balance is credited in Credits.
             </p>
             <div className="form-group">
               <label>Amount</label>
@@ -437,9 +438,9 @@ export default function Portfolio() {
 
           {/* Withdraw */}
           <div>
-            <h3 className="mb-sm">Withdraw CC</h3>
+            <h3 className="mb-sm">Withdraw Credits</h3>
             <p className="text-secondary mb-sm" style={{ fontSize: 'var(--font-size-sm)' }}>
-              Transfer CC from platform wallet to your wallet (on-chain)
+              Convert Credits to on-chain transfer from platform wallet to your wallet.
             </p>
             <div className="form-group">
               <label>Amount</label>
@@ -507,14 +508,14 @@ export default function Portfolio() {
                         <strong>Type:</strong> {formatPositionType(position.payload?.positionType)}
                       </div>
                       <div>
-                        <strong>Amount:</strong> {position.payload?.amount || '0'}
+                        <strong>Amount:</strong> {formatCredits(position.payload?.amount ?? 0)}
                       </div>
                       <div>
                         <strong>Price:</strong> {position.payload?.price || '0'}
                       </div>
                       {position.payload?.depositAmount && (
                         <div>
-                          <strong>Deposit:</strong> {position.payload?.depositAmount} {position.payload?.depositCurrency || 'CC'}
+                          <strong>Deposit:</strong> {formatCredits(position.payload.depositAmount)}
                         </div>
                       )}
                       <div>
@@ -547,7 +548,7 @@ export default function Portfolio() {
                         <strong>Position Created</strong>
                         {activity.position?.depositAmount && (
                           <span className="activity-badge">
-                            {activity.position.depositAmount} {activity.position.depositCurrency || 'CC'} deposited
+                            {formatCredits(activity.position.depositAmount)} deposited
                           </span>
                         )}
                       </div>

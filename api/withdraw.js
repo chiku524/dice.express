@@ -47,7 +47,8 @@ module.exports = async function handler(req, res) {
   }
 
   try {
-    const { amount, platformTokenBalanceContractId } = req.body
+    // networkId: optional; default 'canton' for CC withdrawals (multi-chain support later)
+    const { amount, platformTokenBalanceContractId, networkId = 'canton' } = req.body
 
     if (!amount || parseFloat(amount) <= 0) {
       return res.status(400).json({

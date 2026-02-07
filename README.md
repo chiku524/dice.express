@@ -17,21 +17,23 @@ A privacy-preserving prediction markets application built on the Canton blockcha
 
 ```
 .
-├── daml/                    # DAML smart contracts
-│   ├── PredictionMarkets.daml  # Core market contracts
-│   └── Setup.daml             # Setup script
-├── frontend/                # React frontend application
+├── contracts/               # DAML smart contracts (source)
+│   ├── PredictionMarkets.daml
+│   ├── AMM.daml
+│   ├── Token.daml
+│   └── Setup.daml
+├── frontend/                # React frontend
 │   ├── src/
-│   │   ├── components/      # React components
-│   │   ├── hooks/           # Custom React hooks
-│   │   └── App.jsx          # Main app component
+│   │   ├── components/
+│   │   ├── hooks/
+│   │   ├── services/
+│   │   └── constants/
 │   └── package.json
-├── oracle/                  # Oracle integration service
-│   └── redstone-integration.js
+├── api/                     # Serverless API (e.g. Vercel)
 ├── scripts/                 # Deployment and utility scripts
-│   └── deploy.sh
-├── daml.yaml               # DAML project configuration
-└── package.json            # Root package.json
+├── docs/                    # Documentation
+├── daml.yaml                # DAML project config (source: contracts)
+└── package.json
 ```
 
 ## Prerequisites

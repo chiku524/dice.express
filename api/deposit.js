@@ -47,7 +47,8 @@ module.exports = async function handler(req, res) {
   }
 
   try {
-    const { amount, userTokenBalanceContractId } = req.body
+    // networkId: optional; default 'canton' for CC deposits (multi-chain support later)
+    const { amount, userTokenBalanceContractId, networkId = 'canton' } = req.body
 
     if (!amount || parseFloat(amount) <= 0) {
       return res.status(400).json({

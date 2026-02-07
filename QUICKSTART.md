@@ -106,13 +106,13 @@ Navigate to "Portfolio" to see all your positions.
 
 ## Next Steps
 
-- Read [ARCHITECTURE.md](docs/ARCHITECTURE.md) for system design
-- Read [DEPLOYMENT.md](docs/DEPLOYMENT.md) for production deployment
-- Read [API.md](docs/API.md) for API reference
+- Read [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for system design
+- Read [docs/README.md](docs/README.md) for full doc index
+- Read [docs/API.md](docs/API.md) for API reference
 
 ## Getting Help
 
 - Check the documentation in `docs/` directory
-- Review DAML contract code in `daml/` directory
+- Review contract code in `contracts/` directory
 - Check Canton documentation: https://docs.digitalasset.com
 

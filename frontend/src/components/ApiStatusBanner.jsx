@@ -43,7 +43,7 @@ export default function ApiStatusBanner() {
             <small>
               <strong>To fix:</strong> Ensure API routes at project root <code>/api/</code> are deployed, or enable CORS on the Canton participant.
               <br />
-              See <a href="https://github.com/chiku524/upwork-canton-daml-project/blob/main/docs/VERCEL_FIX.md" target="_blank" rel="noopener noreferrer" style={{ color: 'white', textDecoration: 'underline' }}>documentation</a> for details.
+              See <a href="https://github.com/chiku524/upwork-canton-daml-project/blob/main/docs/README.md" target="_blank" rel="noopener noreferrer" style={{ color: 'white', textDecoration: 'underline' }}>documentation</a> for details.
             </small>
           </p>
         </div>
