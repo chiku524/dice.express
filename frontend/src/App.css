@@ -10,7 +10,8 @@
 .app-header {
   background: linear-gradient(135deg, rgba(10, 15, 20, 0.98) 0%, rgba(18, 28, 36, 0.98) 100%);
   border-bottom: 1px solid var(--color-border);
-  padding: var(--spacing-xs, 0.5rem) 0;
+  padding: var(--spacing-sm, 0.5rem) 0;
+  min-height: 60px;
   transition: all var(--transition-base, 0.2s ease);
   position: fixed;
   top: 0;
@@ -87,6 +88,7 @@
   position: relative;
   z-index: 1;
   pointer-events: auto;
+  min-height: 56px;
 }
 
 .logo {
@@ -95,6 +97,8 @@
   display: flex;
   align-items: center;
   gap: var(--spacing-sm, 0.5rem);
+  min-height: 44px;
+  padding: var(--spacing-xs, 0.25rem) 0;
 }
 
 .logo-img {
@@ -142,8 +146,11 @@
   text-decoration: none;
   font-weight: var(--font-weight-medium, 500);
   transition: color var(--transition-base, 0.2s ease);
-  padding: var(--spacing-xs, 0.25rem) var(--spacing-sm, 0.5rem);
+  padding: var(--spacing-sm, 0.5rem) var(--spacing-md, 0.75rem);
   border-radius: var(--radius-md, 6px);
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
 }
 
 .app-header nav a:hover {
@@ -156,7 +163,8 @@
   align-items: center;
   gap: var(--spacing-sm, 0.5rem);
   flex-wrap: nowrap;
-  padding: var(--spacing-xs, 0.25rem) var(--spacing-sm, 0.5rem);
+  padding: var(--spacing-sm, 0.5rem) var(--spacing-md, 0.75rem);
+  min-height: 44px;
   background: var(--color-primary-light, rgba(100, 108, 255, 0.1));
   border-radius: var(--radius-md, 6px);
   border: 1px solid var(--color-primary-border, rgba(100, 108, 255, 0.2));
@@ -177,7 +185,8 @@
 
 .wallet-info button {
   white-space: nowrap;
-  padding: var(--spacing-xs, 0.25rem) var(--spacing-sm, 0.5rem);
+  padding: var(--spacing-sm, 0.5rem) var(--spacing-md, 0.75rem);
+  min-height: 36px;
   font-size: var(--font-size-xs, 0.8rem);
   background: var(--color-primary-light, rgba(100, 108, 255, 0.2));
   border: 1px solid var(--color-primary-border, rgba(100, 108, 255, 0.3));
@@ -196,6 +205,7 @@
 
 .app-header nav button {
   padding: var(--spacing-sm, 0.5rem) var(--spacing-md, 1rem);
+  min-height: 44px;
   font-size: var(--font-size-sm, 0.9rem);
   background: var(--color-primary, #646cff);
   border: none;
@@ -205,6 +215,8 @@
   transition: all var(--transition-base, 0.2s ease);
   font-weight: var(--font-weight-medium, 500);
   box-shadow: var(--shadow-sm, 0 1px 2px rgba(0, 0, 0, 0.1));
+  display: inline-flex;
+  align-items: center;
 }
 
 .app-header nav button:hover:not(:disabled) {
@@ -219,7 +231,7 @@
   background-color: transparent;
   position: relative;
   z-index: 1;
-  margin-top: 50px; /* Account for fixed navbar */
+  margin-top: 64px; /* Account for fixed navbar */
 }
 
 /* Remove margin-top and padding for documentation page since it handles its own spacing */
