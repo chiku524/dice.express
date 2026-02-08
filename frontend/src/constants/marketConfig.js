@@ -14,7 +14,7 @@ export const MARKET_CATEGORIES = [
   { value: 'Other', label: 'Other' },
 ]
 
-/** Binary-style variants (all use DAML MarketType Binary under the hood) */
+/** Binary-style variants (all use contract MarketType Binary under the hood) */
 export const PREDICTION_STYLES = [
   { value: 'yesNo', label: 'Yes / No', marketType: 'Binary', outcomes: ['Yes', 'No'] },
   { value: 'trueFalse', label: 'True / False', marketType: 'Binary', outcomes: ['True', 'False'] },

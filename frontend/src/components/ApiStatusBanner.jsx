@@ -41,7 +41,7 @@ export default function ApiStatusBanner() {
             Vercel API routes are not configured. Queries will return empty results and commands will fail.
             <br />
             <small>
-              <strong>To fix:</strong> Ensure API routes at project root <code>/api/</code> are deployed, or enable CORS on the Canton participant.
+              <strong>To fix:</strong> Ensure API routes at project root <code>/api/</code> are deployed, or check CORS on the ledger participant.
               <br />
               See <a href="https://github.com/chiku524/upwork-canton-daml-project/blob/main/docs/README.md" target="_blank" rel="noopener noreferrer" style={{ color: 'white', textDecoration: 'underline' }}>documentation</a> for details.
             </small>

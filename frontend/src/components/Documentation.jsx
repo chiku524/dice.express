@@ -81,18 +81,17 @@ function GettingStartedContent() {
   return (
     <div className="doc-section">
       <h1>Getting Started</h1>
-      <p>Welcome to the Prediction Markets application built on Canton blockchain.</p>
+      <p>Welcome to Foresight — a prediction markets platform backed by blockchain infrastructure.</p>
       
       <h2>Overview</h2>
       <p>
-        This application allows users to create, manage, and trade on prediction markets. 
-        The platform uses a hybrid approach: on-chain CC transfers for deposits/withdrawals, 
-        and database-backed virtual tracking for markets and positions.
+        Create, manage, and trade on prediction markets. All activity on the platform uses virtual <strong>Credits</strong>. 
+        Only <strong>deposits</strong> (crypto → Credits) and <strong>withdrawals</strong> (Credits → crypto) touch real blockchain networks.
       </p>
 
       <h2>Prerequisites</h2>
       <ul>
-        <li>A Canton wallet (Party ID)</li>
+        <li>A wallet (Party ID or supported chain wallet)</li>
         <li>Keycloak credentials for authentication</li>
         <li>TokenBalance contracts for CC deposits/withdrawals (created via /test page)</li>
       </ul>
@@ -111,7 +110,7 @@ function GettingStartedContent() {
       <ul>
         <li><strong>Virtual CC Tracking:</strong> Market creation and position creation use database-backed virtual tracking (not on-chain transfers)</li>
         <li><strong>On-Chain Transfers:</strong> Only deposit and withdraw operations perform actual on-chain CC transfers</li>
-        <li><strong>Party ID:</strong> Your public identifier on the Canton network (similar to an Ethereum address)</li>
+        <li><strong>Party ID:</strong> Your public identifier on the connected ledger (similar to a wallet address)</li>
         <li><strong>Authentication Token:</strong> JWT token from Keycloak that authorizes blockchain interactions</li>
       </ul>
     </div>
@@ -125,7 +124,7 @@ function WalletAuthenticationContent() {
       
       <h2>Connecting Your Wallet</h2>
       <p>
-        To interact with the platform, you need to connect your Canton wallet by providing your Party ID.
+        To interact with the platform, connect your wallet by providing your Party ID (or connect a supported chain wallet).
       </p>
       
       <h3>Party ID Format</h3>
@@ -141,7 +140,7 @@ function WalletAuthenticationContent() {
 
       <h2>Authentication Token</h2>
       <p>
-        To interact with the Canton blockchain, you need an authentication token (JWT) from Keycloak.
+        To interact with the ledger, you need an authentication token (JWT) from Keycloak.
       </p>
 
       <h3>Getting a Token</h3>
@@ -332,8 +331,8 @@ function DepositWithdrawContent() {
       <h1>Deposit & Withdraw</h1>
       
       <p>
-        Deposit and withdraw CC (Canton Coin) using on-chain transfers. These are the only operations 
-        that perform actual blockchain transactions for CC transfers.
+        <strong>Deposit</strong> (crypto → Credits) and <strong>withdraw</strong> (Credits → crypto) are the only operations 
+        that perform actual blockchain transactions. All other platform activity is in virtual Credits.
       </p>
 
       <h2>Prerequisites</h2>
@@ -352,7 +351,7 @@ function DepositWithdrawContent() {
       <h3>Steps to Deposit</h3>
       <ol>
         <li>Navigate to the Portfolio page</li>
-        <li>Find the "Deposit / Withdraw CC" section</li>
+        <li>Find the "Deposit / Withdraw Credits" section</li>
         <li>Enter the amount you want to deposit</li>
         <li>Click "Deposit"</li>
         <li>Wait for the blockchain transaction to complete</li>
@@ -374,7 +373,7 @@ function DepositWithdrawContent() {
       <h3>Steps to Withdraw</h3>
       <ol>
         <li>Navigate to the Portfolio page</li>
-        <li>Find the "Deposit / Withdraw CC" section</li>
+        <li>Find the "Deposit / Withdraw Credits" section</li>
         <li>Enter the amount you want to withdraw</li>
         <li>Click "Withdraw"</li>
         <li>Wait for the blockchain transaction to complete</li>
@@ -390,8 +389,8 @@ function DepositWithdrawContent() {
 
       <h2>On-Chain Transactions</h2>
       <p>
-        Both deposit and withdraw operations use the Canton blockchain's TokenBalance.Transfer choice 
-        to perform actual on-chain CC transfers.
+        Deposit and withdraw use the connected ledger to perform on-chain transfers. 
+        Your balance is credited or debited in platform Credits accordingly.
       </p>
       
       <ul>
@@ -551,23 +550,21 @@ function BlockchainContent() {
         is designed to be network-agnostic, extensible, and future-proof.
       </p>
 
-      <h2>Current Implementation: Canton</h2>
+      <h2>Virtual-first, multi-chain</h2>
       <p>
-        The application currently uses the <strong>Canton blockchain</strong> via the Canton JSON API. 
-        Due to current limitations in the JSON API, the application uses a <strong>hybrid approach</strong> 
-        combining on-chain operations with database-backed storage.
+        The platform uses <strong>virtual Credits</strong> for all trading and fees; <strong>blockchain is used only for deposits and withdrawals</strong> across supported networks (e.g. Canton, with more planned). The application uses a <strong>ledger</strong> (e.g. Canton via JSON API) for command submission where applicable. Due to current limitations in some ledger APIs, a <strong>hybrid approach</strong> combines on-chain operations with database-backed storage.
       </p>
 
       <h3>Hybrid Architecture</h3>
       <ul>
-        <li><strong>On-Chain:</strong> Contract creation, choice exercising, and CC deposits/withdrawals</li>
+        <li><strong>On-Chain:</strong> Contract creation, choice exercising, and deposit/withdraw (per supported chain)</li>
         <li><strong>Database-Backed:</strong> Contract queries, position tracking, and market listings</li>
-        <li><strong>Rationale:</strong> Canton JSON API does not provide general contract query endpoints</li>
+        <li><strong>Rationale:</strong> Some ledger JSON APIs (e.g. Canton) do not provide general contract query endpoints</li>
       </ul>
 
       <h3>Supported Operations</h3>
       <ul>
-        <li>✅ <strong>Contract Creation:</strong> Market creation requests submitted to Canton blockchain</li>
+        <li>✅ <strong>Contract Creation:</strong> Market creation requests submitted to ledger (e.g. Canton)</li>
         <li>✅ <strong>Choice Exercising:</strong> Admin approval/rejection, market resolution</li>
         <li>✅ <strong>CC Transfers:</strong> Deposits and withdrawals via TokenBalance contracts</li>
         <li>⚠️ <strong>Contract Querying:</strong> Limited - uses database as primary source</li>
@@ -584,7 +581,7 @@ function BlockchainContent() {
       <ul>
         <li><strong>BlockchainProvider:</strong> Abstract interface for blockchain operations</li>
         <li><strong>BlockchainRegistry:</strong> Central registry for network providers</li>
-        <li><strong>CantonProvider:</strong> Current implementation for Canton blockchain</li>
+        <li><strong>CantonProvider:</strong> Implementation for Canton (one of the supported networks)</li>
       </ul>
 
       <h3>Provider Interface</h3>
@@ -602,12 +599,12 @@ function BlockchainContent() {
 
       <h2>Future: Full On-Chain Support</h2>
       <p>
-        When Canton provides the necessary capabilities (contract query endpoints, real-time events, etc.), 
-        the application will migrate to a full on-chain approach. The architecture is already prepared for 
-        this transition.
+        When supported ledgers (e.g. Canton) provide the necessary capabilities (contract query endpoints, real-time events, etc.), 
+        the application can migrate to a full on-chain approach for those networks. The architecture is already prepared for 
+        this transition. The platform remains virtual-first: trading and fees stay in Credits; blockchain is for deposit/withdraw.
       </p>
 
-      <h3>Required Canton Features</h3>
+      <h3>Required Ledger Features</h3>
       <ul>
         <li><strong>Contract Query Endpoints:</strong> General contract querying via JSON API</li>
         <li><strong>Contract Retrieval:</strong> Get contract by ID endpoint</li>
@@ -633,7 +630,7 @@ function BlockchainContent() {
 
       <h2>Configuration</h2>
       <p>Blockchain providers are configured via environment variables:</p>
-      <pre>{`# Canton Configuration
+      <pre>{`# Ledger configuration (e.g. Canton)
 VITE_CANTON_LEDGER_URL=https://participant.dev.canton.wolfedgelabs.com/json-api
 VITE_CANTON_PACKAGE_ID=b87ef31c8ea5c53a940a7f71a4bc6513cf44048730c0551f1fc2e02adc7271f0`}</pre>
 
@@ -641,7 +638,7 @@ VITE_CANTON_PACKAGE_ID=b87ef31c8ea5c53a940a7f71a4bc6513cf44048730c0551f1fc2e02ad
       <p>For more detailed information, see:</p>
       <ul>
         <li><strong>Blockchain Integration Guide:</strong> Architecture and provider system</li>
-        <li><strong>Canton Integration Guide:</strong> Canton-specific integration details and migration path</li>
+        <li><strong>Canton Integration Guide:</strong> Canton (one supported network) integration details and migration path</li>
       </ul>
     </div>
   )
@@ -677,9 +674,9 @@ function APIsAndOraclesContent() {
       <p><strong>Cost:</strong> Free (no API key required for basic usage)</p>
       <p><strong>Documentation:</strong> <a href="https://docs.redstone.finance/" target="_blank" rel="noopener noreferrer">RedStone Documentation</a></p>
 
-      <h3>Canton JSON API ✅</h3>
+      <h3>Ledger JSON API (e.g. Canton) ✅</h3>
       <p><strong>Status:</strong> Implemented and Active</p>
-      <p><strong>Purpose:</strong> Blockchain interactions (contract creation, choice exercising)</p>
+      <p><strong>Purpose:</strong> Ledger interactions for deposit/withdraw and commands (contract creation, choice exercising). Platform trading uses virtual Credits; this API is used for supported chains (Canton today, more planned).</p>
       <p><strong>What it provides:</strong></p>
       <ul>
         <li>Command submission for contract creation</li>
@@ -688,12 +685,12 @@ function APIsAndOraclesContent() {
       </ul>
       <p><strong>API Endpoints:</strong></p>
       <ul>
-        <li><code>POST /api/command</code> - Proxy for Canton command submission</li>
-        <li><code>POST /api/query</code> - Proxy for Canton contract queries</li>
+        <li><code>POST /api/command</code> - Proxy for ledger command submission (e.g. Canton)</li>
+        <li><code>POST /api/query</code> - Proxy for ledger contract queries (e.g. Canton)</li>
       </ul>
-      <p><strong>Base URL:</strong> <code>https://participant.dev.canton.wolfedgelabs.com/json-api</code></p>
+      <p><strong>Base URL (example):</strong> <code>https://participant.dev.canton.wolfedgelabs.com/json-api</code></p>
       <p><strong>Authentication:</strong> JWT token via Keycloak</p>
-      <p><strong>Limitations:</strong> General contract querying not available via JSON API</p>
+      <p><strong>Limitations:</strong> General contract querying not available via some ledger JSON APIs</p>
 
       <h3>Keycloak Authentication API ✅</h3>
       <p><strong>Status:</strong> Implemented and Active</p>
@@ -881,15 +878,16 @@ function ArchitectureContent() {
       
       <h2>Overview</h2>
       <p>
-        The application uses a hybrid architecture combining Canton blockchain for CC transfers 
-        and Supabase database for market and position data.
+        The application is <strong>virtual-first and multi-chain</strong>: all trading and fees use <strong>Credits</strong>; 
+        blockchain is used only for <strong>deposits and withdrawals</strong> on supported networks (e.g. Canton). 
+        Architecture combines ledger(s) for deposit/withdraw with Supabase database for market and position data.
       </p>
 
       <h2>Technology Stack</h2>
       <ul>
         <li><strong>Frontend:</strong> React with React Router</li>
         <li><strong>Backend API:</strong> Vercel Serverless Functions</li>
-        <li><strong>Blockchain:</strong> Canton (via JSON API)</li>
+        <li><strong>Blockchain:</strong> Multi-chain; Canton (and others) for deposit/withdraw via JSON API</li>
         <li><strong>Database:</strong> Supabase (PostgreSQL)</li>
         <li><strong>Authentication:</strong> Keycloak (JWT tokens)</li>
         <li><strong>Storage:</strong> Browser localStorage (tokens, wallet info)</li>
@@ -899,10 +897,10 @@ function ArchitectureContent() {
       
       <h3>Hybrid Model</h3>
       <p>
-        Due to Canton's limitations with contract querying, the application uses a hybrid approach:
+        Platform uses virtual Credits for activity; blockchain only for moving value in/out. Due to some ledger APIs lacking full query support, a hybrid approach is used:
       </p>
       <ul>
-        <li><strong>On-Chain:</strong> CC deposits and withdrawals (TokenBalance transfers)</li>
+        <li><strong>On-Chain:</strong> Deposits and withdrawals (e.g. CC/TokenBalance on Canton; other chains planned)</li>
         <li><strong>Database:</strong> Markets, positions, and transaction history</li>
       </ul>
 
@@ -937,18 +935,18 @@ function ArchitectureContent() {
         <li>Position appears in user's Portfolio</li>
       </ol>
 
-      <h3>CC Deposits/Withdrawals</h3>
+      <h3>Deposits/Withdrawals</h3>
       <ol>
-        <li>User initiates deposit/withdraw</li>
-        <li>On-chain TokenBalance.Transfer executed</li>
+        <li>User initiates deposit/withdraw (on chosen supported chain)</li>
+        <li>On-chain transfer executed (e.g. TokenBalance.Transfer on Canton)</li>
         <li>Transaction recorded in Supabase database</li>
-        <li>User balance updated (on-chain)</li>
+        <li>User virtual balance (Credits) updated</li>
       </ol>
 
       <h2>API Endpoints</h2>
       <ul>
-        <li><code>/api/command</code> - Proxy for Canton JSON API commands</li>
-        <li><code>/api/query</code> - Proxy for Canton JSON API queries</li>
+        <li><code>/api/command</code> - Proxy for ledger JSON API commands (e.g. Canton)</li>
+        <li><code>/api/query</code> - Proxy for ledger JSON API queries (e.g. Canton)</li>
         <li><code>/api/get-token</code> - Get authentication token from Keycloak</li>
         <li><code>/api/refresh-token</code> - Refresh authentication token</li>
         <li><code>/api/deposit</code> - Deposit CC (on-chain transfer)</li>
@@ -963,7 +961,7 @@ function ArchitectureContent() {
       <ul>
         <li><strong>Supabase:</strong> Markets, positions, transactions, contract metadata</li>
         <li><strong>localStorage:</strong> Authentication tokens, wallet info, contract IDs</li>
-        <li><strong>Canton Blockchain:</strong> TokenBalance contracts (CC balances)</li>
+        <li><strong>Ledger (e.g. Canton):</strong> TokenBalance contracts (CC balances) for deposit/withdraw</li>
       </ul>
     </div>
   )
@@ -978,7 +976,7 @@ function SecurityContent() {
       
       <h3>Party IDs</h3>
       <p>
-        Party IDs in Canton are public identifiers, similar to Ethereum addresses. They are meant 
+        Party IDs (e.g. on Canton) are public identifiers, similar to Ethereum addresses. They are meant 
         to be shared publicly and are not secret.
       </p>
       <ul>
@@ -1172,10 +1170,10 @@ function APIReferenceContent() {
   "source": "redstone"
 }`}</pre>
 
-      <h2>Canton API Proxies</h2>
+      <h2>Ledger API Proxies (e.g. Canton)</h2>
       
       <h3>POST /api/command</h3>
-      <p>Proxy for Canton JSON API command submission (create contracts, exercise choices).</p>
+      <p>Proxy for ledger JSON API command submission (create contracts, exercise choices). Used for supported networks (e.g. Canton).</p>
       <p><strong>Headers:</strong> Authorization: Bearer {'{token}'}</p>
       <p><strong>Request:</strong></p>
       <pre>{`{
@@ -1203,7 +1201,7 @@ function APIReferenceContent() {
 }`}</pre>
       
       <h3>POST /api/query</h3>
-      <p>Proxy for Canton JSON API queries (active-contracts endpoint). Note: Limited support - returns empty array if endpoints unavailable.</p>
+      <p>Proxy for ledger JSON API queries (active-contracts endpoint). Note: Limited support on some ledgers - returns empty array if endpoints unavailable.</p>
       <p><strong>Request:</strong></p>
       <pre>{`{
   "templateIds": ["string"],

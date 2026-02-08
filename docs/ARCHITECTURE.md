@@ -2,7 +2,7 @@
 
 ## Overview
 
-The Canton Prediction Markets application is built on the Canton blockchain network, leveraging DAML smart contracts for on-ledger logic and a React frontend for user interaction.
+The application is a multi-chain prediction markets platform with a virtual Credits model: all trading and fees use Credits; blockchain is used only for deposits and withdrawals. It supports multiple networks (e.g. Canton, with more planned) and uses DAML smart contracts where applicable, with a React frontend for user interaction.
 
 ## System Architecture
 

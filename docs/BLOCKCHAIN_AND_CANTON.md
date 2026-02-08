@@ -1,6 +1,6 @@
 # Blockchain & Canton Integration
 
-Single reference for multi-chain architecture and Canton-specific integration. Crypto is used for **deposits and withdrawals**; platform activity uses virtual Credits.
+Single reference for multi-chain architecture and Canton (one supported network) integration. The platform is **virtual-first**: all trading and fees use **Credits**; real blockchain/crypto is used only for **deposits and withdrawals** across supported networks (Canton today; more chains planned).
 
 ---
 

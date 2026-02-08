@@ -1,0 +1,47 @@
+# Deploy dice.express (GitHub repo) frontend + Pages Functions to Cloudflare Pages (Direct Upload).
+# Cloudflare project name: dice-express → https://dice-express.pages.dev
+# Requires GitHub secrets: CLOUDFLARE_ACCOUNT_ID, CLOUDFLARE_API_TOKEN
+# Docs: https://developers.cloudflare.com/pages/how-to/use-direct-upload-with-continuous-integration/
+
+name: Deploy to Cloudflare Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# Allow one concurrent deployment per branch
+concurrency:
+  group: pages-deploy-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    name: Build and deploy
+    permissions:
+      contents: read
+      deployments: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install frontend dependencies
+        run: cd frontend && npm ci
+
+      - name: Build frontend
+        run: npm run build:frontend
+
+      - name: Deploy to Cloudflare Pages
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages deploy frontend/dist --project-name=dice-express
+          gitHubToken: ${{ secrets.GITHUB_TOKEN }}

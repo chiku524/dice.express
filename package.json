@@ -1,19 +1,25 @@
 {
-  "name": "canton-prediction-markets",
+  "name": "dice-express",
   "version": "1.0.0",
-  "description": "Privacy-preserving prediction markets on Canton blockchain",
+  "description": "dice.express — prediction markets with virtual Credits; multi-chain deposit/withdraw only",
   "scripts": {
     "build": "daml build",
     "test": "daml test",
     "start": "npm run start:frontend",
     "start:frontend": "cd frontend && npm run dev",
-    "build:frontend": "cd frontend && npm run build"
+    "build:frontend": "cd frontend && npm run build",
+    "pages:dev": "npm run build:frontend && npx wrangler pages dev frontend/dist",
+    "pages:project:create": "bash scripts/cloudflare-setup.sh",
+    "pages:deploy": "npm run build:frontend && npx wrangler pages deploy frontend/dist --project-name=dice-express",
+    "pages:setup": "npm run pages:project:create && npm run pages:deploy"
   },
   "keywords": [
-    "canton",
-    "daml",
     "prediction-markets",
-    "blockchain"
+    "virtual-currency",
+    "multi-chain",
+    "daml",
+    "blockchain",
+    "canton"
   ],
   "author": "",
   "license": "MIT",

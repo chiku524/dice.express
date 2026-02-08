@@ -1,5 +1,16 @@
 # Virtual Currency & Multi-Chain Design
 
+## Platform model (confirmation)
+
+**All activity on the platform is virtual** and uses **Credits** (platform currency). The only interactions with real blockchain/crypto are:
+
+- **Deposit**: User sends crypto on a supported chain → platform credits their **Credits** balance.
+- **Withdrawal**: User requests payout in **Credits** → platform debits balance and sends crypto on the chosen chain.
+
+Trading, fees, AMM, positions, market creation, and resolution all happen in Credits on the platform. Blockchain is used only for moving value in (deposit) and out (withdrawal).
+
+---
+
 ## 1. Virtual Currency (Platform Credits)
 
 ### 1.1 Purpose

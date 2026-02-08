@@ -5,7 +5,7 @@
 
   color-scheme: dark;
   color: var(--color-text-primary, rgba(255, 255, 255, 0.87));
-  background-color: var(--color-background, #121212);
+  background-color: var(--color-background, #0a0f14);
 
   font-synthesis: none;
   text-rendering: optimizeLegibility;
@@ -25,7 +25,7 @@ body {
   place-items: center;
   min-width: 320px;
   min-height: 100vh;
-  background-color: var(--color-background, #121212);
+  background-color: var(--color-background, #0a0f14);
   overflow-x: hidden;
   position: relative;
 }

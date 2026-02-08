@@ -319,7 +319,7 @@ export default function MarketsList() {
     <div>
       <div className="page-header">
         <h1>Prediction Markets</h1>
-        <p>Discover and trade on prediction markets built on Canton blockchain</p>
+        <p>Discover and trade on prediction markets. All activity in Credits; deposit and withdraw on your preferred chain.</p>
       </div>
       
       {/* Filters Section */}
@@ -580,7 +580,7 @@ export default function MarketsList() {
           <div className="alert-warning">
             <h3>ℹ️ Contract Querying Not Available in JSON API</h3>
             <p>
-              Query endpoints do not exist in the Canton JSON API per the official OpenAPI documentation. 
+              Contract query endpoints are not available in the current ledger API. 
               This means we cannot query contracts to display markets, even though they exist on the ledger.
             </p>
             <p>

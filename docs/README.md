@@ -9,7 +9,7 @@
 
 - **[ARCHITECTURE.md](./ARCHITECTURE.md)** – System architecture, DAML contracts, lifecycle
 - **[PLATFORM_VISION_AND_ROADMAP.md](./PLATFORM_VISION_AND_ROADMAP.md)** – Vision, virtual currency, multi-chain, roadmap
-- **[BLOCKCHAIN_AND_CANTON.md](./BLOCKCHAIN_AND_CANTON.md)** – Multi-chain architecture and Canton integration
+- **[BLOCKCHAIN_AND_CANTON.md](./BLOCKCHAIN_AND_CANTON.md)** – Multi-chain architecture; virtual Credits; Canton and other networks for deposit/withdraw
 - **[AMM.md](./AMM.md)** – AMM design, implementation, and algorithms
 
 ## Platform Specs
@@ -20,8 +20,16 @@
 
 ## API & Implementation
 
-- **[API.md](./API.md)** – API reference, Canton JSON API, query endpoints note, contract interfaces
+- **[API.md](./API.md)** – API reference, ledger/JSON API (e.g. Canton), query endpoints note, contract interfaces
 - **[CLOUD_STORAGE_SETUP.md](./CLOUD_STORAGE_SETUP.md)** – Cloud storage (Supabase) setup
+
+## Deployment
+
+- **[CLOUDFLARE_DEPLOY.md](./CLOUDFLARE_DEPLOY.md)** – Deploy to Cloudflare Pages (dice.express), wrangler config, API proxy
+
+## Brand & theme
+
+- **[BRAND_AND_THEME.md](./BRAND_AND_THEME.md)** – Platform model reminder, brand (Foresight), and theme (teal/cyan palette)
 
 ## History
 

@@ -1,7 +1,7 @@
 /**
  * Contract Tester Component
  * 
- * Test all deployed contracts on Canton devnet
+ * Test deployed contracts (ledger / devnet)
  * Uses Vercel API proxy to avoid CORS issues
  */
 
@@ -648,7 +648,7 @@ export default function ContractTester() {
     <div className="contract-tester">
       <div className="contract-tester-header">
         <h1>Contract Tester</h1>
-        <p>Test all deployed contracts on Canton devnet</p>
+        <p>Test deployed contracts on the connected ledger</p>
         <p className="package-info">
           <strong>Package ID:</strong> <code>{PACKAGE_ID}</code>
         </p>

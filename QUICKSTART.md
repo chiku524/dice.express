@@ -31,8 +31,9 @@ cd ..
 # Copy environment template
 cp frontend/.env.example frontend/.env
 
-# Edit frontend/.env and set:
+# Edit frontend/.env and set (example for Canton):
 # VITE_LEDGER_URL=https://participant.dev.canton.wolfedgelabs.com
+# Platform uses virtual Credits; ledger is for deposit/withdraw (multi-chain).
 ```
 
 ### 4. Start Development
@@ -90,8 +91,8 @@ Navigate to "Portfolio" to see all your positions.
 ## Troubleshooting
 
 ### Frontend won't connect to ledger
-- Check `VITE_LEDGER_URL` in `.env`
-- Verify Canton participant is accessible
+- Check `VITE_LEDGER_URL` in `.env` (and any chain-specific env)
+- Verify the configured ledger/participant is accessible (e.g. Canton)
 - Check browser console for errors
 
 ### DAML build errors

@@ -1,17 +1,17 @@
-# Canton Prediction Markets
+# Foresight — Prediction Markets
 
-A privacy-preserving prediction markets application built on the Canton blockchain network.
+A prediction markets platform where **all activity is virtual (Credits)**. Only **deposits** (crypto → Credits) and **withdrawals** (Credits → crypto) use real blockchain networks. Built for a multi-chain ecosystem.
 
 ## Features
 
-- **Binary and Multi-Outcome Markets**: Support for yes/no and multi-choice prediction markets
-- **Privacy-Preserving**: Individual positions are private, only aggregated data is visible
-- **Admin Approval Flow**: Market creation requires 100 CC deposit and admin approval
-- **Oracle Integration**: RedStone oracle integration for market resolution
-- **Multi-Step Settlement**: Time-based and event-based settlement with explicit steps
-- **Configurable Fees**: Adjustable fees for market creation, position changes, and settlement
-- **Wallet Integration**: Secure wallet with passkey support
-- **Real-Time Updates**: Direct connection to Canton ledger for real-time state synchronization
+- **Virtual-first**: Trade, create markets, and pay fees in platform **Credits**; blockchain only for moving value in/out
+- **Prediction styles**: Yes/No, True/False, Happens/Doesn't, Multi-outcome; categories (Finance, Sports, Politics, etc.)
+- **Multi-chain ready**: Deposit and withdraw on your preferred chain (Canton and other networks); trading uses virtual Credits only
+- **Privacy-preserving**: Individual positions are private; only aggregated data is visible
+- **Admin approval**: Market creation requires deposit and admin approval
+- **Oracle integration**: RedStone and extensible oracles for market resolution
+- **AMM**: Automated market maker with DVP-style settlement
+- **Wallet integration**: Connect wallet (Party ID or supported chain)
 
 ## Project Structure
 
@@ -38,9 +38,9 @@ A privacy-preserving prediction markets application built on the Canton blockcha
 
 ## Prerequisites
 
-- DAML SDK 2.8.0 or later
+- DAML SDK 2.8.0+ (for building contracts; supported ledgers include Canton and others)
 - Node.js 18+ and npm
-- Access to Canton test environment
+- Access to a supported ledger for deposit/withdraw (e.g. Canton or other configured networks)
 - RedStone API access (for oracle integration)
 
 ## Setup
@@ -61,7 +61,7 @@ npm install
 Create a `.env` file in the frontend directory:
 
 ```env
-VITE_LEDGER_URL=https://participant.dev.canton.wolfedgelabs.com
+VITE_LEDGER_URL=<your-ledger-json-api-url>   # e.g. Canton participant JSON API
 ```
 
 ### 3. Build DAML Contracts
@@ -70,7 +70,9 @@ VITE_LEDGER_URL=https://participant.dev.canton.wolfedgelabs.com
 daml build
 ```
 
-### 4. Deploy to Canton
+### 4. Deploy contracts to ledger (optional)
+
+To deploy DAML contracts to a supported ledger (e.g. Canton):
 
 ```bash
 # Make deploy script executable
@@ -128,7 +130,7 @@ View all your positions and their status in the Portfolio section.
 
 ### Frontend
 
-- React-based SPA with direct Canton ledger connection
+- React-based SPA; virtual Credits for all trading; ledger used for deposit/withdraw (multi-chain)
 - Real-time state synchronization via WebSocket
 - Wallet management with passkey support
 - Responsive design for desktop and mobile
@@ -160,9 +162,9 @@ npm run build
 
 ## API Endpoints
 
-The application uses the Canton JSON API:
-- Base URL: `https://participant.dev.canton.wolfedgelabs.com`
-- Documentation: https://docs.digitalasset.com/build/3.4/reference/json-api/openapi.html
+Ledger interaction (e.g. Canton JSON API) is used for commands and, where supported, queries. Deposit/withdraw use the configured chain(s).
+- Configure `VITE_LEDGER_URL` (and chain-specific env) for your deployment.
+- Canton JSON API docs: https://docs.digitalasset.com/build/3.4/reference/json-api/openapi.html
 
 ## Key Design Decisions
 

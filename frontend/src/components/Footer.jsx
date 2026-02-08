@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom'
+import { BRAND_DESCRIPTION, BRAND_COPYRIGHT, BRAND_TECH } from '../constants/brand'
 import './Footer.css'
 
 export default function Footer() {
@@ -27,18 +28,13 @@ export default function Footer() {
           
           <div className="footer-section">
             <h3>About</h3>
-            <p>
-              Prediction Markets platform built on Canton blockchain.
-              Hybrid architecture with on-chain CC transfers and database-backed virtual tracking.
-            </p>
+            <p>{BRAND_DESCRIPTION}</p>
           </div>
         </div>
         
         <div className="footer-bottom">
-          <p>&copy; {new Date().getFullYear()} Canton Prediction Markets. All rights reserved.</p>
-          <p className="footer-tech">
-            Built with React, Canton, and Supabase
-          </p>
+          <p>&copy; {new Date().getFullYear()} {BRAND_COPYRIGHT}. All rights reserved.</p>
+          <p className="footer-tech">{BRAND_TECH}</p>
         </div>
       </div>
     </footer>

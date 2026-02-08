@@ -1,0 +1,15 @@
+# Cloudflare Pages + Workers (converged) configuration for dice.express
+# Used by: Git-connected Pages builds, Direct Upload (e.g. GitHub Actions), and `wrangler pages dev`
+# Docs: https://developers.cloudflare.com/pages/functions/wrangler-configuration/
+
+name = "dice-express"
+compatibility_date = "2025-02-01"
+compatibility_flags = ["nodejs_compat"]
+
+# Build output directory (must match Cloudflare Pages build output dir when using Git integration)
+pages_build_output_dir = "frontend/dist"
+
+# Environment variables for Pages Functions (e.g. /api proxy).
+# Sensitive values: set in Cloudflare Dashboard → Settings → Environment variables, or use Direct Upload secrets.
+[vars]
+# BACKEND_URL = "https://your-api-origin.com"  # Optional: for functions/api/[[path]].js proxy

@@ -1,10 +1,12 @@
 # API Reference
 
-## Canton JSON API
+The platform is **virtual-first**: trading and fees use Credits; ledger/blockchain is used for **deposits and withdrawals** and for command submission on supported networks (Canton today; more chains planned). This section documents the ledger API and backend endpoints.
 
-The application uses the Canton JSON API for all ledger interactions.
+## Ledger JSON API (e.g. Canton)
 
-Base URL: `https://participant.dev.canton.wolfedgelabs.com`
+The application uses a ledger JSON API (currently Canton) for command submission and, where supported, queries. Other networks can be added via the provider system.
+
+Base URL (example): `https://participant.dev.canton.wolfedgelabs.com`
 
 ### Query Endpoints (Canton JSON API)
 

@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { useWallet } from '../contexts/WalletContext'
 import { getVirtualBalance } from '../services/balance'
+import { BRAND_NAME, BRAND_TAGLINE } from '../constants/brand'
 import './Navbar.css'
 
 export default function Navbar({ showWalletModal, setShowWalletModal }) {
@@ -53,7 +54,7 @@ export default function Navbar({ showWalletModal, setShowWalletModal }) {
     <header className="app-header">
       <div className="container">
         <Link to="/" className="logo">
-          <h1>Canton Prediction Markets</h1>
+          <h1>{BRAND_NAME} <span className="logo-tagline">{BRAND_TAGLINE}</span></h1>
         </Link>
         <nav>
           {/* Markets Dropdown */}

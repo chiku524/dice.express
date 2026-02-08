@@ -4,18 +4,18 @@
  */
 
 :root {
-  /* Colors */
-  --color-primary: #646cff;
-  --color-primary-hover: #535bf2;
-  --color-primary-light: rgba(100, 108, 255, 0.1);
-  --color-primary-border: rgba(100, 108, 255, 0.3);
+  /* Colors — teal/cyan palette (blockchain-agnostic, blends with animated background) */
+  --color-primary: #14b8a6;
+  --color-primary-hover: #0d9488;
+  --color-primary-light: rgba(20, 184, 166, 0.12);
+  --color-primary-border: rgba(20, 184, 166, 0.35);
   
-  --color-background: #0f0f1a;
-  --color-background-transparent: rgba(15, 15, 26, 0.5);
-  --color-surface: rgba(30, 30, 46, 0.5);
-  --color-surface-hover: rgba(40, 40, 60, 0.6);
-  --color-border: rgba(100, 108, 255, 0.25);
-  --color-border-light: rgba(255, 255, 255, 0.12);
+  --color-background: #0a0f14;
+  --color-background-transparent: rgba(10, 15, 20, 0.6);
+  --color-surface: rgba(20, 30, 38, 0.6);
+  --color-surface-hover: rgba(28, 42, 52, 0.7);
+  --color-border: rgba(20, 184, 166, 0.22);
+  --color-border-light: rgba(255, 255, 255, 0.1);
   
   --color-text-primary: rgba(255, 255, 255, 0.87);
   --color-text-secondary: rgba(255, 255, 255, 0.7);
@@ -58,7 +58,7 @@
   --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.2);
   --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.3);
   --shadow-xl: 0 20px 25px rgba(0, 0, 0, 0.4);
-  --shadow-primary: 0 4px 12px rgba(100, 108, 255, 0.3);
+  --shadow-primary: 0 4px 16px rgba(20, 184, 166, 0.28);
   
   /* Transitions */
   --transition-fast: 0.15s ease;
