@@ -123,23 +123,20 @@ module.exports = async function handler(req, res) {
       }
     }
 
-    // Step 1: Find the market contract in the database
-    const { data: marketContracts, error: marketError } = await supabase
-      .from('contracts')
-      .select('*')
-      .ilike('template_id', '%MarketCreationRequest%')
-      .eq('status', 'Approved')
-      .limit(100)
-
-    if (marketError) {
-      console.error('[api/create-position] Error finding market:', marketError)
-      return res.status(500).json({
-        error: 'Failed to find market',
-        message: marketError.message
-      })
+    // Step 1: Find the market in the database (VirtualMarket or approved MarketCreationRequest)
+    const { data: byId } = await supabase.from('contracts').select('*').eq('contract_id', marketId).single()
+    let marketContract = byId
+    if (!marketContract) {
+      const { data: marketContracts, error: marketError } = await supabase
+        .from('contracts')
+        .select('*')
+        .or('template_id.eq.VirtualMarket,template_id.ilike.%Market%')
+        .in('status', ['Active', 'Approved'])
+        .limit(100)
+      if (!marketError) {
+        marketContract = marketContracts?.find(m => (m.payload?.marketId === marketId) || m.contract_id === marketId)
+      }
     }
-
-    const marketContract = marketContracts?.find(m => m.payload?.marketId === marketId)
 
     if (!marketContract) {
       return res.status(404).json({
@@ -164,25 +161,23 @@ module.exports = async function handler(req, res) {
     }
 
     // Step 4: Store position in database (virtual deposit tracking - NOT on-chain)
-    // NOTE: Position creation uses virtual CC (database-only), NOT on-chain transfers
-    // Actual CC deposits/withdrawals must be done via /api/deposit and /api/withdraw endpoints
-    const PLATFORM_WALLET_PARTY_ID = 'ee15aa3d-0bd4-44f9-9664-b49ad7e308aa::122087fa379c37332a753379c58e18d397e39cb82c68c15e4af7134be46561974292'
-    
-    // Add deposit info to position payload (virtual tracking only)
+    // Virtual only: position and balance tracked in database
     const positionPayloadWithDeposit = {
       ...positionPayload,
       depositAmount: amountNum.toString(),
-      depositCurrency: 'CC', // Canton Coin (virtual - tracked in database only)
-      platformWallet: PLATFORM_WALLET_PARTY_ID,
-      depositStatus: 'completed', // Virtual status - assumes user has already deposited CC via /api/deposit
+      depositCurrency: 'Credits',
+      depositStatus: 'completed',
       depositTimestamp: new Date().toISOString()
     }
     
+    const templateId = (marketContract.template_id || '').includes('VirtualMarket')
+      ? 'Position'
+      : `${(marketContract.template_id || '').split(':')[0] || 'PredictionMarkets'}:Position`
     const { data: positionData, error: positionError } = await supabase
       .from('contracts')
       .upsert({
         contract_id: contractId,
-        template_id: `${marketContract.template_id.split(':')[0]}:PredictionMarkets:Position`,
+        template_id: templateId,
         payload: positionPayloadWithDeposit,
         party: owner,
         status: 'Active',

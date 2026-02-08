@@ -11,8 +11,9 @@
     "pages:dev": "npm run build:frontend && npx wrangler pages dev frontend/dist",
     "pages:project:create": "bash scripts/cloudflare-setup.sh",
     "pages:deploy": "npm run build:frontend && npx wrangler pages deploy frontend/dist --project-name=dice-express",
-    "pages:setup": "npm run pages:project:create && npm run pages:deploy"
-  },
+"pages:setup": "npm run pages:project:create && npm run pages:deploy",
+    "pages:custom-domain": "bash scripts/pages-add-custom-domain.sh"
+},
   "keywords": [
     "prediction-markets",
     "virtual-currency",

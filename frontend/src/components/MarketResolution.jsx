@@ -1,14 +1,11 @@
 import { useState } from 'react'
-import { useLedger } from '../hooks/useLedger'
 import { useWallet } from '../contexts/WalletContext'
 import { oracleService } from '../services/oracleService'
 
 /**
- * Component for market resolution using RedStone oracle
- * This would be used by admins to resolve markets
+ * Virtual market resolution: update market status via API (no blockchain).
  */
 export default function MarketResolution({ market, onResolved }) {
-  const { ledger } = useLedger()
   const { wallet } = useWallet()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
@@ -29,29 +26,19 @@ export default function MarketResolution({ market, onResolved }) {
   }
 
   const startResolution = async () => {
-    if (!oracleData || !ledger || !wallet) return
+    if (!market?.contractId || !wallet) return
 
     try {
       setLoading(true)
       setError(null)
-
-      // Format oracle data for ledger
-      const formattedData = oracleService.formatForLedger(oracleData)
-
-      // Exercise StartResolution choice
-      await ledger.exercise(
-        'PredictionMarkets:Market',
-        market.contractId,
-        'StartResolution',
-        {
-          oracleData: formattedData,
-        },
-        wallet.party
-      )
-
-      if (onResolved) {
-        onResolved()
-      }
+      const marketId = market.payload?.marketId || market.contractId
+      const res = await fetch('/api/update-market-status', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ marketId, status: 'Resolving' }),
+      })
+      if (!res.ok) throw new Error((await res.json()).message || 'Failed to update status')
+      if (onResolved) onResolved()
     } catch (err) {
       setError(err.message)
     } finally {

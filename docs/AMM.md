@@ -65,8 +65,9 @@ We follow the **CIP-0056 Canton Network Token Standard** for Delivery versus Pay
 
 ### Fee Structure
 
-- Trading fee from input; optional LP fee share.  
-- Config: `tradingFeeRate`, `lpFeeShare` in pool/MarketConfig.
+- Trading fee from input; **platform fee share** (e.g. 20% of fee to platform, 80% to LPs).  
+- Config: `feeRate`, `platformFeeShare` on LiquidityPool; optional overrides in PoolFactory CreatePool.  
+- **Max trade size**: `maxTradeReserveFraction` (e.g. 10% of smallest reserve) to protect LPs and limit slippage; ensures users and platform do not lose from oversized trades.
 
 ### Optional Curves
 

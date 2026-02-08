@@ -1,15 +1,13 @@
 import { useState, useEffect, useMemo, useRef } from 'react'
 import { Link } from 'react-router-dom'
-import { useLedger } from '../hooks/useLedger'
 import { useWallet } from '../contexts/WalletContext'
 import { SkeletonMarketGrid } from './SkeletonLoader'
-import { ContractStorage } from '../utils/contractStorage'
+import { fetchMarkets } from '../services/marketsApi'
 import { useDebounce } from '../utils/useDebounce'
-import { MARKET_CATEGORIES, PREDICTION_STYLES } from '../constants/marketConfig'
+import { MARKET_CATEGORIES, PREDICTION_STYLES, MARKET_SOURCES, getSourceLabel } from '../constants/marketConfig'
 import { formatCredits } from '../constants/currency'
 
-export default function MarketsList() {
-  const { ledger } = useLedger()
+export default function MarketsList({ source: sourceFromRoute }) {
   const { wallet } = useWallet()
   const [markets, setMarkets] = useState([])
   const [loading, setLoading] = useState(true)
@@ -18,14 +16,20 @@ export default function MarketsList() {
   const apiRoutesWorkingRef = useRef(true)
   const isMountedRef = useRef(true)
   
-  // Filter states
+  // Filter states (when on /, allow picking source; when on /discover/:source, fix to that source)
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedCategory, setSelectedCategory] = useState('all')
   const [selectedTopic, setSelectedTopic] = useState('all')
   const [selectedType, setSelectedType] = useState('all')
   const [selectedStatus, setSelectedStatus] = useState('all')
+  const [selectedSource, setSelectedSource] = useState(sourceFromRoute || 'all')
   const [sortBy, setSortBy] = useState('volume') // 'volume', 'newest', 'oldest'
-  const [filtersExpanded, setFiltersExpanded] = useState(true)
+  const [filtersExpanded, setFiltersExpanded] = useState(false)
+
+  // Keep selectedSource in sync with route (e.g. when navigating to /discover/industry)
+  useEffect(() => {
+    setSelectedSource(sourceFromRoute || 'all')
+  }, [sourceFromRoute])
 
   // Debounce search query for better performance
   const debouncedSearchQuery = useDebounce(searchQuery, 300)
@@ -50,7 +54,7 @@ export default function MarketsList() {
     return Array.from(topics).sort()
   }, [markets])
   
-  // Count active filters
+  // Count active filters (source from route doesn't count as "filter" when on discover/:source)
   const activeFilterCount = useMemo(() => {
     let count = 0
     if (debouncedSearchQuery.trim()) count++
@@ -58,94 +62,33 @@ export default function MarketsList() {
     if (selectedTopic !== 'all') count++
     if (selectedType !== 'all') count++
     if (selectedStatus !== 'all') count++
+    if (!sourceFromRoute && selectedSource !== 'all') count++
     return count
-  }, [debouncedSearchQuery, selectedCategory, selectedTopic, selectedType, selectedStatus])
+  }, [debouncedSearchQuery, selectedCategory, selectedTopic, selectedType, selectedStatus, selectedSource, sourceFromRoute])
 
   useEffect(() => {
     isMountedRef.current = true
     
-    const fetchMarkets = async () => {
-      if (!ledger || !wallet || !isMountedRef.current) return
-
-      // Stop polling if API routes are not working
-      if (!apiRoutesWorkingRef.current) {
-        return
-      }
-
-      // Check if tab is visible before making request
-      if (document.hidden) {
-        return
-      }
+    const loadMarkets = async () => {
+      if (!isMountedRef.current || !apiRoutesWorkingRef.current || document.hidden) return
 
       try {
-        // Only set loading on initial load
-        setLoading(prev => {
-          // Only show loading if we're currently loading or have no markets
-          return prev
-        })
-        
-        // DATABASE-FIRST APPROACH: Query database for approved MarketCreationRequest contracts
-        // Since Canton endpoints don't reliably return Market contracts, we use approved MarketCreationRequest from database
-        console.log('[MarketsList] 💾 Querying database for approved markets...')
-        
-        let databaseMarkets = []
-        try {
-          // Query database for approved MarketCreationRequest contracts
-          databaseMarkets = await ContractStorage.getContractsByType(
-            'MarketCreationRequest',
-            null, // No party filter - show all approved markets
-            'Approved'
-          )
-          console.log(`[MarketsList] ✅ Retrieved ${databaseMarkets.length} approved markets from database`)
-        } catch (databaseError) {
-          console.warn('[MarketsList] ⚠️ Database query failed:', databaseError)
-        }
-        
+        const list = await fetchMarkets()
         if (!isMountedRef.current) return
-        
-        // Use database results (database is primary source)
-        // Transform database contracts to match Market format
-        const transformedMarkets = databaseMarkets.map(contract => ({
-          contractId: contract.contractId,
-          templateId: contract.templateId,
-          payload: {
-            ...contract.payload,
-            status: 'Active' // Approved MarketCreationRequest contracts are active markets
-          }
-        }))
-        
-        setMarkets(transformedMarkets)
+        setMarkets(list)
         setError(null)
-        apiRoutesWorkingRef.current = true // Mark API as working
+        apiRoutesWorkingRef.current = true
       } catch (err) {
         if (!isMountedRef.current) return
         
-        // Don't set error if it's just empty results - show empty state instead
-        if (err.message?.includes('Resource not found') || 
-            err.message?.includes('404') || 
-            err.response?.status === 404 ||
-            (Array.isArray(fetchedMarkets) && fetchedMarkets.length === 0 && err.message?.includes('endpoint'))) {
-          // API route not found - stop polling to prevent excessive requests
-          apiRoutesWorkingRef.current = false
-          if (pollIntervalRef.current) {
-            clearInterval(pollIntervalRef.current)
-            pollIntervalRef.current = null
-          }
-          setMarkets([]) // Show empty markets list
-          setError(null) // Don't show error, just empty state
-          setLoading(false) // Make sure loading is false
-        } else {
-          setError(err.message)
-        }
+        setMarkets([])
+        setError(err.message)
       } finally {
-        if (isMountedRef.current) {
-          setLoading(false)
-        }
+        if (isMountedRef.current) setLoading(false)
       }
     }
 
-    // Initial fetch
-    fetchMarkets()
+    loadMarkets()
 
     // Only poll if API routes are working and tab is visible
     // Poll for updates every 30 seconds (increased to reduce load)
@@ -154,8 +97,8 @@ export default function MarketsList() {
       if (apiRoutesWorkingRef.current && !pollIntervalRef.current) {
         pollIntervalRef.current = setInterval(() => {
           // Only poll if tab is visible and API routes are still working
-          if (!document.hidden && ledger && wallet && apiRoutesWorkingRef.current) {
-            fetchMarkets()
+          if (!document.hidden && apiRoutesWorkingRef.current) {
+            loadMarkets()
           } else if (!apiRoutesWorkingRef.current) {
             // Stop polling if API routes are broken
             if (pollIntervalRef.current) {
@@ -187,8 +130,8 @@ export default function MarketsList() {
         }
       } else {
         // Tab is visible, resume polling if API routes are working
-        if (apiRoutesWorkingRef.current && ledger && wallet && !pollIntervalRef.current) {
-          fetchMarkets() // Fetch immediately when tab becomes visible
+        if (apiRoutesWorkingRef.current && !pollIntervalRef.current) {
+          loadMarkets()
           setupPolling()
         }
       }
@@ -207,7 +150,7 @@ export default function MarketsList() {
       }
       document.removeEventListener('visibilitychange', handleVisibilityChange)
     }
-  }, [ledger, wallet]) // Only depend on ledger and wallet
+  }, [])
 
   // WebSocket support removed - using polling instead
 
@@ -235,6 +178,12 @@ export default function MarketsList() {
       )
     }
     
+    // Apply source filter (global_events, industry, virtual_realities, user)
+    const effectiveSource = sourceFromRoute || selectedSource
+    if (effectiveSource !== 'all') {
+      filtered = filtered.filter(market => (market.payload?.source ?? 'user') === effectiveSource)
+    }
+
     // Apply category filter (payload.category from Create Market)
     if (selectedCategory !== 'all') {
       filtered = filtered.filter(market => market.payload?.category === selectedCategory)
@@ -284,12 +233,17 @@ export default function MarketsList() {
     })
     
     return filtered
-  }, [markets, debouncedSearchQuery, selectedCategory, selectedTopic, selectedType, selectedStatus, sortBy])
+  }, [markets, debouncedSearchQuery, selectedCategory, selectedTopic, selectedType, selectedStatus, selectedSource, sourceFromRoute, sortBy])
+
+  const pageTitle = sourceFromRoute ? getSourceLabel(sourceFromRoute) : 'Prediction Markets'
+  const pageSubtitle = sourceFromRoute
+    ? `Markets from ${getSourceLabel(sourceFromRoute).toLowerCase()}. Trade with AMM-backed liquidity.`
+    : 'Discover and trade on prediction markets. Trade with virtual Credits. No crypto required.'
 
   if (loading) {
     return (
       <div>
-        <h1>Prediction Markets</h1>
+        <h1>{pageTitle}</h1>
         <SkeletonMarketGrid count={6} />
       </div>
     )
@@ -302,7 +256,7 @@ export default function MarketsList() {
           <strong>Error loading markets:</strong> {error}
           <br />
           <small className="mt-sm" style={{ display: 'block' }}>
-            Please check your connection and try again. If the problem persists, the ledger may be temporarily unavailable.
+            Please check your connection and try again. If the problem persists, the API may be temporarily unavailable.
           </small>
         </div>
         <button 
@@ -318,8 +272,8 @@ export default function MarketsList() {
   return (
     <div>
       <div className="page-header">
-        <h1>Prediction Markets</h1>
-        <p>Discover and trade on prediction markets. All activity in Credits; deposit and withdraw on your preferred chain.</p>
+        <h1>{pageTitle}</h1>
+        <p>{pageSubtitle}</p>
       </div>
       
       {/* Filters Section */}
@@ -371,6 +325,23 @@ export default function MarketsList() {
                     className="filter-input"
                   />
                 </div>
+
+            {/* Source Filter (only when on All Markets; on discover routes source is fixed) */}
+            {!sourceFromRoute && (
+              <div className="filter-group">
+                <label htmlFor="source">Source</label>
+                <select
+                  id="source"
+                  value={selectedSource}
+                  onChange={(e) => setSelectedSource(e.target.value)}
+                  className="filter-select"
+                >
+                  {MARKET_SOURCES.map(s => (
+                    <option key={s.value} value={s.value}>{s.label}</option>
+                  ))}
+                </select>
+              </div>
+            )}
 
             {/* Category Filter */}
             <div className="filter-group">
@@ -523,6 +494,19 @@ export default function MarketsList() {
                       </button>
                     </span>
                   )}
+                  {!sourceFromRoute && selectedSource !== 'all' && (
+                    <span className="filter-chip">
+                      Source: {getSourceLabel(selectedSource)}
+                      <button
+                        type="button"
+                        onClick={() => setSelectedSource('all')}
+                        className="filter-chip-remove"
+                        aria-label="Remove source filter"
+                      >
+                        ×
+                      </button>
+                    </span>
+                  )}
                   <button
                     type="button"
                     className="filter-chip-clear-all"
@@ -532,6 +516,7 @@ export default function MarketsList() {
                       setSelectedTopic('all')
                       setSelectedType('all')
                       setSelectedStatus('all')
+                      setSelectedSource('all')
                       setSortBy('volume')
                     }}
                   >
@@ -552,6 +537,7 @@ export default function MarketsList() {
                       setSelectedTopic('all')
                       setSelectedType('all')
                       setSelectedStatus('all')
+                      setSelectedSource('all')
                       setSortBy('volume')
                     }}
                   >
@@ -578,38 +564,14 @@ export default function MarketsList() {
       {!apiRoutesWorkingRef.current ? (
         <div className="card">
           <div className="alert-warning">
-            <h3>ℹ️ Contract Querying Not Available in JSON API</h3>
-            <p>
-              Contract query endpoints are not available in the current ledger API. 
-              This means we cannot query contracts to display markets, even though they exist on the ledger.
-            </p>
-            <p>
-              <strong>Why this happens:</strong>
-            </p>
-            <ul>
-              <li>JSON API only supports command submission, not contract queries</li>
-              <li>Contract querying requires gRPC API or WebSocket connections</li>
-              <li>This is by design, not a configuration issue</li>
-            </ul>
-            <p>
-              <strong>What you can do:</strong>
-            </p>
-            <ul>
-              <li>✅ Create new markets (command submission works)</li>
-              <li>✅ View your created contracts in the <Link to="/history">History page</Link></li>
-              <li>✅ Verify markets on the <a href="https://devnet.ccexplorer.io/" target="_blank" rel="noopener noreferrer">block explorer</a></li>
-              <li>✅ Use gRPC or WebSocket APIs for contract queries (requires different implementation)</li>
-            </ul>
+            <h3>Markets API unavailable</h3>
+            <p>Could not load markets. Check your connection and that the backend (e.g. Vercel) and Supabase are configured.</p>
             <div style={{ display: 'flex', gap: 'var(--spacing-md)', marginTop: 'var(--spacing-md)' }}>
               <Link to="/create">
-                <button className="btn-primary">
-                  Create Market
-                </button>
+                <button className="btn-primary">Create Market</button>
               </Link>
               <Link to="/history">
-                <button className="btn-secondary">
-                  View Contract History
-                </button>
+                <button className="btn-secondary">View History</button>
               </Link>
             </div>
           </div>
@@ -638,6 +600,7 @@ export default function MarketsList() {
                     setSelectedTopic('all')
                     setSelectedType('all')
                     setSelectedStatus('all')
+                    setSelectedSource('all')
                     setSortBy('volume')
                   }}
                 >

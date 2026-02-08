@@ -1,12 +1,14 @@
 import { useState, useEffect, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import { useWallet } from '../contexts/WalletContext'
+import { useAccountModal } from '../contexts/AccountModalContext'
 import { ContractStorage } from '../utils/contractStorage'
 import { SkeletonList } from './SkeletonLoader'
 import { formatCredits, PLATFORM_CURRENCY_SYMBOL } from '../constants/currency'
 
 export default function Portfolio() {
   const { wallet } = useWallet()
+  const openAccountModal = useAccountModal()
   const [positions, setPositions] = useState([])
   const [activityLog, setActivityLog] = useState([])
   const [loading, setLoading] = useState(true)
@@ -22,7 +24,20 @@ export default function Portfolio() {
   const [userBalance, setUserBalance] = useState('0')
   const [balanceLoading, setBalanceLoading] = useState(true)
   const [marketTitles, setMarketTitles] = useState({}) // Map of marketId -> title
+  const [activeTab, setActiveTab] = useState('balance') // 'balance' | 'positions' | 'activity'
   const isMountedRef = useRef(true)
+
+  if (!wallet) {
+    return (
+      <div className="card" style={{ maxWidth: '420px', margin: '2rem auto', textAlign: 'center' }}>
+        <h2>My Portfolio</h2>
+        <p className="text-secondary mt-sm">Sign in to view your balance and positions.</p>
+        <button type="button" className="btn-primary mt-lg" onClick={openAccountModal}>
+          Sign in
+        </button>
+      </div>
+    )
+  }
 
   useEffect(() => {
     isMountedRef.current = true
@@ -373,13 +388,40 @@ export default function Portfolio() {
     }
   }
 
+  const tabs = [
+    { id: 'balance', label: 'Balance' },
+    { id: 'positions', label: 'Positions', count: positions.length },
+    { id: 'activity', label: 'Activity', count: activityLog.length },
+  ]
+
   return (
     <div>
       <div className="page-header">
         <h1>My Portfolio</h1>
-        <p>Manage your positions, deposits, and trading activity</p>
+        <p>Balance, positions, and activity</p>
       </div>
-      
+
+      <div className="portfolio-tabs mb-xl" role="tablist" aria-label="Portfolio sections">
+        {tabs.map((tab) => (
+          <button
+            key={tab.id}
+            type="button"
+            role="tab"
+            aria-selected={activeTab === tab.id}
+            className={activeTab === tab.id ? 'btn-primary' : 'btn-secondary'}
+            onClick={() => setActiveTab(tab.id)}
+            style={{ marginRight: 'var(--spacing-sm)' }}
+          >
+            {tab.label}
+            {typeof tab.count === 'number' && tab.count > 0 && (
+              <span style={{ marginLeft: 'var(--spacing-sm)', opacity: 0.9 }}>({tab.count})</span>
+            )}
+          </button>
+        ))}
+      </div>
+
+      {activeTab === 'balance' && (
+        <>
       {/* User Balance Display - Platform virtual currency (Credits) */}
       <div className="card balance-card mb-xl">
         <h2 className="mb-sm">Balance ({PLATFORM_CURRENCY_SYMBOL})</h2>
@@ -387,7 +429,7 @@ export default function Portfolio() {
           {balanceLoading ? 'Loading...' : formatCredits(userBalance)}
         </p>
         <p className="balance-hint">
-          Platform Credits for all trading and fees. Deposit from a supported chain to add Credits.
+          Platform Credits for all trading and fees. Use Add Credits below for virtual balance.
         </p>
       </div>
       
@@ -478,21 +520,23 @@ export default function Portfolio() {
           </div>
         </div>
       </div>
+        </>
+      )}
 
-      {positions.length === 0 ? (
+      {activeTab === 'positions' && (
+        positions.length === 0 ? (
         <div className="card">
-          <p>You don't have any positions yet. Start trading to see your portfolio here!</p>
+          <h2 className="mb-md">Positions</h2>
+          <p className="text-secondary">No positions yet. Browse markets and buy Yes or No to get started.</p>
           <Link to="/">
             <button className="btn-primary mt-md">
-              Browse Markets
+              Browse markets
             </button>
           </Link>
         </div>
       ) : (
         <div>
-          {/* Positions Section */}
-          <div className="mb-xl">
-            <h2 className="mb-md">My Positions</h2>
+          <h2 className="mb-md">My Positions</h2>
             {positions.map((position) => (
               <div key={position.contractId} className="card mb-md">
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start' }}>
@@ -529,13 +573,14 @@ export default function Portfolio() {
                 </div>
               </div>
             ))}
-          </div>
+        </div>
+      )}
 
-          {/* Activity Log Section */}
+      {activeTab === 'activity' && (
           <div className="card">
-            <h2 className="mb-md">Activity Log</h2>
+            <h2 className="mb-md">Activity</h2>
             {activityLog.length === 0 ? (
-              <p className="text-secondary">No activity to display</p>
+              <p className="text-secondary">No activity yet. Your trades and positions will appear here.</p>
             ) : (
               <div style={{ maxHeight: '400px', overflowY: 'auto' }}>
                 {activityLog.map((activity) => (
@@ -572,7 +617,6 @@ export default function Portfolio() {
               </div>
             )}
           </div>
-        </div>
       )}
     </div>
   )

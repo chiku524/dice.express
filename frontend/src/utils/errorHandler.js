@@ -12,7 +12,7 @@ export function formatError(error) {
   
   // Network errors
   if (error.code === 'ERR_NETWORK' || error.message?.includes('Network Error')) {
-    return 'Network error: Unable to connect to the ledger. Please check your connection.'
+    return 'Network error: Unable to connect. Please check your connection.'
   }
   
   // CORS errors
@@ -33,7 +33,7 @@ export function formatError(error) {
       case 401:
         return 'Authentication required. Please connect your wallet.'
       case 500:
-        return 'Server error: The ledger encountered an issue. Please try again later.'
+        return 'Server error: The server encountered an issue. Please try again later.'
       default:
         return message || `Error ${status}: ${error.message}`
     }

@@ -14,6 +14,20 @@ export const MARKET_CATEGORIES = [
   { value: 'Other', label: 'Other' },
 ]
 
+/** Market sources: automated (global events, industry, VR) vs user-created */
+export const MARKET_SOURCES = [
+  { value: 'all', label: 'All Markets' },
+  { value: 'global_events', label: 'Global Events' },
+  { value: 'industry', label: 'Industry Topics' },
+  { value: 'virtual_realities', label: 'Virtual Realities' },
+  { value: 'user', label: 'User-Created' },
+]
+
+export function getSourceLabel(value) {
+  const s = MARKET_SOURCES.find(x => x.value === value)
+  return s ? s.label : value
+}
+
 /** Binary-style variants (all use contract MarketType Binary under the hood) */
 export const PREDICTION_STYLES = [
   { value: 'yesNo', label: 'Yes / No', marketType: 'Binary', outcomes: ['Yes', 'No'] },

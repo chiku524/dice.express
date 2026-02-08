@@ -1,14 +1,10 @@
 import { useState, useEffect, useRef } from 'react'
-import { useLedger } from '../hooks/useLedger'
 import { useWallet } from '../contexts/WalletContext'
 import { ContractStorage } from '../utils/contractStorage'
 import { SkeletonList } from './SkeletonLoader'
 import './AdminDashboard.css'
 
-const PACKAGE_ID = 'b87ef31c8ea5c53a940a7f71a4bc6513cf44048730c0551f1fc2e02adc7271f0'
-
 export default function AdminDashboard() {
-  const { ledger } = useLedger()
   const { wallet } = useWallet()
   const [requests, setRequests] = useState([])
   const [loading, setLoading] = useState(true)
@@ -16,382 +12,43 @@ export default function AdminDashboard() {
   const [processing, setProcessing] = useState(null)
   const isMountedRef = useRef(true)
   const apiRoutesWorkingRef = useRef(true)
-  const MAX_RETRIES = 3 // Maximum number of retry attempts
 
   useEffect(() => {
     isMountedRef.current = true
     fetchRequests()
-
-    // Poll for new requests every 30 seconds
     const pollInterval = setInterval(() => {
-      if (apiRoutesWorkingRef.current && !document.hidden) {
-        fetchRequests()
-      }
+      if (apiRoutesWorkingRef.current && !document.hidden) fetchRequests()
     }, 30000)
-
     return () => {
       isMountedRef.current = false
       clearInterval(pollInterval)
     }
-  }, [ledger, wallet])
+  }, [wallet])
 
-  const fetchRequests = async (retryCount = 0) => {
-    if (!ledger || !wallet) return
-
+  const fetchRequests = async () => {
+    if (!wallet) return
     try {
       setLoading(true)
-      console.log(`[AdminDashboard] Fetching requests (attempt ${retryCount + 1})...`)
-      console.log(`[AdminDashboard] Querying for admin: ${wallet.party}`)
-      console.log(`[AdminDashboard] Template ID: ${PACKAGE_ID}:PredictionMarkets:MarketCreationRequest`)
-      console.log(`[AdminDashboard] Query filters: { admin: ${wallet.party} }`)
-      
-      // DATABASE-FIRST APPROACH: Query database first (primary), blockchain as fallback
-      // Since Canton endpoints don't reliably return contracts, database is now primary
-      let databaseRequests = []
-      let blockchainRequests = []
-      let databaseQuerySucceeded = false
-      let blockchainQuerySucceeded = false
-      
-      // Step 1: Query database first (primary source)
-      try {
-        console.log('[AdminDashboard] 💾 Querying database for contracts...')
-        databaseRequests = await ContractStorage.getContractsByType(
-          'MarketCreationRequest',
-          wallet.party,
-          'PendingApproval'
-        )
-        // Filter by admin (client-side filter)
-        databaseRequests = databaseRequests.filter(c => 
-          c.payload?.admin === wallet.party
-        )
-        databaseQuerySucceeded = true
-        console.log(`[AdminDashboard] ✅ Database query succeeded: ${databaseRequests.length} contracts found`)
-      } catch (databaseError) {
-        console.warn('[AdminDashboard] ⚠️ Database query failed:', databaseError)
-        console.warn('[AdminDashboard] 🔄 Falling back to blockchain...')
-        databaseQuerySucceeded = false
+      const databaseRequests = await ContractStorage.getContractsByType(
+        'MarketCreationRequest',
+        wallet.party,
+        'PendingApproval'
+      )
+      const filtered = databaseRequests.filter(c => c.payload?.admin === wallet.party)
+      if (isMountedRef.current) {
+        setRequests(filtered)
+        setError(null)
       }
-      
-      // Step 2: Query blockchain as fallback/supplement (only if database query failed)
-      // If database query succeeded (even with 0 results), skip blockchain to speed up loading
-      // Only query blockchain if database query actually failed
-      if (!databaseQuerySucceeded) {
-        try {
-          console.log('[AdminDashboard] 🔗 Querying blockchain as fallback...')
-          
-          // Check token before querying
-          const { isTokenExpiredOrExpiringSoon, refreshToken } = await import('../utils/tokenManager')
-          if (isTokenExpiredOrExpiringSoon()) {
-            console.log('[AdminDashboard] ⚠️ Token expired, refreshing before query...')
-            try {
-              await refreshToken()
-              console.log('[AdminDashboard] ✅ Token refreshed successfully')
-            } catch (refreshError) {
-              console.warn('[AdminDashboard] ⚠️ Token refresh failed:', refreshError.message)
-            }
-          }
-          
-          // Try active-contracts endpoint
-          const fetchedRequests = await ledger.query(
-            [`${PACKAGE_ID}:PredictionMarkets:MarketCreationRequest`],
-            { admin: wallet.party },
-            { forceRefresh: true, walletParty: wallet.party }
-          )
-          blockchainRequests = Array.isArray(fetchedRequests) ? fetchedRequests : []
-          
-          // If no contracts found, try completions endpoint as additional fallback
-          if (blockchainRequests.length === 0 && retryCount >= 2) {
-            console.log('[AdminDashboard] 🔄 No contracts in active-contracts, trying completions endpoint...')
-            try {
-              const token = localStorage.getItem('canton_token')
-              const completionsResponse = await fetch('/api/get-contracts-from-completions', {
-                method: 'POST',
-                headers: {
-                  'Content-Type': 'application/json',
-                  ...(token && { 'Authorization': `Bearer ${token}` })
-                },
-                body: JSON.stringify({
-                  party: wallet.party,
-                  applicationId: 'prediction-markets',
-                  offset: '0',
-                  templateId: `${PACKAGE_ID}:PredictionMarkets:MarketCreationRequest`
-                })
-              })
-              
-              if (completionsResponse.ok) {
-                const completionsData = await completionsResponse.json()
-                const completionsContracts = completionsData.contracts || []
-                const filteredCompletions = completionsContracts.filter(c => 
-                  c.payload?.admin === wallet.party
-                )
-                
-                if (filteredCompletions.length > 0) {
-                  console.log(`[AdminDashboard] ✅ Found ${filteredCompletions.length} contracts from completions endpoint`)
-                  blockchainRequests = filteredCompletions
-                }
-              }
-            } catch (completionsError) {
-              console.warn('[AdminDashboard] ⚠️ Completions endpoint query failed:', completionsError.message)
-            }
-          }
-          
-          blockchainQuerySucceeded = true
-          console.log(`[AdminDashboard] ✅ Blockchain query succeeded: ${blockchainRequests.length} contracts found`)
-        } catch (blockchainError) {
-          console.warn('[AdminDashboard] ⚠️ Blockchain query failed:', blockchainError)
-          blockchainQuerySucceeded = false
-        }
-      }
-      
-      // Step 3: Merge database and blockchain results
-      // Database is primary, blockchain supplements it
-      let allRequests = [...databaseRequests]
-      const databaseContractIds = new Set(databaseRequests.map(r => r.contractId))
-      
-      // Add blockchain contracts that aren't in database
-      blockchainRequests.forEach(blockchainContract => {
-        if (!databaseContractIds.has(blockchainContract.contractId)) {
-          allRequests.push({
-            ...blockchainContract,
-            _fromBlockchain: true,
-            _needsDatabaseSync: true // Flag to indicate this should be stored in database
-          })
-        }
-      })
-      
-      console.log(`[AdminDashboard] 📊 Total requests: ${allRequests.length} (${databaseRequests.length} from database, ${blockchainRequests.length} from blockchain)`)
-      if (Array.isArray(allRequests) && allRequests.length > 0) {
-        console.log('[AdminDashboard] Contract details:', allRequests.map(r => ({
-          contractId: r.contractId,
-          title: r.payload?.title,
-          admin: r.payload?.admin,
-          creator: r.payload?.creator,
-          updateId: r.updateId || r.payload?.updateId,
-          fromDatabase: !r._fromBlockchain,
-          fromBlockchain: r._fromBlockchain || false
-        })))
-      }
-      
-      // Store updateId mapping for later use when exercising choices
-      // This helps us resolve updateId:... to actual contract IDs
-      allRequests.forEach(request => {
-        if (request.contractId && request.contractId.startsWith('updateId:')) {
-          const updateId = request.contractId.replace('updateId:', '')
-          // Store the updateId in the request object for reference
-          request.updateId = updateId
-        }
-        // Also check if updateId is in payload or metadata
-        if (!request.updateId) {
-          request.updateId = request.payload?.updateId || request.updateId
-        }
-      })
-
-      if (!isMountedRef.current) return
-
-      const requestsArray = allRequests || []
-      setRequests(requestsArray)
-      setError(null)
       apiRoutesWorkingRef.current = true
-      
-      // If no requests found and database query succeeded, don't retry - just show empty state
-      // Only retry if database query failed (meaning we're relying on blockchain)
-      if (requestsArray.length === 0 && !databaseQuerySucceeded && retryCount < MAX_RETRIES) {
-        const delays = [1000, 2000, 3000] // Shorter delays for faster loading
-        const delay = delays[retryCount] || 3000
-        console.log(`[AdminDashboard] ⏳ No contracts found. Retrying after ${delay / 1000} seconds (attempt ${retryCount + 1}/${MAX_RETRIES})...`)
-        console.log(`[AdminDashboard] 💡 This may be due to: newly created contracts not yet synced, or no contracts exist yet`)
-        setTimeout(() => {
-          if (isMountedRef.current && apiRoutesWorkingRef.current) {
-            fetchRequests(retryCount + 1)
-          }
-        }, delay)
-        return // Don't set loading to false yet
-      } else if (requestsArray.length === 0 && (retryCount >= MAX_RETRIES || databaseQuerySucceeded)) {
-        console.warn('[AdminDashboard] ⚠️ No contracts found after maximum retries. This could mean:')
-        console.warn('[AdminDashboard]   1. No contracts have been created yet')
-        console.warn('[AdminDashboard]   2. Database not configured (check SUPABASE_URL environment variable)')
-        console.warn('[AdminDashboard]   3. Contracts were created but not stored in database')
-        console.warn('[AdminDashboard]   💡 Tip: Create a new market contract to test the system')
-      } else if (requestsArray.length > 0) {
-        // Show success message with source breakdown
-        const databaseCount = requestsArray.filter(r => !r._fromBlockchain).length
-        const blockchainCount = requestsArray.filter(r => r._fromBlockchain).length
-        if (databaseCount > 0 && blockchainCount > 0) {
-          console.log(`[AdminDashboard] ✅ Showing ${requestsArray.length} requests (${databaseCount} from database, ${blockchainCount} from blockchain)`)
-        } else if (databaseCount > 0) {
-          console.log(`[AdminDashboard] ✅ Showing ${databaseCount} requests from database`)
-        } else if (blockchainCount > 0) {
-          console.log(`[AdminDashboard] ✅ Showing ${blockchainCount} requests from blockchain (database not available)`)
-        }
-      }
-      
-      // Always set loading to false after MAX_RETRIES, if we have results, or if database query succeeded
-      // This prevents infinite retry loops and speeds up loading when database has results
-      if (isMountedRef.current && (retryCount >= MAX_RETRIES || requestsArray.length > 0 || databaseQuerySucceeded)) {
-        setLoading(false)
-      }
     } catch (err) {
       if (!isMountedRef.current) return
-      
-      console.error('[AdminDashboard] Error fetching requests:', err)
-      
-      if (err.message?.includes('404') || err.response?.status === 404) {
-        apiRoutesWorkingRef.current = false
-        setRequests([])
-        setError(null)
-      } else {
-        setError(err.message)
-      }
+      setError(err.message)
     } finally {
-      // Loading state is set to false in the main logic above
-      // This finally block is just for cleanup if needed
+      if (isMountedRef.current) setLoading(false)
     }
   }
 
-  // Helper function to resolve contract ID (handles updateId: prefix)
-  // Since contracts come from database, we check if the contract ID is real or needs resolution
-  const resolveContractId = async (contractId, request) => {
-    // If contractId doesn't have updateId: prefix, it's already a real contract ID - use it directly
-    if (!contractId.startsWith('updateId:')) {
-      console.log(`[AdminDashboard] ✅ Using real contract ID directly: ${contractId}`)
-      return contractId
-    }
-    
-    // Contract has updateId: prefix - try to get the real contract ID from blockchain
-    // Even if the database has updateId: prefix, the contract may be synchronized on blockchain
-    const updateId = contractId.replace('updateId:', '')
-    console.log(`[AdminDashboard] 🔍 Contract ID has updateId: prefix - querying blockchain for real contract ID`)
-    console.log(`[AdminDashboard] Update ID: ${updateId}`)
-    
-    // Try to find a matching contract in the requests list that might have a real contract ID
-    // This could happen if we mixed database and blockchain results
-    const matchingRequest = requests.find(r => {
-      const rUpdateId = r.updateId || r.payload?.updateId || (r.contractId && r.contractId.startsWith('updateId:') ? r.contractId.replace('updateId:', '') : null)
-      if (rUpdateId === updateId && r.contractId && !r.contractId.startsWith('updateId:')) {
-        return true
-      }
-      return false
-    })
-    
-    if (matchingRequest && matchingRequest.contractId) {
-      console.log(`[AdminDashboard] ✅ Found actual contract ID in mixed results: ${matchingRequest.contractId}`)
-      return matchingRequest.contractId
-    }
-    
-    // Try querying the blockchain to get the real contract ID
-    // Use the dedicated endpoint that queries completions intelligently
-    try {
-      console.log(`[AdminDashboard] 🔗 Querying blockchain for contract with updateId: ${updateId}`)
-      
-      const token = localStorage.getItem('canton_token')
-      const templateId = `${PACKAGE_ID}:PredictionMarkets:MarketCreationRequest`
-      
-      // Use the dedicated contract ID resolution endpoint
-      const resolveResponse = await fetch('/api/get-contract-id-from-update', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token && { 'Authorization': `Bearer ${token}` })
-        },
-        body: JSON.stringify({
-          updateId: updateId,
-          templateId: templateId,
-          party: wallet.party,
-          applicationId: 'prediction-markets'
-        })
-      })
-      
-      if (resolveResponse.ok) {
-        const resolveData = await resolveResponse.json()
-        if (resolveData.contractId && !resolveData.contractId.startsWith('updateId:')) {
-          console.log(`[AdminDashboard] ✅ Found real contract ID from resolution endpoint: ${resolveData.contractId}`)
-          return resolveData.contractId
-        }
-      }
-      
-      // Fallback: Try completions endpoint directly
-      console.log(`[AdminDashboard] 🔄 Resolution endpoint didn't work, trying completions endpoint directly...`)
-      const currentRequest = request || requests.find(r => {
-        const rUpdateId = r.updateId || r.payload?.updateId || (r.contractId && r.contractId.startsWith('updateId:') ? r.contractId.replace('updateId:', '') : null)
-        return rUpdateId === updateId
-      })
-      
-      const completionOffset = currentRequest?.completionOffset || currentRequest?.payload?.completionOffset
-      
-      const completionsResponse = await fetch('/api/get-contracts-from-completions', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token && { 'Authorization': `Bearer ${token}` })
-        },
-        body: JSON.stringify({
-          party: wallet.party,
-          applicationId: 'prediction-markets',
-          offset: completionOffset ? completionOffset.toString() : '0',
-          templateId: templateId
-        })
-      })
-      
-      if (completionsResponse.ok) {
-        const completionsData = await completionsResponse.json()
-        const completionsContracts = completionsData.contracts || []
-        
-        console.log(`[AdminDashboard] 📊 Found ${completionsContracts.length} contracts from completions endpoint`)
-        
-        // Find the contract that matches this updateId
-        const matchingContract = completionsContracts.find(c => 
-          c.updateId === updateId || 
-          c.payload?.updateId === updateId
-        )
-        
-        if (matchingContract && matchingContract.contractId && !matchingContract.contractId.startsWith('updateId:')) {
-          console.log(`[AdminDashboard] ✅ Found real contract ID from completions: ${matchingContract.contractId}`)
-          return matchingContract.contractId
-        }
-        
-        // If no exact match but we have contracts, try the most recent one (if there's only one)
-        if (completionsContracts.length === 1) {
-          const contract = completionsContracts[0]
-          if (contract.contractId && !contract.contractId.startsWith('updateId:')) {
-            console.log(`[AdminDashboard] ✅ Using single contract from completions: ${contract.contractId}`)
-            return contract.contractId
-          }
-        }
-      }
-      
-      // Fallback: Try active-contracts endpoint (may not work due to Canton limitations)
-      console.log(`[AdminDashboard] 🔄 Completions didn't find it, trying active-contracts endpoint...`)
-      const blockchainContracts = await ledger.query(
-        [templateId],
-        { admin: wallet.party },
-        { forceRefresh: true, walletParty: wallet.party }
-      )
-      
-      console.log(`[AdminDashboard] 📊 Found ${blockchainContracts?.length || 0} contracts from active-contracts`)
-      
-      if (Array.isArray(blockchainContracts) && blockchainContracts.length > 0) {
-        // Use the most recent contract (first in array)
-        const blockchainContract = blockchainContracts[0]
-        const realContractId = blockchainContract.contractId
-        
-        if (realContractId && !realContractId.startsWith('updateId:')) {
-          console.log(`[AdminDashboard] ✅ Found real contract ID from active-contracts: ${realContractId}`)
-          return realContractId
-        }
-      }
-      
-      console.log(`[AdminDashboard] ⚠️ Could not find contract on blockchain - may not be synchronized yet`)
-    } catch (blockchainError) {
-      console.warn(`[AdminDashboard] ⚠️ Failed to query blockchain for contract ID:`, blockchainError.message)
-    }
-    
-    // If we still can't find it, throw an error
-    throw new Error(
-      `Cannot find real contract ID for this contract. ` +
-      `The contract may not be synchronized on the blockchain yet (visible in explorer but not queryable). ` +
-      `Please wait a few more seconds and refresh this page, then try again.`
-    )
-  }
+  const resolveContractId = async (contractId) => contractId
 
   const approveMarket = async (contractId) => {
     if (!wallet || processing) return
@@ -437,10 +94,8 @@ export default function AdminDashboard() {
 
       console.log('[AdminDashboard] ✅ Database status updated to Approved')
 
-      // Skip blockchain interaction for now - Canton's API is too unreliable
-      // Database update is the source of truth for the UI
-      console.log('[AdminDashboard] ⚠️ Skipping blockchain interaction due to Canton API limitations')
-      console.log('[AdminDashboard] 💡 Database update succeeded - UI will reflect the approval')
+      // Virtual-only: database is the source of truth
+      console.log('[AdminDashboard] ✅ Status updated - UI will reflect the approval')
 
       // Refresh requests after approval
       setTimeout(() => {
@@ -502,10 +157,7 @@ export default function AdminDashboard() {
 
       console.log('[AdminDashboard] ✅ Database status updated to Rejected')
 
-      // Skip blockchain interaction for now - Canton's API is too unreliable
-      // Database update is the source of truth for the UI
-      console.log('[AdminDashboard] ⚠️ Skipping blockchain interaction due to Canton API limitations')
-      console.log('[AdminDashboard] 💡 Database update succeeded - UI will reflect the rejection')
+      console.log('[AdminDashboard] ✅ Status updated - UI will reflect the rejection')
 
       // Refresh requests after rejection
       setTimeout(() => {
@@ -557,8 +209,7 @@ export default function AdminDashboard() {
           <div className="alert-warning">
             <h3>ℹ️ Contract Querying Not Available in JSON API</h3>
             <p>
-              Query endpoints do not exist in the Canton JSON API per the official OpenAPI documentation. 
-              This means we cannot query contracts to display market creation requests, even though they exist on the ledger.
+              Pending requests are loaded from the database. If none appear, create a market (user-created flow) or ensure the database is configured.
             </p>
             <p>
               <strong>Why this happens:</strong>

@@ -15,6 +15,9 @@ frontend/dist/
 frontend/build/
 frontend/.vite/
 
+# Cloudflare / Wrangler
+.wrangler/
+
 # Environment variables
 .env
 .env.local

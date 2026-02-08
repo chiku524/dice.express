@@ -4,7 +4,7 @@
  * Prioritizes cloud storage for cross-device access and reliability
  */
 
-const STORAGE_KEY = 'canton_contracts'
+const STORAGE_KEY = 'virtual_contracts'
 const MAX_STORED_CONTRACTS = 100 // Limit to prevent storage bloat
 
 // API endpoints

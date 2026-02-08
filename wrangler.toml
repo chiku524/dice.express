@@ -1,15 +1,31 @@
 # Cloudflare Pages + Workers (converged) configuration for dice.express
-# Used by: Git-connected Pages builds, Direct Upload (e.g. GitHub Actions), and `wrangler pages dev`
-# Docs: https://developers.cloudflare.com/pages/functions/wrangler-configuration/
+# Used by: Git-connected Pages builds, Direct Upload, and `wrangler pages dev`
+# Docs: https://developers.cloudflare.com/pages/functions/
 
 name = "dice-express"
 compatibility_date = "2025-02-01"
 compatibility_flags = ["nodejs_compat"]
 
-# Build output directory (must match Cloudflare Pages build output dir when using Git integration)
 pages_build_output_dir = "frontend/dist"
 
-# Environment variables for Pages Functions (e.g. /api proxy).
-# Sensitive values: set in Cloudflare Dashboard → Settings → Environment variables, or use Direct Upload secrets.
+# D1 database — create with: npx wrangler d1 create dice-express-db
+# Then set database_id below (from the command output) and run: npx wrangler d1 execute dice-express-db --remote --file=./schema/d1/0000_initial.sql
+[[d1_databases]]
+binding = "DB"
+database_name = "dice-express-db"
+database_id = "1437a4c8-ff01-4941-a81c-a2420a925c26"
+
+# R2 bucket — create with: npx wrangler r2 bucket create dice-express-r2
+[[r2_buckets]]
+binding = "R2"
+bucket_name = "dice-express-r2"
+
+# KV namespace — create with: npx wrangler kv namespace create DICE_KV (space, not colon)
+# Use the id from output below; for preview: npx wrangler kv namespace create DICE_KV --preview
+[[kv_namespaces]]
+binding = "KV"
+id = "bf88f3a357f640ccb3173da7e163570d"
+
 [vars]
-# BACKEND_URL = "https://your-api-origin.com"  # Optional: for functions/api/[[path]].js proxy
+# If set, /api/* proxies to this URL (e.g. Vercel). If unset and DB is bound, API runs on D1/R2/KV.
+# BACKEND_URL = "https://your-api-origin.com"

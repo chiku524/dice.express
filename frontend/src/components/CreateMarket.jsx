@@ -1,18 +1,15 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { useLedger } from '../hooks/useLedger'
+import { useNavigate, Link } from 'react-router-dom'
 import { useWallet } from '../contexts/WalletContext'
-import { ContractStorage } from '../utils/contractStorage'
+import { useAccountModal } from '../contexts/AccountModalContext'
+import { createMarket } from '../services/marketsApi'
 import { validators, validateForm } from '../utils/formValidation'
 import { MARKET_CATEGORIES, PREDICTION_STYLES, getStyleByValue, getDefaultOutcomesForStyle } from '../constants/marketConfig'
 
-const PACKAGE_ID = 'b87ef31c8ea5c53a940a7f71a4bc6513cf44048730c0551f1fc2e02adc7271f0'
-const getTemplateId = (module, template) => `${PACKAGE_ID}:${module}:${template}`
-
 export default function CreateMarket() {
   const navigate = useNavigate()
-  const { ledger } = useLedger()
   const { wallet } = useWallet()
+  const openAccountModal = useAccountModal()
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -27,14 +24,25 @@ export default function CreateMarket() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
   const [success, setSuccess] = useState(false)
-  const [contractId, setContractId] = useState(null)
-  const [explorerUrl, setExplorerUrl] = useState(null)
+  const [marketId, setMarketId] = useState(null)
   const [fieldErrors, setFieldErrors] = useState({})
+
+  if (!wallet) {
+    return (
+      <div className="card" style={{ maxWidth: '420px', margin: '2rem auto', textAlign: 'center' }}>
+        <h2>Create a market</h2>
+        <p className="text-secondary mt-sm">Sign in to create your own prediction market.</p>
+        <button type="button" className="btn-primary mt-lg" onClick={openAccountModal}>
+          Sign in
+        </button>
+      </div>
+    )
+  }
 
   const handleSubmit = async (e) => {
     e.preventDefault()
-    if (!wallet || !ledger) {
-      setError('Wallet not connected')
+    if (!wallet) {
+      setError('Please connect your account')
       return
     }
 
@@ -63,258 +71,35 @@ export default function CreateMarket() {
     setFieldErrors({})
 
     try {
-      // Resolve market type and outcomes from prediction style
       const style = getStyleByValue(formData.predictionStyle)
       const marketType = style.marketType
       const outcomes = marketType === 'MultiOutcome'
         ? formData.outcomes.split(',').map(o => o.trim()).filter(o => o)
         : getDefaultOutcomesForStyle(formData.predictionStyle)
 
-      // SettlementTrigger is a variant type - needs { tag, value } format
-      // For TimeBased, value should be ISO timestamp
       const settlementTrigger = formData.settlementType === 'TimeBased'
-        ? { tag: 'TimeBased', value: new Date(formData.settlementTime).toISOString() }
+        ? 'TimeBased'
         : formData.settlementType === 'EventBased'
-        ? { tag: 'EventBased', value: formData.resolutionCriteria }
-        : { tag: 'Manual' }
+        ? 'EventBased'
+        : 'Manual'
 
-      const result = await ledger.create(
-        getTemplateId('PredictionMarkets', 'MarketCreationRequest'),
-        {
-          creator: wallet.party,
-          admin: wallet.party, // Use same party as admin for testing (would be fetched from config in production)
-          marketId: `market-${Date.now()}`,
-          title: formData.title,
-          description: formData.description,
-          marketType: marketType === 'Binary' ? 'Binary' : 'MultiOutcome',
-          outcomes: outcomes,
-          settlementTrigger: settlementTrigger,
-          resolutionCriteria: formData.resolutionCriteria,
-          depositAmount: '100.0',
-          depositCid: null,
-          configCid: null,
-          creatorBalance: null,
-          adminBalance: null,
-          category: formData.category || null,
-          styleLabel: formData.predictionStyle || null,
-        },
-        wallet.party
-      )
-
-      // Extract contract ID or updateId from response
-      // Canton may return either a contractId directly or an updateId that needs to be used to query for the contract
-      let contractId = null
-      let updateId = null
-      let updateTimestamp = null
-      let explorerUrl = null
-      
-      if (result) {
-        // Try to extract contract ID first
-        contractId = result.result?.created?.[0]?.contractId || 
-                     result.result?.created?.[0]?.contract_id ||
-                     result.contractId || 
-                     result.contract_id ||
-                     result.created?.[0]?.contractId ||
-                     result.created?.[0]?.contract_id ||
-                     (result.result?.events && result.result.events[0]?.created?.contractId) ||
-                     (result.result?.events && result.result.events[0]?.created?.contract_id)
-        
-        // If no contract ID, check for updateId (async submission)
-        if (!contractId) {
-          updateId = result.updateId || result.update_id || result.result?.updateId
-          
-          // Try to get record_time from API response first
-          updateTimestamp = result.recordTime || 
-                           result.record_time || 
-                           result.timestamp || 
-                           result.result?.recordTime ||
-                           result.result?.record_time ||
-                           result.result?.timestamp
-          
-          // If not in response, try to fetch it from update details
-          if (!updateTimestamp && updateId) {
-            console.log('[CreateMarket] No timestamp in response, fetching update details...')
-            try {
-              const updateDetailsResponse = await fetch('/api/get-update-details', {
-                method: 'POST',
-                headers: {
-                  'Content-Type': 'application/json',
-                  'Authorization': `Bearer ${localStorage.getItem('canton_token')}`
-                },
-                body: JSON.stringify({
-                  updateId: updateId,
-                  completionOffset: result.completionOffset || result.completion_offset,
-                  party: wallet.party,
-                  applicationId: 'prediction-markets'
-                })
-              })
-              
-              if (updateDetailsResponse.ok) {
-                const updateDetails = await updateDetailsResponse.json()
-                if (updateDetails.recordTime) {
-                  updateTimestamp = updateDetails.recordTime
-                  console.log('[CreateMarket] ✅ Retrieved record_time from update details:', updateTimestamp)
-                }
-              }
-            } catch (updateError) {
-              console.warn('[CreateMarket] Failed to fetch update details:', updateError.message)
-            }
-          }
-          
-          // If we still don't have a timestamp, wait a moment and try again
-          // This handles the case where the update hasn't been processed yet
-          if (!updateTimestamp) {
-            console.warn('[CreateMarket] No timestamp available yet, waiting 1 second and retrying...')
-            await new Promise(resolve => setTimeout(resolve, 1000))
-            
-            try {
-              const retryResponse = await fetch('/api/get-update-details', {
-                method: 'POST',
-                headers: {
-                  'Content-Type': 'application/json',
-                  'Authorization': `Bearer ${localStorage.getItem('canton_token')}`
-                },
-                body: JSON.stringify({
-                  updateId: updateId,
-                  completionOffset: result.completionOffset || result.completion_offset,
-                  party: wallet.party,
-                  applicationId: 'prediction-markets'
-                })
-              })
-              
-              if (retryResponse.ok) {
-                const retryDetails = await retryResponse.json()
-                if (retryDetails.recordTime) {
-                  updateTimestamp = retryDetails.recordTime
-                  console.log('[CreateMarket] ✅ Retrieved record_time on retry:', updateTimestamp)
-                }
-              }
-            } catch (retryError) {
-              console.warn('[CreateMarket] Retry also failed:', retryError.message)
-            }
-          }
-          
-          // Last resort: use current time (but this may not work correctly)
-          if (!updateTimestamp) {
-            console.warn('[CreateMarket] ⚠️ Using current time as fallback - explorer URL may not work correctly')
-            updateTimestamp = new Date().toISOString()
-          }
-        }
-      }
-
-      // Build explorer URL
-      if (contractId) {
-        explorerUrl = `https://devnet.ccexplorer.io/?q=${encodeURIComponent(contractId)}`
-      } else if (updateId) {
-        // Use the correct format: /updates/{updateId}/{record_time}
-        // The explorer expects the record_time (ISO timestamp), not completionOffset
-        // Format should be ISO timestamp like: 2025-12-31T19:45:35.056Z
-        
-        let timePart = updateTimestamp
-        
-        // Ensure it's a string and in ISO format
-        if (typeof timePart === 'string') {
-          // Remove extra precision if present (explorer expects format like: 2025-12-31T19:45:35.056Z)
-          // Keep milliseconds but limit to 3 digits
-          timePart = timePart.replace(/\.(\d{3})\d+Z$/, '.$1Z')
-        } else {
-          // Should not happen, but handle it
-          console.error('[CreateMarket] Invalid timestamp format:', timePart)
-          timePart = new Date().toISOString().replace(/\.(\d{3})\d+Z$/, '.$1Z')
-        }
-        
-        // URL encode the timestamp
-        const encodedTime = encodeURIComponent(timePart)
-        explorerUrl = `https://devnet.ccexplorer.io/updates/${updateId}/${encodedTime}`
-        
-        console.log('[CreateMarket] 🔗 Built explorer URL with record_time:', timePart)
-      }
-
-      // Store display ID (contractId or updateId format)
-      const displayId = contractId || (updateId ? `updateId:${updateId}` : null)
-
-      setSuccess(true)
-      setContractId(displayId) // Store for display
-      setExplorerUrl(explorerUrl) // Store explorer URL separately
-      
-      // ALWAYS store contract in local storage immediately after creation
-      // This ensures AdminDashboard can display it even if blockchain query fails
-      // Store with full form data so AdminDashboard can show all details
-      const contractPayload = {
-        creator: wallet.party,
-        admin: wallet.party,
-        marketId: `market-${Date.now()}`,
+      const result = await createMarket({
         title: formData.title,
         description: formData.description,
-        category: formData.category,
-        styleLabel: formData.predictionStyle,
-        marketType: marketType,
-        outcomes: outcomes,
-        settlementTrigger: settlementTrigger,
+        marketType: marketType === 'Binary' ? 'Binary' : 'MultiOutcome',
+        outcomes,
+        settlementTrigger,
         resolutionCriteria: formData.resolutionCriteria,
-        depositAmount: formData.depositAmount || '100.0', // Virtual tracking only (NOT on-chain)
-        depositCid: null, // No on-chain deposit - virtual tracking only
-        configCid: null,
-        creatorBalance: null, // Virtual tracking only
-        adminBalance: null, // Virtual tracking only
-        status: 'PendingApproval',
-        // Store metadata
-        updateId: updateId,
-        completionOffset: result.completionOffset || result.completion_offset,
-        explorerUrl: explorerUrl,
-        createdAt: new Date().toISOString()
-      }
-      
-      // Store in cloud database (with local storage fallback)
-      // Use updateId as contractId if we don't have a real one
-      // This ensures we can track it even before blockchain sync
-      const storageContractId = contractId || (updateId ? `updateId:${updateId}` : `pending-${Date.now()}`)
-      
-      await ContractStorage.storeContract(
-        storageContractId,
-        getTemplateId('PredictionMarkets', 'MarketCreationRequest'),
-        contractPayload,
-        wallet.party,
-        {
-          updateId: updateId,
-          completionOffset: result.completionOffset || result.completion_offset,
-          explorerUrl: explorerUrl,
-          status: 'PendingApproval'
-        }
-      )
-      
-      console.log('[CreateMarket] ✅ Contract stored in cloud database:', storageContractId)
-      console.log('[CreateMarket] 📦 Stored payload:', contractPayload)
-      
-      // Log to console for easy access
-      console.log('📦 Full creation response:', JSON.stringify(result, null, 2))
-      
-      // Note about explorer JSON showing "update": null
-      if (updateId && !contractId) {
-        console.log('ℹ️ Note: The explorer may show "update": null in the JSON.')
-        console.log('ℹ️ This is normal for async submissions - the contract is created successfully.')
-        console.log('ℹ️ The contract details are stored in the ledger state, not in the update verdict.')
-        console.log('ℹ️ You can verify the contract exists by querying /v2/state/active-contracts.')
-      }
-      
-      if (contractId) {
-        console.log('✅ Market created successfully!')
-        console.log('📋 Contract ID:', contractId)
-        console.log('🔗 View in explorer:', explorerUrl)
-        console.log('⏳ Note: Contract may take a few seconds to appear in queries due to synchronization.')
-      } else if (updateId) {
-        console.log('✅ Market creation submitted successfully!')
-        console.log('📋 Update ID:', updateId)
-        console.log('📅 Completion Offset:', updateTimestamp)
-        console.log('🔗 View in explorer:', explorerUrl)
-        console.log('⏳ Note: Contract is being processed. It may take a few seconds to appear in queries.')
-        console.log('💡 Tip: Wait a few seconds and refresh the Admin Dashboard to see the new request.')
-      } else {
-        console.log('⚠️ Market created but contract ID/updateId not found in response')
-        console.log('Full response:', JSON.stringify(result, null, 2))
-        console.log('⚠️ This may indicate the contract was not actually created on the ledger.')
-      }
-      
+        category: formData.category || null,
+        styleLabel: formData.predictionStyle || null,
+        source: 'user',
+        creator: wallet.party,
+      })
+
+      const id = result.market?.contractId || result.market?.payload?.marketId || `market-${Date.now()}`
+      setSuccess(true)
+      setMarketId(id)
+
       // Reset form after successful creation
       setFormData({
         title: '',
@@ -391,48 +176,36 @@ export default function CreateMarket() {
       {error && <div className="error">{error}</div>}
       {success && (
         <div className="success mb-xl">
-          <h3>✅ Market Creation Request Submitted Successfully!</h3>
+          <h3>Market created</h3>
           <p className="mt-sm">
-            Your market creation request has been submitted and is pending admin approval.
+            Your market is live. Share it or start trading.
           </p>
-          
-          {contractId ? (
+
+          {marketId ? (
             <div className="mt-lg">
-              <p><strong>Contract ID:</strong></p>
-              <code className="code-block">
-                {contractId}
-              </code>
-              {explorerUrl && (
-                <div className="mt-md">
-                  <a 
-                    href={explorerUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="link-button"
-                  >
-                    🔗 View Contract in Block Explorer →
-                  </a>
-                </div>
-              )}
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--spacing-md)', alignItems: 'center' }}>
+                <Link to={`/market/${marketId}`} className="btn-primary">
+                  View market
+                </Link>
+                <button
+                  type="button"
+                  className="btn-secondary"
+                  onClick={() => { setSuccess(false); setMarketId(null); }}
+                >
+                  Create another
+                </button>
+              </div>
               <p className="text-muted mt-md" style={{ fontSize: 'var(--font-size-sm)' }}>
-                <strong>Tip:</strong> Click the link above to view your market contract details (title, description, etc.) on the block explorer. 
-                You can also copy the Contract ID and search for it manually.
+                Market ID: <code>{marketId}</code>
               </p>
             </div>
           ) : (
             <div className="warning-message mt-lg">
               <p style={{ margin: 0 }}>
-                <strong>⚠️ Note:</strong> Contract ID not found in response. Check the browser console (F12) for full response details.
+                <strong>Note:</strong> Market ID not found in response. Check the browser console (F12) for details.
               </p>
             </div>
           )}
-          
-          <div className="info-message mt-lg">
-            <p style={{ margin: 0, fontSize: 'var(--font-size-sm)' }}>
-              <strong>📋 Next Steps:</strong> Your market creation request is now pending admin approval. 
-              Once approved, it will appear in the Markets page. You can view the contract details using the link above.
-            </p>
-          </div>
         </div>
       )}
 

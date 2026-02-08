@@ -1,43 +1,47 @@
+import { useState } from 'react'
 import { useWallet } from '../contexts/WalletContext'
 import { BRAND_NAME, BRAND_TAGLINE } from '../constants/brand'
 
 export default function WalletConnect({ onConnect }) {
   const { connectWallet } = useWallet()
+  const [userId, setUserId] = useState('')
+  const [error, setError] = useState(null)
+
+  const handleSubmit = async (e) => {
+    e.preventDefault()
+    setError(null)
+    try {
+      await connectWallet(userId.trim() || undefined)
+      onConnect?.()
+    } catch (err) {
+      setError(err.message)
+    }
+  }
 
   return (
     <div className="card" style={{ textAlign: 'center', maxWidth: '500px', margin: '4rem auto' }}>
       <p className="wallet-connect-slogan" style={{ marginBottom: '0.5rem', fontSize: '1rem', opacity: 0.9 }}>{BRAND_TAGLINE}</p>
-      <h2>Connect Your Wallet</h2>
+      <h2>Get started</h2>
       <p style={{ marginBottom: '2rem', color: 'rgba(255, 255, 255, 0.6)' }}>
-        Connect your wallet to start trading on {BRAND_NAME} prediction markets.
-        Your wallet uses passkey authentication for secure access.
+        Pick a name to trade with virtual Credits. No signup required. No crypto.
       </p>
-      <div style={{ 
-        background: 'rgba(100, 108, 255, 0.1)', 
-        padding: '1rem', 
-        borderRadius: '8px', 
-        marginBottom: '2rem',
-        fontSize: '0.9rem',
-        color: 'rgba(255, 255, 255, 0.8)'
-      }}>
-        <strong>Party ID Format Required:</strong>
-        <p style={{ marginTop: '0.5rem', fontFamily: 'monospace', fontSize: '0.85rem', wordBreak: 'break-all' }}>
-          {'{user-id}'}::{'{party-id}'}
-        </p>
-        <p style={{ marginTop: '0.5rem', fontSize: '0.85rem' }}>
-          Example: ee15aa3d-0bd4-44f9-9664-b49ad7e308aa::122087fa379c37332a753379c58e18d397e39cb82c68c15e4af7134be46561974292
-        </p>
-        <ul style={{ textAlign: 'left', marginTop: '0.5rem', paddingLeft: '1.5rem' }}>
-          <li>Enter your full Party ID (format: user-id::party-id)</li>
-          <li>Leave blank to use the default test party ID</li>
-          <li>Your wallet will be saved locally in your browser</li>
-          <li>Find your party ID in the block explorer or from your network admin</li>
-        </ul>
-      </div>
-      <button className="btn-primary" onClick={connectWallet} style={{ fontSize: '1.1rem', padding: '0.75rem 2rem' }}>
-        Connect Wallet
-      </button>
+      <form onSubmit={handleSubmit} style={{ marginBottom: '1.5rem' }}>
+        <input
+          type="text"
+          placeholder="Your name or leave blank for guest"
+          value={userId}
+          onChange={(e) => setUserId(e.target.value)}
+          className="filter-input"
+          style={{ width: '100%', maxWidth: '320px', marginBottom: '0.75rem' }}
+        />
+        {error && <p style={{ color: 'var(--color-error)', fontSize: '0.9rem', marginBottom: '0.5rem' }}>{error}</p>}
+        <button type="submit" className="btn-primary" style={{ fontSize: '1rem', padding: '0.6rem 1.5rem' }}>
+          Continue
+        </button>
+      </form>
+      <p style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.5)' }}>
+        Leave blank to use the default guest account.
+      </p>
     </div>
   )
 }
-

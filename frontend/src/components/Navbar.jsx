@@ -8,11 +8,11 @@ import './Navbar.css'
 export default function Navbar({ showWalletModal, setShowWalletModal }) {
   const { wallet, disconnectWallet } = useWallet()
   const location = useLocation()
-  const [showMarketsMenu, setShowMarketsMenu] = useState(false)
-  const [showToolsMenu, setShowToolsMenu] = useState(false)
+  const [showDiscoverMenu, setShowDiscoverMenu] = useState(false)
+  const [showResourcesMenu, setShowResourcesMenu] = useState(false)
   const [balanceFormatted, setBalanceFormatted] = useState(null)
-  const marketsMenuRef = useRef(null)
-  const toolsMenuRef = useRef(null)
+  const discoverMenuRef = useRef(null)
+  const resourcesMenuRef = useRef(null)
 
   // Fetch virtual balance when wallet is connected
   useEffect(() => {
@@ -30,11 +30,11 @@ export default function Navbar({ showWalletModal, setShowWalletModal }) {
   // Close dropdowns when clicking outside
   useEffect(() => {
     const handleClickOutside = (event) => {
-      if (marketsMenuRef.current && !marketsMenuRef.current.contains(event.target)) {
-        setShowMarketsMenu(false)
+      if (discoverMenuRef.current && !discoverMenuRef.current.contains(event.target)) {
+        setShowDiscoverMenu(false)
       }
-      if (toolsMenuRef.current && !toolsMenuRef.current.contains(event.target)) {
-        setShowToolsMenu(false)
+      if (resourcesMenuRef.current && !resourcesMenuRef.current.contains(event.target)) {
+        setShowResourcesMenu(false)
       }
     }
 
@@ -44,11 +44,13 @@ export default function Navbar({ showWalletModal, setShowWalletModal }) {
 
   // Close dropdowns when route changes
   useEffect(() => {
-    setShowMarketsMenu(false)
-    setShowToolsMenu(false)
+    setShowDiscoverMenu(false)
+    setShowResourcesMenu(false)
   }, [location.pathname])
 
   const isActive = (path) => location.pathname === path
+  const isDiscoverActive = () => ['/', '/create', '/portfolio'].some(isActive) ||
+    location.pathname.startsWith('/discover')
 
   return (
     <header className="app-header">
@@ -61,23 +63,36 @@ export default function Navbar({ showWalletModal, setShowWalletModal }) {
           </span>
         </Link>
         <nav>
-          {/* Markets Dropdown */}
-          <div className="nav-dropdown" ref={marketsMenuRef}>
+          {/* Discover: markets by source + portfolio */}
+          <div className="nav-dropdown" ref={discoverMenuRef}>
             <button
-              className={`nav-dropdown-toggle ${isActive('/') || isActive('/create') ? 'active' : ''}`}
+              className={`nav-dropdown-toggle ${isDiscoverActive() ? 'active' : ''}`}
               onClick={() => {
-                setShowMarketsMenu(!showMarketsMenu)
-                setShowToolsMenu(false)
+                setShowDiscoverMenu(!showDiscoverMenu)
+                setShowResourcesMenu(false)
               }}
             >
-              Markets
+              Discover
               <span className="dropdown-arrow">▼</span>
             </button>
-            {showMarketsMenu && (
+            {showDiscoverMenu && (
               <div className="nav-dropdown-menu">
                 <Link to="/" className={isActive('/') ? 'active' : ''}>
-                  Browse Markets
+                  All Markets
                 </Link>
+                <Link to="/discover/global-events" className={location.pathname === '/discover/global-events' ? 'active' : ''}>
+                  Global Events
+                </Link>
+                <Link to="/discover/industry" className={location.pathname === '/discover/industry' ? 'active' : ''}>
+                  Industry Topics
+                </Link>
+                <Link to="/discover/virtual-realities" className={location.pathname === '/discover/virtual-realities' ? 'active' : ''}>
+                  Virtual Realities
+                </Link>
+                <Link to="/discover/user" className={location.pathname === '/discover/user' ? 'active' : ''}>
+                  User-Created
+                </Link>
+                <div className="nav-dropdown-divider" />
                 <Link to="/create" className={isActive('/create') ? 'active' : ''}>
                   Create Market
                 </Link>
@@ -88,31 +103,31 @@ export default function Navbar({ showWalletModal, setShowWalletModal }) {
             )}
           </div>
 
-          {/* Tools Dropdown */}
-          <div className="nav-dropdown" ref={toolsMenuRef}>
+          {/* Resources / Tools */}
+          <div className="nav-dropdown" ref={resourcesMenuRef}>
             <button
-              className={`nav-dropdown-toggle ${isActive('/admin') || isActive('/history') || isActive('/docs') || isActive('/documentation') || isActive('/test') ? 'active' : ''}`}
+              className={`nav-dropdown-toggle ${isActive('/admin') || isActive('/history') || isActive('/docs') || isActive('/documentation') ? 'active' : ''}`}
               onClick={() => {
-                setShowToolsMenu(!showToolsMenu)
-                setShowMarketsMenu(false)
+                setShowResourcesMenu(!showResourcesMenu)
+                setShowDiscoverMenu(false)
               }}
             >
-              Tools
+              Resources
               <span className="dropdown-arrow">▼</span>
             </button>
-            {showToolsMenu && (
+            {showResourcesMenu && (
               <div className="nav-dropdown-menu">
+                <Link to="/docs" className={isActive('/docs') || isActive('/documentation') ? 'active' : ''}>
+                  Documentation
+                </Link>
+                <Link to="/docs#amm" className="">
+                  AMM &amp; Fees
+                </Link>
                 <Link to="/admin" className={isActive('/admin') ? 'active' : ''}>
                   Admin Dashboard
                 </Link>
                 <Link to="/history" className={isActive('/history') ? 'active' : ''}>
-                  Contract History
-                </Link>
-                <Link to="/docs" className={isActive('/docs') || isActive('/documentation') ? 'active' : ''}>
-                  📚 Documentation
-                </Link>
-                <Link to="/test" className={isActive('/test') ? 'active' : ''}>
-                  🧪 Test Contracts
+                  Activity
                 </Link>
               </div>
             )}
@@ -122,12 +137,12 @@ export default function Navbar({ showWalletModal, setShowWalletModal }) {
           {wallet ? (
             <div className="wallet-info">
               {balanceFormatted != null && (
-                <Link to="/portfolio" className="nav-balance" title="View in Portfolio">
+                <Link to="/portfolio" className="nav-balance" title="Credits — View in Portfolio">
                   {balanceFormatted}
                 </Link>
               )}
-              <span>{wallet.party.substring(0, 20)}...</span>
-              <button onClick={() => setShowWalletModal(true)}>Wallet</button>
+              <span title={wallet.party}>{wallet.party.length > 20 ? wallet.party.substring(0, 20) + '…' : wallet.party}</span>
+              <button onClick={() => setShowWalletModal(true)}>Account</button>
               <button onClick={disconnectWallet}>Disconnect</button>
             </div>
           ) : (
@@ -135,7 +150,7 @@ export default function Navbar({ showWalletModal, setShowWalletModal }) {
               className="btn-connect"
               onClick={() => setShowWalletModal(true)}
             >
-              Connect Wallet
+              Sign in
             </button>
           )}
         </nav>
@@ -143,4 +158,3 @@ export default function Navbar({ showWalletModal, setShowWalletModal }) {
     </header>
   )
 }
-

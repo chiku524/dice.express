@@ -8,6 +8,47 @@ This project is set up for **Cloudflare Pages** (converged Pages + Workers): sta
 
 ---
 
+## Your site URLs
+
+| URL | When it works |
+|-----|----------------|
+| **https://dice-express.pages.dev** | Always, right after a successful deploy. Use this to confirm the site is live. |
+| **https://dice.express** | Only after you add **dice.express** as a custom domain (see below). You must own the domain and have its DNS on Cloudflare. |
+
+If you see "This site can't be reached" at **dice.express**, first open **https://dice-express.pages.dev**. If that loads, the deployment is fine; you still need to add the custom domain and DNS.
+
+---
+
+## Custom domain (dice.express) — terminal or dashboard
+
+To have the site load at **https://dice.express** (and optionally **https://www.dice.express**):
+
+1. **You must own the domain** dice.express and have it as a **zone in the same Cloudflare account** (DNS managed by Cloudflare).
+2. **Add the custom domain** to the Pages project. Two options:
+
+### Option 1: Terminal (script)
+
+From the repo root, set your Cloudflare credentials, then run the script (or use the npm script):
+
+```bash
+export CLOUDFLARE_ACCOUNT_ID=your_account_id
+export CLOUDFLARE_API_TOKEN=your_api_token
+npm run pages:custom-domain
+# Or: bash scripts/pages-add-custom-domain.sh
+```
+
+That adds `dice.express` and `www.dice.express` to the **dice-express** Pages project. To add only one domain: `bash scripts/pages-add-custom-domain.sh dice.express`. On Windows use Git Bash, WSL, or set the env vars in PowerShell and run `bash scripts/pages-add-custom-domain.sh`.
+
+### Option 2: Dashboard
+
+1. [Cloudflare Dashboard](https://dash.cloudflare.com) → **Workers & Pages** → **dice-express**.
+2. **Custom domains** → **Set up a custom domain**.
+3. Enter **dice.express** (and optionally **www.dice.express**). Save.
+
+If the zone is on Cloudflare, DNS is usually updated automatically. Otherwise, add a **CNAME** record: `dice.express` → `dice-express.pages.dev`. After DNS propagates (and SSL is issued), **https://dice.express** will serve your app.
+
+---
+
 ## First deployment (existing dice-express project)
 
 If you already created the **dice-express** project (via CLI or Direct Upload), do the **first deployment** from your **dice.express** repo like this:
@@ -28,8 +69,8 @@ If you already created the **dice-express** project (via CLI or Direct Upload), 
 
 | Item | Purpose |
 |------|--------|
-| **`wrangler.toml`** | Pages project config: name `dice-express`, build output `frontend/dist`, `nodejs_compat`, Functions env (e.g. `BACKEND_URL`). |
-| **`functions/api/[[path]].js`** | Pages Function that proxies `/api/*` to an external backend when `BACKEND_URL` is set. |
+| **`wrangler.toml`** | Pages project config: name `dice-express`, build output `frontend/dist`, D1/R2/KV bindings (optional), `BACKEND_URL` (optional). |
+| **`functions/api/[[path]].js`** | Pages Function: serves `/api/*` from D1 when `DB` is bound, else proxies to `BACKEND_URL` if set. |
 | **`scripts/cloudflare-setup.sh`** | Idempotent script: creates the Pages project via CLI if it doesn’t exist. |
 | **`.github/workflows/deploy-cloudflare-pages.yml`** | Optional: build + deploy via GitHub Actions (Direct Upload). |
 
@@ -161,20 +202,23 @@ The workflow uses `wrangler.toml` in the repo; Pages Functions (e.g. `functions/
 
 ---
 
-## API proxy (optional)
+## API: D1 (native) or proxy (optional)
 
-The Function at `functions/api/[[path]].js` forwards `/api/*` to an external backend.
+The Function at `functions/api/[[path]].js` can either **serve the API from Cloudflare D1/KV/R2** or **proxy** to an external backend.
 
-**Option A – Proxy to Vercel (or another origin)**  
-In Cloudflare Pages: **Settings** → **Environment variables** (Production / Preview as needed):
+**Option A – Run API on Cloudflare (D1, KV, R2)**  
+Configure D1 (and optionally KV, R2) in `wrangler.toml`, create the database and run the schema, then deploy. Do **not** set `BACKEND_URL`. The same `/api/*` routes (markets, contracts, trade, balances, etc.) are served from the Worker using D1. See **[CLOUDFLARE_STORAGE_MIGRATION.md](./CLOUDFLARE_STORAGE_MIGRATION.md)** for setup and local dev.
+
+**Option B – Proxy to Vercel (or another origin)**  
+In Cloudflare Pages: **Settings** → **Environment variables**:
 
 - **Variable name:** `BACKEND_URL`  
 - **Value:** e.g. `https://your-project.vercel.app`
 
-Redeploy. Requests to `https://your-site.pages.dev/api/*` (or your custom domain) go to `BACKEND_URL/api/*`.
+Redeploy. Requests to `/api/*` go to `BACKEND_URL/api/*`. (If D1 is also bound, D1 is used and proxy is skipped.)
 
-**Option B – No proxy**  
-If `BACKEND_URL` is not set, the Function returns 503 for `/api/*`. Point the frontend at your API via build-time env (e.g. `VITE_API_ORIGIN`).
+**Option C – No backend**  
+If neither D1 nor `BACKEND_URL` is set, the Function returns 503 for `/api/*`. Point the frontend at your API via build-time env (e.g. `VITE_API_ORIGIN`) if needed.
 
 ---
 
@@ -201,13 +245,15 @@ npm run build:frontend
 npx wrangler pages dev frontend/dist
 ```
 
-To test the API proxy locally, create a `.dev.vars` file in the repo root (do not commit):
+To test the **API proxy** locally, create a `.dev.vars` file in the repo root (do not commit):
 
 ```
 BACKEND_URL=https://your-api-origin.com
 ```
 
 Then run `npx wrangler pages dev frontend/dist` again.
+
+To test the **D1-backed API** locally, ensure D1 is created and schema applied with `--local`, and do not set `BACKEND_URL`. See [CLOUDFLARE_STORAGE_MIGRATION.md](./CLOUDFLARE_STORAGE_MIGRATION.md).
 
 ---
 

@@ -9,7 +9,7 @@ const BALANCE_API = '/api/get-user-balance'
 
 /**
  * Fetch current virtual balance for a party.
- * @param {string} userParty - Canton party ID
+ * @param {string} userParty - Virtual user/account ID
  * @returns {Promise<{ balance: string, formatted: string, raw: number }>}
  */
 export async function getVirtualBalance(userParty) {
