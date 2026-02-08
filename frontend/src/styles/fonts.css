@@ -1,6 +1,6 @@
 /**
- * Custom font: Comfortaa
- * Located in /public/fonts/
+ * Brand font: Comfortaa (from /frontend/public/fonts)
+ * Used app-wide via --font-family-base in theme.css
  */
 @font-face {
   font-family: 'Comfortaa';

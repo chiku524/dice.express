@@ -92,21 +92,42 @@
 .logo {
   text-decoration: none;
   color: inherit;
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm, 0.5rem);
 }
 
-.logo h1 {
+.logo-img {
+  flex-shrink: 0;
+  display: block;
+}
+
+.logo-text {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.2;
+  gap: 0.05rem;
+}
+
+.logo-name {
   font-size: var(--font-size-base, 1rem);
   font-weight: var(--font-weight-semibold, 600);
   white-space: nowrap;
-  margin: 0;
   color: var(--color-text-primary, rgba(255, 255, 255, 0.87));
   transition: color var(--transition-base, 0.2s ease);
-  line-height: 1.2;
+  font-family: var(--font-family-base);
 }
+
+.logo:hover .logo-name {
+  color: var(--color-primary, #14b8a6);
+}
+
 .logo-tagline {
   font-weight: var(--font-weight-normal, 400);
   opacity: 0.85;
-  font-size: 0.9em;
+  font-size: 0.75em;
+  color: var(--color-text-secondary, rgba(255, 255, 255, 0.7));
+  font-family: var(--font-family-base);
 }
 
 .app-header nav {

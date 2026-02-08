@@ -1,13 +1,15 @@
 import { useWallet } from '../contexts/WalletContext'
+import { BRAND_NAME, BRAND_TAGLINE } from '../constants/brand'
 
 export default function WalletConnect({ onConnect }) {
   const { connectWallet } = useWallet()
 
   return (
     <div className="card" style={{ textAlign: 'center', maxWidth: '500px', margin: '4rem auto' }}>
+      <p className="wallet-connect-slogan" style={{ marginBottom: '0.5rem', fontSize: '1rem', opacity: 0.9 }}>{BRAND_TAGLINE}</p>
       <h2>Connect Your Wallet</h2>
       <p style={{ marginBottom: '2rem', color: 'rgba(255, 255, 255, 0.6)' }}>
-        Connect your wallet to start trading on prediction markets.
+        Connect your wallet to start trading on {BRAND_NAME} prediction markets.
         Your wallet uses passkey authentication for secure access.
       </p>
       <div style={{ 

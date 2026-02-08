@@ -54,7 +54,11 @@ export default function Navbar({ showWalletModal, setShowWalletModal }) {
     <header className="app-header">
       <div className="container">
         <Link to="/" className="logo">
-          <h1>{BRAND_NAME} <span className="logo-tagline">{BRAND_TAGLINE}</span></h1>
+          <img src="/logo.svg" alt="" className="logo-img" width="36" height="36" />
+          <span className="logo-text">
+            <span className="logo-name">{BRAND_NAME}</span>
+            <span className="logo-tagline">{BRAND_TAGLINE}</span>
+          </span>
         </Link>
         <nav>
           {/* Markets Dropdown */}

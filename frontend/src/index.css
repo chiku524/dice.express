@@ -1,5 +1,14 @@
+/* @import must be first (Vite/CSS spec) */
+@import './styles/fonts.css';
+@import './styles/theme.css';
+
+/* Brand font: Comfortaa from /public/fonts — applied app-wide */
+html {
+  font-family: var(--font-family-base);
+}
+
 :root {
-  font-family: var(--font-family-base, Inter, system-ui, Avenir, Helvetica, Arial, sans-serif);
+  font-family: var(--font-family-base, 'Comfortaa', system-ui, sans-serif);
   line-height: 1.5;
   font-weight: var(--font-weight-normal, 400);
 
@@ -90,8 +99,3 @@ button:focus-visible {
     color: #213547;
   }
 }
-
-/* Custom fonts (Comfortaa) - load before theme so variables can reference them */
-@import './styles/fonts.css';
-/* Import theme variables - ensures they're available before other styles */
-@import './styles/theme.css';

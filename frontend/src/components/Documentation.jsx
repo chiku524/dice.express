@@ -81,7 +81,7 @@ function GettingStartedContent() {
   return (
     <div className="doc-section">
       <h1>Getting Started</h1>
-      <p>Welcome to Foresight — a prediction markets platform backed by blockchain infrastructure.</p>
+      <p>Welcome to dice.express — prediction markets with virtual Credits; multi-chain deposit and withdraw. Your choice. Your chance.</p>
       
       <h2>Overview</h2>
       <p>
