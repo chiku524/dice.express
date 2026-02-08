@@ -574,7 +574,7 @@ export default function Portfolio() {
               </div>
             ))}
         </div>
-      )}
+      ) )}
 
       {activeTab === 'activity' && (
           <div className="card">
