@@ -11,10 +11,6 @@ export default function Footer() {
             <span className="footer-heading">Discover</span>
             <ul className="footer-links">
               <li><Link to="/">All Markets</Link></li>
-              <li><Link to="/discover/global-events">Global Events</Link></li>
-              <li><Link to="/discover/industry">Industry</Link></li>
-              <li><Link to="/discover/virtual-realities">Virtual Realities</Link></li>
-              <li><Link to="/discover/user">User-Created</Link></li>
               <li><Link to="/create">Create Market</Link></li>
               <li><Link to="/portfolio">Portfolio</Link></li>
             </ul>
