@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import { BRAND_COPYRIGHT, BRAND_TECH } from '../constants/brand'
+import { BRAND_COPYRIGHT } from '../constants/brand'
 import './Footer.css'
 
 export default function Footer() {
@@ -26,12 +26,12 @@ export default function Footer() {
           </nav>
           <div className="footer-section footer-about">
             <span className="footer-heading">About</span>
-            <p>Virtual Credits. No blockchain or crypto required.</p>
+            <p>Trade on outcomes with virtual Credits. Your choice, your chance—no crypto required.</p>
           </div>
         </div>
         <div className="footer-bottom">
-          <p>&copy; {new Date().getFullYear()} {BRAND_COPYRIGHT}</p>
-          <span className="footer-tech">{BRAND_TECH}</span>
+          <p className="footer-copyright">&copy; {new Date().getFullYear()} {BRAND_COPYRIGHT}</p>
+          <p className="footer-made-with">Made with <span className="footer-heart" aria-hidden>♥</span> for the prediction markets community</p>
         </div>
       </div>
     </footer>
