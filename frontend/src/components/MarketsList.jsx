@@ -24,7 +24,7 @@ export default function MarketsList({ source: sourceFromRoute }) {
   const [selectedStatus, setSelectedStatus] = useState('all')
   const [selectedSource, setSelectedSource] = useState(sourceFromRoute || 'all')
   const [sortBy, setSortBy] = useState('volume') // 'volume', 'newest', 'oldest'
-  const [filtersExpanded, setFiltersExpanded] = useState(false)
+  const [filtersExpanded, setFiltersExpanded] = useState(() => typeof window !== 'undefined' && window.innerWidth >= 768)
 
   // Keep selectedSource in sync with route (e.g. when navigating to /discover/industry)
   useEffect(() => {

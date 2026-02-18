@@ -11,6 +11,7 @@ export default function Footer() {
             <span className="footer-heading">Discover</span>
             <ul className="footer-links">
               <li><Link to="/">All Markets</Link></li>
+              <li><Link to="/dashboard">Dashboard</Link></li>
               <li><Link to="/create">Create Market</Link></li>
               <li><Link to="/portfolio">Portfolio</Link></li>
             </ul>
@@ -27,6 +28,7 @@ export default function Footer() {
           <div className="footer-section footer-about">
             <span className="footer-heading">About</span>
             <p>Trade on outcomes with virtual Credits. Your choice, your chance—no crypto required.</p>
+            <p className="footer-virtual-note">All activity uses virtual Credits. No blockchain required.</p>
           </div>
         </div>
         <div className="footer-bottom">

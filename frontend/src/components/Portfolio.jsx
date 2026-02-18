@@ -394,8 +394,17 @@ export default function Portfolio() {
     { id: 'activity', label: 'Activity', count: activityLog.length },
   ]
 
+  const tabLabels = { balance: 'Balance', positions: 'Positions', activity: 'Activity' }
+
   return (
     <div>
+      <nav className="breadcrumb mb-md" aria-label="Breadcrumb" style={{ fontSize: 'var(--font-size-sm)', color: 'var(--color-text-secondary)' }}>
+        <Link to="/dashboard" style={{ color: 'inherit', textDecoration: 'none' }}>Dashboard</Link>
+        <span style={{ margin: '0 var(--spacing-sm)' }} aria-hidden>→</span>
+        <span>Portfolio</span>
+        <span style={{ margin: '0 var(--spacing-sm)' }} aria-hidden>→</span>
+        <span>{tabLabels[activeTab] || activeTab}</span>
+      </nav>
       <div className="page-header">
         <h1>My Portfolio</h1>
         <p>Balance, positions, and activity</p>

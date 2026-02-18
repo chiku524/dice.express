@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { useWallet } from '../contexts/WalletContext'
 import { useAccountModal } from '../contexts/AccountModalContext'
+import { useToastContext } from '../contexts/ToastContext'
 import './Profile.css'
 
 function formatMemberSince(isoString) {
@@ -17,6 +18,7 @@ function formatMemberSince(isoString) {
 export default function Profile() {
   const { wallet, updateDisplayName, disconnectWallet } = useWallet()
   const openAccountModal = useAccountModal()
+  const { showToast } = useToastContext()
   const [displayName, setDisplayName] = useState('')
   const [saved, setSaved] = useState(false)
   const [error, setError] = useState(null)
@@ -63,6 +65,11 @@ export default function Profile() {
 
   return (
     <div className="profile-page">
+      <nav className="breadcrumb mb-md" aria-label="Breadcrumb" style={{ fontSize: 'var(--font-size-sm)', color: 'var(--color-text-secondary)' }}>
+        <Link to="/dashboard" style={{ color: 'inherit', textDecoration: 'none' }}>Dashboard</Link>
+        <span style={{ margin: '0 var(--spacing-sm)' }} aria-hidden>→</span>
+        <span>Profile</span>
+      </nav>
       <header className="profile-header">
         <h1>Profile</h1>
         <p className="text-secondary">Your account details and display name.</p>
@@ -101,8 +108,10 @@ export default function Profile() {
               onClick={() => {
                 try {
                   navigator.clipboard.writeText(wallet.accountId)
-                  // optional: show toast
-                } catch (_) {}
+                  showToast('Account ID copied to clipboard', 'success')
+                } catch (_) {
+                  showToast('Copy failed', 'error')
+                }
               }}
               aria-label="Copy account ID"
             >

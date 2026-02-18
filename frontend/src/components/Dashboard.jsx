@@ -81,6 +81,9 @@ export default function Dashboard() {
 
   return (
     <div className="dashboard-page">
+      <nav className="breadcrumb mb-md" aria-label="Breadcrumb" style={{ fontSize: 'var(--font-size-sm)', color: 'var(--color-text-secondary)' }}>
+        <span>Dashboard</span>
+      </nav>
       <header className="dashboard-header">
         <h1>Dashboard</h1>
         <p className="dashboard-welcome">

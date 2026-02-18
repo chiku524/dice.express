@@ -6,21 +6,23 @@ import { createMarket } from '../services/marketsApi'
 import { validators, validateForm } from '../utils/formValidation'
 import { MARKET_CATEGORIES, PREDICTION_STYLES, getStyleByValue, getDefaultOutcomesForStyle } from '../constants/marketConfig'
 
+const INITIAL_FORM_DATA = {
+  title: '',
+  description: '',
+  category: 'Other',
+  predictionStyle: 'yesNo',
+  marketType: 'Binary',
+  outcomes: '',
+  settlementType: 'TimeBased',
+  settlementTime: '',
+  resolutionCriteria: '',
+}
+
 export default function CreateMarket() {
   const navigate = useNavigate()
   const { wallet } = useWallet()
   const openAccountModal = useAccountModal()
-  const [formData, setFormData] = useState({
-    title: '',
-    description: '',
-    category: 'Other',
-    predictionStyle: 'yesNo',
-    marketType: 'Binary',
-    outcomes: '',
-    settlementType: 'TimeBased',
-    settlementTime: '',
-    resolutionCriteria: '',
-  })
+  const [formData, setFormData] = useState(INITIAL_FORM_DATA)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
   const [success, setSuccess] = useState(false)
@@ -190,7 +192,13 @@ export default function CreateMarket() {
                 <button
                   type="button"
                   className="btn-secondary"
-                  onClick={() => { setSuccess(false); setMarketId(null); }}
+                  onClick={() => {
+                    setSuccess(false)
+                    setMarketId(null)
+                    setFormData(INITIAL_FORM_DATA)
+                    setFieldErrors({})
+                    setError(null)
+                  }}
                 >
                   Create another
                 </button>
