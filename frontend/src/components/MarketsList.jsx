@@ -25,6 +25,7 @@ export default function MarketsList({ source: sourceFromRoute }) {
   const [selectedSource, setSelectedSource] = useState(sourceFromRoute || 'all')
   const [sortBy, setSortBy] = useState('volume') // 'volume', 'newest', 'oldest'
   const [filtersExpanded, setFiltersExpanded] = useState(() => typeof window !== 'undefined' && window.innerWidth >= 768)
+  const [retryCount, setRetryCount] = useState(0)
 
   // Keep selectedSource in sync with route (e.g. when navigating to /discover/industry)
   useEffect(() => {
@@ -80,7 +81,7 @@ export default function MarketsList({ source: sourceFromRoute }) {
         apiRoutesWorkingRef.current = true
       } catch (err) {
         if (!isMountedRef.current) return
-        
+        apiRoutesWorkingRef.current = false
         setMarkets([])
         setError(err.message)
       } finally {
@@ -150,7 +151,7 @@ export default function MarketsList({ source: sourceFromRoute }) {
       }
       document.removeEventListener('visibilitychange', handleVisibilityChange)
     }
-  }, [])
+  }, [retryCount])
 
   // WebSocket support removed - using polling instead
 
@@ -249,22 +250,32 @@ export default function MarketsList({ source: sourceFromRoute }) {
     )
   }
 
+  const handleRetry = () => {
+    setError(null)
+    setLoading(true)
+    apiRoutesWorkingRef.current = true
+    setRetryCount((c) => c + 1)
+  }
+
   if (error) {
     return (
       <div>
-        <div className="error">
-          <strong>Error loading markets:</strong> {error}
-          <br />
-          <small className="mt-sm" style={{ display: 'block' }}>
-            Please check your connection and try again. If the problem persists, the API may be temporarily unavailable.
-          </small>
+        <div className="card">
+          <div className="error">
+            <strong>Error loading markets:</strong> {error}
+            <br />
+            <small className="mt-sm" style={{ display: 'block' }}>
+              Please check your connection and try again. If the problem persists, the API may be temporarily unavailable.
+            </small>
+          </div>
+          <button
+            type="button"
+            className="btn-primary mt-md"
+            onClick={handleRetry}
+          >
+            Try again
+          </button>
         </div>
-        <button 
-          className="btn-primary mt-md" 
-          onClick={() => window.location.reload()}
-        >
-          Retry
-        </button>
       </div>
     )
   }
@@ -566,9 +577,12 @@ export default function MarketsList({ source: sourceFromRoute }) {
           <div className="alert-warning">
             <h3>Markets API unavailable</h3>
             <p>Could not load markets. Check your connection and that the backend (e.g. Vercel) and Supabase are configured.</p>
-            <div style={{ display: 'flex', gap: 'var(--spacing-md)', marginTop: 'var(--spacing-md)' }}>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--spacing-md)', marginTop: 'var(--spacing-md)' }}>
+              <button type="button" className="btn-primary" onClick={handleRetry}>
+                Try again
+              </button>
               <Link to="/create">
-                <button className="btn-primary">Create Market</button>
+                <button className="btn-secondary">Create Market</button>
               </Link>
               <Link to="/history">
                 <button className="btn-secondary">View History</button>

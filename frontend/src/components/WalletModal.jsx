@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import { useWallet } from '../contexts/WalletContext'
 import './WalletModal.css'
@@ -13,11 +13,53 @@ function formatMemberSince(isoString) {
   }
 }
 
+function getFocusableElements(container) {
+  if (!container) return []
+  const selector = 'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+  return Array.from(container.querySelectorAll(selector)).filter(
+    (el) => !el.hasAttribute('disabled') && el.getAttribute('aria-hidden') !== 'true'
+  )
+}
+
 export default function WalletModal({ isOpen, onClose }) {
   const { wallet, connectWallet, disconnectWallet } = useWallet()
   const [displayName, setDisplayName] = useState('')
   const [error, setError] = useState(null)
   const [loading, setLoading] = useState(false)
+  const modalRef = useRef(null)
+
+  // Focus first focusable element when opened; trap focus and handle Escape
+  useEffect(() => {
+    if (!isOpen || !modalRef.current) return
+    const modal = modalRef.current
+    const focusables = getFocusableElements(modal)
+    if (focusables.length) focusables[0].focus()
+
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        onClose()
+        return
+      }
+      if (e.key !== 'Tab') return
+      const els = getFocusableElements(modal)
+      if (els.length === 0) return
+      const first = els[0]
+      const last = els[els.length - 1]
+      if (e.shiftKey) {
+        if (document.activeElement === first) {
+          e.preventDefault()
+          last.focus()
+        }
+      } else {
+        if (document.activeElement === last) {
+          e.preventDefault()
+          first.focus()
+        }
+      }
+    }
+    modal.addEventListener('keydown', handleKeyDown)
+    return () => modal.removeEventListener('keydown', handleKeyDown)
+  }, [isOpen, onClose])
 
   if (!isOpen) return null
 
@@ -50,11 +92,11 @@ export default function WalletModal({ isOpen, onClose }) {
   }
 
   return (
-    <div className="wallet-modal-overlay" onClick={onClose}>
-      <div className="wallet-modal" onClick={(e) => e.stopPropagation()}>
+    <div className="wallet-modal-overlay" onClick={onClose} role="dialog" aria-modal="true" aria-labelledby="wallet-modal-title">
+      <div ref={modalRef} className="wallet-modal" onClick={(e) => e.stopPropagation()} tabIndex={-1}>
         <div className="wallet-modal-header">
-          <h2>Account</h2>
-          <button className="wallet-modal-close" onClick={onClose} aria-label="Close">×</button>
+          <h2 id="wallet-modal-title">Account</h2>
+          <button className="wallet-modal-close" onClick={onClose} aria-label="Close modal">×</button>
         </div>
         <div className="wallet-modal-content">
           {wallet ? (
