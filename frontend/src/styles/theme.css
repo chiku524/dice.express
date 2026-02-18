@@ -11,6 +11,17 @@
   --color-primary-border: rgba(139, 92, 246, 0.35);
   --color-logo-accent: #14b8a6;
 
+  /* Extended palette — navy, blue, teal, aqua (navbar, footer, accents) */
+  --color-navy: #0f172a;
+  --color-navy-mid: #1e293b;
+  --color-navy-light: rgba(30, 41, 59, 0.95);
+  --color-blue: #3b82f6;
+  --color-blue-soft: rgba(59, 130, 246, 0.15);
+  --color-teal: #14b8a6;
+  --color-teal-soft: rgba(20, 184, 166, 0.15);
+  --color-aqua: #22d3ee;
+  --color-aqua-soft: rgba(34, 211, 238, 0.15);
+
   --color-background: #0a0f14;
   --color-background-transparent: rgba(10, 15, 20, 0.6);
   --color-surface: rgba(20, 30, 38, 0.6);
