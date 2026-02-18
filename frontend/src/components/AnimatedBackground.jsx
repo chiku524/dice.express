@@ -44,21 +44,19 @@ export default function AnimatedBackground() {
     resizeCanvas()
     window.addEventListener('resize', resizeCanvas)
 
-    // Cohesive color palette system - multiple palettes for different elements
+    // Cohesive color palette — violet/indigo/blue (matches theme primary; logo keeps green)
     const colorPalettes = {
-      // Primary palette - vibrant neon for particles and connections
       primary: [
-        { r: 0, g: 255, b: 255 },      // Cyan
-        { r: 100, g: 200, b: 255 },    // Light Blue
-        { r: 138, g: 43, b: 226 },     // BlueViolet
-        { r: 0, g: 255, b: 127 },      // SpringGreen
+        { r: 139, g: 92, b: 246 },     // Violet (theme primary)
+        { r: 124, g: 58, b: 237 },     // Violet-600
+        { r: 99, g: 102, b: 241 },     // Indigo
+        { r: 129, g: 140, b: 248 },   // Light indigo
       ],
-      // Secondary palette - softer tones for graph lines
       secondary: [
-        { r: 100, g: 150, b: 255 },    // Soft Blue
-        { r: 150, g: 100, b: 255 },    // Soft Purple
-        { r: 0, g: 200, b: 200 },      // Teal
-        { r: 100, g: 255, b: 200 },    // Mint
+        { r: 139, g: 92, b: 246 },    // Violet
+        { r: 167, g: 139, b: 250 },   // Light violet
+        { r: 96, g: 165, b: 250 },    // Soft blue
+        { r: 196, g: 181, b: 253 },   // Lavender
       ],
       // Accent palette - warm tones for orbs and rings
       accent: [
@@ -67,12 +65,11 @@ export default function AnimatedBackground() {
         { r: 200, g: 100, b: 255 },    // Lavender
         { r: 100, g: 200, b: 255 },    // Sky Blue
       ],
-      // Subtle palette - very muted for background elements
       subtle: [
-        { r: 80, g: 180, b: 220 },     // Muted Cyan
-        { r: 180, g: 100, b: 220 },    // Muted Purple
-        { r: 100, g: 220, b: 180 },    // Muted Green
-        { r: 220, g: 120, b: 180 },    // Muted Pink
+        { r: 139, g: 92, b: 246 },    // Muted violet
+        { r: 99, g: 102, b: 241 },    // Muted indigo
+        { r: 129, g: 140, b: 248 },   // Muted light indigo
+        { r: 196, g: 181, b: 253 },   // Muted lavender
       ]
     }
     

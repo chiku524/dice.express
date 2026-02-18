@@ -123,7 +123,7 @@
 }
 
 .logo:hover .logo-name {
-  color: var(--color-primary, #14b8a6);
+  color: var(--color-primary);
 }
 
 .logo-tagline {

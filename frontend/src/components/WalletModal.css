@@ -171,10 +171,110 @@
 .party-id-inline {
   font-family: var(--font-family-mono, 'Courier New', monospace);
   font-size: var(--font-size-xs, 0.75rem);
-  color: var(--color-primary, #14b8a6);
+  color: var(--color-primary);
   background: var(--color-background, rgba(0, 0, 0, 0.3));
   padding: 0.1rem 0.35rem;
   border-radius: var(--radius-sm, 4px);
+}
+
+/* Onboarding wizard */
+.onboarding-wizard {
+  padding-top: 0.5rem;
+}
+
+.wizard-progress {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.wizard-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--color-border-light);
+  transition: background var(--transition-base);
+}
+
+.wizard-dot.active {
+  background: var(--color-primary);
+  box-shadow: 0 0 0 2px var(--color-primary-light);
+}
+
+.wizard-line {
+  flex: 1;
+  height: 2px;
+  background: var(--color-border-light);
+  max-width: 60px;
+}
+
+.wizard-step-label {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+  margin: 0 0 0.5rem 0;
+}
+
+.wizard-step-title {
+  margin: 0 0 0.35rem 0 !important;
+  font-size: var(--font-size-xl) !important;
+}
+
+.wizard-finance-options {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-bottom: 1.25rem;
+}
+
+.wizard-option {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1rem;
+  background: var(--color-background, rgba(0, 0, 0, 0.3));
+  border: 2px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  color: var(--color-text-primary);
+  cursor: pointer;
+  text-align: left;
+  transition: all var(--transition-base);
+}
+
+.wizard-option:hover {
+  border-color: var(--color-primary-border);
+  background: var(--color-surface-hover);
+}
+
+.wizard-option.selected {
+  border-color: var(--color-primary);
+  background: var(--color-primary-light);
+}
+
+.wizard-option-icon {
+  font-size: 1.5rem;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.wizard-option-text {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.15rem;
+}
+
+.wizard-option-label {
+  font-weight: var(--font-weight-semibold);
+}
+
+.wizard-option-desc {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+}
+
+.wizard-actions {
+  margin-top: 0.5rem;
 }
 
 .wallet-format-info-compact {

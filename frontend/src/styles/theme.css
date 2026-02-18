@@ -4,17 +4,18 @@
  */
 
 :root {
-  /* Colors — teal/cyan palette (blockchain-agnostic, blends with animated background) */
-  --color-primary: #14b8a6;
-  --color-primary-hover: #0d9488;
-  --color-primary-light: rgba(20, 184, 166, 0.12);
-  --color-primary-border: rgba(20, 184, 166, 0.35);
-  
+  /* Primary — violet/indigo (UI); logo keeps green via --color-logo-accent) */
+  --color-primary: #8b5cf6;
+  --color-primary-hover: #7c3aed;
+  --color-primary-light: rgba(139, 92, 246, 0.12);
+  --color-primary-border: rgba(139, 92, 246, 0.35);
+  --color-logo-accent: #14b8a6;
+
   --color-background: #0a0f14;
   --color-background-transparent: rgba(10, 15, 20, 0.6);
   --color-surface: rgba(20, 30, 38, 0.6);
   --color-surface-hover: rgba(28, 42, 52, 0.7);
-  --color-border: rgba(20, 184, 166, 0.22);
+  --color-border: rgba(139, 92, 246, 0.22);
   --color-border-light: rgba(255, 255, 255, 0.1);
   
   --color-text-primary: rgba(255, 255, 255, 0.87);
@@ -58,7 +59,7 @@
   --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.2);
   --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.3);
   --shadow-xl: 0 20px 25px rgba(0, 0, 0, 0.4);
-  --shadow-primary: 0 4px 16px rgba(20, 184, 166, 0.28);
+  --shadow-primary: 0 4px 16px rgba(139, 92, 246, 0.28);
   
   /* Transitions */
   --transition-fast: 0.15s ease;

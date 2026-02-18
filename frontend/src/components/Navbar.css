@@ -170,7 +170,7 @@
 }
 
 .wallet-info .nav-user-name:hover {
-  color: var(--color-primary, #14b8a6);
+  color: var(--color-primary);
   background: var(--color-surface-hover, rgba(255, 255, 255, 0.05));
 }
 
