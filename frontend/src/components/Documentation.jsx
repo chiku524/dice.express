@@ -102,8 +102,8 @@ function GettingStartedContent() {
         <li><strong>Get Authentication Token:</strong> Use Keycloak credentials to obtain a JWT token</li>
         <li><strong>Create TokenBalance Contracts:</strong> Visit the /test page to create TokenBalance contracts for CC transfers</li>
         <li><strong>Deposit CC:</strong> Use the Portfolio page to deposit CC to the platform wallet (on-chain)</li>
-        <li><strong>Create Markets:</strong> Use the Create Market page to submit market creation requests</li>
-        <li><strong>Trade:</strong> Browse markets and create positions on active markets</li>
+        <li><strong>Markets:</strong> Markets are created and managed automatically; browse from the home page</li>
+        <li><strong>Trade:</strong> Use the AMM on any market to buy Yes or No shares</li>
       </ol>
 
       <h2>Key Concepts</h2>
@@ -184,25 +184,16 @@ function MarketCreationContent() {
       <h1>Market Creation</h1>
       
       <p>
-        Create prediction markets that users can trade on. Market creation uses virtual CC tracking 
-        (database-only), not on-chain transfers.
+        Prediction markets on this platform are <strong>created and managed automatically</strong>. 
+        You can browse all markets and trade using the AMM (Automated Market Maker) — no need to create a market yourself.
       </p>
 
-      <h2>Creating a Market</h2>
+      <h2>How to trade</h2>
       <ol>
-        <li>Navigate to the "Create Market" page</li>
-        <li>Fill in the required fields:</li>
-        <ul>
-          <li><strong>Title:</strong> A clear, descriptive title for your market</li>
-          <li><strong>Description:</strong> Detailed description of what the market is predicting</li>
-          <li><strong>Market Type:</strong> Choose between Binary (Yes/No) or Multi-Outcome</li>
-          <li><strong>Outcomes:</strong> (For Multi-Outcome) Comma-separated list of possible outcomes</li>
-          <li><strong>Settlement Type:</strong> Time-Based, Event-Based, or Manual</li>
-          <li><strong>Settlement Time:</strong> (For Time-Based) When the market should settle</li>
-          <li><strong>Resolution Criteria:</strong> How the market outcome will be determined</li>
-        </ul>
-        <li>Click "Create Market"</li>
-        <li>Wait for admin approval</li>
+        <li>Browse markets from the home page or Discover menu</li>
+        <li>Open a market to see details and current Yes/No probabilities</li>
+        <li>Use the Trade section to buy Yes or No shares with Credits (AMM sets the price)</li>
+        <li>View your positions and balance in Portfolio</li>
       </ol>
 
       <h2>Market Types</h2>

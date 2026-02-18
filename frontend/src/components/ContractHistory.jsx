@@ -110,11 +110,9 @@ export default function ContractHistory() {
 
       {contracts.length === 0 ? (
         <div className="card">
-          <p>No contracts found. Create a market to see your contract history here!</p>
-          <Link to="/create">
-            <button className="btn-primary" style={{ marginTop: '1rem' }}>
-              Create Market
-            </button>
+          <p>No activity yet. Trade on a market to see your contract history here.</p>
+          <Link to="/">
+            <button className="btn-primary" style={{ marginTop: '1rem' }}>Browse markets</button>
           </Link>
         </div>
       ) : (

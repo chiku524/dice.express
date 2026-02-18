@@ -581,9 +581,6 @@ export default function MarketsList({ source: sourceFromRoute }) {
               <button type="button" className="btn-primary" onClick={handleRetry}>
                 Try again
               </button>
-              <Link to="/create">
-                <button className="btn-secondary">Create Market</button>
-              </Link>
               <Link to="/history">
                 <button className="btn-secondary">View History</button>
               </Link>
@@ -592,11 +589,9 @@ export default function MarketsList({ source: sourceFromRoute }) {
         </div>
       ) : markets.length === 0 ? (
         <div className="card">
-          <p>No markets found. Create your first market to get started!</p>
-          <Link to="/create">
-            <button className="btn-primary mt-md">
-              Create Market
-            </button>
+          <p>No markets available yet. Markets are added automatically — check back soon or try clearing filters.</p>
+          <Link to="/">
+            <button className="btn-primary mt-md">View all markets</button>
           </Link>
         </div>
       ) : (

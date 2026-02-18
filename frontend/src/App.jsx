@@ -8,7 +8,7 @@ import { lazyWithRetry } from './utils/lazyWithRetry'
 // Lazy load components for code splitting with retry logic
 const MarketsList = lazyWithRetry(() => import('./components/MarketsList'))
 const MarketDetail = lazyWithRetry(() => import('./components/MarketDetail'))
-const CreateMarket = lazyWithRetry(() => import('./components/CreateMarket'))
+const AutomatedMarketsInfo = lazyWithRetry(() => import('./components/AutomatedMarketsInfo'))
 const WalletConnect = lazyWithRetry(() => import('./components/WalletConnect'))
 const Portfolio = lazyWithRetry(() => import('./components/Portfolio'))
 const Documentation = lazyWithRetry(() => import('./components/Documentation'))
@@ -82,7 +82,7 @@ function AppContent() {
                   <Route path="/market/:marketId" element={<MarketDetail />} />
                   <Route path="/dashboard" element={<Dashboard />} />
                   <Route path="/profile" element={<Profile />} />
-                  <Route path="/create" element={<CreateMarket />} />
+                  <Route path="/create" element={<AutomatedMarketsInfo />} />
                   <Route path="/portfolio" element={<Portfolio />} />
                   <Route path="/admin" element={<AdminDashboard />} />
                   <Route path="/history" element={<ContractHistory />} />

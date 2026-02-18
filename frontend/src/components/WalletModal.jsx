@@ -28,12 +28,18 @@ export default function WalletModal({ isOpen, onClose }) {
   const [loading, setLoading] = useState(false)
   const modalRef = useRef(null)
 
-  // Focus first focusable element when opened; trap focus and handle Escape
+  // Focus input when signing in (smoother registration); otherwise first focusable; trap focus and handle Escape
   useEffect(() => {
     if (!isOpen || !modalRef.current) return
     const modal = modalRef.current
-    const focusables = getFocusableElements(modal)
-    if (focusables.length) focusables[0].focus()
+    let timeoutId
+    const input = modal.querySelector('#wallet-display-name')
+    if (input && !wallet) {
+      timeoutId = setTimeout(() => input.focus(), 50)
+    } else {
+      const focusables = getFocusableElements(modal)
+      if (focusables.length) focusables[0].focus()
+    }
 
     const handleKeyDown = (e) => {
       if (e.key === 'Escape') {
@@ -58,8 +64,11 @@ export default function WalletModal({ isOpen, onClose }) {
       }
     }
     modal.addEventListener('keydown', handleKeyDown)
-    return () => modal.removeEventListener('keydown', handleKeyDown)
-  }, [isOpen, onClose])
+    return () => {
+      if (timeoutId) clearTimeout(timeoutId)
+      modal.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [isOpen, onClose, wallet])
 
   if (!isOpen) return null
 

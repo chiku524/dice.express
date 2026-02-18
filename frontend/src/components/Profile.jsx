@@ -77,7 +77,7 @@ export default function Profile() {
 
       <div className="card profile-card">
         <h2 className="profile-section-title">Display name</h2>
-        <p className="profile-hint">This name is shown in the navbar and on your account. Other users see it when you create markets or trade.</p>
+        <p className="profile-hint">This name is shown in the navbar and on your account. Other users see it when you trade.</p>
         <div className="profile-form-row">
           <input
             type="text"

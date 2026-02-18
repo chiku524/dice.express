@@ -49,7 +49,7 @@ export default function Navbar({ showWalletModal, setShowWalletModal }) {
   }, [location.pathname])
 
   const isActive = (path) => location.pathname === path
-  const isDiscoverActive = () => ['/', '/create', '/portfolio', '/dashboard', '/profile'].some(isActive) ||
+  const isDiscoverActive = () => ['/', '/portfolio', '/dashboard', '/profile'].some(isActive) ||
     location.pathname.startsWith('/discover')
 
   return (
@@ -89,9 +89,6 @@ export default function Navbar({ showWalletModal, setShowWalletModal }) {
                 <Link to="/discover/virtual-realities" className={location.pathname === '/discover/virtual-realities' ? 'active' : ''}>
                   Virtual Realities
                 </Link>
-                <Link to="/discover/user" className={location.pathname === '/discover/user' ? 'active' : ''}>
-                  User-Created
-                </Link>
                 <div className="nav-dropdown-divider" />
                 <Link to="/dashboard" className={isActive('/dashboard') ? 'active' : ''}>
                   Dashboard
@@ -101,9 +98,6 @@ export default function Navbar({ showWalletModal, setShowWalletModal }) {
                 </Link>
                 <Link to="/profile" className={isActive('/profile') ? 'active' : ''}>
                   Profile
-                </Link>
-                <Link to="/create" className={isActive('/create') ? 'active' : ''}>
-                  Create Market
                 </Link>
               </div>
             )}

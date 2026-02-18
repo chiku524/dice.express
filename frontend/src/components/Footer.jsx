@@ -12,7 +12,6 @@ export default function Footer() {
             <ul className="footer-links">
               <li><Link to="/">All Markets</Link></li>
               <li><Link to="/dashboard">Dashboard</Link></li>
-              <li><Link to="/create">Create Market</Link></li>
               <li><Link to="/portfolio">Portfolio</Link></li>
             </ul>
           </nav>

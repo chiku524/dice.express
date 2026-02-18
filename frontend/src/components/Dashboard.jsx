@@ -118,8 +118,7 @@ export default function Dashboard() {
         <div className="card dashboard-card dashboard-card-actions">
           <h2 className="dashboard-card-title">Quick actions</h2>
           <div className="dashboard-quick-links">
-            <Link to="/" className="btn-secondary">Browse markets</Link>
-            <Link to="/create" className="btn-primary">Create market</Link>
+            <Link to="/" className="btn-primary">Browse markets</Link>
             <Link to="/profile" className="btn-secondary">Profile</Link>
           </div>
         </div>

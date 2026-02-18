@@ -15,8 +15,16 @@ export const SEO_PAGES = {
     description: 'View and trade on a prediction market. Your choice. Your chance.',
   },
   '/create': {
-    title: `Create Market | ${BASE_TITLE}`,
-    description: 'Create a new prediction market. Set the question, outcomes, and resolution.',
+    title: `Markets | ${BASE_TITLE}`,
+    description: 'Markets are automated. Browse and trade with the AMM.',
+  },
+  '/dashboard': {
+    title: `Dashboard | ${BASE_TITLE}`,
+    description: 'Your dashboard: balance, positions, and quick actions.',
+  },
+  '/profile': {
+    title: `Profile | ${BASE_TITLE}`,
+    description: 'Your account profile and display name.',
   },
   '/portfolio': {
     title: `Portfolio | ${BASE_TITLE}`,
