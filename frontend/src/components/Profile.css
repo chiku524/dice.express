@@ -1,0 +1,135 @@
+.profile-page {
+  padding-bottom: var(--spacing-2xl, 2rem);
+}
+
+.profile-gate {
+  padding: var(--spacing-xl, 2rem);
+}
+
+.profile-header {
+  margin-bottom: var(--spacing-xl, 2rem);
+}
+
+.profile-header h1 {
+  margin: 0 0 var(--spacing-xs, 0.25rem) 0;
+  font-size: var(--font-size-3xl, 1.875rem);
+  font-weight: var(--font-weight-semibold, 600);
+  color: var(--color-text-primary);
+}
+
+.profile-header p {
+  margin: 0;
+}
+
+.profile-card {
+  max-width: 560px;
+  margin-bottom: var(--spacing-lg, 1.5rem);
+}
+
+.profile-section-title {
+  margin: 0 0 var(--spacing-sm, 0.5rem) 0;
+  font-size: var(--font-size-lg, 1.125rem);
+  font-weight: var(--font-weight-semibold, 600);
+  color: var(--color-text-primary);
+}
+
+.profile-hint {
+  margin: 0 0 var(--spacing-md, 1rem) 0;
+  font-size: var(--font-size-sm, 0.875rem);
+  color: var(--color-text-secondary);
+}
+
+.profile-form-row {
+  display: flex;
+  gap: var(--spacing-sm, 0.5rem);
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.profile-input {
+  flex: 1;
+  min-width: 180px;
+  padding: var(--spacing-md, 0.75rem);
+  background: var(--color-background, rgba(0, 0, 0, 0.3));
+  border: 1px solid var(--color-primary-border, rgba(20, 184, 166, 0.35));
+  border-radius: var(--radius-md, 6px);
+  color: var(--color-text-primary);
+  font-size: var(--font-size-base, 1rem);
+}
+
+.profile-input:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px var(--color-primary-light);
+}
+
+.profile-error {
+  margin: var(--spacing-sm, 0.5rem) 0 0;
+  color: var(--color-error);
+  font-size: var(--font-size-sm, 0.875rem);
+}
+
+.profile-success {
+  margin: var(--spacing-sm, 0.5rem) 0 0;
+  color: var(--color-success);
+  font-size: var(--font-size-sm, 0.875rem);
+}
+
+.profile-dl {
+  margin: 0;
+  display: grid;
+  gap: var(--spacing-xs, 0.25rem) var(--spacing-md, 1rem);
+  grid-template-columns: auto 1fr;
+  align-items: baseline;
+}
+
+.profile-dl dt {
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm, 0.875rem);
+  font-weight: var(--font-weight-medium, 500);
+}
+
+.profile-dl dd {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm, 0.5rem);
+  flex-wrap: wrap;
+}
+
+.profile-code {
+  font-family: var(--font-family-mono, 'Courier New', monospace);
+  font-size: var(--font-size-sm, 0.875rem);
+  color: var(--color-primary);
+  background: var(--color-background, rgba(0, 0, 0, 0.3));
+  padding: 0.2rem 0.5rem;
+  border-radius: var(--radius-sm, 4px);
+  word-break: break-all;
+}
+
+.profile-copy-btn {
+  padding: var(--spacing-xs, 0.25rem) var(--spacing-sm, 0.5rem);
+  font-size: var(--font-size-xs, 0.75rem);
+  background: var(--color-surface-hover);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm, 4px);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+}
+
+.profile-copy-btn:hover {
+  color: var(--color-text-primary);
+  border-color: var(--color-primary-border);
+}
+
+.profile-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-sm, 0.5rem);
+}
+
+.profile-actions a,
+.profile-actions button {
+  text-decoration: none;
+}

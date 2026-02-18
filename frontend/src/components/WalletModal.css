@@ -128,6 +128,55 @@
   gap: 0.5rem;
 }
 
+.wallet-disconnected.onboarding-block {
+  gap: 0.75rem;
+}
+
+.onboarding-lead {
+  font-size: var(--font-size-lg, 1.1rem);
+  color: var(--color-text-primary, rgba(255, 255, 255, 0.9));
+  margin: 0 0 var(--spacing-xs, 0.25rem) 0;
+  font-weight: var(--font-weight-medium, 500);
+}
+
+.wallet-input-label {
+  display: block;
+  margin-bottom: var(--spacing-xs, 0.25rem);
+  color: var(--color-text-secondary, rgba(255, 255, 255, 0.8));
+  font-size: var(--font-size-sm, 0.9rem);
+  font-weight: var(--font-weight-medium, 500);
+}
+
+.wallet-modal-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.wallet-modal-actions .btn-primary { flex: 1; min-width: 120px; }
+.wallet-modal-actions .btn-secondary { flex: 1; min-width: 120px; }
+
+.wallet-modal-btn {
+  text-decoration: none;
+  text-align: center;
+  display: inline-block;
+}
+
+.btn-block {
+  width: 100%;
+  margin-top: 0.5rem;
+}
+
+.party-id-inline {
+  font-family: var(--font-family-mono, 'Courier New', monospace);
+  font-size: var(--font-size-xs, 0.75rem);
+  color: var(--color-primary, #14b8a6);
+  background: var(--color-background, rgba(0, 0, 0, 0.3));
+  padding: 0.1rem 0.35rem;
+  border-radius: var(--radius-sm, 4px);
+}
+
 .wallet-format-info-compact {
   background: var(--color-primary-light, rgba(100, 108, 255, 0.1));
   padding: var(--spacing-sm, 0.5rem) var(--spacing-md, 0.75rem);

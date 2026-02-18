@@ -5,6 +5,26 @@ const WalletContext = createContext(null)
 const WALLET_STORAGE_KEY = 'virtual_account'
 const DEFAULT_USER_ID = 'guest'
 
+function generateAccountId() {
+  if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+    return 'acc_' + crypto.randomUUID().replace(/-/g, '')
+  }
+  const bytes = new Uint8Array(16)
+  if (typeof crypto !== 'undefined' && crypto.getRandomValues) {
+    crypto.getRandomValues(bytes)
+  }
+  return 'acc_' + Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join('')
+}
+
+function normalizeStoredWallet(walletData) {
+  if (!walletData?.party || !String(walletData.party).trim()) return null
+  const party = String(walletData.party).trim()
+  const accountId = walletData.accountId || generateAccountId()
+  const createdAt = walletData.createdAt || walletData.connectedAt || new Date().toISOString()
+  const connectedAt = walletData.connectedAt || new Date().toISOString()
+  return { party, accountId, createdAt, connectedAt }
+}
+
 export function WalletProvider({ children }) {
   const [wallet, setWallet] = useState(null)
 
@@ -13,8 +33,13 @@ export function WalletProvider({ children }) {
     if (stored) {
       try {
         const walletData = JSON.parse(stored)
-        if (walletData.party && String(walletData.party).trim()) {
-          setWallet(walletData)
+        const normalized = normalizeStoredWallet(walletData)
+        if (normalized) {
+          setWallet(normalized)
+          // Persist normalized shape if we upgraded it
+          if (!walletData.accountId || !walletData.createdAt) {
+            localStorage.setItem(WALLET_STORAGE_KEY, JSON.stringify(normalized))
+          }
         } else {
           localStorage.removeItem(WALLET_STORAGE_KEY)
         }
@@ -29,8 +54,8 @@ export function WalletProvider({ children }) {
       if (e.key === WALLET_STORAGE_KEY) {
         if (e.newValue) {
           try {
-            const walletData = JSON.parse(e.newValue)
-            if (walletData.party && String(walletData.party).trim()) setWallet(walletData)
+            const normalized = normalizeStoredWallet(JSON.parse(e.newValue))
+            if (normalized) setWallet(normalized)
           } catch (err) {}
         } else setWallet(null)
       }
@@ -43,23 +68,37 @@ export function WalletProvider({ children }) {
     try {
       const party = (userId != null ? String(userId).trim() : null) || DEFAULT_USER_ID
       if (!party) {
-        throw new Error('Please enter a user ID')
+        throw new Error('Please enter a display name')
       }
-      const newWallet = { party, connectedAt: new Date().toISOString() }
+      const now = new Date().toISOString()
+      const newWallet = {
+        party,
+        accountId: generateAccountId(),
+        createdAt: now,
+        connectedAt: now,
+      }
       setWallet(newWallet)
       localStorage.setItem(WALLET_STORAGE_KEY, JSON.stringify(newWallet))
       window.dispatchEvent(new CustomEvent('wallet_connected', { detail: newWallet }))
-      return { success: true, party }
+      return { success: true, party, accountId: newWallet.accountId }
     } catch (error) {
       console.error('Failed to connect', error)
       throw error
     }
   }
 
+  const updateDisplayName = (newParty) => {
+    const trimmed = newParty != null ? String(newParty).trim() : ''
+    if (!trimmed || !wallet) return
+    const updated = { ...wallet, party: trimmed, connectedAt: new Date().toISOString() }
+    setWallet(updated)
+    localStorage.setItem(WALLET_STORAGE_KEY, JSON.stringify(updated))
+    window.dispatchEvent(new CustomEvent('wallet_connected', { detail: updated }))
+  }
+
   const disconnectWallet = () => {
     setWallet(null)
     localStorage.removeItem(WALLET_STORAGE_KEY)
-    // Dispatch custom event to notify other components
     window.dispatchEvent(new CustomEvent('wallet_disconnected'))
   }
 
@@ -85,7 +124,7 @@ export function WalletProvider({ children }) {
   }, [])
 
   return (
-    <WalletContext.Provider value={{ wallet, connectWallet, disconnectWallet, DEFAULT_USER_ID }}>
+    <WalletContext.Provider value={{ wallet, connectWallet, disconnectWallet, updateDisplayName, DEFAULT_USER_ID }}>
       {children}
     </WalletContext.Provider>
   )

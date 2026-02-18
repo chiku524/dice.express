@@ -160,6 +160,20 @@
   color: var(--color-primary-hover, #535bf2);
 }
 
+.wallet-info .nav-user-name {
+  color: var(--color-text-primary, rgba(255, 255, 255, 0.87));
+  text-decoration: none;
+  font-size: var(--font-size-sm, 0.9rem);
+  padding: var(--spacing-xs, 0.25rem) var(--spacing-sm, 0.5rem);
+  border-radius: var(--radius-sm, 4px);
+  transition: all var(--transition-base, 0.2s ease);
+}
+
+.wallet-info .nav-user-name:hover {
+  color: var(--color-primary, #14b8a6);
+  background: var(--color-surface-hover, rgba(255, 255, 255, 0.05));
+}
+
 @media (max-width: 768px) {
   .nav-dropdown-menu {
     right: 0;

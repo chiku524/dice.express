@@ -49,7 +49,7 @@ export default function Navbar({ showWalletModal, setShowWalletModal }) {
   }, [location.pathname])
 
   const isActive = (path) => location.pathname === path
-  const isDiscoverActive = () => ['/', '/create', '/portfolio'].some(isActive) ||
+  const isDiscoverActive = () => ['/', '/create', '/portfolio', '/dashboard', '/profile'].some(isActive) ||
     location.pathname.startsWith('/discover')
 
   return (
@@ -93,11 +93,17 @@ export default function Navbar({ showWalletModal, setShowWalletModal }) {
                   User-Created
                 </Link>
                 <div className="nav-dropdown-divider" />
-                <Link to="/create" className={isActive('/create') ? 'active' : ''}>
-                  Create Market
+                <Link to="/dashboard" className={isActive('/dashboard') ? 'active' : ''}>
+                  Dashboard
                 </Link>
                 <Link to="/portfolio" className={isActive('/portfolio') ? 'active' : ''}>
                   My Portfolio
+                </Link>
+                <Link to="/profile" className={isActive('/profile') ? 'active' : ''}>
+                  Profile
+                </Link>
+                <Link to="/create" className={isActive('/create') ? 'active' : ''}>
+                  Create Market
                 </Link>
               </div>
             )}
@@ -141,7 +147,9 @@ export default function Navbar({ showWalletModal, setShowWalletModal }) {
                   {balanceFormatted}
                 </Link>
               )}
-              <span title={wallet.party}>{wallet.party.length > 20 ? wallet.party.substring(0, 20) + '…' : wallet.party}</span>
+              <Link to="/dashboard" className="nav-user-name" title={wallet.party}>
+                {wallet.party.length > 16 ? wallet.party.substring(0, 16) + '…' : wallet.party}
+              </Link>
               <button onClick={() => setShowWalletModal(true)}>Account</button>
               <button onClick={disconnectWallet}>Disconnect</button>
             </div>

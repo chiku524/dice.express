@@ -14,6 +14,8 @@ const Portfolio = lazyWithRetry(() => import('./components/Portfolio'))
 const Documentation = lazyWithRetry(() => import('./components/Documentation'))
 const AdminDashboard = lazyWithRetry(() => import('./components/AdminDashboard'))
 const ContractHistory = lazyWithRetry(() => import('./components/ContractHistory'))
+const Dashboard = lazyWithRetry(() => import('./components/Dashboard'))
+const Profile = lazyWithRetry(() => import('./components/Profile'))
 import { analytics } from './utils/analytics'
 import AnimatedBackground from './components/AnimatedBackground'
 import WalletModal from './components/WalletModal'
@@ -78,6 +80,8 @@ function AppContent() {
                   <Route path="/discover/virtual-realities" element={<MarketsList source="virtual_realities" />} />
                   <Route path="/discover/user" element={<MarketsList source="user" />} />
                   <Route path="/market/:marketId" element={<MarketDetail />} />
+                  <Route path="/dashboard" element={<Dashboard />} />
+                  <Route path="/profile" element={<Profile />} />
                   <Route path="/create" element={<CreateMarket />} />
                   <Route path="/portfolio" element={<Portfolio />} />
                   <Route path="/admin" element={<AdminDashboard />} />
