@@ -2,13 +2,23 @@
 
 dice.express can run its **entire API on Cloudflare** using **D1** (SQL), **R2** (object storage), and **KV** (cache), with no Supabase or Vercel backend required.
 
+## Data persistence
+
+When the app is deployed to Cloudflare Pages with **D1** bound (`env.DB` in `wrangler.toml`):
+
+- **All mutable data persists in D1**: contracts (markets, positions, pools), user balances, and contract status updates. Reads and writes go to D1 only (no proxy).
+- **KV** is used to cache GET `/api/markets` by source (60s TTL), reducing D1 reads for the markets list.
+- **R2** is used to back up contract payloads on every write: `store-contract`, POST `/api/markets` (market + pool), POST `/api/trade` (position), POST `/api/create-position` (position), and POST `/api/update-market-status` (updated market). Backups are written to `contracts/{contractId}.json`. R2 backup is fire-and-forget (failures are logged but do not fail the request).
+
+If **BACKEND_URL** is set and D1 is not bound, `/api/*` is proxied to that origin (e.g. Vercel + Supabase); persistence then depends on that backend.
+
 ## Overview
 
 | Storage | Role |
 |--------|------|
-| **D1** | Primary: `contracts` and `user_balances` tables (replaces Supabase). |
-| **KV** | Optional: cache for GET `/api/markets` (short TTL). |
-| **R2** | Optional: backup or large payloads; bindings are set but not required for core API. |
+| **D1** | Primary: `contracts` and `user_balances` tables (replaces Supabase). All API writes and reads use D1 when bound. |
+| **KV** | Cache for GET `/api/markets` (short TTL). Reduces D1 load. |
+| **R2** | Backup: contract payloads are written to R2 on every store/update (store-contract, markets, trade, create-position, update-market-status). |
 
 The same API surface is supported: `/api/get-contracts`, `/api/store-contract`, `/api/update-contract-status`, `/api/get-user-balance`, `/api/update-user-balance`, `/api/markets`, `/api/pools`, `/api/trade`, `/api/update-market-status`, `/api/create-position`.
 

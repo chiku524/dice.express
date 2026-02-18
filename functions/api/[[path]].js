@@ -14,6 +14,17 @@ const CORS = {
 }
 
 const TEMPLATE_VIRTUAL_MARKET = 'VirtualMarket'
+const R2_BUCKET_NAME = 'dice-express-r2'
+
+/** Fire-and-forget R2 backup; never throws. */
+async function backupToR2(r2, bucketName, contractId, payload) {
+  if (!r2) return
+  try {
+    await storage.backupContractToR2(r2, bucketName || R2_BUCKET_NAME, contractId, payload)
+  } catch (e) {
+    console.warn('[R2 backup]', contractId, e?.message)
+  }
+}
 
 function jsonResponse(body, status = 200) {
   return new Response(JSON.stringify(body), {
@@ -127,16 +138,18 @@ async function handleWithD1(db, kv, r2, request, path, method) {
         required: ['contractId', 'templateId', 'party'],
       }, 400)
     }
+    const contractPayload = payload || {}
     await storage.upsertContract(db, {
       contract_id: contractId,
       template_id: templateId,
-      payload: payload || {},
+      payload: contractPayload,
       party,
       status: status || 'PendingApproval',
       update_id: updateId || null,
       completion_offset: completionOffset || null,
       explorer_url: explorerUrl || null,
     })
+    await backupToR2(r2, undefined, contractId, contractPayload)
     return jsonResponse({ success: true, contract: { contract_id: contractId, template_id: templateId, party, status: status || 'PendingApproval' } })
   }
 
@@ -275,6 +288,7 @@ async function handleWithD1(db, kv, r2, request, path, method) {
         party,
         status: 'Active',
       })
+      await backupToR2(r2, undefined, id, payload)
       const poolState = createPoolState(id, 1000, 1000)
       await storage.upsertContract(db, {
         contract_id: poolState.poolId,
@@ -283,6 +297,7 @@ async function handleWithD1(db, kv, r2, request, path, method) {
         party: 'platform',
         status: 'Active',
       })
+      await backupToR2(r2, undefined, poolState.poolId, poolState)
       return jsonResponse({
         success: true,
         market: { contractId: id, templateId: TEMPLATE_VIRTUAL_MARKET, payload: { ...payload }, party, status: 'Active' },
@@ -362,21 +377,23 @@ async function handleWithD1(db, kv, r2, request, path, method) {
       sideNorm === 'Yes'
         ? pool.yesReserve / (pool.yesReserve + pool.noReserve)
         : pool.noReserve / (pool.yesReserve + pool.noReserve)
+    const positionPayload = {
+      positionId,
+      marketId,
+      owner: userId,
+      positionType: sideNorm,
+      amount: outputAmount,
+      price,
+      createdAt: new Date().toISOString(),
+    }
     await storage.upsertContract(db, {
       contract_id: positionId,
       template_id: 'Position',
-      payload: {
-        positionId,
-        marketId,
-        owner: userId,
-        positionType: sideNorm,
-        amount: outputAmount,
-        price,
-        createdAt: new Date().toISOString(),
-      },
+      payload: positionPayload,
       party: userId,
       status: 'Active',
     })
+    await backupToR2(r2, undefined, positionId, positionPayload)
 
     const marketRow = await storage.getContractById(db, marketId)
     if (marketRow?.payload) {
@@ -407,6 +424,7 @@ async function handleWithD1(db, kv, r2, request, path, method) {
     if (status) payload.status = status
     if (resolvedOutcome !== undefined) payload.resolvedOutcome = resolvedOutcome
     await storage.updateContractPayload(db, marketId, payload)
+    await backupToR2(r2, undefined, marketId, payload)
     return jsonResponse({ success: true, market: { contractId: marketId, payload } })
   }
 
@@ -471,6 +489,7 @@ async function handleWithD1(db, kv, r2, request, path, method) {
       party: owner,
       status: 'Active',
     })
+    await backupToR2(r2, undefined, contractId, positionPayload)
 
     const p = marketRow.payload || {}
     const newTotalVolume = (parseFloat(p.totalVolume) || 0) + amountNum

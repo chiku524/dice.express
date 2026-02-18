@@ -139,9 +139,9 @@ export async function setMarketsCache(kv, source, list, ttlSeconds = KV_CACHE_TT
   await kv.put(key, JSON.stringify(list), { expirationTtl: ttlSeconds })
 }
 
-/** Optional: write contract payload to R2 for backup (key = contract_id). */
-export async function backupContractToR2(r2, bucketName, contractId, payload) {
-  if (!r2 || !bucketName) return
+/** Optional: write contract payload to R2 for backup (key = contract_id). bucketName is for reference; R2 put uses the binding. */
+export async function backupContractToR2(r2, _bucketName, contractId, payload) {
+  if (!r2) return
   const key = `contracts/${contractId}.json`
   await r2.put(key, JSON.stringify(payload), { httpMetadata: { contentType: 'application/json' } })
 }

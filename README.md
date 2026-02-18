@@ -40,7 +40,7 @@ A prediction markets platform where **all activity is virtual (Credits)**. Marke
 ## Prerequisites
 
 - Node.js 18+ and npm
-- Supabase (or compatible DB) for contracts and user_balances tables
+- **Backend**: Either **Supabase** (with Vercel/serverless API) **or** **Cloudflare D1 + KV + R2** for full data persistence on Cloudflare (see [docs/CLOUDFLARE_STORAGE_MIGRATION.md](docs/CLOUDFLARE_STORAGE_MIGRATION.md)).
 
 ## Setup
 
@@ -80,3 +80,4 @@ npm install
 - `docs/ARCHITECTURE.md` — High-level architecture (virtual-only)
 - `docs/AMM.md` — AMM design and formulas
 - `docs/PLATFORM_VISION_AND_ROADMAP.md` — Vision and roadmap
+- `docs/CLOUDFLARE_STORAGE_MIGRATION.md` — **Data persistence on Cloudflare**: D1 (primary DB), KV (markets cache), R2 (contract backup)
