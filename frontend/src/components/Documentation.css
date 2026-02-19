@@ -4,11 +4,11 @@ body:has(.documentation-container) {
   height: 100vh !important;
 }
 
-/* Fixed heights: navbar 64px, TOC 56px. Content starts after 132px (120 + 12px buffer so header fully cleared). */
+/* Fixed heights: navbar 64px, TOC 56px. Content starts after 140px (120 + 20px buffer so scrollbar start visible). */
 .documentation-container {
   --docs-navbar-height: 64px;
   --docs-toc-height: 56px;
-  --docs-header-total: 132px; /* 64+56 + 12px buffer so content header fully below TOC */
+  --docs-header-total: 140px; /* 64+56 + 20px buffer so content and scrollbar fully below TOC */
   --docs-footer-height: 80px;
 }
 
@@ -263,7 +263,7 @@ body:has(.documentation-container) {
 
 @media (max-width: 968px) {
   .documentation-container {
-    --docs-header-total: 128px; /* 64 + 52 + 12px buffer */
+    --docs-header-total: 136px; /* 64 + 52 + 20px buffer */
   }
 
   .documentation-toc-bar {
@@ -291,7 +291,7 @@ body:has(.documentation-container) {
 
 @media (max-width: 640px) {
   .documentation-container {
-    --docs-header-total: 124px; /* 64 + 48 + 12px buffer */
+    --docs-header-total: 132px; /* 64 + 48 + 20px buffer */
     --docs-footer-height: 72px;
   }
 
