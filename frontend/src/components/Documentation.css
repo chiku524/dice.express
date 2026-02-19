@@ -12,11 +12,11 @@ body:has(.documentation-container) {
   --docs-footer-height: 80px;
 }
 
-/* Docs layout: navbar (fixed) → TOC bar (fixed below navbar) → content. */
+/* Docs layout: navbar (fixed) → TOC bar (fixed) → content. Explicit height so content can scroll. */
 .documentation-container {
   display: block;
-  padding-top: calc(var(--docs-navbar-height) + var(--docs-toc-height) + var(--docs-content-offset));
   width: 100%;
+  height: 100vh;
   min-height: 100vh;
   box-sizing: border-box;
   background: transparent;
@@ -115,11 +115,12 @@ body:has(.documentation-container) {
   display: none;
 }
 
-/* Content area: starts below TOC; explicit height so it scrolls; no overlap on any viewport */
+/* Content area: margin-top pushes it below TOC; fixed height so it scrolls (all viewports). */
 .documentation-content {
   width: 100%;
   margin: 0;
-  height: calc(100vh - var(--docs-navbar-height) - var(--docs-toc-height) - var(--docs-content-offset) - var(--docs-footer-height));
+  margin-top: calc(var(--docs-navbar-height) + var(--docs-toc-height));
+  height: calc(100vh - var(--docs-navbar-height) - var(--docs-toc-height) - var(--docs-footer-height));
   min-height: 240px;
   padding: 2rem 2.5rem 4rem;
   overflow-y: auto !important;
