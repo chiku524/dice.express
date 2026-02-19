@@ -8,7 +8,7 @@ body:has(.documentation-container) {
 .documentation-container {
   --docs-navbar-height: 72px;
   --docs-toc-height: 56px;
-  --docs-content-offset: 16px; /* gap so content header starts fully below TOC */
+  --docs-content-offset: 20px; /* content header begins exactly where TOC bottom ends */
   --docs-footer-height: 80px;
 }
 
