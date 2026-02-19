@@ -1,8 +1,24 @@
-import { useState } from 'react'
+import { useState, useRef, useCallback } from 'react'
 import './Documentation.css'
 
 export default function Documentation() {
   const [activeSection, setActiveSection] = useState('getting-started')
+  const tocNavRef = useRef(null)
+
+  /* Mouse wheel scrolls TOC horizontally (wheel down = scroll right); only capture when TOC can scroll */
+  const handleTocWheel = useCallback((e) => {
+    const el = tocNavRef.current
+    if (!el) return
+    const maxScroll = el.scrollWidth - el.clientWidth
+    if (maxScroll <= 2) return /* no overflow, let event bubble */
+    const canScrollRight = el.scrollLeft < maxScroll - 2
+    const canScrollLeft = el.scrollLeft > 2
+    const scrollingDown = e.deltaY > 0
+    const scrollingUp = e.deltaY < 0
+    if ((scrollingDown && !canScrollRight) || (scrollingUp && !canScrollLeft)) return
+    e.preventDefault()
+    el.scrollLeft += e.deltaY
+  }, [])
 
   const sections = [
     { id: 'getting-started', title: 'Getting Started' },
@@ -57,7 +73,11 @@ export default function Documentation() {
     <div className="documentation-container">
       {/* TOC bar: single row below navbar, above content — block layout so it never collapses */}
       <header className="documentation-toc-bar" aria-label="Documentation sections">
-        <nav className="documentation-nav">
+        <nav
+          ref={tocNavRef}
+          className="documentation-nav"
+          onWheel={handleTocWheel}
+        >
           <ul>
             {sections.map((section) => (
               <li key={section.id}>
