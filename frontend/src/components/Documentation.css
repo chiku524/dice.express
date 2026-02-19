@@ -4,11 +4,14 @@ body:has(.documentation-container) {
   height: 100vh !important;
 }
 
-/* Docs layout: navbar → TOC bar (row) → content. Block layout so TOC bar never collapses. */
+/* Docs layout: navbar → TOC bar → content. No gap above footer; TOC has dedicated space. */
 .documentation-container {
-  padding-top: 60px; /* Clear fixed navbar */
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  padding-top: 60px; /* Space for fixed navbar */
   width: 100%;
-  min-height: 100vh;
   box-sizing: border-box;
   background: transparent;
   color: var(--color-text-primary, #fff);
@@ -100,13 +103,12 @@ body:has(.documentation-container) {
   display: none;
 }
 
-/* Content area: fixed height so it scrolls; sits below TOC bar */
+/* Content area: fills space between TOC and footer; scrolls inside. No gap. */
 .documentation-content {
-  display: block !important;
+  flex: 1;
+  min-height: 0;
   width: 100%;
-  height: calc(100vh - 60px - 52px - 80px);
-  min-height: 200px;
-  padding: 2rem 2.5rem 5rem;
+  padding: 2rem 2.5rem 4rem;
   overflow-y: auto;
   overflow-x: hidden;
   background: var(--color-surface, rgba(20, 28, 40, 0.6));

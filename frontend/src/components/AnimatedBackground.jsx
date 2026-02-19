@@ -26,11 +26,10 @@ export default function AnimatedBackground() {
       return
     }
     
-    console.log('[AnimatedBackground] Starting animation')
     let particles = []
     let graphLines = []
     let geometricShapes = []
-    let glowingOrbs = []
+    let softStreaks = []
     let pulsingRings = []
     let time = 0
 
@@ -39,7 +38,6 @@ export default function AnimatedBackground() {
       const rect = canvas.getBoundingClientRect()
       canvas.width = rect.width
       canvas.height = rect.height
-      console.log('[AnimatedBackground] Canvas resized to:', canvas.width, 'x', canvas.height)
     }
     resizeCanvas()
     window.addEventListener('resize', resizeCanvas)
@@ -280,10 +278,8 @@ export default function AnimatedBackground() {
       }
     }
 
-    // Initialize particles - ensure minimum visibility
-    const numParticles = Math.max(50, Math.floor((canvas.width * canvas.height) / 10000))
-    console.log('[AnimatedBackground] Canvas size:', canvas.width, 'x', canvas.height)
-    console.log('[AnimatedBackground] Initializing', numParticles, 'particles')
+    // Fewer particles — no connected-dots network; keep subtle floating points only
+    const numParticles = Math.max(12, Math.floor((canvas.width * canvas.height) / 28000))
     for (let i = 0; i < numParticles; i++) {
       particles.push(new Particle())
     }
@@ -393,66 +389,49 @@ export default function AnimatedBackground() {
       }
     }
 
-    // Glowing Orb class - large, slow-moving orbs
-    class GlowingOrb {
+    // Soft streak — theme-aligned gradient line, no orbs
+    const themeColors = { violet: { r: 139, g: 92, b: 246 }, cyan: { r: 34, g: 211, b: 238 } }
+    class SoftStreak {
       constructor() {
         this.reset()
       }
 
       reset() {
-        // Prefer corners and center areas
-        const positionType = Math.random()
-        if (positionType < 0.3) {
-          // Corner
-          const corner = Math.floor(Math.random() * 4)
-          if (corner === 0) { this.x = 0; this.y = 0 }
-          else if (corner === 1) { this.x = canvas.width; this.y = 0 }
-          else if (corner === 2) { this.x = canvas.width; this.y = canvas.height }
-          else { this.x = 0; this.y = canvas.height }
-        } else if (positionType < 0.6) {
-          // Center area
-          this.x = canvas.width / 2 + (Math.random() - 0.5) * 300
-          this.y = canvas.height / 2 + (Math.random() - 0.5) * 300
-        } else {
-          this.x = Math.random() * canvas.width
-          this.y = Math.random() * canvas.height
-        }
-
-        this.size = Math.random() * 80 + 40
-        this.speedX = (Math.random() - 0.5) * 0.05
-        this.speedY = (Math.random() - 0.5) * 0.05
-        this.color = getColor('subtle')
-        this.opacity = Math.random() * 0.15 + 0.05 // Very subtle
-        this.pulseSpeed = Math.random() * 0.004 + 0.002
-        this.pulsePhase = Math.random() * Math.PI * 2
-        this.pulseAmplitude = Math.random() * 0.1 + 0.05
+        this.x = Math.random() * canvas.width
+        this.y = Math.random() * canvas.height
+        this.length = 60 + Math.random() * 100
+        this.angle = Math.random() * Math.PI * 2
+        this.opacity = Math.random() * 0.06 + 0.03
+        this.speed = 0.02 + Math.random() * 0.04
+        this.phase = Math.random() * Math.PI * 2
+        this.useCyan = Math.random() < 0.5
       }
 
       update() {
-        this.x += this.speedX
-        this.y += this.speedY
-        this.pulsePhase += this.pulseSpeed
-
-        // Wrap around
+        this.phase += 0.008
+        this.x += Math.cos(this.angle) * this.speed
+        this.y += Math.sin(this.angle) * this.speed
         if (this.x < -100) this.x = canvas.width + 100
         if (this.x > canvas.width + 100) this.x = -100
         if (this.y < -100) this.y = canvas.height + 100
         if (this.y > canvas.height + 100) this.y = -100
-
-        this.currentOpacity = this.opacity + Math.sin(this.pulsePhase) * this.pulseAmplitude
-        this.currentSize = this.size + Math.sin(this.pulsePhase * 1.5) * 10
+        this.currentOpacity = this.opacity * (0.6 + 0.4 * Math.sin(this.phase))
       }
 
       draw() {
-        const gradient = ctx.createRadialGradient(this.x, this.y, 0, this.x, this.y, this.currentSize)
-        gradient.addColorStop(0, `rgba(${this.color.r}, ${this.color.g}, ${this.color.b}, ${this.currentOpacity})`)
-        gradient.addColorStop(0.5, `rgba(${this.color.r}, ${this.color.g}, ${this.color.b}, ${this.currentOpacity * 0.5})`)
-        gradient.addColorStop(1, `rgba(${this.color.r}, ${this.color.g}, ${this.color.b}, 0)`)
-
-        ctx.fillStyle = gradient
+        const c = this.useCyan ? themeColors.cyan : themeColors.violet
+        const x2 = this.x + Math.cos(this.angle) * this.length
+        const y2 = this.y + Math.sin(this.angle) * this.length
+        const g = ctx.createLinearGradient(this.x, this.y, x2, y2)
+        g.addColorStop(0, `rgba(${c.r}, ${c.g}, ${c.b}, 0)`)
+        g.addColorStop(0.5, `rgba(${c.r}, ${c.g}, ${c.b}, ${this.currentOpacity})`)
+        g.addColorStop(1, `rgba(${c.r}, ${c.g}, ${c.b}, 0)`)
+        ctx.strokeStyle = g
+        ctx.lineWidth = 1.5
         ctx.beginPath()
-        ctx.arc(this.x, this.y, this.currentSize, 0, Math.PI * 2)
-        ctx.fill()
+        ctx.moveTo(this.x, this.y)
+        ctx.lineTo(x2, y2)
+        ctx.stroke()
       }
     }
 
@@ -536,30 +515,26 @@ export default function AnimatedBackground() {
       }
     }
 
-    // Initialize graph lines - fewer, more subtle
-    const numGraphLines = 2 + Math.floor(Math.random() * 2) // 2-3 lines instead of 3-6
-    console.log('[AnimatedBackground] Initializing', numGraphLines, 'graph lines')
+    // Graph lines — subtle wave accents
+    const numGraphLines = 2 + Math.floor(Math.random() * 2)
     for (let i = 0; i < numGraphLines; i++) {
       graphLines.push(new GraphLine())
     }
-    
-    // Initialize geometric shapes
-    const numShapes = 8 + Math.floor(Math.random() * 5)
-    console.log('[AnimatedBackground] Initializing', numShapes, 'geometric shapes')
+
+    // Geometric shapes — light accent, theme-aligned
+    const numShapes = 4 + Math.floor(Math.random() * 3)
     for (let i = 0; i < numShapes; i++) {
       geometricShapes.push(new GeometricShape())
     }
     
-    // Initialize glowing orbs
-    const numOrbs = 3 + Math.floor(Math.random() * 3)
-    console.log('[AnimatedBackground] Initializing', numOrbs, 'glowing orbs')
-    for (let i = 0; i < numOrbs; i++) {
-      glowingOrbs.push(new GlowingOrb())
+    // Soft streaks — violet/cyan gradient lines, blend with theme
+    const numStreaks = 3 + Math.floor(Math.random() * 3)
+    for (let i = 0; i < numStreaks; i++) {
+      softStreaks.push(new SoftStreak())
     }
-    
-    // Initialize pulsing rings - fewer, slower, more subtle
-    const numRings = 3 + Math.floor(Math.random() * 3) // 3-5 rings (reduced from 5-8)
-    console.log('[AnimatedBackground] Initializing', numRings, 'pulsing rings')
+
+    // Pulsing rings — main radial animation; keep these
+    const numRings = 4 + Math.floor(Math.random() * 3)
     for (let i = 0; i < numRings; i++) {
       pulsingRings.push(new PulsingRing())
     }
@@ -572,17 +547,16 @@ export default function AnimatedBackground() {
       ctx.fillStyle = 'rgba(0, 0, 0, 0.42)'
       ctx.fillRect(0, 0, canvas.width, canvas.height)
 
-      // Update and draw all elements in layers
-      // Background layer: glowing orbs
-      glowingOrbs.forEach(orb => {
-        orb.update()
-        orb.draw()
-      })
-
       // Mid layer: graph lines
       graphLines.forEach(line => {
         line.update()
         line.draw()
+      })
+
+      // Theme streaks (violet/cyan)
+      softStreaks.forEach(s => {
+        s.update()
+        s.draw()
       })
 
       // Foreground layer: geometric shapes
@@ -597,33 +571,10 @@ export default function AnimatedBackground() {
         particle.draw()
       })
 
-      // Top layer: pulsing rings
+      // Top layer: pulsing rings (radial animation)
       pulsingRings.forEach(ring => {
         ring.update()
         ring.draw()
-      })
-
-      // Draw connections between nearby particles (network effect)
-      particles.forEach((particle, i) => {
-        particles.slice(i + 1).forEach(otherParticle => {
-          const dx = particle.x - otherParticle.x
-          const dy = particle.y - otherParticle.y
-          const distance = Math.sqrt(dx * dx + dy * dy)
-
-          if (distance < 120) {
-            // Varied connection opacity based on distance - more subtle
-            const baseOpacity = (1 - distance / 120)
-            const opacity = baseOpacity * (0.05 + Math.random() * 0.08) // 5-13% range - more subtle
-            ctx.beginPath()
-            ctx.moveTo(particle.x, particle.y)
-            ctx.lineTo(otherParticle.x, otherParticle.y)
-            // Use accent palette color for connections
-            const connectionColor = getColor('accent')
-            ctx.strokeStyle = `rgba(${connectionColor.r}, ${connectionColor.g}, ${connectionColor.b}, ${opacity})`
-            ctx.lineWidth = 0.3 + Math.random() * 0.4
-            ctx.stroke()
-          }
-        })
       })
 
       animationFrameRef.current = requestAnimationFrame(animate)

@@ -243,11 +243,14 @@
   margin-top: 64px; /* Account for fixed navbar */
 }
 
-/* Remove margin-top and padding for documentation page since it handles its own spacing */
+/* Documentation page: no extra margin/padding; fill main so no gap above footer */
 .app-main:has(.documentation-container) {
   margin-top: 0;
   padding-top: 0;
   padding-bottom: 0;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
 }
 
 .container {
@@ -256,11 +259,22 @@
   padding: 0 var(--spacing-xl, 2rem);
 }
 
-/* Remove padding for documentation page */
 .container:has(.documentation-container) {
   padding-left: 0;
   padding-right: 0;
   max-width: 100%;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+/* Let route content fill container so docs layout reaches footer */
+.container:has(.documentation-container) > * {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
 }
 
 /* Card styles are now in theme.css */
