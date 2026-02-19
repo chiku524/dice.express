@@ -6,7 +6,14 @@ export default defineConfig({
   server: {
     port: 3000,
     proxy: {
-      '/api': {
+      // Only proxy Canton ledger routes; /api/markets and other app routes stay on same origin
+      // (use VITE_API_ORIGIN in .env to point to your deployed API when running frontend alone)
+      '/api/command': {
+        target: 'https://participant.dev.canton.wolfedgelabs.com',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api/, '')
+      },
+      '/api/query': {
         target: 'https://participant.dev.canton.wolfedgelabs.com',
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/api/, '')

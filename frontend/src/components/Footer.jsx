@@ -19,15 +19,13 @@ export default function Footer() {
             <span className="footer-heading">Platform</span>
             <ul className="footer-links">
               <li><Link to="/docs">Docs</Link></li>
-              <li><Link to="/docs#amm">AMM &amp; Fees</Link></li>
-              <li><Link to="/admin">Admin</Link></li>
-              <li><Link to="/history">Activity</Link></li>
+              <li><Link to="/privacy">Privacy Policy</Link></li>
+              <li><Link to="/terms">Terms of Service</Link></li>
             </ul>
           </nav>
           <div className="footer-section footer-about">
             <span className="footer-heading">About</span>
-            <p>Trade on outcomes with virtual Credits. Your choice, your chance—no crypto required.</p>
-            <p className="footer-virtual-note">All activity uses virtual Credits. No blockchain required.</p>
+            <p>Trade on outcomes. Your choice, your chance.</p>
           </div>
         </div>
         <div className="footer-bottom">

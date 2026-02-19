@@ -4,168 +4,118 @@ body:has(.documentation-container) {
   height: 100vh !important;
 }
 
-/* Override container padding for documentation page */
+/* Docs layout: navbar → TOC bar (row) → content. Block layout so TOC bar never collapses. */
 .documentation-container {
-  display: flex;
-  height: calc(100vh - 50px - 80px); /* Full viewport minus navbar (50px) and footer (~80px) */
+  padding-top: 60px; /* Clear fixed navbar */
+  width: 100%;
+  min-height: 100vh;
+  box-sizing: border-box;
   background: transparent;
   color: var(--color-text-primary, #fff);
-  margin-top: 50px !important; /* Account for fixed navbar */
-  padding-top: 0 !important; /* Ensure no top padding */
-  align-items: stretch; /* Stretch sidebar and content to full height */
-  width: 100%;
-  margin-left: 0 !important;
-  margin-right: 0 !important;
-  padding-left: 0 !important;
-  padding-right: 0 !important;
-  overflow: hidden; /* Prevent page scrolling */
   position: relative;
-  z-index: 1; /* Below navbar (1000) */
+  z-index: 1;
 }
 
-.documentation-sidebar {
-  width: 280px;
-  min-width: 280px;
-  background: var(--color-background-transparent, rgba(15, 15, 26, 0.5));
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  border-right: 1px solid var(--color-border, rgba(100, 108, 255, 0.25));
-  padding: 0;
-  position: fixed;
-  top: 50px; /* Navbar height (reduced from 70px) */
-  left: 0;
-  bottom: 80px; /* Footer height */
-  height: calc(100vh - 50px - 120px); /* Full height minus navbar and footer (reduced footer) */
-  overflow: hidden; /* Prevent sidebar from scrolling - nav will scroll instead */
-  z-index: 10;
-  display: flex;
-  flex-direction: column;
+/* TOC bar: block box, fixed height, always visible below navbar */
+.documentation-toc-bar {
+  display: block !important;
+  width: 100% !important;
+  height: 52px !important;
+  min-height: 52px !important;
+  max-height: 52px !important;
+  flex: none !important;
+  background: #0f1623 !important;
+  border-bottom: 2px solid rgba(139, 92, 246, 0.5) !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  overflow: hidden;
+  box-sizing: border-box;
 }
 
-/* Hide scrollbar for Chrome, Safari, Opera */
-.documentation-sidebar::-webkit-scrollbar,
+/* Nav: horizontal row of section buttons, scrollable if needed */
+.documentation-toc-bar .documentation-nav {
+  display: flex !important;
+  width: 100%;
+  min-width: 0;
+  height: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 0 0.75rem;
+  align-items: stretch;
+  scrollbar-width: thin;
+  -ms-overflow-style: auto;
+  box-sizing: border-box;
+}
+
+.documentation-toc-bar::-webkit-scrollbar,
 .documentation-nav::-webkit-scrollbar {
-  display: none;
-}
-
-.documentation-sidebar h2 {
-  padding: var(--spacing-lg, 1.5rem) var(--spacing-lg, 1.5rem) var(--spacing-md, 1rem);
-  margin: 0;
-  font-size: var(--font-size-xl, 1.25rem);
-  color: var(--color-text-primary, rgba(255, 255, 255, 0.9));
-  border-bottom: 1px solid var(--color-border, rgba(100, 108, 255, 0.25));
-  font-weight: var(--font-weight-bold, 700);
-  letter-spacing: 0.5px;
-  background: var(--color-background-transparent, rgba(15, 15, 26, 0.5)) !important;
-  backdrop-filter: blur(10px) !important;
-  -webkit-backdrop-filter: blur(10px) !important;
-  z-index: 2; /* Above sidebar content but below navbar */
-  margin-top: 0;
-  padding-top: var(--spacing-lg, 1.5rem);
-  margin-bottom: 0;
-  flex-shrink: 0; /* Prevent title from shrinking */
-  /* Ensure background covers content when scrolling */
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-}
-
-.documentation-nav {
-  padding: 0;
-  background: var(--color-background-transparent, rgba(15, 15, 26, 0.5));
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  margin-top: 0;
-  padding-top: var(--spacing-sm, 0.5rem);
-  padding-bottom: calc(80px + var(--spacing-lg, 1.5rem)); /* Extra padding to prevent items from going under footer */
-  flex: 1; /* Take remaining space */
-  min-height: 0; /* Allow flex item to shrink */
-  overflow-y: auto; /* Make nav scrollable instead of sidebar */
-  overflow-x: hidden;
-  /* Hide scrollbar but keep functionality */
-  scrollbar-width: none; /* Firefox */
-  -ms-overflow-style: none; /* IE and Edge */
+  height: 6px;
 }
 
 .documentation-nav ul {
   list-style: none;
   padding: 0;
   margin: 0;
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 0;
+  align-items: center;
+  height: 100%;
 }
 
 .documentation-nav li {
   margin: 0;
   padding: 0;
+  flex-shrink: 0;
 }
 
 .documentation-nav button {
-  width: calc(100% - var(--spacing-xs, 0.5rem));
-  padding: 0.875rem 1.5rem;
-  background: transparent;
+  white-space: nowrap;
+  padding: 0 1rem;
+  min-height: 52px;
+  height: 100%;
+  background: transparent !important;
   border: none;
-  color: var(--color-text-secondary, rgba(255, 255, 255, 0.7));
-  text-align: left;
+  border-bottom: 3px solid transparent;
+  border-radius: 0;
+  color: rgba(255, 255, 255, 0.95) !important;
+  font-size: 0.9rem;
+  font-weight: 500;
   cursor: pointer;
-  font-size: var(--font-size-sm, 0.9rem);
-  transition: all var(--transition-base, 0.2s ease);
-  border-radius: var(--radius-sm, 4px);
-  margin: var(--spacing-xs, 0.125rem) var(--spacing-xs, 0.25rem);
-  position: relative;
+  transition: color 0.2s, background 0.2s, border-color 0.2s;
 }
 
 .documentation-nav button:hover {
-  background: var(--color-primary-light, rgba(100, 108, 255, 0.15));
-  color: var(--color-text-primary, #fff);
-  transform: translateX(4px);
-  padding-left: 1.75rem;
+  background: rgba(139, 92, 246, 0.15) !important;
+  color: #fff !important;
 }
 
 .documentation-nav button.active {
-  background: linear-gradient(90deg, var(--color-primary-light, rgba(100, 108, 255, 0.25)), transparent);
-  color: var(--color-primary, #646cff);
-  font-weight: var(--font-weight-semibold, 600);
-  border-left: 3px solid var(--color-primary, #646cff);
-  padding-left: calc(1.5rem - 3px);
+  color: #a78bfa !important;
+  font-weight: 600;
+  border-bottom-color: #8b5cf6;
 }
 
 .documentation-nav button.active::before {
-  content: '';
-  position: absolute;
-  left: 0;
-  top: 0;
-  bottom: 0;
-  width: 3px;
-  background: var(--color-primary, #646cff);
-  border-radius: 0 2px 2px 0;
+  display: none;
 }
 
+/* Content area: fixed height so it scrolls; sits below TOC bar */
 .documentation-content {
-  flex: 1;
-  padding: 3rem 4rem;
-  padding-bottom: 6rem; /* Extra padding to prevent content from being hidden behind footer */
-  max-width: none; /* Remove max-width to fill remaining space */
-  width: calc(100% - 280px); /* Fill remaining width after sidebar */
-  margin-left: 280px; /* Account for fixed sidebar */
-  margin-top: 0;
-  margin-right: 0;
-  margin-bottom: 0;
-  overflow-y: auto; /* Only content scrolls */
+  display: block !important;
+  width: 100%;
+  height: calc(100vh - 60px - 52px - 80px);
+  min-height: 200px;
+  padding: 2rem 2.5rem 5rem;
+  overflow-y: auto;
   overflow-x: hidden;
-  background: var(--color-surface, rgba(30, 30, 46, 0.5));
+  background: var(--color-surface, rgba(20, 28, 40, 0.6));
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
-  border-radius: 0; /* Remove border radius to fill edge to edge */
-  border: none;
-  border-left: 1px solid var(--color-border, rgba(100, 108, 255, 0.25));
-  box-shadow: none; /* Remove shadow for seamless look */
-  height: calc(100vh - 50px - 120px); /* Match container height exactly */
-  position: fixed;
-  top: 50px;
-  right: 0;
-  bottom: 120px;
-  z-index: 5; /* Below navbar (1000) but above sidebar (10) */
-  /* Hide scrollbar but keep functionality */
-  scrollbar-width: thin; /* Firefox - thin scrollbar */
-  scrollbar-color: rgba(100, 108, 255, 0.3) transparent; /* Firefox scrollbar color */
-  -ms-overflow-style: -ms-autohiding-scrollbar; /* IE and Edge */
+  scrollbar-width: thin;
+  scrollbar-color: rgba(139, 92, 246, 0.3) transparent;
+  -ms-overflow-style: -ms-autohiding-scrollbar;
+  box-sizing: border-box;
 }
 
 /* Custom scrollbar styling for Chrome, Safari, Opera */
@@ -188,6 +138,8 @@ body:has(.documentation-container) {
 }
 
 .doc-section {
+  max-width: none;
+  width: 100%;
   line-height: 1.7;
 }
 
@@ -280,65 +232,9 @@ body:has(.documentation-container) {
   text-decoration: underline;
 }
 
-/* Responsive Design */
 @media (max-width: 968px) {
-  .documentation-container {
-    flex-direction: column;
-  }
-
-  .documentation-sidebar {
-    width: 100%;
-    min-width: 100%;
-    position: relative;
-    top: 0;
-    left: 0;
-    height: auto;
-    max-height: 300px;
-    border-right: none;
-    border-bottom: 1px solid rgba(100, 108, 255, 0.25);
-    /* Show scrollbar on mobile for horizontal nav */
-    scrollbar-width: thin;
-    -ms-overflow-style: auto;
-  }
-
-  .documentation-sidebar::-webkit-scrollbar {
-    display: block;
-    height: 4px;
-  }
-
   .documentation-content {
-    margin-left: 0;
-    margin-top: var(--spacing-md, 1rem);
-  }
-
-  .documentation-nav {
-    display: flex;
-    overflow-x: auto;
-  }
-
-  .documentation-nav ul {
-    display: flex;
-    padding: 0 1rem;
-  }
-
-  .documentation-nav li {
-    flex-shrink: 0;
-  }
-
-  .documentation-nav button {
-    white-space: nowrap;
-    border-left: none;
-    border-bottom: 3px solid transparent;
-    padding: 1rem 1.25rem;
-  }
-
-  .documentation-nav button.active {
-    border-left: none;
-    border-bottom-color: #646cff;
-  }
-
-  .documentation-content {
-    padding: 2rem 1.5rem;
+    padding: 1.5rem 1.25rem 4rem;
   }
 
   .doc-section h1 {
@@ -356,7 +252,12 @@ body:has(.documentation-container) {
 
 @media (max-width: 640px) {
   .documentation-content {
-    padding: 1.5rem 1rem;
+    padding: 1.25rem 1rem 3rem;
+  }
+
+  .documentation-nav button {
+    padding: 0 0.75rem;
+    font-size: 0.85rem;
   }
 
   .doc-section h1 {

@@ -16,6 +16,8 @@ const AdminDashboard = lazyWithRetry(() => import('./components/AdminDashboard')
 const ContractHistory = lazyWithRetry(() => import('./components/ContractHistory'))
 const Dashboard = lazyWithRetry(() => import('./components/Dashboard'))
 const Profile = lazyWithRetry(() => import('./components/Profile'))
+const PrivacyPolicy = lazyWithRetry(() => import('./components/PrivacyPolicy'))
+const TermsOfService = lazyWithRetry(() => import('./components/TermsOfService'))
 import { analytics } from './utils/analytics'
 import AnimatedBackground from './components/AnimatedBackground'
 import WalletModal from './components/WalletModal'
@@ -88,6 +90,8 @@ function AppContent() {
                   <Route path="/history" element={<ContractHistory />} />
                   <Route path="/docs" element={<Documentation />} />
                   <Route path="/documentation" element={<Documentation />} />
+                  <Route path="/privacy" element={<PrivacyPolicy />} />
+                  <Route path="/terms" element={<TermsOfService />} />
                 </Routes>
               </Suspense>
             </AccountModalProvider>

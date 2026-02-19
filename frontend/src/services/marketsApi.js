@@ -1,15 +1,37 @@
 /**
  * Virtual markets API client — no blockchain.
+ * In dev, set VITE_API_ORIGIN to your deployed API (e.g. Cloudflare Pages URL) to load markets.
  */
-const MARKETS_API = '/api/markets'
+const API_ORIGIN = typeof import.meta !== 'undefined' && import.meta.env?.VITE_API_ORIGIN
+  ? import.meta.env.VITE_API_ORIGIN.replace(/\/$/, '')
+  : ''
+function apiUrl(path) {
+  const p = path.startsWith('/') ? path : `/${path}`
+  return `${API_ORIGIN}/api${p.startsWith('/api') ? p.slice(4) : p}`
+}
+const MARKETS_API = apiUrl('markets')
 
 export async function fetchMarkets(source = null) {
   const params = new URLSearchParams()
   if (source && source !== 'all') params.set('source', source)
   const url = params.toString() ? `${MARKETS_API}?${params}` : MARKETS_API
-  const res = await fetch(url, { method: 'GET', headers: { 'Content-Type': 'application/json' } })
-  if (!res.ok) throw new Error('Failed to fetch markets')
-  const data = await res.json()
+  let res
+  try {
+    res = await fetch(url, { method: 'GET', headers: { 'Content-Type': 'application/json' } })
+  } catch (err) {
+    const msg = err?.message || 'Network error'
+    throw new Error(
+      msg.includes('fetch') ? 'Could not reach the markets API. If running locally, set VITE_API_ORIGIN to your deployed API URL or ensure the backend is running.' : msg
+    )
+  }
+  if (!res.ok) {
+    const status = res.status
+    let detail = 'Failed to fetch markets'
+    if (status === 404) detail = 'Markets API not found. Set VITE_API_ORIGIN in dev or ensure the backend is deployed.'
+    else if (status >= 500) detail = 'Markets API error. Try again later.'
+    throw new Error(detail)
+  }
+  const data = await res.json().catch(() => ({}))
   return (data.markets || []).map((m) => ({
     contractId: m.contractId,
     templateId: m.templateId,
@@ -34,14 +56,14 @@ export async function createMarket(body) {
 }
 
 export async function fetchPool(marketId) {
-  const res = await fetch(`/api/pools?marketId=${encodeURIComponent(marketId)}`)
+  const res = await fetch(`${apiUrl('pools')}?marketId=${encodeURIComponent(marketId)}`)
   if (!res.ok) return null
   const data = await res.json()
   return data.pool || null
 }
 
 export async function executeTrade({ marketId, side, amount, minOut = 0, userId }) {
-  const res = await fetch('/api/trade', {
+  const res = await fetch(apiUrl('trade'), {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ marketId, side, amount, minOut, userId }),

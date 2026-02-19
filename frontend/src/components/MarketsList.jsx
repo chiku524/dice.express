@@ -262,10 +262,10 @@ export default function MarketsList({ source: sourceFromRoute }) {
       <div>
         <div className="card">
           <div className="error">
-            <strong>Error loading markets:</strong> {error}
-            <br />
-            <small className="mt-sm" style={{ display: 'block' }}>
-              Please check your connection and try again. If the problem persists, the API may be temporarily unavailable.
+            <strong>Error loading markets</strong>
+            <p className="mt-sm mb-0">{error}</p>
+            <small className="mt-sm" style={{ display: 'block', opacity: 0.9 }}>
+              Check your connection or set <code>VITE_API_ORIGIN</code> in <code>.env</code> to your deployed API URL when running locally.
             </small>
           </div>
           <button

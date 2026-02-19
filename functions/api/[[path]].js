@@ -174,6 +174,51 @@ async function handleWithD1(db, kv, r2, request, path, method) {
     return jsonResponse({ success: true, contract: { contract_id: targetId, status }, message: `Contract status updated to ${status}` })
   }
 
+  // GET /api/account — load persisted account/onboarding (by accountId)
+  if (path === 'account' && method === 'GET') {
+    const accountId = query.accountId
+    if (!accountId) return jsonResponse({ error: 'accountId required' }, 400)
+    const row = await storage.getContractById(db, accountId)
+    if (!row || row.templateId !== 'UserAccount') {
+      return jsonResponse({ success: true, account: null })
+    }
+    const payload = row.payload || {}
+    return jsonResponse({
+      success: true,
+      account: {
+        accountId: row.contractId,
+        displayName: payload.displayName ?? row.party,
+        onboardingCompleted: payload.onboardingCompleted ?? false,
+        fundChoice: payload.fundChoice ?? null,
+        createdAt: payload.createdAt ?? row.createdAt,
+      },
+    })
+  }
+
+  // POST /api/account — persist account/onboarding (local + remote)
+  if (path === 'account' && method === 'POST') {
+    const { accountId, displayName, onboardingCompleted, fundChoice } = body
+    if (!accountId || !displayName) {
+      return jsonResponse({ error: 'accountId and displayName required' }, 400)
+    }
+    const now = new Date().toISOString()
+    const payload = {
+      displayName: String(displayName).trim(),
+      onboardingCompleted: Boolean(onboardingCompleted),
+      fundChoice: fundChoice || null,
+      createdAt: now,
+    }
+    await storage.upsertContract(db, {
+      contract_id: accountId,
+      template_id: 'UserAccount',
+      payload,
+      party: payload.displayName,
+      status: 'Active',
+    })
+    await backupToR2(r2, undefined, accountId, payload)
+    return jsonResponse({ success: true, account: { accountId, ...payload } })
+  }
+
   // GET/POST /api/get-user-balance
   if (path === 'get-user-balance' && (method === 'GET' || method === 'POST')) {
     const { userParty } = method === 'GET' ? query : body

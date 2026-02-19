@@ -44,32 +44,31 @@ export default function AnimatedBackground() {
     resizeCanvas()
     window.addEventListener('resize', resizeCanvas)
 
-    // Cohesive color palette — violet/indigo/blue (matches theme primary; logo keeps green)
+    // Neon color palette — bright cyan, magenta, electric blue, hot pink (pops on black)
     const colorPalettes = {
       primary: [
-        { r: 139, g: 92, b: 246 },     // Violet (theme primary)
-        { r: 124, g: 58, b: 237 },     // Violet-600
-        { r: 99, g: 102, b: 241 },     // Indigo
-        { r: 129, g: 140, b: 248 },   // Light indigo
+        { r: 0, g: 255, b: 255 },       // Neon cyan
+        { r: 255, g: 0, b: 255 },       // Neon magenta
+        { r: 0, g: 200, b: 255 },       // Electric blue
+        { r: 255, g: 0, b: 128 },       // Hot pink
       ],
       secondary: [
-        { r: 139, g: 92, b: 246 },    // Violet
-        { r: 167, g: 139, b: 250 },   // Light violet
-        { r: 96, g: 165, b: 250 },    // Soft blue
-        { r: 196, g: 181, b: 253 },   // Lavender
+        { r: 0, g: 255, b: 255 },       // Neon cyan
+        { r: 191, g: 0, b: 255 },       // Electric purple
+        { r: 0, g: 255, b: 200 },       // Neon teal
+        { r: 255, g: 50, b: 150 },      // Neon pink
       ],
-      // Accent palette - warm tones for orbs and rings
       accent: [
-        { r: 255, g: 100, b: 200 },    // Pink
-        { r: 255, g: 150, b: 100 },    // Coral
-        { r: 200, g: 100, b: 255 },    // Lavender
-        { r: 100, g: 200, b: 255 },    // Sky Blue
+        { r: 255, g: 0, b: 255 },       // Magenta
+        { r: 0, g: 255, b: 255 },       // Cyan
+        { r: 204, g: 255, b: 0 },       // Neon lime
+        { r: 255, g: 100, b: 255 },     // Fuchsia
       ],
       subtle: [
-        { r: 139, g: 92, b: 246 },    // Muted violet
-        { r: 99, g: 102, b: 241 },    // Muted indigo
-        { r: 129, g: 140, b: 248 },   // Muted light indigo
-        { r: 196, g: 181, b: 253 },   // Muted lavender
+        { r: 0, g: 230, b: 255 },       // Soft neon cyan
+        { r: 200, g: 0, b: 255 },       // Soft neon purple
+        { r: 255, g: 0, b: 200 },       // Soft neon pink
+        { r: 0, g: 255, b: 230 },       // Soft neon teal
       ]
     }
     
@@ -100,8 +99,8 @@ export default function AnimatedBackground() {
         }
         
         this.size = Math.random() * 3 + 0.5
-        this.speedX = (Math.random() - 0.5) * 0.8
-        this.speedY = (Math.random() - 0.5) * 0.8
+        this.speedX = (Math.random() - 0.5) * 0.22
+        this.speedY = (Math.random() - 0.5) * 0.22
         this.color = getColor('primary')
         
         // Varied opacity levels - some very subtle, some more visible
@@ -114,7 +113,7 @@ export default function AnimatedBackground() {
           this.opacity = Math.random() * 0.3 + 0.4 // More visible (40-70%)
         }
         
-        this.pulseSpeed = Math.random() * 0.03 + 0.01
+        this.pulseSpeed = Math.random() * 0.008 + 0.004
         this.pulsePhase = Math.random() * Math.PI * 2
         this.pulseAmplitude = Math.random() * 0.2 + 0.1
       }
@@ -195,10 +194,10 @@ export default function AnimatedBackground() {
         this.opacity = Math.random() * 0.12 + 0.05 // 5-17% - very subtle
         this.baseOpacity = this.opacity
         
-        this.speed = 0.05 + Math.random() * 0.25 // Slower movement
+        this.speed = 0.015 + Math.random() * 0.06
         this.offset = Math.random() * Math.PI * 2
         this.life = 0
-        this.maxLife = Math.random() * 300 + 200 // Lines fade in/out
+        this.maxLife = Math.random() * 400 + 350
         this.fadeIn = true
 
         // Generate points for smooth curve
@@ -212,7 +211,7 @@ export default function AnimatedBackground() {
 
       update() {
         this.life++
-        this.offset += this.speed * 0.008 // Slower wave motion
+        this.offset += this.speed * 0.003
 
         // Fade in/out effect for less distraction
         const lifeProgress = this.life / this.maxLife
@@ -321,9 +320,9 @@ export default function AnimatedBackground() {
 
         this.size = Math.random() * 15 + 5
         this.rotation = Math.random() * Math.PI * 2
-        this.rotationSpeed = (Math.random() - 0.5) * 0.02
-        this.speedX = (Math.random() - 0.5) * 0.3
-        this.speedY = (Math.random() - 0.5) * 0.3
+        this.rotationSpeed = (Math.random() - 0.5) * 0.006
+        this.speedX = (Math.random() - 0.5) * 0.12
+        this.speedY = (Math.random() - 0.5) * 0.12
         this.color = getColor('primary')
         this.shapeType = Math.floor(Math.random() * 3) // 0: triangle, 1: hexagon, 2: diamond
         
@@ -335,7 +334,7 @@ export default function AnimatedBackground() {
           this.opacity = Math.random() * 0.2 + 0.15 // Medium (15-35%)
         }
         this.pulsePhase = Math.random() * Math.PI * 2
-        this.pulseSpeed = Math.random() * 0.02 + 0.01
+        this.pulseSpeed = Math.random() * 0.006 + 0.003
       }
 
       update() {
@@ -420,11 +419,11 @@ export default function AnimatedBackground() {
         }
 
         this.size = Math.random() * 80 + 40
-        this.speedX = (Math.random() - 0.5) * 0.15
-        this.speedY = (Math.random() - 0.5) * 0.15
+        this.speedX = (Math.random() - 0.5) * 0.05
+        this.speedY = (Math.random() - 0.5) * 0.05
         this.color = getColor('subtle')
         this.opacity = Math.random() * 0.15 + 0.05 // Very subtle
-        this.pulseSpeed = Math.random() * 0.01 + 0.005
+        this.pulseSpeed = Math.random() * 0.004 + 0.002
         this.pulsePhase = Math.random() * Math.PI * 2
         this.pulseAmplitude = Math.random() * 0.1 + 0.05
       }
@@ -479,7 +478,7 @@ export default function AnimatedBackground() {
         this.maxRadius = Math.random() * 100 + 50
         this.minRadius = this.maxRadius * 0.3
         this.currentRadius = this.minRadius
-        this.speed = Math.random() * 0.2 + 0.1 // Much slower - was 0.3-1.1, now 0.1-0.3
+        this.speed = Math.random() * 0.05 + 0.03
         this.color = getColor('accent')
         this.opacity = Math.random() * 0.15 + 0.1 // More subtle - was 0.2-0.5, now 0.1-0.25
         this.expanding = true
@@ -569,10 +568,8 @@ export default function AnimatedBackground() {
     const animate = () => {
       time += 0.01
 
-      // Clear canvas with slight fade for trail effect
-      // Use a darker base to ensure particles stand out
-      // Slightly more fade for smoother trails
-      ctx.fillStyle = 'rgba(18, 18, 18, 0.25)'
+      // Clear canvas with dark fade for trail effect (near-black base)
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.42)'
       ctx.fillRect(0, 0, canvas.width, canvas.height)
 
       // Update and draw all elements in layers

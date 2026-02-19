@@ -1,7 +1,32 @@
 import { useState, useEffect, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import { useWallet } from '../contexts/WalletContext'
+import { saveAccount } from '../services/accountApi'
 import './WalletModal.css'
+
+const AUTH_TOKEN_KEY = 'auth_token'
+
+function getApiOrigin() {
+  return (typeof import.meta !== 'undefined' && import.meta.env?.VITE_API_ORIGIN)
+    ? import.meta.env.VITE_API_ORIGIN.replace(/\/$/, '')
+    : ''
+}
+
+async function getToken(username, password) {
+  const origin = getApiOrigin()
+  const url = origin ? `${origin}/api/get-token` : '/api/get-token'
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ username, password }),
+  })
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}))
+    throw new Error(data.error || data.error_description || 'Sign in failed')
+  }
+  const data = await res.json()
+  return data.access_token
+}
 
 function formatMemberSince(isoString) {
   if (!isoString) return ''
@@ -28,6 +53,11 @@ export default function WalletModal({ isOpen, onClose }) {
   const [financeChoice, setFinanceChoice] = useState(null) // 'blockchain' | 'stripe' | 'skip'
   const [error, setError] = useState(null)
   const [loading, setLoading] = useState(false)
+  const [authUsername, setAuthUsername] = useState('')
+  const [authPassword, setAuthPassword] = useState('')
+  const [authLoading, setAuthLoading] = useState(false)
+  const [authError, setAuthError] = useState(null)
+  const [authSuccess, setAuthSuccess] = useState(() => !!localStorage.getItem(AUTH_TOKEN_KEY))
   const modalRef = useRef(null)
 
   // Reset wizard when modal opens for new user
@@ -87,7 +117,16 @@ export default function WalletModal({ isOpen, onClose }) {
     setError(null)
     setLoading(true)
     try {
-      await connectWallet(displayName.trim() || undefined)
+      const result = await connectWallet(displayName.trim() || undefined, { fundChoice: financeChoice })
+      const { accountId, party } = result || {}
+      if (accountId && party) {
+        await saveAccount({
+          accountId,
+          displayName: party,
+          onboardingCompleted: true,
+          fundChoice: financeChoice || null,
+        })
+      }
       setDisplayName('')
       setStep(1)
       setFinanceChoice(null)
@@ -96,6 +135,24 @@ export default function WalletModal({ isOpen, onClose }) {
       setError(err.message)
     } finally {
       setLoading(false)
+    }
+  }
+
+  const handleGetToken = async (e) => {
+    e.preventDefault()
+    setAuthError(null)
+    setAuthLoading(true)
+    try {
+      const token = await getToken(authUsername.trim(), authPassword)
+      if (token) {
+        localStorage.setItem(AUTH_TOKEN_KEY, token)
+        setAuthSuccess(true)
+        setAuthPassword('')
+      }
+    } catch (err) {
+      setAuthError(err.message)
+    } finally {
+      setAuthLoading(false)
     }
   }
 
@@ -153,7 +210,7 @@ export default function WalletModal({ isOpen, onClose }) {
               {step === 1 && (
                 <>
                   <h3 className="wizard-step-title">Set up your profile</h3>
-                  <p className="wallet-hint">Choose a display name. No email or password required.</p>
+                  <p className="wallet-hint">Choose a display name. You can optionally sign in with Keycloak for full access.</p>
                   {error && <div className="alert-error" style={{ marginBottom: '0.5rem' }}>{error}</div>}
                   <label className="wallet-input-label" htmlFor="wallet-display-name">Display name</label>
                   <input
@@ -168,6 +225,39 @@ export default function WalletModal({ isOpen, onClose }) {
                     maxLength={32}
                     autoComplete="username"
                   />
+                  <details className="wallet-auth-details" style={{ marginBottom: '1rem' }}>
+                    <summary className="wallet-auth-summary">Optional: Sign in with Keycloak</summary>
+                    {authSuccess ? (
+                      <p className="wallet-hint" style={{ marginTop: '0.5rem' }}>Signed in. Token stored for this session.</p>
+                    ) : (
+                      <form onSubmit={handleGetToken} style={{ marginTop: '0.5rem' }}>
+                        {authError && <div className="alert-error" style={{ marginBottom: '0.5rem', fontSize: '0.85rem' }}>{authError}</div>}
+                        <label className="wallet-input-label" htmlFor="auth-username">Username</label>
+                        <input
+                          id="auth-username"
+                          type="text"
+                          value={authUsername}
+                          onChange={(e) => setAuthUsername(e.target.value)}
+                          className="party-id-input"
+                          style={{ width: '100%', marginBottom: '0.5rem' }}
+                          autoComplete="username"
+                        />
+                        <label className="wallet-input-label" htmlFor="auth-password">Password</label>
+                        <input
+                          id="auth-password"
+                          type="password"
+                          value={authPassword}
+                          onChange={(e) => setAuthPassword(e.target.value)}
+                          className="party-id-input"
+                          style={{ width: '100%', marginBottom: '0.5rem' }}
+                          autoComplete="current-password"
+                        />
+                        <button type="submit" className="btn-secondary" disabled={authLoading || !authUsername.trim() || !authPassword}>
+                          {authLoading ? 'Signing in…' : 'Get token'}
+                        </button>
+                      </form>
+                    )}
+                  </details>
                   <div className="wallet-modal-actions">
                     <button type="button" className="btn-primary" onClick={() => setStep(2)}>Next</button>
                     <button type="button" className="btn-secondary" onClick={handleGuest} disabled={loading}>

@@ -106,7 +106,7 @@ export default function Navbar({ showWalletModal, setShowWalletModal }) {
           {/* Resources / Tools */}
           <div className="nav-dropdown" ref={resourcesMenuRef}>
             <button
-              className={`nav-dropdown-toggle ${isActive('/admin') || isActive('/history') || isActive('/docs') || isActive('/documentation') ? 'active' : ''}`}
+              className={`nav-dropdown-toggle ${isActive('/history') || isActive('/docs') || isActive('/documentation') ? 'active' : ''}`}
               onClick={() => {
                 setShowResourcesMenu(!showResourcesMenu)
                 setShowDiscoverMenu(false)
@@ -119,12 +119,6 @@ export default function Navbar({ showWalletModal, setShowWalletModal }) {
               <div className="nav-dropdown-menu">
                 <Link to="/docs" className={isActive('/docs') || isActive('/documentation') ? 'active' : ''}>
                   Documentation
-                </Link>
-                <Link to="/docs#amm" className="">
-                  AMM &amp; Fees
-                </Link>
-                <Link to="/admin" className={isActive('/admin') ? 'active' : ''}>
-                  Admin Dashboard
                 </Link>
                 <Link to="/history" className={isActive('/history') ? 'active' : ''}>
                   Activity

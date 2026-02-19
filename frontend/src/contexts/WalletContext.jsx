@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useEffect } from 'react'
+import { getAccount } from '../services/accountApi'
 
 const WalletContext = createContext(null)
 
@@ -22,7 +23,8 @@ function normalizeStoredWallet(walletData) {
   const accountId = walletData.accountId || generateAccountId()
   const createdAt = walletData.createdAt || walletData.connectedAt || new Date().toISOString()
   const connectedAt = walletData.connectedAt || new Date().toISOString()
-  return { party, accountId, createdAt, connectedAt }
+  const fundChoice = walletData.fundChoice ?? null
+  return { party, accountId, createdAt, connectedAt, fundChoice }
 }
 
 export function WalletProvider({ children }) {
@@ -40,6 +42,17 @@ export function WalletProvider({ children }) {
           if (!walletData.accountId || !walletData.createdAt) {
             localStorage.setItem(WALLET_STORAGE_KEY, JSON.stringify(normalized))
           }
+          // Sync from server (remote persistence): merge display name and fundChoice if present
+          getAccount(normalized.accountId).then((remote) => {
+            if (!remote) return
+            const updates = { ...normalized, connectedAt: new Date().toISOString() }
+            if (remote.displayName && remote.displayName !== normalized.party) updates.party = remote.displayName
+            if (remote.fundChoice != null) updates.fundChoice = remote.fundChoice
+            if (updates.party !== normalized.party || updates.fundChoice !== normalized.fundChoice) {
+              setWallet(updates)
+              localStorage.setItem(WALLET_STORAGE_KEY, JSON.stringify(updates))
+            }
+          }).catch(() => {})
         } else {
           localStorage.removeItem(WALLET_STORAGE_KEY)
         }
@@ -64,18 +77,20 @@ export function WalletProvider({ children }) {
     return () => window.removeEventListener('storage', handleStorageChange)
   }, [])
 
-  const connectWallet = async (userId = null) => {
+  const connectWallet = async (userId = null, options = {}) => {
     try {
       const party = (userId != null ? String(userId).trim() : null) || DEFAULT_USER_ID
       if (!party) {
         throw new Error('Please enter a display name')
       }
       const now = new Date().toISOString()
+      const { fundChoice } = options
       const newWallet = {
         party,
         accountId: generateAccountId(),
         createdAt: now,
         connectedAt: now,
+        fundChoice: fundChoice ?? null,
       }
       setWallet(newWallet)
       localStorage.setItem(WALLET_STORAGE_KEY, JSON.stringify(newWallet))
@@ -94,6 +109,15 @@ export function WalletProvider({ children }) {
     setWallet(updated)
     localStorage.setItem(WALLET_STORAGE_KEY, JSON.stringify(updated))
     window.dispatchEvent(new CustomEvent('wallet_connected', { detail: updated }))
+    // Persist to server so profile is saved remotely
+    import('../services/accountApi').then(({ saveAccount }) => {
+      saveAccount({
+        accountId: wallet.accountId,
+        displayName: trimmed,
+        onboardingCompleted: true,
+        fundChoice: wallet.fundChoice ?? null,
+      })
+    }).catch(() => {})
   }
 
   const disconnectWallet = () => {

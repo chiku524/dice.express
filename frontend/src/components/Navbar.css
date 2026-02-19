@@ -10,8 +10,8 @@
   gap: var(--spacing-xs, 0.25rem);
   padding: var(--spacing-sm, 0.5rem) var(--spacing-md, 0.75rem);
   min-height: 44px;
-  background: transparent;
-  border: 1px solid var(--color-border-light);
+  background: var(--color-primary-light);
+  border: 1px solid var(--color-primary-border);
   border-radius: var(--radius-md, 6px);
   color: var(--color-text-primary);
   font-size: var(--font-size-sm, 0.9rem);
@@ -23,15 +23,16 @@
 }
 
 .nav-dropdown-toggle:hover {
-  background: var(--color-blue-soft);
-  border-color: rgba(59, 130, 246, 0.35);
+  background: rgba(139, 92, 246, 0.22);
+  border-color: var(--color-primary);
   color: var(--color-aqua);
   transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(139, 92, 246, 0.25);
 }
 
 .nav-dropdown-toggle.active {
   background: var(--color-teal-soft);
-  border-color: rgba(20, 184, 166, 0.35);
+  border-color: rgba(20, 184, 166, 0.4);
   color: var(--color-teal);
 }
 
@@ -111,8 +112,8 @@
 .btn-connect {
   padding: var(--spacing-sm, 0.5rem) var(--spacing-md, 1rem);
   min-height: 44px;
-  background: linear-gradient(135deg, var(--color-blue) 0%, var(--color-teal) 100%);
-  border: 1px solid rgba(34, 211, 238, 0.3);
+  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-teal) 100%);
+  border: 1px solid rgba(139, 92, 246, 0.4);
   border-radius: var(--radius-md, 6px);
   color: var(--color-text-primary);
   font-size: var(--font-size-sm, 0.9rem);
@@ -120,17 +121,17 @@
   cursor: pointer;
   transition: all var(--transition-base, 0.2s ease);
   white-space: nowrap;
-  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.25);
+  box-shadow: 0 2px 8px rgba(139, 92, 246, 0.3);
   line-height: 1.2;
   display: inline-flex;
   align-items: center;
 }
 
 .btn-connect:hover:not(:disabled) {
-  background: linear-gradient(135deg, #2563eb 0%, #0d9488 100%);
+  background: linear-gradient(135deg, var(--color-primary-hover) 0%, #0d9488 100%);
   border-color: var(--color-aqua);
   transform: translateY(-1px);
-  box-shadow: 0 4px 16px rgba(34, 211, 238, 0.3);
+  box-shadow: 0 4px 16px rgba(139, 92, 246, 0.35);
 }
 
 .wallet-info {

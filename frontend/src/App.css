@@ -8,8 +8,10 @@
 }
 
 .app-header {
-  background: linear-gradient(135deg, var(--color-navy) 0%, var(--color-navy-mid) 50%, #0f172a 100%);
-  border-bottom: 1px solid rgba(34, 211, 238, 0.2);
+  background: linear-gradient(135deg, rgba(2, 4, 8, 0.78) 0%, rgba(6, 10, 18, 0.82) 50%, rgba(2, 4, 8, 0.78) 100%);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border-bottom: 1px solid rgba(34, 211, 238, 0.1);
   padding: var(--spacing-sm, 0.5rem) 0;
   min-height: 60px;
   transition: all var(--transition-base, 0.2s ease);
@@ -23,7 +25,7 @@
   pointer-events: auto;
 }
 
-/* Navbar gradient overlay — blue, teal, aqua */
+/* Navbar — very subtle tint so it blends with black animated background */
 .app-header::before {
   content: '';
   position: absolute;
@@ -32,11 +34,12 @@
   right: 0;
   bottom: 0;
   background:
-    radial-gradient(circle at 15% 50%, rgba(34, 211, 238, 0.12) 0%, transparent 45%),
-    radial-gradient(circle at 85% 50%, rgba(20, 184, 166, 0.1) 0%, transparent 45%),
-    radial-gradient(circle at 50% 0%, rgba(59, 130, 246, 0.08) 0%, transparent 50%);
+    radial-gradient(circle at 15% 50%, rgba(34, 211, 238, 0.04) 0%, transparent 45%),
+    radial-gradient(circle at 85% 50%, rgba(20, 184, 166, 0.03) 0%, transparent 45%),
+    radial-gradient(circle at 50% 0%, rgba(59, 130, 246, 0.025) 0%, transparent 50%);
   animation: navbarGradientShift 8s ease-in-out infinite;
   z-index: -1;
+  pointer-events: none;
 }
 
 @keyframes navbarGradientShift {
@@ -61,8 +64,8 @@
     90deg,
     transparent,
     transparent 2px,
-    rgba(34, 211, 238, 0.05) 2px,
-    rgba(34, 211, 238, 0.05) 4px
+    rgba(34, 211, 238, 0.03) 2px,
+    rgba(34, 211, 238, 0.03) 4px
   );
   animation: navbarGridMove 20s linear infinite;
   z-index: -1;
@@ -118,26 +121,26 @@
   font-size: var(--font-size-base, 1rem);
   font-weight: var(--font-weight-semibold, 600);
   white-space: nowrap;
-  color: var(--color-text-primary, rgba(255, 255, 255, 0.87));
+  color: var(--color-primary);
   transition: color var(--transition-base, 0.2s ease);
   font-family: var(--font-family-base);
 }
 
 .logo:hover .logo-name {
-  color: var(--color-primary);
+  color: var(--color-text-primary, rgba(255, 255, 255, 0.95));
 }
 
 .logo-tagline {
   font-weight: var(--font-weight-normal, 400);
-  opacity: 0.85;
+  opacity: 0.9;
   font-size: 0.75em;
-  color: var(--color-text-secondary, rgba(255, 255, 255, 0.7));
+  color: var(--color-aqua);
   font-family: var(--font-family-base);
   transition: color var(--transition-base, 0.2s ease);
 }
 
 .app-header .logo:hover .logo-tagline {
-  color: var(--color-aqua);
+  color: var(--color-text-primary, rgba(255, 255, 255, 0.95));
 }
 
 .app-header nav {
@@ -213,7 +216,7 @@
   padding: var(--spacing-sm, 0.5rem) var(--spacing-md, 1rem);
   min-height: 44px;
   font-size: var(--font-size-sm, 0.9rem);
-  background: var(--color-primary, #646cff);
+  background: var(--color-primary);
   border: none;
   border-radius: var(--radius-sm, 4px);
   color: var(--color-text-primary, #fff);
@@ -263,22 +266,22 @@
 /* Card styles are now in theme.css */
 /* Keeping this for backward compatibility */
 .card {
-  background: var(--color-surface, rgba(30, 30, 46, 0.5));
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  border: 1px solid var(--color-border, rgba(100, 108, 255, 0.2));
+  background: var(--color-surface);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--color-border, rgba(139, 92, 246, 0.18));
   border-radius: var(--radius-lg, 8px);
   padding: var(--card-padding, 1.5rem);
   margin-bottom: var(--spacing-md, 1rem);
   transition: all var(--transition-base, 0.2s ease);
-  box-shadow: var(--shadow-sm, 0 1px 2px rgba(0, 0, 0, 0.1));
+  box-shadow: var(--shadow-sm, 0 1px 2px rgba(0, 0, 0, 0.15));
   width: var(--card-width, 100%);
   max-width: var(--content-card-max-width, 100%);
 }
 
 .card:hover {
-  border-color: var(--color-primary-border, rgba(100, 108, 255, 0.3));
-  background: var(--color-surface-hover, rgba(37, 37, 56, 0.6));
+  border-color: var(--color-primary-border, rgba(139, 92, 246, 0.28));
+  background: var(--color-surface-hover);
   box-shadow: var(--shadow-md, 0 4px 6px rgba(0, 0, 0, 0.2));
   transform: translateY(-2px);
 }
@@ -369,7 +372,9 @@
   padding: 0.75rem;
   border: 1px solid var(--color-border, #333);
   border-radius: var(--radius-md, 4px);
-  background: var(--color-background, #2a2a2a);
+  background: var(--color-input-bg, rgba(0, 0, 0, 0.38));
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
   color: var(--color-text-primary, rgba(255, 255, 255, 0.87));
   font-size: var(--font-size-base, 1rem);
   transition: all var(--transition-base, 0.2s ease);
@@ -380,8 +385,8 @@
 .form-group select:focus,
 .form-group textarea:focus {
   outline: none;
-  border-color: var(--color-primary, #646cff);
-  box-shadow: 0 0 0 3px var(--color-primary-light, rgba(100, 108, 255, 0.1));
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px var(--color-primary-light);
 }
 
 .form-group input:hover:not(:disabled),
@@ -403,25 +408,25 @@
   resize: vertical;
 }
 
-/* Button styles are now in theme.css */
-/* Keeping this for backward compatibility */
+/* Button styles aligned with theme (violet primary, aqua accents) */
 .btn-primary {
-  background-color: var(--color-primary, #646cff);
+  background: linear-gradient(135deg, var(--color-primary) 0%, #7c3aed 100%);
   color: white;
-  border: none;
+  border: 1px solid rgba(139, 92, 246, 0.5);
   padding: 0.75rem 1.5rem;
   font-size: var(--font-size-base, 1rem);
   font-weight: var(--font-weight-medium, 500);
   cursor: pointer;
-  border-radius: var(--radius-md, 4px);
+  border-radius: var(--radius-md, 6px);
   transition: all var(--transition-base, 0.2s ease);
-  box-shadow: var(--shadow-sm, 0 1px 2px rgba(0, 0, 0, 0.1));
+  box-shadow: 0 2px 8px rgba(139, 92, 246, 0.3);
 }
 
 .btn-primary:hover:not(:disabled) {
-  background-color: var(--color-primary-hover, #535bf2);
+  background: linear-gradient(135deg, var(--color-primary-hover) 0%, #6d28d9 100%);
+  border-color: var(--color-aqua);
   transform: translateY(-2px);
-  box-shadow: var(--shadow-primary, 0 4px 12px rgba(100, 108, 255, 0.3));
+  box-shadow: 0 4px 14px rgba(139, 92, 246, 0.4);
 }
 
 .btn-primary:active:not(:disabled) {
@@ -434,23 +439,23 @@
 }
 
 .btn-secondary {
-  background-color: var(--color-surface, #333);
-  color: var(--color-text-primary, white);
-  border: 1px solid var(--color-border, #444);
+  background-color: var(--color-surface);
+  color: var(--color-text-primary);
+  border: 1px solid var(--color-border);
   padding: 0.75rem 1.5rem;
   font-size: var(--font-size-base, 1rem);
   font-weight: var(--font-weight-medium, 500);
   cursor: pointer;
-  border-radius: var(--radius-md, 4px);
+  border-radius: var(--radius-md, 6px);
   transition: all var(--transition-base, 0.2s ease);
 }
 
 .btn-secondary:hover:not(:disabled) {
-  background-color: var(--color-surface-hover, #444);
-  border-color: var(--color-primary-border, rgba(100, 108, 255, 0.3));
-  color: var(--color-primary, #646cff);
+  background-color: var(--color-surface-hover);
+  border-color: var(--color-primary-border);
+  color: var(--color-aqua);
   transform: translateY(-2px);
-  box-shadow: var(--shadow-md, 0 4px 6px rgba(0, 0, 0, 0.2));
+  box-shadow: 0 2px 8px rgba(139, 92, 246, 0.2);
 }
 
 .btn-secondary:active:not(:disabled) {
@@ -530,14 +535,23 @@
 }
 
 .error {
-  background-color: var(--color-error, #ef4444);
-  color: var(--color-text-primary, white);
+  background-color: rgba(239, 68, 68, 0.15);
+  color: var(--color-text-primary);
   padding: var(--spacing-md, 1rem);
   border-radius: var(--radius-md, 6px);
   margin-bottom: var(--spacing-md, 1rem);
-  border: 1px solid var(--color-error, #ef4444);
+  border: 1px solid rgba(239, 68, 68, 0.4);
   transition: all var(--transition-base, 0.2s ease);
 }
+
+.error code {
+  background: rgba(0, 0, 0, 0.25);
+  padding: 0.1em 0.35em;
+  border-radius: 4px;
+  font-size: 0.9em;
+}
+
+.mb-0 { margin-bottom: 0; }
 
 .success {
   background-color: var(--color-success, #22c55e);

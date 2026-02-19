@@ -46,6 +46,14 @@ export const SEO_PAGES = {
     title: `Documentation | ${BASE_TITLE}`,
     description: 'API and platform documentation for dice.express.',
   },
+  '/privacy': {
+    title: `Privacy Policy | ${BASE_TITLE}`,
+    description: 'Privacy policy for dice.express — how we collect, use, and protect your information.',
+  },
+  '/terms': {
+    title: `Terms of Service | ${BASE_TITLE}`,
+    description: 'Terms of service for using the dice.express prediction markets platform.',
+  },
   '/test': {
     title: `Test Contracts | ${BASE_TITLE}`,
     description: 'Test contract and API tools.',

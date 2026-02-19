@@ -8,6 +8,7 @@ export default function Documentation() {
     { id: 'getting-started', title: 'Getting Started' },
     { id: 'wallet-authentication', title: 'Wallet & Authentication' },
     { id: 'market-creation', title: 'Market Creation' },
+    { id: 'amm-fees', title: 'AMM & Fees' },
     { id: 'position-creation', title: 'Position Creation' },
     { id: 'deposit-withdraw', title: 'Deposit & Withdraw' },
     { id: 'portfolio', title: 'Portfolio' },
@@ -27,6 +28,8 @@ export default function Documentation() {
         return <WalletAuthenticationContent />
       case 'market-creation':
         return <MarketCreationContent />
+      case 'amm-fees':
+        return <AMMFeesContent />
       case 'position-creation':
         return <PositionCreationContent />
       case 'deposit-withdraw':
@@ -51,14 +54,15 @@ export default function Documentation() {
   }
 
   return (
-    <div className="documentation-container" style={{ marginTop: 0, paddingTop: 0 }}>
-      <div className="documentation-sidebar">
-        <h2>Documentation</h2>
+    <div className="documentation-container">
+      {/* TOC bar: single row below navbar, above content — block layout so it never collapses */}
+      <header className="documentation-toc-bar" aria-label="Documentation sections">
         <nav className="documentation-nav">
           <ul>
             {sections.map((section) => (
               <li key={section.id}>
                 <button
+                  type="button"
                   className={activeSection === section.id ? 'active' : ''}
                   onClick={() => setActiveSection(section.id)}
                 >
@@ -68,7 +72,7 @@ export default function Documentation() {
             ))}
           </ul>
         </nav>
-      </div>
+      </header>
       <div className="documentation-content">
         {renderContent()}
       </div>
@@ -241,6 +245,50 @@ function MarketCreationContent() {
         <li>Markets require admin approval before becoming active</li>
         <li>All market data is stored in the Supabase database</li>
       </ul>
+    </div>
+  )
+}
+
+function AMMFeesContent() {
+  return (
+    <div className="doc-section">
+      <h1>AMM &amp; Fees</h1>
+      <p>
+        Markets on dice.express use an <strong>Automated Market Maker (AMM)</strong> for trading. 
+        You buy Yes or No shares with virtual <strong>Credits</strong>; the AMM sets prices based on the current pool state.
+      </p>
+
+      <h2>How the AMM Works</h2>
+      <p>
+        The AMM maintains a liquidity pool for each market. When you trade, you pay Credits and receive shares (or vice versa). 
+        Prices are derived from the pool so that larger orders move the price more than smaller ones. This provides continuous liquidity without requiring a counterparty.
+      </p>
+
+      <h2>Trading with Credits</h2>
+      <ul>
+        <li>All trading uses <strong>virtual Credits</strong> — no on-chain transfer at trade time.</li>
+        <li>You deposit real assets (e.g. CC) via Deposit to get Credits; you withdraw Credits via Withdraw to get assets back.</li>
+        <li>Buying Yes or No shares spends Credits; selling or settling positions returns Credits to your balance.</li>
+      </ul>
+
+      <h2>Fees</h2>
+      <p>
+        Fee structure is set per deployment. Typically:
+      </p>
+      <ul>
+        <li><strong>Trading:</strong> A small fee may be applied on each trade (e.g. a percentage of the trade size) to support the pool and platform.</li>
+        <li><strong>Deposit / Withdraw:</strong> Network or ledger fees may apply when moving assets on-chain; the UI shows estimated costs where applicable.</li>
+      </ul>
+      <p>
+        Exact fee rates and any minimums are shown in the Trade and Portfolio flows when you place an order or initiate a deposit/withdrawal.
+      </p>
+
+      <h2>Quotes and Slippage</h2>
+      <p>
+        Before you confirm a trade, the UI shows a quote (e.g. &quot;You pay X CR, receive ~Y shares&quot;). 
+        Quotes are based on the current pool state; if the pool changes before your transaction is processed, your execution may differ slightly (slippage). 
+        You can set a minimum acceptable amount to limit downside from slippage.
+      </p>
     </div>
   )
 }
