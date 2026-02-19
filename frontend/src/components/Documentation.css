@@ -4,12 +4,12 @@ body:has(.documentation-container) {
   height: 100vh !important;
 }
 
-/* Docs layout: navbar → TOC bar → content. No gap above footer; TOC has dedicated space. */
+/* Docs layout: navbar → TOC bar → content. Explicit height so content area can scroll. */
 .documentation-container {
   display: flex;
   flex-direction: column;
-  flex: 1;
-  min-height: 0;
+  /* Use viewport-based height so content gets bounded height and overflow-y: auto works */
+  height: calc(100vh - 80px); /* 80px ≈ footer; navbar is fixed so doesn't affect flow */
   padding-top: 60px; /* Space for fixed navbar */
   width: 100%;
   box-sizing: border-box;
@@ -103,14 +103,15 @@ body:has(.documentation-container) {
   display: none;
 }
 
-/* Content area: fills space between TOC and footer; scrolls inside. No gap. */
+/* Content area: fills space between TOC and footer; scrolls inside. */
 .documentation-content {
   flex: 1;
-  min-height: 0;
+  min-height: 0; /* Allow flex item to shrink so overflow works */
   width: 100%;
   padding: 2rem 2.5rem 4rem;
   overflow-y: auto;
   overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
   background: var(--color-surface, rgba(20, 28, 40, 0.6));
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
