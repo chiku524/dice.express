@@ -4,11 +4,11 @@ body:has(.documentation-container) {
   height: 100vh !important;
 }
 
-/* Match App.css navbar (64px): no gap. Content starts exactly where TOC ends (0 offset). */
+/* Fixed heights: navbar 64px, TOC 56px. Content starts at 64+56 = 120px from top. */
 .documentation-container {
   --docs-navbar-height: 64px;
   --docs-toc-height: 56px;
-  --docs-content-offset: 0;
+  --docs-header-total: 120px; /* navbar + TOC, fixed */
   --docs-footer-height: 80px;
 }
 
@@ -28,17 +28,17 @@ body:has(.documentation-container) {
 /* TOC bar: fixed directly under navbar so it’s always visible and never covered */
 .documentation-toc-bar {
   position: fixed !important;
-  top: var(--docs-navbar-height) !important;
+  top: 64px !important;
   left: 0 !important;
   right: 0 !important;
   width: 100% !important;
-  height: var(--docs-toc-height) !important;
-  min-height: var(--docs-toc-height) !important;
-  max-height: var(--docs-toc-height) !important;
+  height: 56px !important;
+  min-height: 56px !important;
+  max-height: 56px !important;
   display: block !important;
   background: #0f1623 !important;
   border-bottom: 2px solid rgba(139, 92, 246, 0.5) !important;
-  padding: 0.375rem 0 0 !important;
+  padding: 0 !important;
   margin: 0 !important;
   overflow: hidden;
   box-sizing: border-box;
@@ -115,12 +115,12 @@ body:has(.documentation-container) {
   display: none;
 }
 
-/* Content area: margin-top pushes it below TOC; fixed height so it scrolls (all viewports). */
+/* Section content: margin-top = navbar + TOC (120px) so it never overlaps. Fixed height for scroll. */
 .documentation-content {
   width: 100%;
-  margin: 0;
-  margin-top: calc(var(--docs-navbar-height) + var(--docs-toc-height));
-  height: calc(100vh - var(--docs-navbar-height) - var(--docs-toc-height) - var(--docs-footer-height));
+  margin: 0 !important;
+  margin-top: 120px !important; /* 64px navbar + 56px TOC fixed height */
+  height: calc(100vh - 120px - 80px) !important; /* below header, above footer */
   min-height: 240px;
   padding: 2rem 2.5rem 4rem;
   overflow-y: auto !important;
@@ -253,21 +253,24 @@ body:has(.documentation-container) {
   text-decoration: underline;
 }
 
-/* Large viewports: same logic — no gap navbar/TOC, content starts where TOC ends */
+/* Large viewports: same positioning (content-start derived from navbar + toc) */
 @media (min-width: 969px) {
   .documentation-container {
     --docs-navbar-height: 64px;
     --docs-toc-height: 56px;
-    --docs-content-offset: 0;
   }
 }
 
 @media (max-width: 968px) {
-  .documentation-container {
-    --docs-toc-height: 52px;
+  .documentation-toc-bar {
+    height: 52px !important;
+    min-height: 52px !important;
+    max-height: 52px !important;
   }
 
   .documentation-content {
+    margin-top: 116px !important; /* 64 + 52 */
+    height: calc(100vh - 116px - 80px) !important;
     padding: 1.5rem 1.25rem 4rem;
   }
 
@@ -285,12 +288,15 @@ body:has(.documentation-container) {
 }
 
 @media (max-width: 640px) {
-  .documentation-container {
-    --docs-toc-height: 48px;
-    --docs-footer-height: 72px;
+  .documentation-toc-bar {
+    height: 48px !important;
+    min-height: 48px !important;
+    max-height: 48px !important;
   }
 
   .documentation-content {
+    margin-top: 112px !important; /* 64 + 48 */
+    height: calc(100vh - 112px - 72px) !important;
     padding: 1.25rem 1rem 3rem;
   }
 
