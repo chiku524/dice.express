@@ -115,7 +115,7 @@ body:has(.documentation-container) {
   display: none;
 }
 
-/* Content area: starts below TOC with gap; explicit height so it scrolls; no overlap */
+/* Content area: starts below TOC; explicit height so it scrolls; no overlap on any viewport */
 .documentation-content {
   width: 100%;
   margin: 0;
@@ -250,6 +250,15 @@ body:has(.documentation-container) {
 .doc-section a:hover {
   color: var(--color-primary-hover, #535bf2);
   text-decoration: underline;
+}
+
+/* Large viewports: ensure content always starts where TOC ends (navbar/TOC can be taller) */
+@media (min-width: 969px) {
+  .documentation-container {
+    --docs-navbar-height: 80px;
+    --docs-toc-height: 58px;
+    --docs-content-offset: 24px;
+  }
 }
 
 @media (max-width: 968px) {
