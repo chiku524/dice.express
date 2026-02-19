@@ -1,15 +1,12 @@
-/* Prevent body scrolling on documentation page */
+/* Docs page: only the content div scrolls; body and container do not. */
 body:has(.documentation-container) {
   overflow: hidden !important;
   height: 100vh !important;
 }
 
-/* Docs layout: navbar → TOC bar → content. Explicit height so content area can scroll. */
+/* Ensure docs container and its scrollable child have defined heights (no flex dependency). */
 .documentation-container {
-  display: flex;
-  flex-direction: column;
-  /* Use viewport-based height so content gets bounded height and overflow-y: auto works */
-  height: calc(100vh - 80px); /* 80px ≈ footer; navbar is fixed so doesn't affect flow */
+  display: block;
   padding-top: 60px; /* Space for fixed navbar */
   width: 100%;
   box-sizing: border-box;
@@ -19,14 +16,13 @@ body:has(.documentation-container) {
   z-index: 1;
 }
 
-/* TOC bar: block box, fixed height, always visible below navbar */
+/* TOC bar: fixed height below navbar */
 .documentation-toc-bar {
   display: block !important;
   width: 100% !important;
   height: 52px !important;
   min-height: 52px !important;
-  max-height: 52px !important;
-  flex: none !important;
+  flex-shrink: 0;
   background: #0f1623 !important;
   border-bottom: 2px solid rgba(139, 92, 246, 0.5) !important;
   padding: 0 !important;
@@ -103,15 +99,18 @@ body:has(.documentation-container) {
   display: none;
 }
 
-/* Content area: fills space between TOC and footer; scrolls inside. */
+/* Content area: explicit height so it always scrolls; no flex. */
 .documentation-content {
-  flex: 1;
-  min-height: 0; /* Allow flex item to shrink so overflow works */
   width: 100%;
+  /* 60px navbar + 52px TOC + 80px footer = 192px */
+  height: calc(100vh - 60px - 52px - 80px);
+  min-height: 240px;
   padding: 2rem 2.5rem 4rem;
-  overflow-y: auto;
+  overflow-y: auto !important;
   overflow-x: hidden;
   -webkit-overflow-scrolling: touch;
+  touch-action: pan-y;
+  overscroll-behavior-y: contain;
   background: var(--color-surface, rgba(20, 28, 40, 0.6));
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
@@ -119,6 +118,8 @@ body:has(.documentation-container) {
   scrollbar-color: rgba(139, 92, 246, 0.3) transparent;
   -ms-overflow-style: -ms-autohiding-scrollbar;
   box-sizing: border-box;
+  position: relative;
+  z-index: 1;
 }
 
 /* Custom scrollbar styling for Chrome, Safari, Opera */

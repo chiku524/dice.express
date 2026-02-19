@@ -73,7 +73,12 @@ export default function Documentation() {
           </ul>
         </nav>
       </header>
-      <div className="documentation-content">
+      <div
+        className="documentation-content"
+        role="region"
+        aria-label="Documentation content"
+        tabIndex={0}
+      >
         {renderContent()}
       </div>
     </div>
