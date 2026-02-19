@@ -4,11 +4,11 @@ body:has(.documentation-container) {
   height: 100vh !important;
 }
 
-/* Responsive heights: navbar offset (72px so TOC clears nav); TOC bar; content offset */
+/* Match App.css navbar (64px): no gap. Content starts exactly where TOC ends (0 offset). */
 .documentation-container {
-  --docs-navbar-height: 72px;
+  --docs-navbar-height: 64px;
   --docs-toc-height: 56px;
-  --docs-content-offset: 20px; /* content header begins exactly where TOC bottom ends */
+  --docs-content-offset: 0;
   --docs-footer-height: 80px;
 }
 
@@ -252,12 +252,12 @@ body:has(.documentation-container) {
   text-decoration: underline;
 }
 
-/* Large viewports: ensure content always starts where TOC ends (navbar/TOC can be taller) */
+/* Large viewports: same logic — no gap navbar/TOC, content starts where TOC ends */
 @media (min-width: 969px) {
   .documentation-container {
-    --docs-navbar-height: 80px;
-    --docs-toc-height: 58px;
-    --docs-content-offset: 24px;
+    --docs-navbar-height: 64px;
+    --docs-toc-height: 56px;
+    --docs-content-offset: 0;
   }
 }
 
