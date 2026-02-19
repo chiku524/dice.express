@@ -4,17 +4,18 @@ body:has(.documentation-container) {
   height: 100vh !important;
 }
 
-/* Responsive heights: match App.css navbar (64px) and TOC bar */
+/* Responsive heights: navbar offset (72px so TOC clears nav); TOC bar; content offset */
 .documentation-container {
-  --docs-navbar-height: 64px;
+  --docs-navbar-height: 72px;
   --docs-toc-height: 56px;
+  --docs-content-offset: 4px; /* gap between TOC bottom and content top */
   --docs-footer-height: 80px;
 }
 
 /* Docs layout: navbar (fixed) → TOC bar (fixed below navbar) → content. */
 .documentation-container {
   display: block;
-  padding-top: calc(var(--docs-navbar-height) + var(--docs-toc-height));
+  padding-top: calc(var(--docs-navbar-height) + var(--docs-toc-height) + var(--docs-content-offset));
   width: 100%;
   min-height: 100vh;
   box-sizing: border-box;
@@ -114,11 +115,11 @@ body:has(.documentation-container) {
   display: none;
 }
 
-/* Content area: starts below TOC; explicit height so it scrolls; no overlap */
+/* Content area: starts below TOC with gap; explicit height so it scrolls; no overlap */
 .documentation-content {
   width: 100%;
   margin: 0;
-  height: calc(100vh - var(--docs-navbar-height) - var(--docs-toc-height) - var(--docs-footer-height));
+  height: calc(100vh - var(--docs-navbar-height) - var(--docs-toc-height) - var(--docs-content-offset) - var(--docs-footer-height));
   min-height: 240px;
   padding: 2rem 2.5rem 4rem;
   overflow-y: auto !important;
