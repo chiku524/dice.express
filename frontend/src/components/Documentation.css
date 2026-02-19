@@ -4,20 +4,21 @@ body:has(.documentation-container) {
   height: 100vh !important;
 }
 
-/* Fixed heights: navbar 64px, TOC 56px. Content starts at 64+56 = 120px from top. */
+/* Fixed heights: navbar 64px, TOC 56px. Content starts after 132px (120 + 12px buffer so header fully cleared). */
 .documentation-container {
   --docs-navbar-height: 64px;
   --docs-toc-height: 56px;
-  --docs-header-total: 120px; /* navbar + TOC, fixed */
+  --docs-header-total: 132px; /* 64+56 + 12px buffer so content header fully below TOC */
   --docs-footer-height: 80px;
 }
 
-/* Docs layout: navbar (fixed) → TOC bar (fixed) → content. Explicit height so content can scroll. */
+/* Docs layout: reserve top space with padding so content cannot overlap TOC (no margin collapse). */
 .documentation-container {
   display: block;
   width: 100%;
   height: 100vh;
   min-height: 100vh;
+  padding-top: var(--docs-header-total);
   box-sizing: border-box;
   background: transparent;
   color: var(--color-text-primary, #fff);
@@ -115,12 +116,11 @@ body:has(.documentation-container) {
   display: none;
 }
 
-/* Section content: margin-top = navbar + TOC (120px) so it never overlaps. Fixed height for scroll. */
+/* Section content: no margin (container padding reserves space). Height so it scrolls; never under TOC. */
 .documentation-content {
   width: 100%;
   margin: 0 !important;
-  margin-top: 120px !important; /* 64px navbar + 56px TOC fixed height */
-  height: calc(100vh - 120px - 80px) !important; /* below header, above footer */
+  height: calc(100vh - var(--docs-header-total) - var(--docs-footer-height)) !important;
   min-height: 240px;
   padding: 2rem 2.5rem 4rem;
   overflow-y: auto !important;
@@ -262,6 +262,10 @@ body:has(.documentation-container) {
 }
 
 @media (max-width: 968px) {
+  .documentation-container {
+    --docs-header-total: 128px; /* 64 + 52 + 12px buffer */
+  }
+
   .documentation-toc-bar {
     height: 52px !important;
     min-height: 52px !important;
@@ -269,8 +273,6 @@ body:has(.documentation-container) {
   }
 
   .documentation-content {
-    margin-top: 116px !important; /* 64 + 52 */
-    height: calc(100vh - 116px - 80px) !important;
     padding: 1.5rem 1.25rem 4rem;
   }
 
@@ -288,6 +290,11 @@ body:has(.documentation-container) {
 }
 
 @media (max-width: 640px) {
+  .documentation-container {
+    --docs-header-total: 124px; /* 64 + 48 + 12px buffer */
+    --docs-footer-height: 72px;
+  }
+
   .documentation-toc-bar {
     height: 48px !important;
     min-height: 48px !important;
@@ -295,8 +302,6 @@ body:has(.documentation-container) {
   }
 
   .documentation-content {
-    margin-top: 112px !important; /* 64 + 48 */
-    height: calc(100vh - 112px - 72px) !important;
     padding: 1.25rem 1rem 3rem;
   }
 
