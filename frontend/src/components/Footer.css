@@ -74,11 +74,11 @@
 .footer-heading {
   display: block;
   color: var(--color-aqua);
-  font-size: 0.65rem;
+  font-size: 0.8rem;
   font-weight: 600;
   letter-spacing: 0.04em;
   text-transform: uppercase;
-  margin-bottom: 0.2rem;
+  margin-bottom: 0.35rem;
 }
 
 .footer-links {
@@ -95,10 +95,10 @@
 .footer-links li a {
   color: var(--color-text-secondary);
   text-decoration: none;
-  font-size: 0.7rem;
+  font-size: 0.9rem;
   transition: color 0.2s ease;
   display: inline-block;
-  padding: 0.05rem 0;
+  padding: 0.1rem 0;
 }
 
 .footer-links li a:hover {
@@ -107,15 +107,15 @@
 
 .footer-about p {
   color: var(--color-text-secondary);
-  font-size: 0.7rem;
-  line-height: 1.35;
+  font-size: 0.9rem;
+  line-height: 1.45;
   margin: 0;
 }
 
 .footer-virtual-note {
-  margin-top: 0.15rem !important;
+  margin-top: 0.25rem !important;
   color: var(--color-text-muted, rgba(255, 255, 255, 0.5)) !important;
-  font-size: 0.65rem !important;
+  font-size: 0.8rem !important;
 }
 
 .footer-bottom {
@@ -132,8 +132,8 @@
 .footer-bottom p {
   margin: 0;
   color: var(--color-text-tertiary);
-  font-size: 0.72rem;
-  line-height: 1.4;
+  font-size: 0.875rem;
+  line-height: 1.45;
 }
 
 .footer-copyright {
@@ -142,7 +142,7 @@
 
 .footer-made-with {
   color: var(--color-text-muted) !important;
-  font-size: 0.68rem !important;
+  font-size: 0.85rem !important;
 }
 
 .footer-heart {
