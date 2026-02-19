@@ -276,16 +276,10 @@ export default function Portfolio() {
         throw new Error('TokenBalance contract ID not found. Please create a TokenBalance contract first using the Contract Tester (/test page).')
       }
 
-      const token = localStorage.getItem('canton_token')
-      if (!token) {
-        throw new Error('Authentication token not found. Please connect your wallet.')
-      }
-
       const response = await fetch('/api/deposit', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify({
           amount: depositAmount,
@@ -344,16 +338,10 @@ export default function Portfolio() {
         throw new Error('Platform TokenBalance contract ID not found. Please configure the platform wallet TokenBalance contract ID.')
       }
 
-      const token = localStorage.getItem('canton_token')
-      if (!token) {
-        throw new Error('Authentication token not found. Please connect your wallet.')
-      }
-
       const response = await fetch('/api/withdraw', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify({
           amount: withdrawAmount,

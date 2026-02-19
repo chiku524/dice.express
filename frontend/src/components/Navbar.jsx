@@ -5,7 +5,7 @@ import { getVirtualBalance } from '../services/balance'
 import { BRAND_NAME, BRAND_TAGLINE } from '../constants/brand'
 import './Navbar.css'
 
-export default function Navbar({ showWalletModal, setShowWalletModal }) {
+export default function Navbar({ setShowWalletModal }) {
   const { wallet, disconnectWallet } = useWallet()
   const location = useLocation()
   const [showDiscoverMenu, setShowDiscoverMenu] = useState(false)
@@ -138,16 +138,14 @@ export default function Navbar({ showWalletModal, setShowWalletModal }) {
               <Link to="/dashboard" className="nav-user-name" title={wallet.party}>
                 {wallet.party.length > 16 ? wallet.party.substring(0, 16) + '…' : wallet.party}
               </Link>
-              <button onClick={() => setShowWalletModal(true)}>Account</button>
+              <Link to="/account" className="nav-account-link">Account</Link>
               <button onClick={disconnectWallet}>Disconnect</button>
             </div>
           ) : (
-            <button 
-              className="btn-connect"
-              onClick={() => setShowWalletModal(true)}
-            >
-              Sign in
-            </button>
+            <>
+              <Link to="/sign-in" className="nav-sign-in-link">Sign in</Link>
+              <Link to="/register" className="btn-connect">Create account</Link>
+            </>
           )}
         </nav>
       </div>

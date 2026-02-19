@@ -120,27 +120,21 @@ function GettingStartedContent() {
 
       <h2>Prerequisites</h2>
       <ul>
-        <li>A wallet (Party ID or supported chain wallet)</li>
-        <li>Keycloak credentials for authentication</li>
-        <li>TokenBalance contracts for CC deposits/withdrawals (created via /test page)</li>
+        <li>An account (create one or sign in from the nav)</li>
+        <li>TokenBalance contracts for CC deposits/withdrawals (created via /test page) if using on-chain features</li>
       </ul>
 
       <h2>Quick Start</h2>
       <ol>
-        <li><strong>Connect Your Wallet:</strong> Open the Wallet & Authentication modal and enter your Party ID</li>
-        <li><strong>Get Authentication Token:</strong> Use Keycloak credentials to obtain a JWT token</li>
-        <li><strong>Create TokenBalance Contracts:</strong> Visit the /test page to create TokenBalance contracts for CC transfers</li>
-        <li><strong>Deposit CC:</strong> Use the Portfolio page to deposit CC to the platform wallet (on-chain)</li>
+        <li><strong>Create or sign in:</strong> Use &quot;Create account&quot; or &quot;Sign in&quot; in the navigation to set up your account and display name</li>
         <li><strong>Markets:</strong> Markets are created and managed automatically; browse from the home page</li>
         <li><strong>Trade:</strong> Use the AMM on any market to buy Yes or No shares</li>
       </ol>
 
       <h2>Key Concepts</h2>
       <ul>
-        <li><strong>Virtual CC Tracking:</strong> Market creation and position creation use database-backed virtual tracking (not on-chain transfers)</li>
-        <li><strong>On-Chain Transfers:</strong> Only deposit and withdraw operations perform actual on-chain CC transfers</li>
-        <li><strong>Party ID:</strong> Your public identifier on the connected ledger (similar to a wallet address)</li>
-        <li><strong>Authentication Token:</strong> JWT token from Keycloak that authorizes blockchain interactions</li>
+        <li><strong>Virtual CC Tracking:</strong> Market creation and position creation use database-backed virtual tracking</li>
+        <li><strong>Display name / Party ID:</strong> Your public identifier (display name) and account ID are stored and used for positions and balance</li>
       </ul>
     </div>
   )
@@ -149,59 +143,32 @@ function GettingStartedContent() {
 function WalletAuthenticationContent() {
   return (
     <div className="doc-section">
-      <h1>Wallet & Authentication</h1>
+      <h1>Account & Sign-in</h1>
       
-      <h2>Connecting Your Wallet</h2>
+      <h2>Creating an account</h2>
       <p>
-        To interact with the platform, connect your wallet by providing your Party ID (or connect a supported chain wallet).
+        To use the platform, create an account or sign in. Your account is identified by a display name and an account ID (stored locally and optionally on the server).
       </p>
       
-      <h3>Party ID Format</h3>
-      <p>The Party ID follows the format: <code>{'{user-id}'}::{'{party-id}'}</code></p>
-      
-      <h3>Steps to Connect</h3>
+      <h3>Steps</h3>
       <ol>
-        <li>Click on the wallet icon in the navigation bar</li>
-        <li>Enter your Party ID in the input field</li>
-        <li>Click "Connect Wallet"</li>
-        <li>Your wallet connection status will be displayed</li>
+        <li>Click &quot;Create account&quot; in the navigation</li>
+        <li>Complete the short wizard: choose a display name and funding preference</li>
+        <li>You will be redirected to your Dashboard</li>
       </ol>
 
-      <h2>Authentication Token</h2>
+      <h2>Signing in</h2>
       <p>
-        To interact with the ledger, you need an authentication token (JWT) from Keycloak.
+        If you already have an account (created on this browser), use &quot;Sign in&quot; and enter your display name to restore your session.
       </p>
 
-      <h3>Getting a Token</h3>
-      <ol>
-        <li>Open the Wallet & Authentication modal</li>
-        <li>Click "Get Token from Keycloak"</li>
-        <li>Enter your Keycloak username and password</li>
-        <li>Click "Get Token"</li>
-        <li>The token will be automatically saved to localStorage</li>
-      </ol>
+      <h2>Account page</h2>
+      <p>When signed in, use the &quot;Account&quot; link in the nav to view your display name, account ID, balance, and links to Dashboard, Profile, and Portfolio.</p>
 
-      <h3>Manual Token Entry</h3>
-      <p>Alternatively, you can manually enter a JWT token if you have one from another source.</p>
-      <ol>
-        <li>Open the Wallet & Authentication modal</li>
-        <li>Paste your JWT token in the token input field</li>
-        <li>Click "Save Token"</li>
-      </ol>
-
-      <h3>Token Management</h3>
+      <h2>Security notes</h2>
       <ul>
-        <li><strong>Auto-Refresh:</strong> Tokens are automatically refreshed before expiration</li>
-        <li><strong>Clear Token:</strong> Use the "Clear Token" button to remove the stored token</li>
-        <li><strong>Storage:</strong> Tokens are stored in browser localStorage</li>
-      </ul>
-
-      <h2>Security Notes</h2>
-      <ul>
-        <li>Party IDs are public identifiers (similar to Ethereum addresses)</li>
-        <li>Authentication tokens are private and must be kept secure</li>
-        <li>Never share your Keycloak credentials or JWT tokens</li>
-        <li>Tokens are stored locally in your browser's localStorage</li>
+        <li>Your display name and account ID are used to track positions and balance</li>
+        <li>Account data may be stored in browser localStorage and optionally on the server</li>
       </ul>
     </div>
   )
@@ -616,19 +583,19 @@ function BlockchainContent() {
 
       <h2>Virtual-first, multi-chain</h2>
       <p>
-        The platform uses <strong>virtual Credits</strong> for all trading and fees; <strong>blockchain is used only for deposits and withdrawals</strong> across supported networks (e.g. Canton, with more planned). The application uses a <strong>ledger</strong> (e.g. Canton via JSON API) for command submission where applicable. Due to current limitations in some ledger APIs, a <strong>hybrid approach</strong> combines on-chain operations with database-backed storage.
+        The platform uses <strong>virtual Credits</strong> for all trading and fees. Blockchain/ledger integration for deposits and withdrawals may be re-enabled in a future release. A <strong>hybrid approach</strong> combines database-backed storage with optional on-chain operations when configured.
       </p>
 
       <h3>Hybrid Architecture</h3>
       <ul>
         <li><strong>On-Chain:</strong> Contract creation, choice exercising, and deposit/withdraw (per supported chain)</li>
         <li><strong>Database-Backed:</strong> Contract queries, position tracking, and market listings</li>
-        <li><strong>Rationale:</strong> Some ledger JSON APIs (e.g. Canton) do not provide general contract query endpoints</li>
+        <li><strong>Rationale:</strong> Some ledger JSON APIs do not provide general contract query endpoints</li>
       </ul>
 
       <h3>Supported Operations</h3>
       <ul>
-        <li>✅ <strong>Contract Creation:</strong> Market creation requests submitted to ledger (e.g. Canton)</li>
+        <li>✅ <strong>Contract Creation:</strong> Market creation and positions stored in database</li>
         <li>✅ <strong>Choice Exercising:</strong> Admin approval/rejection, market resolution</li>
         <li>✅ <strong>CC Transfers:</strong> Deposits and withdrawals via TokenBalance contracts</li>
         <li>⚠️ <strong>Contract Querying:</strong> Limited - uses database as primary source</li>
@@ -645,7 +612,7 @@ function BlockchainContent() {
       <ul>
         <li><strong>BlockchainProvider:</strong> Abstract interface for blockchain operations</li>
         <li><strong>BlockchainRegistry:</strong> Central registry for network providers</li>
-        <li><strong>CantonProvider:</strong> Implementation for Canton (one of the supported networks)</li>
+        <li><strong>Ledger providers:</strong> Optional ledger/blockchain integration when re-enabled</li>
       </ul>
 
       <h3>Provider Interface</h3>
@@ -663,7 +630,7 @@ function BlockchainContent() {
 
       <h2>Future: Full On-Chain Support</h2>
       <p>
-        When supported ledgers (e.g. Canton) provide the necessary capabilities (contract query endpoints, real-time events, etc.), 
+        When supported ledgers provide the necessary capabilities (contract query endpoints, real-time events, etc.), 
         the application can migrate to a full on-chain approach for those networks. The architecture is already prepared for 
         this transition. The platform remains virtual-first: trading and fees stay in Credits; blockchain is for deposit/withdraw.
       </p>
@@ -694,7 +661,7 @@ function BlockchainContent() {
 
       <h2>Configuration</h2>
       <p>Blockchain providers are configured via environment variables:</p>
-      <pre>{`# Ledger configuration (e.g. Canton)
+      <pre>{`# Ledger configuration
 VITE_CANTON_LEDGER_URL=https://participant.dev.canton.wolfedgelabs.com/json-api
 VITE_CANTON_PACKAGE_ID=b87ef31c8ea5c53a940a7f71a4bc6513cf44048730c0551f1fc2e02adc7271f0`}</pre>
 
@@ -702,7 +669,7 @@ VITE_CANTON_PACKAGE_ID=b87ef31c8ea5c53a940a7f71a4bc6513cf44048730c0551f1fc2e02ad
       <p>For more detailed information, see:</p>
       <ul>
         <li><strong>Blockchain Integration Guide:</strong> Architecture and provider system</li>
-        <li><strong>Canton Integration Guide:</strong> Canton (one supported network) integration details and migration path</li>
+        <li><strong>Ledger integration:</strong> Integration details when blockchain/ledger support is re-enabled</li>
       </ul>
     </div>
   )
@@ -737,40 +704,6 @@ function APIsAndOraclesContent() {
       <p><strong>Limitations:</strong> Primarily financial/crypto data, may not cover sports, politics, etc.</p>
       <p><strong>Cost:</strong> Free (no API key required for basic usage)</p>
       <p><strong>Documentation:</strong> <a href="https://docs.redstone.finance/" target="_blank" rel="noopener noreferrer">RedStone Documentation</a></p>
-
-      <h3>Ledger JSON API (e.g. Canton) ✅</h3>
-      <p><strong>Status:</strong> Implemented and Active</p>
-      <p><strong>Purpose:</strong> Ledger interactions for deposit/withdraw and commands (contract creation, choice exercising). Platform trading uses virtual Credits; this API is used for supported chains (Canton today, more planned).</p>
-      <p><strong>What it provides:</strong></p>
-      <ul>
-        <li>Command submission for contract creation</li>
-        <li>Choice exercising for contract interactions</li>
-        <li>Limited contract querying (via active-contracts endpoint)</li>
-      </ul>
-      <p><strong>API Endpoints:</strong></p>
-      <ul>
-        <li><code>POST /api/command</code> - Proxy for ledger command submission (e.g. Canton)</li>
-        <li><code>POST /api/query</code> - Proxy for ledger contract queries (e.g. Canton)</li>
-      </ul>
-      <p><strong>Base URL (example):</strong> <code>https://participant.dev.canton.wolfedgelabs.com/json-api</code></p>
-      <p><strong>Authentication:</strong> JWT token via Keycloak</p>
-      <p><strong>Limitations:</strong> General contract querying not available via some ledger JSON APIs</p>
-
-      <h3>Keycloak Authentication API ✅</h3>
-      <p><strong>Status:</strong> Implemented and Active</p>
-      <p><strong>Purpose:</strong> User authentication and JWT token management</p>
-      <p><strong>What it provides:</strong></p>
-      <ul>
-        <li>User authentication (username/password)</li>
-        <li>JWT token generation</li>
-        <li>Token refresh</li>
-      </ul>
-      <p><strong>API Endpoints:</strong></p>
-      <ul>
-        <li><code>POST /api/get-token</code> - Get authentication token</li>
-        <li><code>POST /api/refresh-token</code> - Refresh authentication token</li>
-      </ul>
-      <p><strong>Usage:</strong> Required for all blockchain interactions</p>
 
       <h3>Supabase Database API ✅</h3>
       <p><strong>Status:</strong> Implemented and Active</p>
@@ -943,7 +876,7 @@ function ArchitectureContent() {
       <h2>Overview</h2>
       <p>
         The application is <strong>virtual-first and multi-chain</strong>: all trading and fees use <strong>Credits</strong>; 
-        blockchain is used only for <strong>deposits and withdrawals</strong> on supported networks (e.g. Canton). 
+        blockchain may be used for <strong>deposits and withdrawals</strong> when ledger integration is enabled. 
         Architecture combines ledger(s) for deposit/withdraw with Supabase database for market and position data.
       </p>
 
@@ -951,9 +884,9 @@ function ArchitectureContent() {
       <ul>
         <li><strong>Frontend:</strong> React with React Router</li>
         <li><strong>Backend API:</strong> Vercel Serverless Functions</li>
-        <li><strong>Blockchain:</strong> Multi-chain; Canton (and others) for deposit/withdraw via JSON API</li>
+        <li><strong>Blockchain:</strong> Optional; ledger integration may be re-enabled for deposit/withdraw</li>
         <li><strong>Database:</strong> Supabase (PostgreSQL)</li>
-        <li><strong>Authentication:</strong> Keycloak (JWT tokens)</li>
+        <li><strong>Authentication:</strong> Account sign-in (display name, account ID)</li>
         <li><strong>Storage:</strong> Browser localStorage (tokens, wallet info)</li>
       </ul>
 
@@ -964,7 +897,7 @@ function ArchitectureContent() {
         Platform uses virtual Credits for activity; blockchain only for moving value in/out. Due to some ledger APIs lacking full query support, a hybrid approach is used:
       </p>
       <ul>
-        <li><strong>On-Chain:</strong> Deposits and withdrawals (e.g. CC/TokenBalance on Canton; other chains planned)</li>
+        <li><strong>On-Chain:</strong> Deposits and withdrawals when ledger integration is enabled</li>
         <li><strong>Database:</strong> Markets, positions, and transaction history</li>
       </ul>
 
@@ -1002,17 +935,16 @@ function ArchitectureContent() {
       <h3>Deposits/Withdrawals</h3>
       <ol>
         <li>User initiates deposit/withdraw (on chosen supported chain)</li>
-        <li>On-chain transfer executed (e.g. TokenBalance.Transfer on Canton)</li>
+        <li>On-chain transfer executed when ledger is configured</li>
         <li>Transaction recorded in Supabase database</li>
         <li>User virtual balance (Credits) updated</li>
       </ol>
 
       <h2>API Endpoints</h2>
       <ul>
-        <li><code>/api/command</code> - Proxy for ledger JSON API commands (e.g. Canton)</li>
-        <li><code>/api/query</code> - Proxy for ledger JSON API queries (e.g. Canton)</li>
-        <li><code>/api/get-token</code> - Get authentication token from Keycloak</li>
-        <li><code>/api/refresh-token</code> - Refresh authentication token</li>
+        <li><code>/api/command</code> - Proxy for ledger JSON API commands (when enabled)</li>
+        <li><code>/api/query</code> - Proxy for ledger JSON API queries (when enabled)</li>
+        <li><code>/api/account</code> - Get or save account (display name, onboarding)</li>
         <li><code>/api/deposit</code> - Deposit CC (on-chain transfer)</li>
         <li><code>/api/withdraw</code> - Withdraw CC (on-chain transfer)</li>
         <li><code>/api/create-position</code> - Create position (database)</li>
@@ -1025,7 +957,7 @@ function ArchitectureContent() {
       <ul>
         <li><strong>Supabase:</strong> Markets, positions, transactions, contract metadata</li>
         <li><strong>localStorage:</strong> Authentication tokens, wallet info, contract IDs</li>
-        <li><strong>Ledger (e.g. Canton):</strong> TokenBalance contracts (CC balances) for deposit/withdraw</li>
+        <li><strong>Ledger:</strong> TokenBalance contracts for deposit/withdraw when integration is enabled</li>
       </ul>
     </div>
   )
@@ -1040,7 +972,7 @@ function SecurityContent() {
       
       <h3>Party IDs</h3>
       <p>
-        Party IDs (e.g. on Canton) are public identifiers, similar to Ethereum addresses. They are meant 
+        Party IDs / display names are public identifiers. They are meant 
         to be shared publicly and are not secret.
       </p>
       <ul>
@@ -1054,7 +986,7 @@ function SecurityContent() {
         Authentication tokens (JWTs) are the actual security mechanism that authorize blockchain interactions.
       </p>
       <ul>
-        <li>Tokens are obtained from Keycloak using username/password</li>
+        <li>Account sign-in uses your display name (stored when you created your account)</li>
         <li>Tokens must be kept secure and never shared</li>
         <li>Tokens are stored in browser localStorage</li>
         <li>Tokens expire and are automatically refreshed</li>
@@ -1074,7 +1006,7 @@ function SecurityContent() {
 
       <h2>Best Practices</h2>
       <ul>
-        <li><strong>Never share:</strong> Keycloak credentials, JWT tokens, or refresh tokens</li>
+        <li><strong>Never share:</strong> Your account ID or session data with others</li>
         <li><strong>Safe to share:</strong> Party IDs (they're public identifiers)</li>
         <li><strong>Token Storage:</strong> Tokens are stored in localStorage (browser-only)</li>
         <li><strong>Auto-Refresh:</strong> Enable automatic token refresh to avoid expiration issues</li>
@@ -1092,7 +1024,7 @@ function SecurityContent() {
       <h2>Blockchain Security</h2>
       <ul>
         <li>All blockchain interactions require valid authentication tokens</li>
-        <li>Transactions are signed by the Canton network</li>
+        <li>Transactions are recorded in the database; ledger signing when enabled</li>
         <li>CC transfers use on-chain TokenBalance contracts</li>
         <li>Transaction history is immutable on the blockchain</li>
       </ul>
@@ -1105,36 +1037,8 @@ function APIReferenceContent() {
     <div className="doc-section">
       <h1>API Reference</h1>
       
-      <h2>Authentication Endpoints</h2>
-      
-      <h3>GET /api/get-token</h3>
-      <p>Get authentication token from Keycloak.</p>
-      <p><strong>Request:</strong></p>
-      <pre>{`{
-  "username": "string",
-  "password": "string",
-  "clientId": "string"
-}`}</pre>
-      <p><strong>Response:</strong></p>
-      <pre>{`{
-  "access_token": "string",
-  "refresh_token": "string",
-  "expires_in": number
-}`}</pre>
-
-      <h3>POST /api/refresh-token</h3>
-      <p>Refresh authentication token using refresh token.</p>
-      <p><strong>Request:</strong></p>
-      <pre>{`{
-  "refresh_token": "string",
-  "clientId": "string"
-}`}</pre>
-      <p><strong>Response:</strong></p>
-      <pre>{`{
-  "access_token": "string",
-  "refresh_token": "string",
-  "expires_in": number
-}`}</pre>
+      <h2>Account</h2>
+      <p>Account creation and sign-in are handled via the web app (Create account / Sign in). Account data is persisted via <code>POST /api/account</code> and <code>GET /api/account?accountId=...</code>.</p>
 
       <h2>Deposit/Withdraw Endpoints</h2>
       
@@ -1234,11 +1138,12 @@ function APIReferenceContent() {
   "source": "redstone"
 }`}</pre>
 
-      <h2>Ledger API Proxies (e.g. Canton)</h2>
+      <h2>Ledger API Proxies</h2>
+      <p>Ledger/blockchain integration may be re-enabled in a future release. The following endpoints are documented for reference.</p>
       
       <h3>POST /api/command</h3>
-      <p>Proxy for ledger JSON API command submission (create contracts, exercise choices). Used for supported networks (e.g. Canton).</p>
-      <p><strong>Headers:</strong> Authorization: Bearer {'{token}'}</p>
+      <p>Proxy for ledger JSON API command submission (create contracts, exercise choices).</p>
+      <p><strong>Headers:</strong> Authorization: Bearer {'{token}'} (if applicable)</p>
       <p><strong>Request:</strong></p>
       <pre>{`{
   "commands": {

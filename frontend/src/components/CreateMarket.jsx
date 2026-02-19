@@ -121,9 +121,9 @@ export default function CreateMarket() {
       
       // Provide helpful error messages for common issues
       if (err.message?.includes('401') || err.response?.status === 401) {
-        errorMessage = 'Authentication failed. Please check your token in the Wallet modal. The token may have expired - try getting a new token from Keycloak.'
+        errorMessage = 'Authentication failed. Please sign in or create an account and try again.'
       } else if (err.message?.includes('token') || err.message?.includes('unauthorized')) {
-        errorMessage = 'Authentication required. Please ensure you have a valid token saved in the Wallet modal.'
+        errorMessage = 'Please sign in to create a market.'
       }
       
       setError(errorMessage)

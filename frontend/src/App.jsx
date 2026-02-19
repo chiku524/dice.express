@@ -16,6 +16,9 @@ const AdminDashboard = lazyWithRetry(() => import('./components/AdminDashboard')
 const ContractHistory = lazyWithRetry(() => import('./components/ContractHistory'))
 const Dashboard = lazyWithRetry(() => import('./components/Dashboard'))
 const Profile = lazyWithRetry(() => import('./components/Profile'))
+const SignIn = lazyWithRetry(() => import('./components/SignIn'))
+const Register = lazyWithRetry(() => import('./components/Register'))
+const Account = lazyWithRetry(() => import('./components/Account'))
 const PrivacyPolicy = lazyWithRetry(() => import('./components/PrivacyPolicy'))
 const TermsOfService = lazyWithRetry(() => import('./components/TermsOfService'))
 import { analytics } from './utils/analytics'
@@ -28,6 +31,7 @@ import PageSEO from './components/PageSEO'
 import { ToastContainer } from './components/Toast'
 import { ToastProvider, useToastContext } from './contexts/ToastContext'
 import { AccountModalProvider } from './contexts/AccountModalContext'
+import ProtectedRoute from './components/ProtectedRoute'
 // Import theme.css FIRST to ensure variables are available
 import './styles/theme.css'
 import './App.css'
@@ -66,10 +70,7 @@ function AppContent() {
       <AnimatedBackground />
       <ToastContainer toasts={toasts} onRemove={removeToast} />
       <div className="app">
-        <Navbar
-          showWalletModal={showWalletModal}
-          setShowWalletModal={setShowWalletModal}
-        />
+        <Navbar setShowWalletModal={setShowWalletModal} />
 
         <main className="app-main">
           <div className="container">
@@ -82,10 +83,13 @@ function AppContent() {
                   <Route path="/discover/virtual-realities" element={<MarketsList source="virtual_realities" />} />
                   <Route path="/discover/user" element={<MarketsList source="user" />} />
                   <Route path="/market/:marketId" element={<MarketDetail />} />
-                  <Route path="/dashboard" element={<Dashboard />} />
-                  <Route path="/profile" element={<Profile />} />
+                  <Route path="/sign-in" element={<SignIn />} />
+                  <Route path="/register" element={<Register />} />
+                  <Route path="/account" element={<Account />} />
+                  <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+                  <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
                   <Route path="/create" element={<AutomatedMarketsInfo />} />
-                  <Route path="/portfolio" element={<Portfolio />} />
+                  <Route path="/portfolio" element={<ProtectedRoute><Portfolio /></ProtectedRoute>} />
                   <Route path="/admin" element={<AdminDashboard />} />
                   <Route path="/history" element={<ContractHistory />} />
                   <Route path="/docs" element={<Documentation />} />

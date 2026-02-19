@@ -6,6 +6,7 @@
  */
 import * as storage from '../lib/cf-storage.mjs'
 import { getQuote, isTradeWithinLimit, applyTrade, createPoolState } from '../lib/amm.mjs'
+import { hashPassword, verifyPassword } from '../lib/auth.mjs'
 
 const CORS = {
   'Access-Control-Allow-Origin': '*',
@@ -217,6 +218,69 @@ async function handleWithD1(db, kv, r2, request, path, method) {
     })
     await backupToR2(r2, undefined, accountId, payload)
     return jsonResponse({ success: true, account: { accountId, ...payload } })
+  }
+
+  // POST /api/register — create user with email/password, persist to D1 and UserAccount contract
+  if (path === 'register' && method === 'POST') {
+    const { email, password, displayName, fundChoice } = body
+    const emailTrim = (email || '').trim().toLowerCase()
+    const displayNameTrim = (displayName || '').trim()
+    if (!emailTrim || !password || !displayNameTrim) {
+      return jsonResponse({ error: 'Email, password, and display name are required' }, 400)
+    }
+    if (password.length < 8) {
+      return jsonResponse({ error: 'Password must be at least 8 characters' }, 400)
+    }
+    const emailSimple = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    if (!emailSimple.test(emailTrim)) {
+      return jsonResponse({ error: 'Please enter a valid email address' }, 400)
+    }
+    const existing = await storage.getUserByEmail(db, emailTrim)
+    if (existing) {
+      return jsonResponse({ error: 'An account with this email already exists' }, 409)
+    }
+    const accountId = 'acc_' + crypto.randomUUID().replace(/-/g, '')
+    const { hash: passwordHash, salt } = await hashPassword(password)
+    await storage.createUser(db, {
+      email: emailTrim,
+      passwordHash,
+      salt,
+      accountId,
+      displayName: displayNameTrim,
+      fundChoice: fundChoice || null,
+      onboardingCompleted: true,
+    })
+    const now = new Date().toISOString()
+    const payload = { displayName: displayNameTrim, onboardingCompleted: true, fundChoice: fundChoice || null, createdAt: now }
+    await storage.upsertContract(db, { contract_id: accountId, template_id: 'UserAccount', payload, party: displayNameTrim, status: 'Active' })
+    await backupToR2(r2, undefined, accountId, payload)
+    return jsonResponse({ success: true, account: { accountId, displayName: displayNameTrim, fundChoice: fundChoice || null, createdAt: now } })
+  }
+
+  // POST /api/sign-in — verify email/password, return account for session restore
+  if (path === 'sign-in' && method === 'POST') {
+    const { email, password } = body
+    const emailTrim = (email || '').trim().toLowerCase()
+    if (!emailTrim || !password) {
+      return jsonResponse({ error: 'Email and password are required' }, 400)
+    }
+    const user = await storage.getUserByEmail(db, emailTrim)
+    if (!user) {
+      return jsonResponse({ error: 'Invalid email or password' }, 401)
+    }
+    const ok = await verifyPassword(password, user.salt, user.password_hash)
+    if (!ok) {
+      return jsonResponse({ error: 'Invalid email or password' }, 401)
+    }
+    return jsonResponse({
+      success: true,
+      account: {
+        accountId: user.account_id,
+        displayName: user.display_name,
+        fundChoice: user.fund_choice ?? null,
+        createdAt: user.created_at,
+      },
+    })
   }
 
   // GET/POST /api/get-user-balance

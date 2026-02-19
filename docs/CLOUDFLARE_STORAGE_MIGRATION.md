@@ -51,6 +51,13 @@ npx wrangler d1 execute dice-express-db --remote --file=./schema/d1/0000_initial
 npx wrangler d1 execute dice-express-db --local --file=./schema/d1/0000_initial.sql
 ```
 
+To enable email/password registration and sign-in, also run the users migration:
+
+```bash
+npx wrangler d1 execute dice-express-db --remote --file=./schema/d1/0001_users.sql
+npx wrangler d1 execute dice-express-db --local --file=./schema/d1/0001_users.sql
+```
+
 ---
 
 ## 2. Create R2 bucket (optional)

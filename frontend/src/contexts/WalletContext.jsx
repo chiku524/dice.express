@@ -126,6 +126,25 @@ export function WalletProvider({ children }) {
     window.dispatchEvent(new CustomEvent('wallet_disconnected'))
   }
 
+  /** Restore wallet from existing account (e.g. after sign-in by display name). */
+  const restoreWallet = (accountData) => {
+    if (!accountData?.accountId || !accountData?.displayName) return
+    const party = String(accountData.displayName).trim()
+    const walletData = {
+      party,
+      accountId: accountData.accountId,
+      createdAt: accountData.createdAt || new Date().toISOString(),
+      connectedAt: new Date().toISOString(),
+      fundChoice: accountData.fundChoice ?? null,
+    }
+    const normalized = normalizeStoredWallet(walletData)
+    if (normalized) {
+      setWallet(normalized)
+      localStorage.setItem(WALLET_STORAGE_KEY, JSON.stringify(normalized))
+      window.dispatchEvent(new CustomEvent('wallet_connected', { detail: normalized }))
+    }
+  }
+
   // Listen for custom wallet events (for same-tab synchronization)
   useEffect(() => {
     const handleWalletConnected = (e) => {
@@ -148,7 +167,7 @@ export function WalletProvider({ children }) {
   }, [])
 
   return (
-    <WalletContext.Provider value={{ wallet, connectWallet, disconnectWallet, updateDisplayName, DEFAULT_USER_ID }}>
+    <WalletContext.Provider value={{ wallet, connectWallet, disconnectWallet, updateDisplayName, restoreWallet, DEFAULT_USER_ID }}>
       {children}
     </WalletContext.Provider>
   )

@@ -5,6 +5,7 @@
 
 const CONTRACTS_TABLE = 'contracts'
 const BALANCES_TABLE = 'user_balances'
+const USERS_TABLE = 'users'
 const KV_CACHE_TTL = 60 // seconds for markets list cache
 
 function safeJsonParse(str, fallback = {}) {
@@ -144,4 +145,22 @@ export async function backupContractToR2(r2, _bucketName, contractId, payload) {
   if (!r2) return
   const key = `contracts/${contractId}.json`
   await r2.put(key, JSON.stringify(payload), { httpMetadata: { contentType: 'application/json' } })
+}
+
+// --- Users (email/password auth) ---
+
+/** @param {D1Database} db */
+export async function getUserByEmail(db, email) {
+  const row = await db.prepare(`SELECT * FROM ${USERS_TABLE} WHERE email = ?`).bind(String(email).trim().toLowerCase()).first()
+  return row ? { id: row.id, email: row.email, password_hash: row.password_hash, salt: row.salt, account_id: row.account_id, display_name: row.display_name, fund_choice: row.fund_choice, onboarding_completed: row.onboarding_completed, created_at: row.created_at, updated_at: row.updated_at } : null
+}
+
+/** @param {D1Database} db */
+export async function createUser(db, { email, passwordHash, salt, accountId, displayName, fundChoice, onboardingCompleted }) {
+  const now = new Date().toISOString()
+  const emailNorm = String(email).trim().toLowerCase()
+  await db.prepare(
+    `INSERT INTO ${USERS_TABLE} (email, password_hash, salt, account_id, display_name, fund_choice, onboarding_completed, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
+  ).bind(emailNorm, passwordHash, salt, accountId, String(displayName).trim(), fundChoice || null, onboardingCompleted !== undefined ? (onboardingCompleted ? 1 : 0) : 1, now, now).run()
 }
