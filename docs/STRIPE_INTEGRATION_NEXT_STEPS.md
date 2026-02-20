@@ -107,17 +107,17 @@ If the webhook fails (e.g. 500), check Cloudflare Pages/Workers logs and ensure 
 
 ---
 
-## 5. Stripe Product IDs for package buttons (optional)
+## 5. Stripe Product IDs for package buttons (variables in wrangler.toml)
 
-Portfolio has **Packages** ($5, $10, $25, $50, $100) and **Custom amount**. To show your Stripe product name and image in Checkout for packages:
+Portfolio has **Packages** ($5, $10, $25, $50, $100) and **Custom amount**. Product IDs are set as **variables** (not secrets) in **`wrangler.toml`** so Checkout shows your product name and image for each package.
 
 1. **Stripe Dashboard:** Ensure each Pips product has a **default price** (Products → [product] → Pricing → one price marked default).
-2. Set **build-time** env vars with your **Stripe Product IDs** (prod_xxx):
-   - `VITE_STRIPE_PRODUCT_5`, `VITE_STRIPE_PRODUCT_10`, `VITE_STRIPE_PRODUCT_25`, `VITE_STRIPE_PRODUCT_50`, `VITE_STRIPE_PRODUCT_100`
-3. **Cloudflare Pages:** Dashboard → dice-express → Settings → Environment variables → **Build** → Add each variable (or bulk paste from `frontend/.env.example`).
-4. **Local build:** Copy `frontend/.env.example` to `frontend/.env` so Vite sees the vars.
+2. **Variables are in `wrangler.toml`** under `[vars]`:
+   - `STRIPE_PRODUCT_5`, `STRIPE_PRODUCT_10`, `STRIPE_PRODUCT_25`, `STRIPE_PRODUCT_50`, `STRIPE_PRODUCT_100`
+3. The frontend loads package config at runtime via **GET /api/stripe-packages** (which reads these vars). No build-time env needed for production.
+4. **Local dev:** For `wrangler pages dev`, the same vars from `wrangler.toml` are used. Optional: `frontend/.env.example` has the same IDs for a standalone Vite build (copy to `frontend/.env` if you build without wrangler).
 
-The API accepts **productId** (prod_xxx) and resolves it to the product’s default price via Stripe, so Checkout shows the correct product. **Custom amount** always works (user enters PP; we create a one-off price). The webhook credits Pips from **`amount_total`** for both.
+The API accepts **productId** (prod_xxx) and resolves it to the product’s default price via Stripe. **Custom amount** always works (user enters PP; we create a one-off price). The webhook credits Pips from **`amount_total`** for both.
 
 ---
 

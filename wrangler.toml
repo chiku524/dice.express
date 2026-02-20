@@ -27,5 +27,17 @@ binding = "KV"
 id = "bf88f3a357f640ccb3173da7e163570d"
 
 [vars]
-# If set, /api/* proxies to this URL (e.g. Vercel). If unset and DB is bound, API runs on D1/R2/KV.
-# BACKEND_URL = "https://your-api-origin.com"
+# Optional: set to "1" or "true" to disable AMM trading (P2P-only mode). See docs/P2P_AND_GROWTH_STRATEGY.md.
+# DISABLE_AMM_TRADE = "0"
+
+# Stripe Product IDs for Pips packages (prod_xxx). Used by GET /api/stripe-packages and checkout when frontend sends productId.
+# These are variables (not secrets); Checkout shows product name/image when packages use these.
+STRIPE_PRODUCT_5 = "prod_U0jlnKLunwKviC"
+STRIPE_PRODUCT_10 = "prod_U0jlwUCiJuz3GS"
+STRIPE_PRODUCT_25 = "prod_U0jl1E0fB1iH6G"
+STRIPE_PRODUCT_50 = "prod_U0jlrgERbm4J1S"
+STRIPE_PRODUCT_100 = "prod_U0jlmbM1gAYqWg"
+
+# API keys for automated prediction markets (set via Cloudflare dashboard or: npx wrangler secret put <KEY>)
+# ALPHA_VANTAGE_API_KEY, COINGECKO_API_KEY, THE_ODDS_API_KEY, OPENWEATHER_API_KEY, WEATHERAPI_API_KEY,
+# GNEWS_API_KEY, PERIGON_API_KEY, RAPIDAPI_KEY, MASSIVE_API_KEY — see docs/PREDICTION_TOPICS_APIS.md

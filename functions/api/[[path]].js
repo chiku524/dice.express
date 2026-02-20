@@ -183,6 +183,18 @@ async function handleWithD1(db, kv, r2, request, path, method, env = {}) {
     return jsonResponse({ ok: true, provider: 'cloudflare' })
   }
 
+  // GET /api/stripe-packages — return Pips package config from wrangler [vars] (STRIPE_PRODUCT_5 etc.) for frontend
+  if (path === 'stripe-packages' && method === 'GET') {
+    const packages = [
+      { amount: 5, productId: env.STRIPE_PRODUCT_5 || null, label: '$5' },
+      { amount: 10, productId: env.STRIPE_PRODUCT_10 || null, label: '$10' },
+      { amount: 25, productId: env.STRIPE_PRODUCT_25 || null, label: '$25' },
+      { amount: 50, productId: env.STRIPE_PRODUCT_50 || null, label: '$50' },
+      { amount: 100, productId: env.STRIPE_PRODUCT_100 || null, label: '$100' },
+    ]
+    return jsonResponse({ packages })
+  }
+
   // GET /api/oracle?symbol= — proxy to RedStone (e.g. for price oracles)
   if (path === 'oracle' && method === 'GET') {
     const symbol = query.symbol

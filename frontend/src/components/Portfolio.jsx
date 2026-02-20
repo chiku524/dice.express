@@ -33,6 +33,7 @@ export default function Portfolio() {
   const [marketTitles, setMarketTitles] = useState({}) // Map of marketId -> title
   const [activeTab, setActiveTab] = useState('balance') // 'balance' | 'positions' | 'activity'
   const [stripeReturnMessage, setStripeReturnMessage] = useState(null) // 'success' | 'cancel' | null
+  const [stripePackages, setStripePackages] = useState(PIPS_PACKAGES) // from API (wrangler vars) or fallback to build-time
   const isMountedRef = useRef(true)
   const depositCardRef = useRef(null)
 
@@ -252,6 +253,18 @@ export default function Portfolio() {
       })
     }
   }, [wallet])
+
+  // Fetch Stripe package config from API (wrangler [vars]); fallback to PIPS_PACKAGES (build-time)
+  useEffect(() => {
+    let cancelled = false
+    fetch('/api/stripe-packages')
+      .then((res) => res.ok ? res.json() : null)
+      .then((data) => {
+        if (!cancelled && data?.packages?.length) setStripePackages(data.packages)
+      })
+      .catch(() => {})
+    return () => { cancelled = true }
+  }, [])
 
   if (loading) {
     return (
@@ -573,7 +586,7 @@ export default function Portfolio() {
         </p>
         <div className="stripe-packages mb-md">
           <span className="text-secondary" style={{ fontSize: 'var(--font-size-sm)', marginRight: 'var(--spacing-sm)' }}>Packages:</span>
-          {PIPS_PACKAGES.map((pkg) => (
+          {stripePackages.map((pkg) => (
             <button
               key={pkg.amount}
               type="button"
