@@ -4,7 +4,8 @@ import { useWallet } from '../contexts/WalletContext'
 import { useAccountModal } from '../contexts/AccountModalContext'
 import { ContractStorage } from '../utils/contractStorage'
 import { SkeletonList } from './SkeletonLoader'
-import { formatCredits, PLATFORM_CURRENCY_SYMBOL } from '../constants/currency'
+import { formatPips, PLATFORM_CURRENCY_SYMBOL } from '../constants/currency'
+import { PIPS_PACKAGES } from '../constants/stripeProducts'
 
 export default function Portfolio() {
   const { wallet } = useWallet()
@@ -14,18 +15,26 @@ export default function Portfolio() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [depositAmount, setDepositAmount] = useState('')
-  const [withdrawAmount, setWithdrawAmount] = useState('')
   const [depositLoading, setDepositLoading] = useState(false)
-  const [withdrawLoading, setWithdrawLoading] = useState(false)
   const [depositError, setDepositError] = useState(null)
-  const [withdrawError, setWithdrawError] = useState(null)
   const [depositSuccess, setDepositSuccess] = useState(false)
+  const [stripeAmount, setStripeAmount] = useState('')
+  const [stripeLoading, setStripeLoading] = useState(false)
+  const [stripeError, setStripeError] = useState(null)
+  const [withdrawAmount, setWithdrawAmount] = useState('')
+  const [withdrawAddress, setWithdrawAddress] = useState('')
+  const [withdrawNetwork, setWithdrawNetwork] = useState('ethereum')
+  const [withdrawLoading, setWithdrawLoading] = useState(false)
+  const [withdrawError, setWithdrawError] = useState(null)
   const [withdrawSuccess, setWithdrawSuccess] = useState(false)
+  const [withdrawalRequests, setWithdrawalRequests] = useState([])
   const [userBalance, setUserBalance] = useState('0')
   const [balanceLoading, setBalanceLoading] = useState(true)
   const [marketTitles, setMarketTitles] = useState({}) // Map of marketId -> title
   const [activeTab, setActiveTab] = useState('balance') // 'balance' | 'positions' | 'activity'
+  const [stripeReturnMessage, setStripeReturnMessage] = useState(null) // 'success' | 'cancel' | null
   const isMountedRef = useRef(true)
+  const depositCardRef = useRef(null)
 
   if (!wallet) {
     return (
@@ -197,6 +206,53 @@ export default function Portfolio() {
     }
   }, [wallet])
 
+  // Handle return from Stripe Checkout (success or cancel)
+  useEffect(() => {
+    if (!wallet) return
+    const params = new URLSearchParams(window.location.search)
+    const stripe = params.get('stripe')
+    if (stripe === 'success') {
+      setStripeReturnMessage('success')
+      window.history.replaceState({}, '', window.location.pathname)
+      const refetchBalance = async () => {
+        try {
+          const res = await fetch('/api/get-user-balance', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ userParty: wallet.party }),
+          })
+          if (res.ok) {
+            const data = await res.json()
+            setUserBalance(String(data.balance ?? '0'))
+          }
+        } catch {}
+      }
+      refetchBalance()
+      setTimeout(refetchBalance, 2500)
+      const t = setTimeout(() => setStripeReturnMessage(null), 8000)
+      return () => clearTimeout(t)
+    }
+    if (stripe === 'cancel') {
+      setStripeReturnMessage('cancel')
+      window.history.replaceState({}, '', window.location.pathname)
+      const t = setTimeout(() => setStripeReturnMessage(null), 5000)
+      return () => clearTimeout(t)
+    }
+  }, [wallet])
+
+  // Scroll to deposit card when landing with ?deposit=card (e.g. after registration)
+  useEffect(() => {
+    if (!wallet) return
+    const params = new URLSearchParams(window.location.search)
+    if (params.get('deposit') === 'card') {
+      setActiveTab('balance')
+      window.history.replaceState({}, '', window.location.pathname)
+      requestAnimationFrame(() => {
+        depositCardRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+      })
+    }
+  }, [wallet])
+
   if (loading) {
     return (
       <div>
@@ -252,9 +308,9 @@ export default function Portfolio() {
     }
   }
 
-  const handleDeposit = async () => {
+  const handleAddCredits = async () => {
     if (!wallet) {
-      setDepositError('Please connect a wallet')
+      setDepositError('Please sign in first')
       return
     }
 
@@ -268,113 +324,140 @@ export default function Portfolio() {
     setDepositSuccess(false)
 
     try {
-      // TODO: Get user's TokenBalance contract ID
-      // For now, we'll need it from localStorage or user input
-      const userTokenBalanceContractId = localStorage.getItem('userTokenBalanceContractId')
-      
-      if (!userTokenBalanceContractId) {
-        throw new Error('TokenBalance contract ID not found. Please create a TokenBalance contract first using the Contract Tester (/test page).')
-      }
-
-      const response = await fetch('/api/deposit', {
+      const response = await fetch('/api/add-credits', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          amount: depositAmount,
           userParty: wallet.party,
-          userTokenBalanceContractId: userTokenBalanceContractId
-        })
+          accountId: wallet.accountId,
+          amount: depositAmount,
+        }),
       })
 
       const result = await response.json()
 
       if (!response.ok) {
-        throw new Error(result.message || result.error || 'Deposit failed')
+        throw new Error(result.message || result.error || 'Add credits failed')
       }
 
-      console.log('[Portfolio] ✅ Deposit successful:', result)
       setDepositSuccess(true)
       setDepositAmount('')
-      
-      // Refresh balance and positions after deposit
       await fetchUserBalance()
-      setTimeout(() => {
-        window.location.reload()
-      }, 2000)
     } catch (err) {
-      console.error('[Portfolio] Deposit error:', err)
       setDepositError(err.message)
     } finally {
       setDepositLoading(false)
-      setTimeout(() => {
-        setDepositSuccess(false)
-      }, 5000)
+      setTimeout(() => setDepositSuccess(false), 5000)
+    }
+  }
+
+  const startStripeCheckout = async (body) => {
+    const base = window.location.origin
+    const res = await fetch('/api/stripe-create-checkout-session', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        ...body,
+        userParty: wallet.party,
+        successUrl: `${base}/portfolio?stripe=success`,
+        cancelUrl: `${base}/portfolio?stripe=cancel`,
+      }),
+    })
+    const data = await res.json()
+    if (!res.ok) throw new Error(data.error || data.hint || 'Could not start checkout')
+    if (data.url) window.location.href = data.url
+    else setStripeError('No checkout URL returned')
+  }
+
+  const handleStripeDeposit = async () => {
+    if (!wallet) return
+    const amount = parseFloat(stripeAmount)
+    if (!stripeAmount || isNaN(amount) || amount < 1) {
+      setStripeError('Enter at least 1 PP (charged in USD)')
+      return
+    }
+    setStripeLoading(true)
+    setStripeError(null)
+    try {
+      await startStripeCheckout({ amount })
+    } catch (err) {
+      setStripeError(err.message)
+    } finally {
+      setStripeLoading(false)
+    }
+  }
+
+  const handleStripePackage = async (pkg) => {
+    if (!wallet) return
+    setStripeLoading(true)
+    setStripeError(null)
+    try {
+      const body = (pkg.productId && pkg.productId.startsWith('prod_'))
+        ? { productId: pkg.productId }
+        : { amount: pkg.amount }
+      await startStripeCheckout(body)
+    } catch (err) {
+      setStripeError(err.message)
+    } finally {
+      setStripeLoading(false)
+    }
+  }
+
+  const fetchWithdrawalRequests = async () => {
+    if (!wallet) return
+    try {
+      const res = await fetch(`/api/withdrawal-requests?userParty=${encodeURIComponent(wallet.party)}`)
+      const data = await res.json()
+      if (data.requests) setWithdrawalRequests(data.requests)
+    } catch {
+      setWithdrawalRequests([])
     }
   }
 
   const handleWithdraw = async () => {
-    if (!wallet) {
-      setWithdrawError('Please connect a wallet')
+    if (!wallet) return
+    const amount = parseFloat(withdrawAmount)
+    if (!withdrawAmount || isNaN(amount) || amount <= 0) {
+      setWithdrawError('Enter a valid amount')
       return
     }
-
-    if (!withdrawAmount || parseFloat(withdrawAmount) <= 0) {
-      setWithdrawError('Please enter a valid amount')
+    if (!withdrawAddress || !withdrawAddress.trim()) {
+      setWithdrawError('Enter destination address')
       return
     }
-
     setWithdrawLoading(true)
     setWithdrawError(null)
     setWithdrawSuccess(false)
-
     try {
-      // TODO: Get platform wallet's TokenBalance contract ID
-      // This should be configured as an environment variable or stored in database
-      const platformTokenBalanceContractId = localStorage.getItem('platformTokenBalanceContractId')
-      
-      if (!platformTokenBalanceContractId) {
-        throw new Error('Platform TokenBalance contract ID not found. Please configure the platform wallet TokenBalance contract ID.')
-      }
-
-      const response = await fetch('/api/withdraw', {
+      const res = await fetch('/api/withdraw-request', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          amount: withdrawAmount,
           userParty: wallet.party,
-          platformTokenBalanceContractId: platformTokenBalanceContractId
-        })
+          accountId: wallet.accountId,
+          amount: amount,
+          destinationAddress: withdrawAddress.trim(),
+          networkId: withdrawNetwork,
+        }),
       })
-
-      const result = await response.json()
-
-      if (!response.ok) {
-        throw new Error(result.message || result.error || 'Withdrawal failed')
-      }
-
-      console.log('[Portfolio] ✅ Withdrawal successful:', result)
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Withdrawal request failed')
       setWithdrawSuccess(true)
       setWithdrawAmount('')
-      
-      // Refresh balance and positions after withdrawal
+      setWithdrawAddress('')
       await fetchUserBalance()
-      setTimeout(() => {
-        window.location.reload()
-      }, 2000)
+      await fetchWithdrawalRequests()
     } catch (err) {
-      console.error('[Portfolio] Withdrawal error:', err)
       setWithdrawError(err.message)
     } finally {
       setWithdrawLoading(false)
-      setTimeout(() => {
-        setWithdrawSuccess(false)
-      }, 5000)
+      setTimeout(() => setWithdrawSuccess(false), 5000)
     }
   }
+
+  useEffect(() => {
+    if (activeTab === 'balance' && wallet) fetchWithdrawalRequests()
+  }, [activeTab, wallet])
 
   const tabs = [
     { id: 'balance', label: 'Balance' },
@@ -419,103 +502,182 @@ export default function Portfolio() {
 
       {activeTab === 'balance' && (
         <>
-      {/* User Balance Display - Platform virtual currency (Credits) */}
+      {/* Balance (Pips) */}
       <div className="card balance-card mb-xl">
         <h2 className="mb-sm">Balance ({PLATFORM_CURRENCY_SYMBOL})</h2>
         <p className="balance-amount">
-          {balanceLoading ? 'Loading...' : formatCredits(userBalance)}
+          {balanceLoading ? 'Loading...' : formatPips(userBalance)}
         </p>
         <p className="balance-hint">
-          Platform Credits for all trading and fees. Use Add Credits below for virtual balance.
+          Deposit via crypto or card to get Pips; use it to trade. Withdraw earnings (fee applies).
         </p>
       </div>
       
-      {/* Deposit/Withdraw Section */}
+      {/* Add Pips (top-up for testing; production uses Deposit) */}
       <div className="card mb-xl">
-        <h2 className="mb-md">Deposit / Withdraw Credits</h2>
-        <div className="grid-auto-fit-sm">
-          {/* Deposit */}
-          <div>
-            <h3 className="mb-sm">Deposit Credits</h3>
-            <p className="text-secondary mb-sm" style={{ fontSize: 'var(--font-size-sm)' }}>
-              Transfer from your wallet to the platform (on-chain). Your balance is credited in Credits.
-            </p>
-            <div className="form-group">
-              <label>Amount</label>
-              <input
-                type="number"
-                value={depositAmount}
-                onChange={(e) => setDepositAmount(e.target.value)}
-                placeholder="Enter amount"
-                min="0"
-                step="0.01"
-                disabled={depositLoading}
-              />
-            </div>
-            {depositError && (
-              <div className="error mt-sm" style={{ fontSize: 'var(--font-size-sm)' }}>
-                {depositError}
-              </div>
-            )}
-            {depositSuccess && (
-              <div className="success-message mt-sm">
-                ✅ Deposit successful! Transaction submitted to blockchain.
-              </div>
-            )}
-            <button 
-              className="btn-primary" 
-              onClick={handleDeposit}
-              disabled={depositLoading || !depositAmount}
-              style={{ marginTop: 'var(--spacing-sm)', width: '100%' }}
-            >
-              {depositLoading ? 'Processing...' : 'Deposit'}
-            </button>
-            <p className="text-muted mt-sm" style={{ fontSize: 'var(--font-size-xs)' }}>
-              Note: Requires TokenBalance contract. Use /test page to create one.
-            </p>
-          </div>
-
-          {/* Withdraw */}
-          <div>
-            <h3 className="mb-sm">Withdraw Credits</h3>
-            <p className="text-secondary mb-sm" style={{ fontSize: 'var(--font-size-sm)' }}>
-              Convert Credits to on-chain transfer from platform wallet to your wallet.
-            </p>
-            <div className="form-group">
-              <label>Amount</label>
-              <input
-                type="number"
-                value={withdrawAmount}
-                onChange={(e) => setWithdrawAmount(e.target.value)}
-                placeholder="Enter amount"
-                min="0"
-                step="0.01"
-                disabled={withdrawLoading}
-              />
-            </div>
-            {withdrawError && (
-              <div className="error mt-sm" style={{ fontSize: 'var(--font-size-sm)' }}>
-                {withdrawError}
-              </div>
-            )}
-            {withdrawSuccess && (
-              <div className="success-message mt-sm">
-                ✅ Withdrawal successful! Transaction submitted to blockchain.
-              </div>
-            )}
-            <button 
-              className="btn-primary" 
-              onClick={handleWithdraw}
-              disabled={withdrawLoading || !withdrawAmount}
-              style={{ marginTop: 'var(--spacing-sm)', width: '100%' }}
-            >
-              {withdrawLoading ? 'Processing...' : 'Withdraw'}
-            </button>
-            <p className="text-muted mt-sm" style={{ fontSize: 'var(--font-size-xs)' }}>
-              Note: Requires platform wallet TokenBalance contract ID.
-            </p>
-          </div>
+        <h2 className="mb-md">Add Pips</h2>
+        <p className="text-secondary mb-md" style={{ fontSize: 'var(--font-size-sm)' }}>
+          Add Pips to your balance to trade. In production you’ll deposit via crypto or card to receive Pips.
+        </p>
+        <div className="form-group" style={{ maxWidth: '280px' }}>
+          <label>Amount</label>
+          <input
+            type="number"
+            value={depositAmount}
+            onChange={(e) => setDepositAmount(e.target.value)}
+            placeholder="e.g. 100"
+            min="0"
+            step="1"
+            disabled={depositLoading}
+          />
         </div>
+        {depositError && (
+          <div className="error mt-sm" style={{ fontSize: 'var(--font-size-sm)' }}>
+            {depositError}
+          </div>
+        )}
+        {depositSuccess && (
+          <div className="success-message mt-sm">
+            Pips added. Your balance has been updated.
+          </div>
+        )}
+        <button
+          className="btn-primary"
+          onClick={handleAddCredits}
+          disabled={depositLoading || !depositAmount}
+          style={{ marginTop: 'var(--spacing-sm)' }}
+        >
+          {depositLoading ? 'Adding...' : 'Add Pips'}
+        </button>
+        <p className="text-muted mt-md" style={{ fontSize: 'var(--font-size-xs)' }}>
+          Withdraw your Pips anytime; a withdrawal fee applies.
+        </p>
+      </div>
+
+      {stripeReturnMessage === 'success' && (
+        <div className="card mb-md" style={{ background: 'var(--color-teal)', color: 'var(--color-bg)', padding: 'var(--spacing-md)' }}>
+          Payment successful. Your Pips balance will update in a moment (or refresh the page).
+        </div>
+      )}
+      {stripeReturnMessage === 'cancel' && (
+        <div className="card mb-md" style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}>
+          Checkout cancelled. You can try again when ready.
+        </div>
+      )}
+
+      {/* Deposit with card (Stripe) */}
+      <div ref={depositCardRef} className="card mb-xl">
+        <h2 className="mb-md">Deposit with card</h2>
+        <p className="text-secondary mb-md" style={{ fontSize: 'var(--font-size-sm)' }}>
+          Pay with card via Stripe. You receive 1 PP per $1 USD. Pick a package below or enter any custom amount (min 1 PP).
+        </p>
+        <div className="stripe-packages mb-md">
+          <span className="text-secondary" style={{ fontSize: 'var(--font-size-sm)', marginRight: 'var(--spacing-sm)' }}>Packages:</span>
+          {PIPS_PACKAGES.map((pkg) => (
+            <button
+              key={pkg.amount}
+              type="button"
+              className="btn-secondary"
+              disabled={stripeLoading}
+              onClick={() => handleStripePackage(pkg)}
+              style={{ marginRight: 'var(--spacing-xs)', marginBottom: 'var(--spacing-xs)' }}
+            >
+              {pkg.label}
+            </button>
+          ))}
+        </div>
+        <div className="form-group" style={{ maxWidth: '280px' }}>
+          <label>Custom amount (PP)</label>
+          <input
+            type="number"
+            value={stripeAmount}
+            onChange={(e) => setStripeAmount(e.target.value)}
+            placeholder="e.g. 50"
+            min="1"
+            step="1"
+            disabled={stripeLoading}
+          />
+          <p className="text-muted" style={{ fontSize: 'var(--font-size-xs)', marginTop: 'var(--spacing-xs)' }}>Any amount from 1 PP; charged in USD at 1:1.</p>
+        </div>
+        {stripeError && <div className="error mt-sm" style={{ fontSize: 'var(--font-size-sm)' }}>{stripeError}</div>}
+        <button
+          className="btn-primary"
+          onClick={handleStripeDeposit}
+          disabled={stripeLoading || !stripeAmount || parseFloat(stripeAmount) < 1}
+          style={{ marginTop: 'var(--spacing-sm)' }}
+        >
+          {stripeLoading ? 'Redirecting…' : 'Pay custom amount'}
+        </button>
+      </div>
+
+      {/* Deposit with crypto */}
+      <div className="card mb-xl">
+        <h2 className="mb-md">Deposit with crypto</h2>
+        <p className="text-secondary mb-md" style={{ fontSize: 'var(--font-size-sm)' }}>
+          Send USDC (or supported asset) to the platform wallet. Include your account ID in the memo if the network supports it. After confirmation we credit your Pips (1:1 for stablecoins). Contact support for the deposit address and supported networks.
+        </p>
+        <p className="text-muted" style={{ fontSize: 'var(--font-size-xs)' }}>
+          Your account ID: <code style={{ wordBreak: 'break-all' }}>{wallet?.accountId || wallet?.party}</code>
+        </p>
+      </div>
+
+      {/* Withdraw */}
+      <div className="card mb-xl">
+        <h2 className="mb-md">Withdraw Pips</h2>
+        <p className="text-secondary mb-md" style={{ fontSize: 'var(--font-size-sm)' }}>
+          Request a withdrawal to your crypto address. A 2% fee (min 1 PP) applies. Funds are sent from the platform wallet.
+        </p>
+        <div className="form-group" style={{ maxWidth: '320px' }}>
+          <label>Amount (PP)</label>
+          <input
+            type="number"
+            value={withdrawAmount}
+            onChange={(e) => setWithdrawAmount(e.target.value)}
+            placeholder="0"
+            min="0"
+            step="0.01"
+            disabled={withdrawLoading}
+          />
+        </div>
+        <div className="form-group" style={{ maxWidth: '320px' }}>
+          <label>Destination address</label>
+          <input
+            type="text"
+            value={withdrawAddress}
+            onChange={(e) => setWithdrawAddress(e.target.value)}
+            placeholder="0x..."
+            disabled={withdrawLoading}
+          />
+        </div>
+        <div className="form-group" style={{ maxWidth: '200px' }}>
+          <label>Network</label>
+          <select value={withdrawNetwork} onChange={(e) => setWithdrawNetwork(e.target.value)} disabled={withdrawLoading}>
+            <option value="ethereum">Ethereum</option>
+            <option value="polygon">Polygon</option>
+          </select>
+        </div>
+        {withdrawError && <div className="error mt-sm" style={{ fontSize: 'var(--font-size-sm)' }}>{withdrawError}</div>}
+        {withdrawSuccess && <div className="success-message mt-sm">Withdrawal requested. You will receive funds after processing.</div>}
+        <button
+          className="btn-primary"
+          onClick={handleWithdraw}
+          disabled={withdrawLoading || !withdrawAmount || parseFloat(withdrawAmount) <= 0 || !withdrawAddress?.trim()}
+          style={{ marginTop: 'var(--spacing-sm)' }}
+        >
+          {withdrawLoading ? 'Requesting…' : 'Request withdrawal'}
+        </button>
+        {withdrawalRequests.length > 0 && (
+          <div className="mt-xl">
+            <h3 className="mb-sm">Your withdrawal requests</h3>
+            <ul style={{ listStyle: 'none', padding: 0, margin: 0, fontSize: 'var(--font-size-sm)' }}>
+              {withdrawalRequests.slice(0, 10).map((r) => (
+                <li key={r.requestId} className="mb-xs">
+                  {formatPips(r.netGuap ?? r.netPips)} → {r.destination.slice(0, 10)}… ({r.status})
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
       </div>
         </>
       )}
@@ -549,14 +711,14 @@ export default function Portfolio() {
                         <strong>Type:</strong> {formatPositionType(position.payload?.positionType)}
                       </div>
                       <div>
-                        <strong>Amount:</strong> {formatCredits(position.payload?.amount ?? 0)}
+                        <strong>Amount:</strong> {formatPips(position.payload?.amount ?? 0)}
                       </div>
                       <div>
                         <strong>Price:</strong> {position.payload?.price || '0'}
                       </div>
                       {position.payload?.depositAmount && (
                         <div>
-                          <strong>Deposit:</strong> {formatCredits(position.payload.depositAmount)}
+                          <strong>Deposit:</strong> {formatPips(position.payload.depositAmount)}
                         </div>
                       )}
                       <div>
@@ -590,7 +752,7 @@ export default function Portfolio() {
                         <strong>Position Created</strong>
                         {activity.position?.depositAmount && (
                           <span className="activity-badge">
-                            {formatCredits(activity.position.depositAmount)} deposited
+                            {formatPips(activity.position.depositAmount)} deposited
                           </span>
                         )}
                       </div>

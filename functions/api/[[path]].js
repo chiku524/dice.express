@@ -1,12 +1,13 @@
 /**
  * Cloudflare Pages Function: /api/* router.
- * - If env.DB is set: serve API from D1 (+ optional KV cache, R2). Same surface as Vercel api/*.
- * - If BACKEND_URL is set and DB is not: proxy to backend (e.g. Vercel).
- * - If neither: return 503 with hint.
+ * All API is served from D1 (+ optional KV cache, R2). Set env.DB in wrangler.toml.
+ * If BACKEND_URL is set and DB is not bound: proxy to external origin (optional).
  */
 import * as storage from '../lib/cf-storage.mjs'
 import { getQuote, isTradeWithinLimit, applyTrade, createPoolState } from '../lib/amm.mjs'
 import { hashPassword, verifyPassword } from '../lib/auth.mjs'
+import * as dataSources from '../lib/data-sources.mjs'
+import * as resolveMarkets from '../lib/resolve-markets.mjs'
 
 const CORS = {
   'Access-Control-Allow-Origin': '*',
@@ -51,12 +52,17 @@ export async function onRequest(context) {
 
   const db = env.DB
   const kv = env.KV
-  const backendBase = env.BACKEND_URL || env.VITE_VERCEL_URL
+  const backendBase = env.BACKEND_URL
 
   // Prefer D1-native API when DB is bound
   if (db) {
     try {
-      const res = await handleWithD1(db, kv, env.R2, request, path, method)
+      if (path === 'stripe-webhook' && method === 'POST') {
+        const rawBody = await request.text()
+        const res = await handleStripeWebhook(db, env.R2, rawBody, request.headers, env)
+        if (res) return res
+      }
+      const res = await handleWithD1(db, kv, env.R2, request, path, method, env)
       if (res) return res
     } catch (err) {
       console.error('[api]', path, err)
@@ -108,10 +114,396 @@ async function parseBody(request) {
   }
 }
 
-async function handleWithD1(db, kv, r2, request, path, method) {
+/** Verify Stripe webhook signature (v1) and return payload or null */
+async function verifyStripeWebhook(rawBody, signatureHeader, secret) {
+  if (!secret || !signatureHeader) return null
+  const parts = signatureHeader.split(',').reduce((acc, p) => {
+    const [k, v] = p.split('=')
+    if (k && v) acc[k.trim()] = v.trim()
+    return acc
+  }, {})
+  const t = parts.t
+  const v1 = parts.v1
+  if (!t || !v1) return null
+  const payload = t + '.' + rawBody
+  const encoder = new TextEncoder()
+  const key = await crypto.subtle.importKey(
+    'raw',
+    encoder.encode(secret),
+    { name: 'HMAC', hash: 'SHA-256' },
+    false,
+    ['sign']
+  )
+  const sig = await crypto.subtle.sign('HMAC', key, encoder.encode(payload))
+  const hex = Array.from(new Uint8Array(sig)).map((b) => b.toString(16).padStart(2, '0')).join('')
+  if (hex !== v1) return null
+  try {
+    return JSON.parse(rawBody)
+  } catch {
+    return null
+  }
+}
+
+/** Handle Stripe webhook: checkout.session.completed → credit Guap */
+async function handleStripeWebhook(db, r2, rawBody, headers, env) {
+  const sig = headers.get('Stripe-Signature')
+  const secret = env.STRIPE_WEBHOOK_SECRET
+  const event = secret ? await verifyStripeWebhook(rawBody, sig, secret) : JSON.parse(rawBody)
+  if (!event || !event.type) return jsonResponse({ received: true }, 200)
+  if (event.type === 'checkout.session.completed') {
+    const session = event.data?.object
+    const userParty = session?.client_reference_id || session?.metadata?.userParty
+    const amountTotal = session?.amount_total
+    if (!userParty) {
+      console.warn('[stripe-webhook] No client_reference_id')
+      return jsonResponse({ received: true }, 200)
+    }
+    const guapAmount = amountTotal ? amountTotal / 100 : 0
+    if (guapAmount <= 0) return jsonResponse({ received: true }, 200)
+    const current = await storage.getBalance(db, userParty)
+    const newBal = current + guapAmount
+    await storage.setBalance(db, userParty, newBal)
+    await storage.insertDepositRecord(db, {
+      party: userParty,
+      amountGuap: guapAmount,
+      source: 'stripe',
+      referenceId: session.id,
+    })
+  }
+  return jsonResponse({ received: true }, 200)
+}
+
+async function handleWithD1(db, kv, r2, request, path, method, env = {}) {
   const url = new URL(request.url)
   const query = Object.fromEntries(url.searchParams)
   const body = await parseBody(request)
+
+  // GET /api/health
+  if (path === 'health' && method === 'GET') {
+    return jsonResponse({ ok: true, provider: 'cloudflare' })
+  }
+
+  // GET /api/oracle?symbol= — proxy to RedStone (e.g. for price oracles)
+  if (path === 'oracle' && method === 'GET') {
+    const symbol = query.symbol
+    if (!symbol) return jsonResponse({ error: 'Symbol parameter is required' }, 400)
+    try {
+      const res = await fetch(
+        `https://api.redstone.finance/prices?symbol=${encodeURIComponent(symbol)}&provider=redstone`,
+        { headers: { Accept: 'application/json' } }
+      )
+      if (!res.ok) throw new Error(`Oracle returned ${res.status}`)
+      const data = await res.json()
+      return jsonResponse(data)
+    } catch (err) {
+      return jsonResponse({ error: 'Oracle request failed', message: err?.message }, 502)
+    }
+  }
+
+  // POST /api/stripe-create-checkout-session — create Stripe Checkout; redirect user to pay; webhook credits Pips
+  // Accepts: amount (custom PP), priceId (price_xxx), or productId (prod_xxx) — productId is resolved to default price via Stripe API
+  if (path === 'stripe-create-checkout-session' && method === 'POST') {
+    const stripeKey = env.STRIPE_SECRET_KEY
+    if (!stripeKey) return jsonResponse({ error: 'Stripe not configured', hint: 'Set STRIPE_SECRET_KEY' }, 503)
+    const { amount, priceId, productId, userParty, successUrl, cancelUrl } = body
+    const origin = new URL(request.url).origin
+    const baseParams = {
+      'mode': 'payment',
+      'client_reference_id': String(userParty),
+      'success_url': successUrl || `${origin}/portfolio?stripe=success`,
+      'cancel_url': cancelUrl || `${origin}/portfolio?stripe=cancel`,
+    }
+    if (!userParty) return jsonResponse({ error: 'userParty required' }, 400)
+    let resolvedPriceId = (priceId && typeof priceId === 'string' && priceId.startsWith('price_')) ? priceId : null
+    if (!resolvedPriceId && productId && typeof productId === 'string' && productId.startsWith('prod_')) {
+      const productRes = await fetch(`https://api.stripe.com/v1/products/${encodeURIComponent(productId)}`, {
+        headers: { Authorization: `Bearer ${stripeKey}` },
+      })
+      const product = await productRes.json()
+      if (product.error) return jsonResponse({ error: product.error.message || 'Stripe product error' }, 400)
+      const defaultPrice = product.default_price
+      resolvedPriceId = (defaultPrice && typeof defaultPrice === 'object' && defaultPrice.id) ? defaultPrice.id : (typeof defaultPrice === 'string' ? defaultPrice : null)
+      if (!resolvedPriceId) return jsonResponse({ error: 'Product has no default price; set one in Stripe Dashboard', hint: 'Products → [product] → Pricing' }, 400)
+    }
+    let params
+    if (resolvedPriceId) {
+      params = new URLSearchParams({
+        ...baseParams,
+        'line_items[0][price]': resolvedPriceId,
+        'line_items[0][quantity]': '1',
+      })
+    } else {
+      const amountGuap = parseFloat(amount)
+      if (!amountGuap || amountGuap < 1) return jsonResponse({ error: 'amount (min 1), priceId, or productId required' }, 400)
+      const amountCents = Math.round(amountGuap * 100)
+      params = new URLSearchParams({
+        ...baseParams,
+        'line_items[0][price_data][currency]': 'usd',
+        'line_items[0][price_data][unit_amount]': String(amountCents),
+        'line_items[0][price_data][product_data][name]': 'Pips',
+        'line_items[0][quantity]': '1',
+      })
+    }
+    const res = await fetch('https://api.stripe.com/v1/checkout/sessions', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${stripeKey}`,
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: params.toString(),
+    })
+    const data = await res.json()
+    if (data.error) return jsonResponse({ error: data.error.message || 'Stripe error' }, 400)
+    return jsonResponse({ url: data.url, sessionId: data.id })
+  }
+
+  // POST /api/deposit-crypto — credit Guap after crypto deposit (platform wallet received funds; call from admin or automation)
+  if (path === 'deposit-crypto' && method === 'POST') {
+    const { userParty, accountId, amount, networkId, txHash } = body
+    const party = userParty || accountId
+    if (!party || amount === undefined) return jsonResponse({ error: 'userParty/accountId and amount required' }, 400)
+    const amountNum = parseFloat(amount)
+    if (isNaN(amountNum) || amountNum <= 0) return jsonResponse({ error: 'amount must be positive' }, 400)
+    const current = await storage.getBalance(db, party)
+    const newBal = current + amountNum
+    await storage.setBalance(db, party, newBal)
+    await storage.insertDepositRecord(db, {
+      party,
+      amountGuap: amountNum,
+      source: 'crypto',
+      referenceId: txHash || null,
+    })
+    return jsonResponse({
+      success: true,
+      balance: String(newBal),
+      added: String(amountNum),
+      networkId: networkId || null,
+    })
+  }
+
+  // POST /api/withdraw-request — debit Guap, create withdrawal request (platform wallet sends crypto separately)
+  if (path === 'withdraw-request' && method === 'POST') {
+    const feeRate = parseFloat(env.WITHDRAWAL_FEE_RATE || '0.02')
+    const feeMin = parseFloat(env.WITHDRAWAL_FEE_MIN || '1')
+    const { userParty, accountId, amount, destinationAddress, networkId } = body
+    const party = userParty || accountId
+    if (!party || amount === undefined || !destinationAddress) {
+      return jsonResponse({ error: 'userParty/accountId, amount, and destinationAddress required' }, 400)
+    }
+    const amountNum = parseFloat(amount)
+    if (isNaN(amountNum) || amountNum <= 0) return jsonResponse({ error: 'amount must be positive' }, 400)
+    const fee = Math.max(amountNum * feeRate, feeMin)
+    const net = amountNum - fee
+    if (net <= 0) return jsonResponse({ error: 'Amount too small after fee' }, 400)
+    const current = await storage.getBalance(db, party)
+    if (current < amountNum) return jsonResponse({ error: 'Insufficient balance', current, required: amountNum }, 400)
+    const requestId = `wd-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`
+    await storage.setBalance(db, party, current - amountNum)
+    await storage.insertWithdrawalRequest(db, {
+      requestId,
+      party,
+      amountGuap: amountNum,
+      feeGuap: fee,
+      netGuap: net,
+      destination: destinationAddress,
+      networkId: networkId || 'ethereum',
+    })
+    return jsonResponse({
+      success: true,
+      requestId,
+      amount: amountNum,
+      fee,
+      net,
+      destination: destinationAddress,
+      networkId: networkId || 'ethereum',
+      message: 'Withdrawal queued. Funds will be sent from the platform wallet.',
+    })
+  }
+
+  // GET /api/withdrawal-requests — list withdrawal requests for a user
+  if (path === 'withdrawal-requests' && method === 'GET') {
+    const userParty = query.userParty || query.accountId
+    if (!userParty) return jsonResponse({ error: 'userParty or accountId required' }, 400)
+    const list = await storage.getWithdrawalRequestsByParty(db, userParty)
+    return jsonResponse({ success: true, requests: list })
+  }
+
+  // POST /api/add-credits — virtual top-up (Credits added to balance; no blockchain)
+  if (path === 'add-credits' && method === 'POST') {
+    const { userParty, accountId, amount } = body
+    const party = userParty || accountId
+    if (!party || amount === undefined) {
+      return jsonResponse({ error: 'userParty or accountId and amount are required' }, 400)
+    }
+    const amountNum = parseFloat(amount)
+    if (isNaN(amountNum) || amountNum <= 0) return jsonResponse({ error: 'amount must be a positive number' }, 400)
+    const current = await storage.getBalance(db, party)
+    const newBal = current + amountNum
+    await storage.setBalance(db, party, newBal)
+    return jsonResponse({
+      success: true,
+      balance: String(newBal),
+      previousBalance: String(current),
+      added: String(amountNum),
+    })
+  }
+
+  // GET /api/orders — list open P2P orders for a market
+  if (path === 'orders' && method === 'GET') {
+    const { marketId, outcome } = query
+    if (!marketId) return jsonResponse({ error: 'marketId required' }, 400)
+    const orders = await storage.getOpenOrdersByMarket(db, marketId, outcome || undefined)
+    return jsonResponse({ success: true, orders })
+  }
+
+  // POST /api/orders — create P2P order (and try match) or cancel
+  if (path === 'orders' && method === 'POST') {
+    const { cancel, orderId, owner, marketId, outcome, side, amount, price } = body
+    if (cancel && orderId && owner) {
+      const ok = await storage.cancelOrder(db, orderId, owner)
+      if (!ok) return jsonResponse({ error: 'Order not found or already matched/cancelled' }, 404)
+      return jsonResponse({ success: true, cancelled: true })
+    }
+    if (!marketId || !outcome || !side || amount === undefined || price === undefined || !owner) {
+      return jsonResponse({ error: 'Missing fields', required: ['marketId', 'outcome', 'side', 'amount', 'price', 'owner'] }, 400)
+    }
+    const outcomeNorm = outcome === 'yes' || outcome === 'Yes' ? 'Yes' : outcome === 'no' || outcome === 'No' ? 'No' : outcome
+    const sideNorm = side === 'buy' || side === 'sell' ? side : null
+    if (!sideNorm || !['Yes', 'No'].includes(outcomeNorm)) {
+      return jsonResponse({ error: 'outcome must be Yes/No, side must be buy/sell' }, 400)
+    }
+    const amountNum = parseFloat(amount)
+    const priceNum = parseFloat(price)
+    if (isNaN(amountNum) || amountNum <= 0 || isNaN(priceNum) || priceNum < 0 || priceNum > 1) {
+      return jsonResponse({ error: 'amount must be positive, price between 0 and 1' }, 400)
+    }
+    const stake = outcomeNorm === 'Yes'
+      ? (sideNorm === 'buy' ? amountNum * priceNum : amountNum * (1 - priceNum))
+      : (sideNorm === 'buy' ? amountNum * (1 - priceNum) : amountNum * priceNum)
+    const bal = await storage.getBalance(db, owner)
+    if (bal < stake) return jsonResponse({ error: 'Insufficient balance', required: stake, current: bal }, 400)
+
+    const newOrderId = `order-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`
+    await storage.createOrder(db, {
+      orderId: newOrderId,
+      marketId,
+      outcome: outcomeNorm,
+      side: sideNorm,
+      amountReal: amountNum,
+      priceReal: priceNum,
+      owner,
+    })
+
+    const oppositeSide = sideNorm === 'buy' ? 'sell' : 'buy'
+    let remainingToFill = amountNum
+    let totalFilled = 0
+    let lastSettlePrice = null
+    let lastPositionId = null
+    let lastMatchOrderId = null
+
+    while (remainingToFill > 0) {
+      const openOrders = await storage.getOpenOrdersByMarket(db, marketId, outcomeNorm)
+      const matchOrder = openOrders.find(
+        (o) => o.owner !== owner && o.side === oppositeSide && o.orderId !== newOrderId &&
+          (sideNorm === 'buy' ? o.priceReal <= priceNum : o.priceReal >= priceNum) &&
+          (o.amountRemaining ?? o.amountReal) > 0
+      )
+      if (!matchOrder) break
+
+      const matchRemaining = matchOrder.amountRemaining ?? matchOrder.amountReal
+      const fillAmount = Math.min(remainingToFill, matchRemaining)
+      if (fillAmount <= 0) break
+
+      const otherStake = outcomeNorm === 'Yes'
+        ? (oppositeSide === 'buy' ? fillAmount * matchOrder.priceReal : fillAmount * (1 - matchOrder.priceReal))
+        : (oppositeSide === 'buy' ? fillAmount * (1 - matchOrder.priceReal) : fillAmount * matchOrder.priceReal)
+      const myStakeForFill = outcomeNorm === 'Yes'
+        ? (sideNorm === 'buy' ? fillAmount * priceNum : fillAmount * (1 - priceNum))
+        : (sideNorm === 'buy' ? fillAmount * (1 - priceNum) : fillAmount * priceNum)
+      const otherBal = await storage.getBalance(db, matchOrder.owner)
+      if (otherBal < otherStake) break
+
+      const settlePrice = (priceNum + matchOrder.priceReal) / 2
+      const posIdA = `position-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`
+      const posIdB = `position-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`
+      const positionPayloadA = {
+        positionId: posIdA,
+        marketId,
+        owner,
+        positionType: outcomeNorm,
+        amount: fillAmount,
+        price: settlePrice,
+        counterpartyPositionId: posIdB,
+        createdAt: new Date().toISOString(),
+      }
+      const positionPayloadB = {
+        positionId: posIdB,
+        marketId,
+        owner: matchOrder.owner,
+        positionType: outcomeNorm === 'Yes' ? 'No' : 'Yes',
+        amount: fillAmount,
+        price: outcomeNorm === 'Yes' ? 1 - settlePrice : settlePrice,
+        counterpartyPositionId: posIdA,
+        createdAt: new Date().toISOString(),
+      }
+
+      const myBal = await storage.getBalance(db, owner)
+      if (myBal < myStakeForFill) break
+
+      await storage.setBalance(db, owner, myBal - myStakeForFill)
+      await storage.setBalance(db, matchOrder.owner, otherBal - otherStake)
+      await storage.upsertContract(db, { contract_id: posIdA, template_id: 'Position', payload: positionPayloadA, party: owner, status: 'Active' })
+      await storage.upsertContract(db, { contract_id: posIdB, template_id: 'Position', payload: positionPayloadB, party: matchOrder.owner, status: 'Active' })
+
+      const matchNewRemaining = matchRemaining - fillAmount
+      if (matchNewRemaining <= 0) {
+        await storage.updateOrderMatched(db, matchOrder.orderId, newOrderId, posIdB)
+      } else {
+        await storage.updateOrderPartialFill(db, matchOrder.orderId, matchNewRemaining)
+      }
+
+      remainingToFill -= fillAmount
+      totalFilled += fillAmount
+      lastSettlePrice = settlePrice
+      lastPositionId = posIdA
+      lastMatchOrderId = matchOrder.orderId
+      if (r2) backupToR2(r2, undefined, posIdA, positionPayloadA).catch(() => {})
+      if (r2) backupToR2(r2, undefined, posIdB, positionPayloadB).catch(() => {})
+
+      const marketRow = await storage.getContractById(db, marketId)
+      if (marketRow?.payload) {
+        const p = marketRow.payload
+        const totalVolume = (parseFloat(p.totalVolume) || 0) + fillAmount * 2
+        const yesVol = (parseFloat(p.yesVolume) || 0) + (outcomeNorm === 'Yes' ? fillAmount : 0)
+        const noVol = (parseFloat(p.noVolume) || 0) + (outcomeNorm === 'No' ? fillAmount : 0)
+        await storage.updateContractPayload(db, marketId, { ...p, totalVolume, yesVolume: yesVol, noVolume: noVol })
+      }
+    }
+
+    if (remainingToFill < amountNum) {
+      await storage.updateOrderPartialFill(db, newOrderId, remainingToFill, remainingToFill <= 0 && lastMatchOrderId && lastPositionId ? { counterpartyOrderId: lastMatchOrderId, positionId: lastPositionId } : undefined)
+    }
+    const hadMatch = totalFilled > 0
+    if (hadMatch) {
+      return jsonResponse({
+        success: true,
+        matched: true,
+        orderId: newOrderId,
+        positionId: lastPositionId,
+        amountFilled: totalFilled,
+        amountRemaining: remainingToFill,
+        price: lastSettlePrice,
+        message: remainingToFill > 0 ? `Partially filled: ${totalFilled} matched, ${remainingToFill} left on the book.` : 'Fully filled.',
+      })
+    }
+
+    return jsonResponse({
+      success: true,
+      matched: false,
+      orderId: newOrderId,
+      message: 'Order placed. It will fill when someone takes the other side (any size up to your amount).',
+    })
+  }
 
   // GET /api/get-contracts, POST /api/get-contracts
   if (path === 'get-contracts' && (method === 'GET' || method === 'POST')) {
@@ -323,6 +715,113 @@ async function handleWithD1(db, kv, r2, request, path, method) {
     })
   }
 
+  // GET/POST /api/auto-markets — list events from APIs or seed markets from them
+  if (path === 'auto-markets') {
+    const action = query.action || (method === 'POST' ? (body.action || 'seed') : 'events')
+    const source = query.source || body?.source || 'sports'
+    const limit = Math.min(parseInt(query.limit || body?.limit || '10', 10) || 10, 50)
+    const sportKey = query.sport || body?.sport || 'basketball_nba'
+
+    if (method === 'GET' && action === 'events') {
+      let events = []
+      try {
+        if (source === 'sports') {
+          events = await dataSources.eventsFromOdds(env, sportKey, limit)
+        } else if (source === 'alpha_vantage' || source === 'stocks') {
+          events = await dataSources.eventsFromAlphaVantage(env, dataSources.ALPHA_VANTAGE_SYMBOLS.slice(0, 5))
+        } else if (source === 'crypto' || source === 'coingecko') {
+          events = await dataSources.eventsFromCoinGecko(env, dataSources.COINGECKO_COINS.slice(0, 5))
+        } else if (source === 'openweather' || source === 'weather') {
+          events = await dataSources.eventsFromOpenWeather(env, dataSources.WEATHER_CITIES?.slice(0, 3) || ['London', 'New York'])
+        } else if (source === 'weatherapi') {
+          events = await dataSources.eventsFromWeatherApi(env, dataSources.WEATHER_CITIES?.slice(0, 3) || ['London', 'New York'])
+        } else if (source === 'gnews' || source === 'news') {
+          events = await dataSources.eventsFromGNews(env, query.category || 'general', limit)
+        } else if (source === 'perigon') {
+          events = await dataSources.eventsFromPerigon(env, query.q || body?.q || 'technology', limit)
+        } else {
+          return jsonResponse({ error: 'Unknown source', supported: ['sports', 'stocks', 'crypto', 'weather', 'openweather', 'weatherapi', 'news', 'gnews', 'perigon'] }, 400)
+        }
+      } catch (err) {
+        console.error('[auto-markets] events', source, err)
+        return jsonResponse({ error: 'Failed to fetch events', message: err?.message }, 502)
+      }
+      return jsonResponse({ success: true, source, events, count: events.length })
+    }
+
+    if (method === 'POST' && action === 'seed') {
+      let events = []
+      try {
+        if (source === 'sports') {
+          events = await dataSources.eventsFromOdds(env, sportKey, limit)
+        } else if (source === 'alpha_vantage' || source === 'stocks') {
+          events = await dataSources.eventsFromAlphaVantage(env, dataSources.ALPHA_VANTAGE_SYMBOLS.slice(0, 5))
+        } else if (source === 'crypto' || source === 'coingecko') {
+          events = await dataSources.eventsFromCoinGecko(env, dataSources.COINGECKO_COINS.slice(0, 5))
+        } else if (source === 'openweather' || source === 'weather') {
+          events = await dataSources.eventsFromOpenWeather(env, dataSources.WEATHER_CITIES?.slice(0, 3) || ['London', 'New York'])
+        } else if (source === 'weatherapi') {
+          events = await dataSources.eventsFromWeatherApi(env, dataSources.WEATHER_CITIES?.slice(0, 3) || ['London', 'New York'])
+        } else if (source === 'gnews' || source === 'news') {
+          events = await dataSources.eventsFromGNews(env, body?.category || 'general', limit)
+        } else if (source === 'perigon') {
+          events = await dataSources.eventsFromPerigon(env, body?.q || 'technology', limit)
+        } else {
+          return jsonResponse({ error: 'Unknown source', supported: ['sports', 'stocks', 'crypto', 'weather', 'openweather', 'weatherapi', 'news', 'gnews', 'perigon'] }, 400)
+        }
+      } catch (err) {
+        console.error('[auto-markets] seed fetch', source, err)
+        return jsonResponse({ error: 'Failed to fetch events', message: err?.message }, 502)
+      }
+      const created = []
+      for (const ev of events) {
+        const id = ev.id ? `market-${ev.id}` : `market-${ev.source}-${Date.now()}-${created.length}`
+        const payload = {
+          marketId: id,
+          title: ev.title,
+          description: ev.description || ev.title,
+          marketType: 'Binary',
+          outcomes: ['Yes', 'No'],
+          settlementTrigger: { tag: 'Manual' },
+          resolutionCriteria: ev.resolutionCriteria || ev.title,
+          status: 'Active',
+          totalVolume: 0,
+          yesVolume: 0,
+          noVolume: 0,
+          outcomeVolumes: {},
+          category: ev.source,
+          styleLabel: ev.source,
+          source: ev.source,
+          oracleSource: ev.oracleSource || ev.source,
+          oracleConfig: ev.oracleConfig || {},
+          createdAt: new Date().toISOString(),
+        }
+        await storage.upsertContract(db, {
+          contract_id: id,
+          template_id: TEMPLATE_VIRTUAL_MARKET,
+          payload,
+          party: 'platform',
+          status: 'Active',
+        })
+        await backupToR2(r2, undefined, id, payload)
+        const poolState = createPoolState(id, 1000, 1000)
+        await storage.upsertContract(db, {
+          contract_id: poolState.poolId,
+          template_id: 'LiquidityPool',
+          payload: poolState,
+          party: 'platform',
+          status: 'Active',
+        })
+        await backupToR2(r2, undefined, poolState.poolId, poolState)
+        created.push({ marketId: id, title: ev.title, source: ev.source })
+      }
+      // Markets list cache will refresh on next GET (TTL)
+      return jsonResponse({ success: true, source, created, count: created.length })
+    }
+
+    return jsonResponse({ error: 'Use GET ?action=events&source=... or POST { action: "seed", source: ... }' }, 400)
+  }
+
   // GET/POST /api/markets
   if (path === 'markets') {
     if (method === 'GET') {
@@ -367,6 +866,10 @@ async function handleWithD1(db, kv, r2, request, path, method) {
         source = 'user',
         creator,
       } = body
+      // Only API-driven (auto-markets) creation allowed; no user-created markets
+      if (source === 'user') {
+        return jsonResponse({ error: 'User-created markets are disabled. Markets are created automatically from external events.' }, 403)
+      }
       if (!title || !description || !resolutionCriteria) {
         return jsonResponse({ error: 'Missing required fields', required: ['title', 'description', 'resolutionCriteria'] }, 400)
       }
@@ -441,8 +944,15 @@ async function handleWithD1(db, kv, r2, request, path, method) {
     })
   }
 
-  // POST /api/trade
+  // POST /api/trade (AMM — can be disabled for P2P-only via env DISABLE_AMM_TRADE)
   if (path === 'trade' && method === 'POST') {
+    if (env.DISABLE_AMM_TRADE === '1' || env.DISABLE_AMM_TRADE === 'true') {
+      return jsonResponse({
+        error: 'AMM trading is disabled',
+        message: 'Platform is in P2P-only mode. Use the order book or place/create-position when P2P matching is available.',
+        code: 'AMM_DISABLED',
+      }, 503)
+    }
     const { marketId, side, amount, minOut, userId } = body
     if (!marketId || !side || !amount || !userId) {
       return jsonResponse({ error: 'Missing required fields', required: ['marketId', 'side', 'amount', 'userId'] }, 400)
@@ -523,7 +1033,50 @@ async function handleWithD1(db, kv, r2, request, path, method) {
     })
   }
 
-  // POST /api/update-market-status
+  // POST /api/resolve-markets — resolve due markets from oracle APIs and settle (call from cron or manually)
+  if (path === 'resolve-markets' && method === 'POST') {
+    const all = await storage.getContracts(db, { limit: 500 })
+    const marketRows = all.filter(
+      (r) => (r.templateId === TEMPLATE_VIRTUAL_MARKET || (r.templateId && r.templateId.includes('Market'))) &&
+        r.status === 'Active' &&
+        (r.payload?.oracleSource || r.payload?.source) &&
+        r.payload?.source !== 'user'
+    )
+    const due = marketRows.filter((m) => resolveMarkets.isMarketDueForResolution(m))
+    const SETTLEMENT_FEE = 0.02
+    const resolved = []
+    for (const market of due) {
+      try {
+        const { resolved: didResolve, outcome } = await resolveMarkets.resolveOutcome(env, market)
+        if (!didResolve || outcome === undefined) continue
+        const marketId = market.contractId
+        const payload = { ...market.payload, status: 'Settled', resolvedOutcome: outcome }
+        await storage.updateContractPayload(db, marketId, payload)
+        await backupToR2(r2, undefined, marketId, payload)
+        if (outcome) {
+          const positions = (await storage.getContracts(db, { templateType: 'Position', limit: 1000 }))
+            .filter((c) => c.payload?.marketId === marketId && c.payload?.counterpartyPositionId)
+          for (const pos of positions) {
+            const amount = parseFloat(pos.payload?.amount) || 0
+            if (amount <= 0) continue
+            const isWinner = (pos.payload?.positionType === outcome) || (pos.payload?.positionType === `Outcome:${outcome}`)
+            if (isWinner) {
+              const payout = 2 * amount * (1 - SETTLEMENT_FEE)
+              const owner = pos.party
+              const current = await storage.getBalance(db, owner)
+              await storage.setBalance(db, owner, current + payout)
+            }
+          }
+        }
+        resolved.push({ marketId, outcome })
+      } catch (err) {
+        console.error('[resolve-markets]', market.contractId, err?.message)
+      }
+    }
+    return jsonResponse({ success: true, due: due.length, resolved: resolved.length, markets: resolved })
+  }
+
+  // POST /api/update-market-status (optionally settle P2P positions: pay winners, 2% fee)
   if (path === 'update-market-status' && method === 'POST') {
     const { marketId, status, resolvedOutcome } = body
     if (!marketId) return jsonResponse({ error: 'marketId required' }, 400)
@@ -534,6 +1087,24 @@ async function handleWithD1(db, kv, r2, request, path, method) {
     if (resolvedOutcome !== undefined) payload.resolvedOutcome = resolvedOutcome
     await storage.updateContractPayload(db, marketId, payload)
     await backupToR2(r2, undefined, marketId, payload)
+
+    const SETTLEMENT_FEE = 0.02
+    if (status === 'Settled' && resolvedOutcome) {
+      const all = await storage.getContracts(db, { templateType: 'Position', limit: 1000 })
+      const positions = all.filter((c) => c.payload?.marketId === marketId && c.payload?.counterpartyPositionId)
+      for (const pos of positions) {
+        const amount = parseFloat(pos.payload?.amount) || 0
+        if (amount <= 0) continue
+        const isWinner = (pos.payload?.positionType === resolvedOutcome) || (pos.payload?.positionType === `Outcome:${resolvedOutcome}`)
+        if (isWinner) {
+          const payout = 2 * amount * (1 - SETTLEMENT_FEE)
+          const owner = pos.party
+          const current = await storage.getBalance(db, owner)
+          await storage.setBalance(db, owner, current + payout)
+        }
+      }
+    }
+
     return jsonResponse({ success: true, market: { contractId: marketId, payload } })
   }
 
@@ -555,7 +1126,7 @@ async function handleWithD1(db, kv, r2, request, path, method) {
     if (currentBal < amountNum) {
       return jsonResponse({
         error: 'Insufficient balance',
-        message: `You have ${currentBal} CC but need ${amountNum} CC.`,
+        message: `You have ${currentBal} GP but need ${amountNum} GP.`,
         currentBalance: String(currentBal),
         requiredAmount: String(amountNum),
       }, 400)
