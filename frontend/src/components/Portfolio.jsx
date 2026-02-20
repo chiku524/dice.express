@@ -254,6 +254,21 @@ export default function Portfolio() {
     return () => { cancelled = true }
   }, [])
 
+  // Fetch withdrawal requests when on balance tab (must run before any early return so hook count is stable)
+  const fetchWithdrawalRequests = async () => {
+    if (!wallet) return
+    try {
+      const res = await fetch(`/api/withdrawal-requests?userParty=${encodeURIComponent(wallet.party)}`)
+      const data = await res.json()
+      if (data.requests) setWithdrawalRequests(data.requests)
+    } catch {
+      setWithdrawalRequests([])
+    }
+  }
+  useEffect(() => {
+    if (activeTab === 'balance' && wallet) fetchWithdrawalRequests()
+  }, [activeTab, wallet])
+
   if (!wallet) {
     return (
       <div className="card" style={{ maxWidth: '420px', margin: '2rem auto', textAlign: 'center' }}>
@@ -416,17 +431,6 @@ export default function Portfolio() {
     }
   }
 
-  const fetchWithdrawalRequests = async () => {
-    if (!wallet) return
-    try {
-      const res = await fetch(`/api/withdrawal-requests?userParty=${encodeURIComponent(wallet.party)}`)
-      const data = await res.json()
-      if (data.requests) setWithdrawalRequests(data.requests)
-    } catch {
-      setWithdrawalRequests([])
-    }
-  }
-
   const handleWithdraw = async () => {
     if (!wallet) return
     const amount = parseFloat(withdrawAmount)
@@ -467,10 +471,6 @@ export default function Portfolio() {
       setTimeout(() => setWithdrawSuccess(false), 5000)
     }
   }
-
-  useEffect(() => {
-    if (activeTab === 'balance' && wallet) fetchWithdrawalRequests()
-  }, [activeTab, wallet])
 
   const tabs = [
     { id: 'balance', label: 'Balance' },
