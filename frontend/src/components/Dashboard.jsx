@@ -4,7 +4,7 @@ import { useWallet } from '../contexts/WalletContext'
 import { useAccountModal } from '../contexts/AccountModalContext'
 import { getVirtualBalance } from '../services/balance'
 import { ContractStorage } from '../utils/contractStorage'
-import { formatCredits, PLATFORM_CURRENCY_SYMBOL } from '../constants/currency'
+import { formatPips, PLATFORM_CURRENCY_SYMBOL } from '../constants/currency'
 import { BRAND_TAGLINE } from '../constants/brand'
 import './Dashboard.css'
 
@@ -50,7 +50,7 @@ export default function Dashboard() {
         setPositionsCount(userPositions.length)
       } catch (err) {
         if (isMountedRef.current && !cancelled) {
-          setBalanceFormatted(formatCredits('0'))
+          setBalanceFormatted(formatPips('0'))
           setBalanceRaw('0')
           setPositionsCount(0)
         }
@@ -70,7 +70,7 @@ export default function Dashboard() {
           Sign in or create an account to get your own dashboard, profile, and portfolio.
         </p>
         <p className="wallet-hint mt-md" style={{ fontSize: 'var(--font-size-sm)' }}>
-          {BRAND_TAGLINE} — trade with virtual Credits. No password required.
+          {BRAND_TAGLINE} — trade with Pips. No password required.
         </p>
         <button type="button" className="btn-primary mt-lg" onClick={openAccountModal}>
           Get started
@@ -94,15 +94,19 @@ export default function Dashboard() {
         </p>
       </header>
 
+      <p className="dashboard-subtitle">
+        Deposit with card or crypto to get Pips, trade on prediction markets, and withdraw from Portfolio.
+      </p>
+
       <div className="dashboard-cards">
         <div className="card dashboard-card">
           <h2 className="dashboard-card-title">Balance</h2>
           <p className="dashboard-card-value">
-            {loading ? '…' : (balanceFormatted ?? formatCredits(balanceRaw))}
+            {loading ? '…' : (balanceFormatted ?? formatPips(balanceRaw))}
           </p>
-          <p className="dashboard-card-hint">{PLATFORM_CURRENCY_SYMBOL} — platform Credits</p>
+          <p className="dashboard-card-hint">{PLATFORM_CURRENCY_SYMBOL} — your balance</p>
           <Link to="/portfolio" className="btn-primary dashboard-card-action">
-            View portfolio
+            View portfolio & add Pips
           </Link>
         </div>
 
@@ -114,22 +118,6 @@ export default function Dashboard() {
             My positions
           </Link>
         </div>
-
-        <div className="card dashboard-card dashboard-card-actions">
-          <h2 className="dashboard-card-title">Quick actions</h2>
-          <div className="dashboard-quick-links">
-            <Link to="/" className="btn-primary">Browse markets</Link>
-            <Link to="/profile" className="btn-secondary">Profile</Link>
-          </div>
-        </div>
-      </div>
-
-      <div className="card dashboard-profile-teaser">
-        <h2 className="mb-sm">Your account</h2>
-        <p className="text-secondary" style={{ marginBottom: 'var(--spacing-md)' }}>
-          Update your display name and view account details on your profile.
-        </p>
-        <Link to="/profile" className="btn-secondary">Go to profile</Link>
       </div>
     </div>
   )

@@ -7,7 +7,14 @@
 }
 
 .dashboard-header {
-  margin-bottom: var(--spacing-xl, 2rem);
+  margin-bottom: var(--spacing-sm, 0.5rem);
+}
+
+.dashboard-subtitle {
+  margin: 0 0 var(--spacing-xl, 2rem);
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm, 0.875rem);
+  max-width: 42ch;
 }
 
 .dashboard-header h1 {
@@ -68,23 +75,4 @@
   display: inline-block;
   width: 100%;
   box-sizing: border-box;
-}
-
-.dashboard-card-actions .dashboard-card-title {
-  margin-bottom: var(--spacing-xs, 0.25rem);
-}
-
-.dashboard-quick-links {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--spacing-sm, 0.5rem);
-  margin-top: var(--spacing-sm, 0.5rem);
-}
-
-.dashboard-quick-links a {
-  text-decoration: none;
-}
-
-.dashboard-profile-teaser {
-  max-width: 560px;
 }
