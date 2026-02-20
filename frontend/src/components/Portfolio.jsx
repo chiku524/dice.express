@@ -37,18 +37,6 @@ export default function Portfolio() {
   const isMountedRef = useRef(true)
   const depositCardRef = useRef(null)
 
-  if (!wallet) {
-    return (
-      <div className="card" style={{ maxWidth: '420px', margin: '2rem auto', textAlign: 'center' }}>
-        <h2>My Portfolio</h2>
-        <p className="text-secondary mt-sm">Sign in to view your balance and positions.</p>
-        <button type="button" className="btn-primary mt-lg" onClick={openAccountModal}>
-          Sign in
-        </button>
-      </div>
-    )
-  }
-
   useEffect(() => {
     isMountedRef.current = true
     
@@ -265,6 +253,18 @@ export default function Portfolio() {
       .catch(() => {})
     return () => { cancelled = true }
   }, [])
+
+  if (!wallet) {
+    return (
+      <div className="card" style={{ maxWidth: '420px', margin: '2rem auto', textAlign: 'center' }}>
+        <h2>My Portfolio</h2>
+        <p className="text-secondary mt-sm">Sign in to view your balance and positions.</p>
+        <button type="button" className="btn-primary mt-lg" onClick={openAccountModal}>
+          Sign in
+        </button>
+      </div>
+    )
+  }
 
   if (loading) {
     return (

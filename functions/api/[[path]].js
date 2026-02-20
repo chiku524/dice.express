@@ -519,19 +519,24 @@ async function handleWithD1(db, kv, r2, request, path, method, env = {}) {
 
   // GET /api/get-contracts, POST /api/get-contracts
   if (path === 'get-contracts' && (method === 'GET' || method === 'POST')) {
-    const params = method === 'GET' ? query : body
-    const { party, templateType, status, limit } = params
-    const list = await storage.getContracts(db, {
-      party: party || undefined,
-      templateType: templateType || undefined,
-      status: status || undefined,
-      limit: limit ? parseInt(limit, 10) : 100,
-    })
-    const contracts = list.map((c) => ({
-      ...c,
-      _fromCloudStorage: true,
-    }))
-    return jsonResponse({ success: true, contracts, count: contracts.length })
+    try {
+      const params = method === 'GET' ? query : body
+      const { party, templateType, status, limit } = params
+      const list = await storage.getContracts(db, {
+        party: party || undefined,
+        templateType: templateType || undefined,
+        status: status || undefined,
+        limit: limit ? parseInt(limit, 10) : 100,
+      })
+      const contracts = (list || []).map((c) => ({
+        ...c,
+        _fromCloudStorage: true,
+      }))
+      return jsonResponse({ success: true, contracts, count: contracts.length })
+    } catch (err) {
+      console.error('[api] get-contracts', err)
+      return jsonResponse({ success: true, contracts: [], count: 0 })
+    }
   }
 
   // POST /api/store-contract
