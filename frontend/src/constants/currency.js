@@ -1,11 +1,10 @@
 /**
- * Platform virtual currency (Credits).
- * All platform activity (trading, fees, AMM, rewards) uses this unit.
- * Deposits/withdrawals on supported chains credit/debit this balance.
+ * Platform currency: Pips.
+ * Users deposit (crypto / card) to receive Pips; they trade and withdraw earnings (withdrawal fee applies).
  */
 export const PLATFORM_CURRENCY = {
-  name: 'Credits',
-  symbol: 'CR',
+  name: 'Pips',
+  symbol: 'PP',
   decimals: 2,
 }
 
@@ -13,8 +12,8 @@ export const PLATFORM_CURRENCY_NAME = PLATFORM_CURRENCY.name
 export const PLATFORM_CURRENCY_SYMBOL = PLATFORM_CURRENCY.symbol
 export const PLATFORM_CURRENCY_DECIMALS = PLATFORM_CURRENCY.decimals
 
-/** Format amount for display */
-export function formatCredits(amount) {
+/** Format amount for display (e.g. "1,234.56 PP") */
+export function formatGuap(amount) {
   if (amount == null || Number.isNaN(Number(amount))) return '—'
   const n = Number(amount)
   return n.toLocaleString(undefined, {
@@ -22,3 +21,11 @@ export function formatCredits(amount) {
     maximumFractionDigits: PLATFORM_CURRENCY_DECIMALS,
   }) + ' ' + PLATFORM_CURRENCY_SYMBOL
 }
+
+/** Alias for display (Pips branding) */
+export function formatPips(amount) {
+  return formatGuap(amount)
+}
+
+/** @deprecated Use formatGuap or formatPips */
+export const formatCredits = formatGuap
