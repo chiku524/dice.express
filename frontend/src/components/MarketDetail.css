@@ -25,28 +25,14 @@
 }
 
 .market-detail-layout {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
+  display: flex;
+  flex-direction: column;
   gap: var(--spacing-xl);
-  align-items: start;
 }
 
-@media (max-width: 900px) {
-  .market-detail-layout {
-    grid-template-columns: 1fr;
-  }
-}
-
-/* Left: info card */
+/* Top: details only, full width */
 .market-detail-info {
-  position: sticky;
-  top: calc(60px + var(--spacing-md));
-}
-
-@media (max-width: 900px) {
-  .market-detail-info {
-    position: static;
-  }
+  width: 100%;
 }
 
 .market-detail-tags {
@@ -160,11 +146,17 @@
   font-size: var(--font-size-sm);
 }
 
-/* Right: trade + orders */
+/* Bottom: buy/sell + limit orders side by side on desktop */
 .market-detail-actions {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-lg);
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--spacing-xl);
+}
+
+@media (max-width: 768px) {
+  .market-detail-actions {
+    grid-template-columns: 1fr;
+  }
 }
 
 .market-detail-trade,
@@ -256,6 +248,7 @@
 
 .market-detail-closed {
   padding: var(--spacing-lg);
+  grid-column: 1 / -1;
 }
 
 .market-detail-closed p {

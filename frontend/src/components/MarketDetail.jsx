@@ -223,7 +223,7 @@ export default function MarketDetail() {
       </nav>
 
       <div className="market-detail-layout">
-        {/* Left: market info — compact */}
+        {/* Top: market details only */}
         <div className="market-detail-info card">
           <div className="market-detail-tags">
             <span className="market-detail-tag market-detail-tag-category">{categoryLabel}</span>
@@ -273,7 +273,7 @@ export default function MarketDetail() {
           )}
         </div>
 
-        {/* Right: trade + limit orders — single column, less scroll */}
+        {/* Bottom: buy/sell shares + limit orders */}
         <div className="market-detail-actions">
           {isActiveBinary && (
             <div className="card market-detail-trade">
