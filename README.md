@@ -1,46 +1,39 @@
 # dice.express — Prediction Markets
 
-A prediction markets platform where **all activity is virtual (Credits)**. Markets, positions, AMM, and balances are handled by **files and algorithms** (APIs + database); **no blockchain or Canton**.
+A prediction markets platform powered by **Guap**. Users deposit (crypto or card) to get Guap, trade on outcomes, and withdraw earnings (withdrawal fee applies). Markets, P2P orders, AMM, and balances run on **Cloudflare** (D1, KV, R2).
 
 ## Features
 
-- **Virtual-only**: Trade, create markets, AMM, and fees in platform **Credits**; no ledger/blockchain
-- **Markets**: Created via API (user or automated from global events, industry topics, virtual realities)
-- **AMM**: Automated market maker implemented in JS (`api/lib/amm.js`); constant product, fees, slippage and max trade size
-- **Prediction styles**: Yes/No, True/False, Happens/Doesn't, Multi-outcome; categories (Finance, Sports, etc.)
-- **Account**: Sign in with a virtual user ID; balance and positions stored in database
+- **Guap**: Platform currency. Deposit → receive Guap → trade → withdraw (fee applies).
+- **Markets**: Created via API; filter by source (global_events, industry, user, etc.).
+- **P2P**: Place orders (buy/sell Yes or No); when two orders match, positions are created and settlement pays winners (2% fee). `GET /api/orders?marketId=`, `POST /api/orders`.
+- **AMM**: Optional; in `functions/lib/amm.mjs`. Disable with `DISABLE_AMM_TRADE=1` for P2P-only.
+- **Prediction styles**: Yes/No, True/False, Happens/Doesn't, Multi-outcome.
+- **Account**: Sign in; balance and positions in D1.
 
 ## Project Structure
 
 ```
 .
-├── api/                     # Serverless API (Vercel / proxy)
-│   ├── lib/amm.js           # AMM algorithms (constant product, fees)
-│   ├── markets.js           # GET/POST virtual markets
-│   ├── pools.js             # GET pool by marketId
-│   ├── trade.js             # POST AMM trade
-│   ├── update-market-status.js
-│   ├── create-position.js
-│   ├── get-user-balance.js
-│   ├── update-user-balance.js
-│   ├── get-contracts.js
-│   ├── store-contract.js
-│   └── update-contract-status.js
+├── functions/                # Cloudflare Pages Functions (API)
+│   ├── api/[[path]].js      # /api/* router (D1, KV, R2)
+│   └── lib/                 # amm.mjs, cf-storage.mjs, auth.mjs
 ├── frontend/                 # React frontend
 │   ├── src/
 │   │   ├── components/
 │   │   ├── hooks/
-│   │   ├── services/         # marketsApi, balance (no ledger)
+│   │   ├── services/
 │   │   └── constants/
 │   └── package.json
-├── docs/                     # Documentation
+├── schema/d1/                # D1 migrations
+├── docs/
 └── package.json
 ```
 
 ## Prerequisites
 
 - Node.js 18+ and npm
-- **Backend**: Either **Supabase** (with Vercel/serverless API) **or** **Cloudflare D1 + KV + R2** for full data persistence on Cloudflare (see [docs/CLOUDFLARE_STORAGE_MIGRATION.md](docs/CLOUDFLARE_STORAGE_MIGRATION.md)).
+- **Backend**: **Cloudflare** only — D1 (SQL), KV (cache), R2 (backup). All API in `functions/`. No Vercel, Supabase, or Canton.
 
 ## Setup
 
@@ -53,31 +46,29 @@ npm install
 
 ### 2. Environment
 
-- Set `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` (or `SUPABASE_ANON_KEY`) for the API.
-- Frontend: optional `.env` for API base URL if not same origin.
+- **Cloudflare**: Bind D1 in `wrangler.toml` and run migrations: `0000_initial.sql`, `0001_users.sql`, `0002_p2p_orders.sql` (for P2P). Optional: KV, R2.
+- Frontend: optional `VITE_API_ORIGIN` if API is on a different origin.
 
 ### 3. Run
 
-- **API**: Deploy to Vercel (or run locally with a server that serves `api/*`).
-- **Frontend**: `cd frontend && npm run dev`.
+- **Full stack**: `npm run pages:dev` (builds frontend and runs wrangler pages dev with D1).
+- **Frontend only**: `npm run start:frontend` (needs deployed API or `VITE_API_ORIGIN`).
 
-## API (virtual)
+## API
 
-- `GET /api/markets` — List markets (optional `?source=global_events|industry|virtual_realities|user`)
-- `POST /api/markets` — Create virtual market (body: title, description, marketType, outcomes, resolutionCriteria, category, styleLabel, source, creator)
-- `GET /api/pools?marketId=...` — Get AMM pool for a market
-- `POST /api/trade` — Execute AMM trade (body: marketId, side, amount, minOut, userId)
-- `POST /api/update-market-status` — Update market status (body: marketId, status, resolvedOutcome)
-- `POST /api/create-position` — Create position (virtual)
-- `GET/POST /api/get-user-balance` — Virtual balance
-- `POST /api/update-user-balance` — Add/subtract balance
-- `GET /api/get-contracts` — List stored contracts
-- `POST /api/store-contract` — Store contract
-- `PUT /api/update-contract-status` — Update contract status (e.g. Approved)
+- **Auth**: `POST /api/register`, `POST /api/sign-in`
+- **Balance**: `GET/POST /api/get-user-balance`, `POST /api/add-credits` (add Guap)
+- **Markets**: `GET/POST /api/markets`, `GET /api/pools?marketId=...`, `POST /api/trade` (AMM)
+- **P2P**: `GET /api/orders?marketId=` — list open orders; `POST /api/orders` — create order (or cancel with `cancel: true, orderId, owner`). Matching is automatic; settlement pays winners when market is set to Settled (2% fee).
+- **Positions**: `POST /api/create-position`, `POST /api/update-market-status` (status, resolvedOutcome; settles P2P positions)
+- **Other**: `GET /api/health`, `GET /api/oracle?symbol=`, get/store/update contracts
 
 ## Docs
 
-- `docs/ARCHITECTURE.md` — High-level architecture (virtual-only)
-- `docs/AMM.md` — AMM design and formulas
-- `docs/PLATFORM_VISION_AND_ROADMAP.md` — Vision and roadmap
-- `docs/CLOUDFLARE_STORAGE_MIGRATION.md` — **Data persistence on Cloudflare**: D1 (primary DB), KV (markets cache), R2 (contract backup)
+- `docs/README.md` — Documentation index
+- `docs/GET_APP_UP_AND_RUNNING.md` — Deploy and run in production (D1, Stripe, crypto, cron)
+- `docs/ARCHITECTURE.md` — Cloudflare stack
+- `docs/CLOUDFLARE.md` — Deploy to Cloudflare Pages, D1/R2/KV storage
+- `docs/GUAP_DEPOSIT_WITHDRAW_FLOW.md` — Deposit (crypto/Stripe) → Guap → withdraw (fee)
+- `docs/PREDICTION_MARKETS.md` — Prediction styles, free/cheap APIs, automated market creation
+- `docs/P2P_AND_GROWTH_STRATEGY.md` — P2P-only mode and growth from zero

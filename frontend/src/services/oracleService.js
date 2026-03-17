@@ -107,7 +107,7 @@ class OracleService {
   }
 
   /**
-   * Format oracle data for Canton ledger
+   * Format oracle data for market resolution
    * @param {Object} oracleData - Oracle data
    * @returns {string} Formatted JSON string
    */

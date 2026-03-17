@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { useWallet } from '../contexts/WalletContext'
 import { register as apiRegister } from '../services/accountApi'
 import { BRAND_NAME } from '../constants/brand'
+import { PIPS_PACKAGES } from '../constants/stripeProducts'
 import './AuthPages.css'
 
 const STEPS = [
@@ -83,6 +84,10 @@ export default function Register() {
           fundChoice: account.fundChoice ?? null,
           createdAt: account.createdAt,
         })
+        if (financeChoice === 'stripe') {
+          navigate('/portfolio?deposit=card', { replace: true })
+          return
+        }
       }
       navigate('/dashboard', { replace: true })
     } catch (err) {
@@ -179,7 +184,7 @@ export default function Register() {
         {step === 2 && (
           <div className="wizard-panel">
             <h2 className="wizard-panel-title">Fund your account</h2>
-            <p className="wizard-panel-desc">Add Credits to trade. You can also do this later from your Portfolio.</p>
+            <p className="wizard-panel-desc">Add Pips to trade. Choose how you&apos;ll add funds; you can deposit later from Portfolio.</p>
             {error && <div className="auth-error" role="alert">{error}</div>}
             <div className="wizard-options">
               <button
@@ -189,8 +194,8 @@ export default function Register() {
               >
                 <span className="wizard-option-icon" aria-hidden>⛓</span>
                 <span className="wizard-option-text">
-                  <span className="wizard-option-label">Blockchain</span>
-                  <span className="wizard-option-desc">Connect wallet & deposit</span>
+                  <span className="wizard-option-label">Crypto</span>
+                  <span className="wizard-option-desc">Deposit from wallet later</span>
                 </span>
               </button>
               <button
@@ -200,8 +205,8 @@ export default function Register() {
               >
                 <span className="wizard-option-icon" aria-hidden>💳</span>
                 <span className="wizard-option-text">
-                  <span className="wizard-option-label">Stripe</span>
-                  <span className="wizard-option-desc">Pay with card</span>
+                  <span className="wizard-option-label">Card (Stripe)</span>
+                  <span className="wizard-option-desc">Pick a package after signup</span>
                 </span>
               </button>
               <button
@@ -216,6 +221,18 @@ export default function Register() {
                 </span>
               </button>
             </div>
+            {financeChoice === 'stripe' && (
+              <div className="wizard-stripe-packages">
+                <p className="wizard-panel-desc" style={{ marginTop: 'var(--spacing-sm)' }}>
+                  After you create your account, you&apos;ll go to Portfolio to choose a package: $5, $10, $25, $50, or $100 Pips (1 PP = $1 USD).
+                </p>
+                <div className="stripe-package-pills">
+                  {PIPS_PACKAGES.map((p) => (
+                    <span key={p.amount} className="stripe-package-pill">{p.label}</span>
+                  ))}
+                </div>
+              </div>
+            )}
             <div className="wizard-actions">
               <button type="button" className="auth-secondary" onClick={() => setStep(1)}>Back</button>
               <button type="button" className="auth-submit" onClick={() => setStep(3)}>Next</button>
@@ -231,7 +248,7 @@ export default function Register() {
             <div className="wizard-summary">
               <p><strong>Email:</strong> {email.trim() ? (() => { const s = email.trim(); const i = s.indexOf('@'); return i > 0 ? s.slice(0, 2) + '***' + s.slice(i) : s; })() : '—'}</p>
               <p><strong>Display name:</strong> {displayName.trim() || '—'}</p>
-              <p><strong>Funding:</strong> {financeChoice === 'blockchain' ? 'Blockchain' : financeChoice === 'stripe' ? 'Stripe' : 'Add later'}</p>
+              <p><strong>Funding:</strong> {financeChoice === 'blockchain' ? 'Crypto (later)' : financeChoice === 'stripe' ? "Card — you'll pick a package on Portfolio" : 'Add later'}</p>
             </div>
             <div className="wizard-actions">
               <button type="button" className="auth-secondary" onClick={() => setStep(2)}>Back</button>

@@ -9,7 +9,7 @@ Summary of major cleanups and improvements. For current structure see [README](.
 - Removed 50+ redundant docs (query-endpoint variants, historical troubleshooting, handoff/setup duplicates).
 - Removed temporary token files and unused API/oracle files.
 - Consolidated docs: single QUERY_ENDPOINTS (now in API.md), oracle strategy in ORACLE_STRATEGY.md.
-- **Current layout**: `api/`, `contracts/` (DAML source), `frontend/`, `scripts/`, `docs/`.
+- **Current layout**: `functions/` (Pages API), `frontend/`, `schema/d1/`, `workers/`, `scripts/` (Cloudflare deploy scripts), `docs/`.
 
 ## Platform Improvements
 
@@ -24,5 +24,4 @@ Summary of major cleanups and improvements. For current structure see [README](.
 
 - **AMM**: AMM_DVP_DESIGN, AMM_IMPLEMENTATION, AMM_AND_ALGORITHMS merged into [AMM.md](./AMM.md).
 - **API**: Query-endpoints section merged into [API.md](./API.md).
-- **Blockchain**: BLOCKCHAIN_INTEGRATION + CANTON_INTEGRATION merged into [BLOCKCHAIN_AND_CANTON.md](./BLOCKCHAIN_AND_CANTON.md).
-- **Source rename**: DAML source moved from `daml/` to `contracts/`; `daml.yaml` points to `source: contracts`.
+- **Cloudflare**: Deploy and storage (D1/R2/KV) merged into [CLOUDFLARE.md](./CLOUDFLARE.md). Brand, Stripe, prediction markets, and crypto deposits consolidated into [BRAND.md](./BRAND.md), [STRIPE.md](./STRIPE.md), [PREDICTION_MARKETS.md](./PREDICTION_MARKETS.md), [CRYPTO_DEPOSITS.md](./CRYPTO_DEPOSITS.md).

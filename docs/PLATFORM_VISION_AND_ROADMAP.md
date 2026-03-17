@@ -54,7 +54,7 @@ Transform the application into an **automated prediction market platform** where
   - Add **style** or **variant** (e.g. `BinaryStyle = YesNo | TrueFalse | HappensDoesnt`) for UX and filtering.
   - **Scalar** and **Conditional** can be Phase 2 (new templates or extensions).
 
-See **PREDICTION_STYLES_SPEC.md** for detailed data models and UI behavior.
+See **PREDICTION_MARKETS.md** for detailed data models and UI behavior.
 
 ---
 
@@ -194,7 +194,7 @@ See **AMM_AND_ALGORITHMS.md** for formulas and integration points.
 
 - **docs/PLATFORM_VISION_AND_ROADMAP.md** (this file): Vision, principles, roadmap.
 - **docs/VIRTUAL_CURRENCY_AND_MULTICHAIN.md**: Virtual currency rules, multi-chain flows.
-- **docs/PREDICTION_STYLES_SPEC.md**: All market styles, data model, UI.
+- **docs/PREDICTION_MARKETS.md**: All market styles, data model, automated creation, UI.
 - **docs/AMM_AND_ALGORITHMS.md**: AMM formulas, fee model, algorithm hooks.
 - Keep **ORACLE_STRATEGY.md**, **ARCHITECTURE.md**, **BLOCKCHAIN_INTEGRATION.md** and link from here.
 

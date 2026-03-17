@@ -303,3 +303,25 @@
 .wizard-actions .auth-submit {
   margin-left: auto;
 }
+
+.wizard-stripe-packages {
+  margin-top: var(--spacing-sm);
+}
+
+.stripe-package-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-xs);
+  margin-top: var(--spacing-sm);
+}
+
+.stripe-package-pill {
+  display: inline-block;
+  padding: var(--spacing-xs) var(--spacing-sm);
+  background: var(--color-primary-light, rgba(139, 92, 246, 0.12));
+  border: 1px solid var(--color-primary-border, rgba(139, 92, 246, 0.35));
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  color: var(--color-text-primary);
+}

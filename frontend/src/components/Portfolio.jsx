@@ -28,6 +28,8 @@ export default function Portfolio() {
   const [withdrawError, setWithdrawError] = useState(null)
   const [withdrawSuccess, setWithdrawSuccess] = useState(false)
   const [withdrawalRequests, setWithdrawalRequests] = useState([])
+  const [depositRecords, setDepositRecords] = useState([])
+  const [depositAddresses, setDepositAddresses] = useState(null)
   const [userBalance, setUserBalance] = useState('0')
   const [balanceLoading, setBalanceLoading] = useState(true)
   const [marketTitles, setMarketTitles] = useState({}) // Map of marketId -> title
@@ -254,7 +256,7 @@ export default function Portfolio() {
     return () => { cancelled = true }
   }, [])
 
-  // Fetch withdrawal requests when on balance tab (must run before any early return so hook count is stable)
+  // Fetch withdrawal requests and deposit records when on balance tab (must run before any early return so hook count is stable)
   const fetchWithdrawalRequests = async () => {
     if (!wallet) return
     try {
@@ -265,8 +267,31 @@ export default function Portfolio() {
       setWithdrawalRequests([])
     }
   }
+  const fetchDepositRecords = async () => {
+    if (!wallet) return
+    try {
+      const res = await fetch(`/api/deposit-records?userParty=${encodeURIComponent(wallet.party)}&limit=20`)
+      const data = await res.json()
+      if (data.records) setDepositRecords(data.records)
+    } catch {
+      setDepositRecords([])
+    }
+  }
+  const fetchDepositAddresses = async () => {
+    try {
+      const res = await fetch('/api/deposit-addresses')
+      const data = await res.json()
+      if (data.addresses) setDepositAddresses(data.addresses)
+    } catch {
+      setDepositAddresses(null)
+    }
+  }
   useEffect(() => {
-    if (activeTab === 'balance' && wallet) fetchWithdrawalRequests()
+    if (activeTab === 'balance' && wallet) {
+      fetchWithdrawalRequests()
+      fetchDepositRecords()
+      fetchDepositAddresses()
+    }
   }, [activeTab, wallet])
 
   if (!wallet) {
@@ -627,11 +652,40 @@ export default function Portfolio() {
       <div className="card mb-xl">
         <h2 className="mb-md">Deposit with crypto</h2>
         <p className="text-secondary mb-md" style={{ fontSize: 'var(--font-size-sm)' }}>
-          Send USDC (or supported asset) to the platform wallet. Include your account ID in the memo if the network supports it. After confirmation we credit your Pips (1:1 for stablecoins). Contact support for the deposit address and supported networks.
+          Send USDC (or supported asset) to the platform wallet below. Include your account ID in the memo if the network supports it. After confirmation we credit your Pips (1:1 for stablecoins).
         </p>
-        <p className="text-muted" style={{ fontSize: 'var(--font-size-xs)' }}>
-          Your account ID: <code style={{ wordBreak: 'break-all' }}>{wallet?.accountId || wallet?.party}</code>
+        <p className="text-muted mb-sm" style={{ fontSize: 'var(--font-size-xs)' }}>
+          Your account ID (use in memo when possible): <code style={{ wordBreak: 'break-all' }}>{wallet?.accountId || wallet?.party}</code>
         </p>
+        {depositAddresses && (
+          <div className="mt-md" style={{ fontSize: 'var(--font-size-sm)' }}>
+            {depositAddresses.evm && (
+              <div className="mb-md">
+                <strong>EVM (Ethereum, Polygon, Arbitrum, Optimism, Base, etc.)</strong>
+                <p className="mt-xs mb-xs text-muted" style={{ fontSize: 'var(--font-size-xs)' }}>{depositAddresses.evm.networks?.join(', ')}</p>
+                <code style={{ wordBreak: 'break-all', display: 'block', padding: 'var(--spacing-sm)', background: 'var(--color-bg-secondary)', borderRadius: 'var(--radius-sm)' }}>{depositAddresses.evm.address}</code>
+              </div>
+            )}
+            {depositAddresses.solana && (
+              <div>
+                <strong>Solana</strong>
+                <code style={{ wordBreak: 'break-all', display: 'block', padding: 'var(--spacing-sm)', background: 'var(--color-bg-secondary)', borderRadius: 'var(--radius-sm)' }}>{depositAddresses.solana.address}</code>
+              </div>
+            )}
+          </div>
+        )}
+        {depositRecords.length > 0 && (
+          <div className="mt-md">
+            <h3 className="mb-sm">Deposit history</h3>
+            <ul style={{ listStyle: 'none', padding: 0, margin: 0, fontSize: 'var(--font-size-sm)' }}>
+              {depositRecords.slice(0, 10).map((r) => (
+                <li key={r.id} className="mb-xs">
+                  {formatPips(r.amountGuap)} · {r.source} {r.referenceId ? `· ${String(r.referenceId).slice(0, 12)}…` : ''} · {formatDate(r.createdAt)}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
       </div>
 
       {/* Withdraw */}

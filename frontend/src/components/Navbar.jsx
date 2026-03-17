@@ -131,7 +131,7 @@ export default function Navbar({ setShowWalletModal }) {
           {wallet ? (
             <div className="wallet-info">
               {balanceFormatted != null && (
-                <Link to="/portfolio" className="nav-balance" title="Your balance in Credits — View in Portfolio">
+                <Link to="/portfolio" className="nav-balance" title="Your Pips balance — View in Portfolio">
                   {balanceFormatted}
                 </Link>
               )}

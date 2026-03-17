@@ -6,6 +6,9 @@
 const CONTRACTS_TABLE = 'contracts'
 const BALANCES_TABLE = 'user_balances'
 const USERS_TABLE = 'users'
+const ORDERS_TABLE = 'p2p_orders'
+const DEPOSIT_RECORDS_TABLE = 'deposit_records'
+const WITHDRAWAL_REQUESTS_TABLE = 'withdrawal_requests'
 const KV_CACHE_TTL = 60 // seconds for markets list cache
 
 function safeJsonParse(str, fallback = {}) {
@@ -115,7 +118,15 @@ export async function getBalance(db, party) {
   return row ? parseFloat(row.balance) || 0 : 0
 }
 
-/** @param {D1Database} db */
+/** Returns raw balance string from DB for precise arithmetic (avoids float). @param {D1Database} db */
+export async function getBalanceRaw(db, party) {
+  const row = await db.prepare(`SELECT balance FROM ${BALANCES_TABLE} WHERE party = ?`).bind(party).first()
+  if (!row || row.balance == null || row.balance === '') return '0'
+  const s = String(row.balance).trim()
+  return s || '0'
+}
+
+/** @param {D1Database} db - balance: number or string (stored as-is, use 2-decimal string for precision) */
 export async function setBalance(db, party, balance) {
   const now = new Date().toISOString()
   const balanceStr = typeof balance === 'number' ? String(balance) : String(balance)
@@ -145,6 +156,175 @@ export async function backupContractToR2(r2, _bucketName, contractId, payload) {
   if (!r2) return
   const key = `contracts/${contractId}.json`
   await r2.put(key, JSON.stringify(payload), { httpMetadata: { contentType: 'application/json' } })
+}
+
+// --- P2P orders ---
+
+/** @param {D1Database} db */
+export async function createOrder(db, { orderId, marketId, outcome, side, amountReal, priceReal, owner }) {
+  const now = new Date().toISOString()
+  await db.prepare(
+    `INSERT INTO ${ORDERS_TABLE} (order_id, market_id, outcome, side, amount_real, price_real, owner, status, amount_remaining, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, 'open', ?, ?, ?)`
+  ).bind(orderId, marketId, outcome, side, amountReal, priceReal, owner, amountReal, now, now).run()
+}
+
+/** @param {D1Database} db */
+export async function getOpenOrdersByMarket(db, marketId, outcome = null) {
+  let query = `SELECT * FROM ${ORDERS_TABLE} WHERE market_id = ? AND status = 'open' AND (amount_remaining IS NULL OR amount_remaining > 0) ORDER BY created_at ASC`
+  const params = [marketId]
+  if (outcome) {
+    query = `SELECT * FROM ${ORDERS_TABLE} WHERE market_id = ? AND outcome = ? AND status = 'open' AND (amount_remaining IS NULL OR amount_remaining > 0) ORDER BY created_at ASC`
+    params.push(outcome)
+  }
+  const { results } = await db.prepare(query).bind(...params).all()
+  return (results || []).map((r) => {
+    const amountReal = parseFloat(r.amount_real)
+    const amountRemaining = r.amount_remaining != null ? parseFloat(r.amount_remaining) : amountReal
+    return {
+      orderId: r.order_id,
+      marketId: r.market_id,
+      outcome: r.outcome,
+      side: r.side,
+      amountReal,
+      amountRemaining: amountRemaining > 0 ? amountRemaining : amountReal,
+      priceReal: parseFloat(r.price_real),
+      owner: r.owner,
+      status: r.status,
+      createdAt: r.created_at,
+    }
+  })
+}
+
+/** @param {D1Database} db */
+export async function getOrderById(db, orderId) {
+  const row = await db.prepare(`SELECT * FROM ${ORDERS_TABLE} WHERE order_id = ?`).bind(orderId).first()
+  if (!row) return null
+  const amountReal = parseFloat(row.amount_real)
+  const amountRemaining = row.amount_remaining != null ? parseFloat(row.amount_remaining) : amountReal
+  return {
+    orderId: row.order_id,
+    marketId: row.market_id,
+    outcome: row.outcome,
+    side: row.side,
+    amountReal,
+    amountRemaining: amountRemaining > 0 ? amountRemaining : amountReal,
+    priceReal: parseFloat(row.price_real),
+    owner: row.owner,
+    status: row.status,
+    counterpartyOrderId: row.counterparty_order_id,
+    positionId: row.position_id,
+    createdAt: row.created_at,
+  }
+}
+
+/** @param {D1Database} db */
+export async function updateOrderMatched(db, orderId, counterpartyOrderId, positionId) {
+  const now = new Date().toISOString()
+  await db.prepare(
+    `UPDATE ${ORDERS_TABLE} SET status = 'matched', amount_remaining = 0, counterparty_order_id = ?, position_id = ?, updated_at = ? WHERE order_id = ?`
+  ).bind(counterpartyOrderId, positionId, now, orderId).run()
+}
+
+/** Partial fill: set amount_remaining; if <= 0 set status = 'matched'. Optional last counterparty/position for the final fill. */
+export async function updateOrderPartialFill(db, orderId, amountRemaining, { counterpartyOrderId, positionId } = {}) {
+  const now = new Date().toISOString()
+  const status = amountRemaining <= 0 ? 'matched' : 'open'
+  const rem = Math.max(0, amountRemaining)
+  if (counterpartyOrderId != null && positionId != null) {
+    await db.prepare(
+      `UPDATE ${ORDERS_TABLE} SET amount_remaining = ?, status = ?, counterparty_order_id = ?, position_id = ?, updated_at = ? WHERE order_id = ?`
+    ).bind(rem, status, counterpartyOrderId, positionId, now, orderId).run()
+  } else {
+    await db.prepare(
+      `UPDATE ${ORDERS_TABLE} SET amount_remaining = ?, status = ?, updated_at = ? WHERE order_id = ?`
+    ).bind(rem, status, now, orderId).run()
+  }
+}
+
+/** @param {D1Database} db */
+export async function cancelOrder(db, orderId, owner) {
+  const now = new Date().toISOString()
+  const r = await db.prepare(
+    `UPDATE ${ORDERS_TABLE} SET status = 'cancelled', updated_at = ? WHERE order_id = ? AND owner = ? AND status = 'open'`
+  ).bind(now, orderId, owner).run()
+  return r.meta.changes > 0
+}
+
+// --- Deposits & withdrawals ---
+
+/** Get deposit record by reference_id (e.g. txHash) for idempotency. @param {D1Database} db */
+export async function getDepositRecordByReferenceId(db, referenceId) {
+  if (!referenceId || String(referenceId).trim() === '') return null
+  const row = await db.prepare(
+    `SELECT id, party, amount_guap, source, reference_id, created_at FROM ${DEPOSIT_RECORDS_TABLE} WHERE reference_id = ? LIMIT 1`
+  ).bind(String(referenceId).trim()).first()
+  return row ? { id: row.id, party: row.party, amountGuap: row.amount_guap, source: row.source, referenceId: row.reference_id, createdAt: row.created_at } : null
+}
+
+/** List deposit records for a party (audit/transparency). @param {D1Database} db */
+export async function getDepositRecordsByParty(db, party, limit = 50) {
+  const { results } = await db.prepare(
+    `SELECT id, party, amount_guap, source, reference_id, created_at FROM ${DEPOSIT_RECORDS_TABLE} WHERE party = ? ORDER BY created_at DESC LIMIT ?`
+  ).bind(party, limit).all()
+  return (results || []).map((r) => ({
+    id: r.id,
+    party: r.party,
+    amountGuap: r.amount_guap,
+    source: r.source,
+    referenceId: r.reference_id,
+    createdAt: r.created_at,
+  }))
+}
+
+/** @param {D1Database} db */
+export async function insertDepositRecord(db, { party, amountGuap, source, referenceId }) {
+  await db.prepare(
+    `INSERT INTO ${DEPOSIT_RECORDS_TABLE} (party, amount_guap, source, reference_id) VALUES (?, ?, ?, ?)`
+  ).bind(party, amountGuap, source, referenceId || null).run()
+}
+
+/** @param {D1Database} db */
+export async function insertWithdrawalRequest(db, { requestId, party, amountGuap, feeGuap, netGuap, destination, networkId }) {
+  const now = new Date().toISOString()
+  await db.prepare(
+    `INSERT INTO ${WITHDRAWAL_REQUESTS_TABLE} (request_id, party, amount_guap, fee_guap, net_guap, destination, network_id, status, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, 'pending', ?, ?)`
+  ).bind(requestId, party, amountGuap, feeGuap, netGuap, destination, networkId || 'ethereum', now, now).run()
+}
+
+/** Count pending withdrawals for a party (for rate limiting). @param {D1Database} db */
+export async function countPendingWithdrawalsByParty(db, party) {
+  const row = await db.prepare(
+    `SELECT COUNT(*) as n FROM ${WITHDRAWAL_REQUESTS_TABLE} WHERE party = ? AND status = 'pending'`
+  ).bind(party).first()
+  return row ? (row.n || 0) : 0
+}
+
+/** @param {D1Database} db */
+export async function getWithdrawalRequestsByParty(db, party, limit = 50) {
+  const { results } = await db.prepare(
+    `SELECT * FROM ${WITHDRAWAL_REQUESTS_TABLE} WHERE party = ? ORDER BY created_at DESC LIMIT ?`
+  ).bind(party, limit).all()
+  return (results || []).map((r) => ({
+    requestId: r.request_id,
+    party: r.party,
+    amountGuap: r.amount_guap,
+    feeGuap: r.fee_guap,
+    netGuap: r.net_guap,
+    destination: r.destination,
+    networkId: r.network_id,
+    status: r.status,
+    txHash: r.tx_hash,
+    createdAt: r.created_at,
+  }))
+}
+
+/** @param {D1Database} db */
+export async function updateWithdrawalStatus(db, requestId, status, txHash = null) {
+  const now = new Date().toISOString()
+  await db.prepare(
+    `UPDATE ${WITHDRAWAL_REQUESTS_TABLE} SET status = ?, tx_hash = ?, updated_at = ? WHERE request_id = ?`
+  ).bind(status, txHash || null, now, requestId).run()
 }
 
 // --- Users (email/password auth) ---

@@ -2,24 +2,55 @@ import { useEffect } from 'react'
 import { useLocation } from 'react-router-dom'
 import { getSEOForPath } from '../constants/seo'
 
+/** Ensure a meta tag exists; create or update by name or property. */
+function setMeta(attr, value, content) {
+  const selector = attr === 'name' ? `meta[name="${value}"]` : `meta[property="${value}"]`
+  let el = document.querySelector(selector)
+  if (!el) {
+    el = document.createElement('meta')
+    el.setAttribute(attr, value)
+    document.head.appendChild(el)
+  }
+  if (content) el.setAttribute('content', content)
+}
+
+/** Ensure link rel="canonical" exists and set href. */
+function setCanonical(href) {
+  let el = document.querySelector('link[rel="canonical"]')
+  if (!el) {
+    el = document.createElement('link')
+    el.rel = 'canonical'
+    document.head.appendChild(el)
+  }
+  el.href = href
+}
+
 /**
- * Sets document title and meta description on route change for SEO.
- * Renders nothing.
+ * Sets document title, meta description, keywords, Open Graph, Twitter Card, and canonical on route change.
  */
 export default function PageSEO() {
   const { pathname } = useLocation()
 
   useEffect(() => {
-    const { title, description } = getSEOForPath(pathname)
-    document.title = title
+    const seo = getSEOForPath(pathname)
+    const { title, description, keywords } = seo
+    const origin = typeof window !== 'undefined' ? window.location.origin : ''
+    const canonicalUrl = origin ? `${origin}${pathname}` : ''
 
-    let meta = document.querySelector('meta[name="description"]')
-    if (!meta) {
-      meta = document.createElement('meta')
-      meta.name = 'description'
-      document.head.appendChild(meta)
+    document.title = title || 'dice.express'
+
+    setMeta('name', 'description', description)
+    if (keywords) setMeta('name', 'keywords', keywords)
+
+    setMeta('property', 'og:title', title)
+    setMeta('property', 'og:description', description)
+    if (canonicalUrl) {
+      setMeta('property', 'og:url', canonicalUrl)
+      setCanonical(canonicalUrl)
     }
-    meta.content = description
+
+    setMeta('name', 'twitter:title', title)
+    setMeta('name', 'twitter:description', description)
   }, [pathname])
 
   return null

@@ -18,7 +18,7 @@ export default function TermsOfService() {
 
       <h2>Use of the Service</h2>
       <p>
-        The platform allows you to trade on prediction markets using virtual Credits. You agree to use the service only for lawful purposes and in accordance with these Terms and any applicable laws. You must not misuse the platform, attempt to gain unauthorized access, or interfere with other users or our systems.
+        The platform allows you to trade on prediction markets using Pips. You agree to use the service only for lawful purposes and in accordance with these Terms and any applicable laws. You must not misuse the platform, attempt to gain unauthorized access, or interfere with other users or our systems.
       </p>
 
       <h2>Accounts and Wallet</h2>
@@ -26,9 +26,9 @@ export default function TermsOfService() {
         You may be required to connect a wallet or provide a Party ID and authentication credentials. You are responsible for keeping your credentials secure and for all activity under your account. Deposits and withdrawals may involve blockchain or ledger transactions; you are responsible for understanding and complying with the rules of those networks.
       </p>
 
-      <h2>Trading and Virtual Credits</h2>
+      <h2>Trading and Pips</h2>
       <p>
-        Trading on the platform is conducted in virtual Credits. Markets are automated (AMM-based). Outcomes, payouts, and fees are described in the documentation and on the relevant market pages. Past performance does not guarantee future results; trading involves risk.
+        You deposit (crypto or card) to receive Pips and trade on outcomes. Withdrawals of earnings are subject to a fee. Outcomes, payouts, and fees are described on the relevant market pages. Past performance does not guarantee future results; trading involves risk.
       </p>
 
       <h2>Fees</h2>

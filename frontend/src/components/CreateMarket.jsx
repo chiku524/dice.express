@@ -171,8 +171,7 @@ export default function CreateMarket() {
     <div>
       <h1>Create New Market</h1>
       <p className="text-secondary mb-xl">
-        Create a new prediction market. All platform activity uses Credits. 
-        To add Credits for trading, use Deposit/Withdraw in the Portfolio page.
+        Create a new prediction market. Trading uses Pips. Add Pips in Portfolio or deposit via crypto/card to get started.
       </p>
 
       {error && <div className="error">{error}</div>}

@@ -4,10 +4,12 @@ import { useWallet } from '../contexts/WalletContext'
 import { useToastContext } from '../contexts/ToastContext'
 import { useAccountModal } from '../contexts/AccountModalContext'
 import { fetchMarkets, fetchPool, executeTrade } from '../services/marketsApi'
+import { fetchOpenOrders, placeOrder } from '../services/ordersApi'
 import MarketResolution from './MarketResolution'
-import { formatCredits, PLATFORM_CURRENCY_SYMBOL } from '../constants/currency'
+import { formatPips, PLATFORM_CURRENCY_SYMBOL } from '../constants/currency'
 import { PREDICTION_STYLES } from '../constants/marketConfig'
 import { getQuote, isTradeWithinLimit, yesProbability } from '../utils/ammQuote'
+import { getSEOForPath } from '../constants/seo'
 
 export default function MarketDetail() {
   const { marketId } = useParams()
@@ -26,6 +28,13 @@ export default function MarketDetail() {
   const [tradeSide, setTradeSide] = useState('Yes')
   const [tradeAmount, setTradeAmount] = useState('')
   const [tradeLoading, setTradeLoading] = useState(false)
+  const [openOrders, setOpenOrders] = useState([])
+  const [ordersLoading, setOrdersLoading] = useState(false)
+  const [orderOutcome, setOrderOutcome] = useState('Yes')
+  const [orderSide, setOrderSide] = useState('buy')
+  const [orderAmount, setOrderAmount] = useState('')
+  const [orderPrice, setOrderPrice] = useState('0.5')
+  const [orderLoading, setOrderLoading] = useState(false)
 
   useEffect(() => {
     if (market?.payload) {
@@ -39,6 +48,16 @@ export default function MarketDetail() {
       }
     }
   }, [market])
+
+  // SEO: set page title to market title when viewing a specific market
+  useEffect(() => {
+    const t = market?.payload?.title
+    if (t) {
+      const short = t.length > 60 ? t.slice(0, 57) + '…' : t
+      document.title = `${short} | dice.express`
+      return () => { document.title = getSEOForPath('/market').title }
+    }
+  }, [market?.payload?.title])
 
   useEffect(() => {
     const loadMarket = async () => {
@@ -67,6 +86,54 @@ export default function MarketDetail() {
     return () => { cancelled = true }
   }, [market?.payload?.marketId, market?.payload?.marketType])
 
+  useEffect(() => {
+    if (!market?.payload?.marketId || market.payload.marketType !== 'Binary') return
+    let cancelled = false
+    setOrdersLoading(true)
+    fetchOpenOrders(market.payload.marketId)
+      .then((list) => { if (!cancelled) setOpenOrders(list) })
+      .catch(() => { if (!cancelled) setOpenOrders([]) })
+      .finally(() => { if (!cancelled) setOrdersLoading(false) })
+    return () => { cancelled = true }
+  }, [market?.payload?.marketId, market?.payload?.marketType])
+
+  const handlePlaceOrder = async () => {
+    if (!wallet) {
+      showToast('Sign in to place an order', 'error')
+      openAccountModal()
+      return
+    }
+    const amountNum = parseFloat(orderAmount)
+    const priceNum = parseFloat(orderPrice)
+    if (!orderAmount || isNaN(amountNum) || amountNum <= 0 || isNaN(priceNum) || priceNum < 0 || priceNum > 1) {
+      showToast('Enter valid amount and price (0–1)', 'error')
+      return
+    }
+    setOrderLoading(true)
+    try {
+      const result = await placeOrder({
+        marketId: market.payload.marketId,
+        outcome: orderOutcome,
+        side: orderSide,
+        amount: amountNum,
+        price: priceNum,
+        owner: wallet.party,
+      })
+      if (result.matched) {
+        showToast('Matched! Position created.', 'success')
+      } else {
+        showToast('Order placed. It will fill when someone takes the other side.', 'success')
+      }
+      setOrderAmount('')
+      const list = await fetchOpenOrders(market.payload.marketId)
+      setOpenOrders(list)
+    } catch (err) {
+      showToast(err.message || 'Order failed', 'error')
+    } finally {
+      setOrderLoading(false)
+    }
+  }
+
   const handleTrade = async () => {
     if (!wallet) {
       showToast('Sign in to trade', 'error')
@@ -75,7 +142,7 @@ export default function MarketDetail() {
     }
     const amountNum = parseFloat(tradeAmount)
     if (!tradeAmount || isNaN(amountNum) || amountNum <= 0) {
-      showToast('Enter a valid amount in Credits', 'error')
+      showToast('Enter a valid amount in Pips', 'error')
       return
     }
     if (!pool || !market?.payload?.marketId) {
@@ -285,17 +352,17 @@ export default function MarketDetail() {
         <div className="grid-auto-fit-md mt-xl">
           <div>
             <h3>Total Volume</h3>
-            <p className="volume-display">{formatCredits(marketData.totalVolume ?? 0)}</p>
+            <p className="volume-display">{formatPips(marketData.totalVolume ?? 0)}</p>
           </div>
           {marketData.marketType === 'Binary' && (
             <>
               <div>
                 <h3>{marketData.outcomes?.[0] || 'Yes'} Volume</h3>
-                <p className="volume-display">{formatCredits(marketData.yesVolume ?? 0)}</p>
+                <p className="volume-display">{formatPips(marketData.yesVolume ?? 0)}</p>
               </div>
               <div>
                 <h3>{marketData.outcomes?.[1] || 'No'} Volume</h3>
-                <p className="volume-display">{formatCredits(marketData.noVolume ?? 0)}</p>
+                <p className="volume-display">{formatPips(marketData.noVolume ?? 0)}</p>
               </div>
             </>
           )}
@@ -305,7 +372,7 @@ export default function MarketDetail() {
               <div className="grid-auto-fit-xs mt-sm">
                 {Object.entries(marketData.outcomeVolumes).map(([outcome, volume]) => (
                   <div key={outcome} className="outcome-item">
-                    <strong>{outcome}:</strong> {formatCredits(volume)}
+                    <strong>{outcome}:</strong> {formatPips(volume)}
                   </div>
                 ))}
               </div>
@@ -319,7 +386,7 @@ export default function MarketDetail() {
         <div className="card mt-xl">
           <h2>Trade</h2>
           <p className="text-secondary mt-sm" style={{ fontSize: 'var(--font-size-sm)' }}>
-            Spend Credits to buy Yes or No shares at the current AMM price. 0.3% fee.
+            Spend Pips to buy Yes or No shares at the current AMM price. 0.3% fee.
           </p>
           <div className="form-group mt-md">
             <label>Side</label>
@@ -365,8 +432,8 @@ export default function MarketDetail() {
             return (
               <div className="alert-info mb-md">
                 <p style={{ margin: 0 }}>
-                  You pay {formatCredits(tradeAmount)} → receive ~{outputAmount.toFixed(2)} {tradeSide} shares
-                  {feeAmount > 0 && ` (fee ${formatCredits(feeAmount)})`}.
+                  You pay {formatPips(tradeAmount)} → receive ~{outputAmount.toFixed(2)} {tradeSide} shares
+                  {feeAmount > 0 && ` (fee ${formatPips(feeAmount)})`}.
                 </p>
                 {!withinLimit && (
                   <p style={{ margin: '0.5rem 0 0', color: 'var(--color-warning)' }}>
@@ -395,7 +462,7 @@ export default function MarketDetail() {
         <div className="card mt-xl">
           <h2>Create Position (manual price)</h2>
           <div className="alert-info mb-md">
-            <strong>Note:</strong> Amounts are in platform Credits. Positions are stored in the database and market volumes are updated immediately.
+            <strong>Note:</strong> Amounts are in Pips. Positions are stored in the database and market volumes are updated immediately.
           </div>
           <div className="form-group">
             <label>Position Type</label>
@@ -452,6 +519,77 @@ export default function MarketDetail() {
           >
             {positionLoading ? 'Creating…' : 'Create Position'}
           </button>
+        </div>
+      )}
+
+      {/* P2P orders — place order or take the other side; when matched, positions are created */}
+      {marketData.status === 'Active' && marketData.marketType === 'Binary' && (
+        <div className="card mt-xl">
+          <h2>P2P orders</h2>
+          <p className="text-secondary mt-sm" style={{ fontSize: 'var(--font-size-sm)' }}>
+            Place a limit order. When someone takes the other side, you get a position and settlement pays winners (2% fee).
+          </p>
+          {ordersLoading ? (
+            <p className="text-secondary">Loading orders…</p>
+          ) : (
+            <>
+              {openOrders.length > 0 && (
+                <div className="mb-md">
+                  <h3 className="mb-sm">Open orders</h3>
+                  <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
+                    {openOrders.slice(0, 10).map((o) => (
+                      <li key={o.orderId} className="mb-xs" style={{ fontSize: 'var(--font-size-sm)' }}>
+                        {o.side === 'buy' ? 'Buy' : 'Sell'} {o.outcome} — {o.amountReal} @ {(o.priceReal * 100).toFixed(0)}%
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+              <div className="form-group">
+                <label>Outcome</label>
+                <select value={orderOutcome} onChange={(e) => setOrderOutcome(e.target.value)}>
+                  <option value="Yes">Yes</option>
+                  <option value="No">No</option>
+                </select>
+              </div>
+              <div className="form-group">
+                <label>Side</label>
+                <select value={orderSide} onChange={(e) => setOrderSide(e.target.value)}>
+                  <option value="buy">Buy</option>
+                  <option value="sell">Sell</option>
+                </select>
+              </div>
+              <div className="form-group">
+                <label>Amount (shares)</label>
+                <input
+                  type="number"
+                  value={orderAmount}
+                  onChange={(e) => setOrderAmount(e.target.value)}
+                  placeholder="e.g. 100"
+                  min="1"
+                  step="1"
+                />
+              </div>
+              <div className="form-group">
+                <label>Price (0–1)</label>
+                <input
+                  type="number"
+                  value={orderPrice}
+                  onChange={(e) => setOrderPrice(e.target.value)}
+                  min="0"
+                  max="1"
+                  step="0.01"
+                />
+              </div>
+              <button
+                className="btn-primary"
+                onClick={handlePlaceOrder}
+                disabled={orderLoading || !wallet || !orderAmount || parseFloat(orderAmount) <= 0}
+              >
+                {orderLoading ? 'Placing…' : 'Place order'}
+              </button>
+            </>
+          )}
         </div>
       )}
     </div>

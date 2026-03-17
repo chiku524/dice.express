@@ -1,6 +1,6 @@
 /**
  * Contract Storage Utility
- * Stores contracts in cloud database (Supabase) with local storage as fallback
+ * Stores contracts via API (Cloudflare D1) with local storage as fallback
  * Prioritizes cloud storage for cross-device access and reliability
  */
 

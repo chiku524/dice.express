@@ -24,7 +24,7 @@ export default function PrivacyPolicy() {
       <p>We use collected information to:</p>
       <ul>
         <li>Provide, maintain, and improve the platform and trading experience.</li>
-        <li>Process deposits, withdrawals, and trades using virtual Credits.</li>
+        <li>Process deposits, withdrawals, and trades using Pips.</li>
         <li>Comply with legal obligations and enforce our terms.</li>
         <li>Communicate with you about the service where relevant.</li>
       </ul>

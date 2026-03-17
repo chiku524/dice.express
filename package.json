@@ -1,10 +1,8 @@
 {
   "name": "dice-express",
   "version": "1.0.0",
-  "description": "dice.express — prediction markets with virtual Credits; multi-chain deposit/withdraw only",
+  "description": "dice.express — prediction markets with virtual Credits on Cloudflare",
   "scripts": {
-    "build": "daml build",
-    "test": "daml test",
     "start": "npm run start:frontend",
     "start:frontend": "cd frontend && npm run dev",
     "build:frontend": "cd frontend && npm run build",
@@ -17,14 +15,9 @@
   "keywords": [
     "prediction-markets",
     "virtual-currency",
-    "multi-chain",
-    "daml",
-    "blockchain"
+    "cloudflare"
   ],
   "author": "",
-  "license": "MIT",
-  "dependencies": {
-    "@supabase/supabase-js": "^2.39.0"
-  }
+  "license": "MIT"
 }
 

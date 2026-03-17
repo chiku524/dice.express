@@ -1,7 +1,1 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" fill="none" aria-hidden="true">
-  <title>dice.express logo</title>
-  <!-- Dice face "1" + express motion line -->
-  <rect width="44" height="44" x="2" y="2" rx="8" fill="none" stroke="#14b8a6" stroke-width="2"/>
-  <circle cx="24" cy="24" r="6" fill="#14b8a6"/>
-  <path d="M38 24h6" stroke="#14b8a6" stroke-width="2" stroke-linecap="round"/>
-</svg>
+<svg xmlns="http://www.w3.org/2000/svg" fill="none" aria-hidden="true" viewBox="0 0 48 48"><rect width="44" height="44" x="2" y="2" stroke="#14b8a6" stroke-width="2" rx="8"/><circle cx="24" cy="24" r="6" fill="#14b8a6"/><path stroke="#14b8a6" stroke-linecap="round" stroke-width="2" d="M38 24h6"/></svg>

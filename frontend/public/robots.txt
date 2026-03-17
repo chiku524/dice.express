@@ -1,0 +1,8 @@
+# dice.express — Prediction Markets
+# Allow crawlers; point to sitemap for discovery.
+
+User-agent: *
+Allow: /
+
+# Sitemap (replace with your production URL if different)
+Sitemap: https://dice-express.pages.dev/sitemap.xml

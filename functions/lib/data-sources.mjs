@@ -12,6 +12,7 @@ const OPENWEATHER_GEO = 'https://api.openweathermap.org/geo/1.0/direct'
 const WEATHERAPI_BASE = 'https://api.weatherapi.com/v1'
 const GNEWS_BASE = 'https://gnews.io/api/v4'
 const PERIGON_BASE = 'https://api.goperigon.com/v1'
+const NEWSAPI_AI_BASE = 'https://eventregistry.org/api/v1'
 
 /** Generic fetch with timeout; returns JSON or text. */
 async function fetchApi(url, options = {}, timeoutMs = 15000) {
@@ -185,6 +186,27 @@ export async function fetchPerigonSearch(env, q = 'technology', limit = 10) {
   const data = await fetchApi(url)
   const articles = data?.articles ?? data?.results ?? []
   return Array.isArray(articles) ? articles : []
+}
+
+// --- NewsAPI.ai (Event Registry) ---
+/** Search articles. env.NEWSAPI_AI_KEY. Uses Event Registry getArticles (newsapi.ai). */
+export async function fetchNewsApiAiSearch(env, q = 'technology', limit = 10) {
+  const key = env.NEWSAPI_AI_KEY
+  if (!key) throw new Error('NEWSAPI_AI_KEY not set')
+  const url = `${NEWSAPI_AI_BASE}/article/getArticles`
+  const body = {
+    apiKey: key,
+    keyword: q,
+    articlesCount: Math.min(limit, 50),
+    articlesPage: 1,
+  }
+  const data = await fetchApi(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  })
+  const results = data?.articles?.results ?? data?.results ?? []
+  return Array.isArray(results) ? results : []
 }
 
 // --- RapidAPI (generic: use with any RapidAPI hub API) ---
@@ -377,4 +399,162 @@ export async function eventsFromPerigon(env, q = 'technology', limit = 5) {
     oracleConfig: { title: a.title || a.headline, url: a.url },
   }))
   return events
+}
+
+export async function eventsFromNewsApiAi(env, q = 'technology', limit = 5) {
+  const articles = await fetchNewsApiAiSearch(env, q, limit)
+  const events = (articles || []).slice(0, limit).map((a, i) => ({
+    id: `newsapi_ai-${Date.now()}-${i}`,
+    source: 'newsapi_ai',
+    title: `Will "${(a.title || '').slice(0, 50)}..." be in top news?`,
+    description: (a.body || a.title || '').slice(0, 200),
+    resolutionCriteria: `Article matching this topic appears in news. Source: NewsAPI.ai (Event Registry).`,
+    oracleSource: 'newsapi_ai',
+    oracleConfig: { title: a.title, url: a.url, uri: a.uri, dateTime: a.dateTime },
+  }))
+  return events
+}
+
+// --- Trend-based algorithms: settlement time + threshold from current level ---
+
+/** End of week (Friday) or next weekday for settlement. */
+function settlementWeekday(d, preferEndOfWeek = true) {
+  const out = new Date(d)
+  if (preferEndOfWeek) {
+    const friday = 5
+    const day = out.getDay()
+    let add = friday - day
+    if (add <= 0) add += 7
+    out.setDate(out.getDate() + add)
+  } else {
+    out.setDate(out.getDate() + 1)
+    while (out.getDay() === 0 || out.getDay() === 6) out.setDate(out.getDate() + 1)
+  }
+  return out
+}
+
+/**
+ * Trend-based stock events: "Will [symbol] close above $X by [date]?"
+ * Uses current price; threshold = current * (1 + pctUp). Settlement = end of week (Friday) or next trading day.
+ * No extra API calls beyond GLOBAL_QUOTE (fits free tier).
+ */
+export async function eventsFromStocksTrend(env, symbols = ALPHA_VANTAGE_SYMBOLS.slice(0, 5), pctUp = 0.02, settlementEndOfWeek = true) {
+  const events = []
+  const settle = settlementWeekday(new Date(), settlementEndOfWeek)
+  const dateStr = settle.toISOString().slice(0, 10)
+  for (const symbol of symbols) {
+    try {
+      const q = await fetchAlphaVantageQuote(env, symbol)
+      if (!q || q.price == null) continue
+      const threshold = Math.round(q.price * (1 + pctUp) * 100) / 100
+      events.push({
+        id: `av-trend-${symbol}-${dateStr}`,
+        source: 'alpha_vantage_trend',
+        title: `Will ${symbol} close above $${threshold} by ${dateStr}?`,
+        description: `Trend-based: ${symbol} currently ~$${q.price}. Settlement: ${dateStr}.`,
+        resolutionCriteria: `Closing price of ${symbol} on or before ${dateStr} is above $${threshold}. Source: Alpha Vantage.`,
+        symbol,
+        threshold,
+        endDate: dateStr,
+        commenceTime: settle.toISOString(),
+        oracleSource: 'alpha_vantage',
+        oracleConfig: { symbol, threshold, endDate: dateStr },
+      })
+    } catch (err) {
+      console.warn('[data-sources] stocks trend', symbol, err?.message)
+    }
+  }
+  return events
+}
+
+/**
+ * Trend-based crypto events: "Will [symbol] be above $X in 24h?"
+ * Settlement = now + settlementHours. Threshold = current * (1 + pctUp).
+ */
+export async function eventsFromCryptoTrend(env, coins = COINGECKO_COINS.slice(0, 3), settlementHours = 24, pctUp = 0.02) {
+  const ids = coins.map((c) => (typeof c === 'string' ? c : c.id))
+  const prices = await fetchCoinGeckoPrice(env, ids, 'usd')
+  if (!prices || typeof prices !== 'object') return []
+  const events = []
+  const settle = new Date(Date.now() + settlementHours * 60 * 60 * 1000)
+  const dateStr = settle.toISOString().slice(0, 19).replace('T', ' ')
+  const dateOnly = settle.toISOString().slice(0, 10)
+  for (const c of coins) {
+    const id = typeof c === 'string' ? c : c.id
+    const sym = typeof c === 'string' ? id.toUpperCase() : c.symbol
+    const price = prices[id]?.usd
+    if (price == null) continue
+    const threshold = Math.round(price * (1 + pctUp) * 100) / 100
+    events.push({
+      id: `cg-trend-${id}-${dateOnly}-${settlementHours}h`,
+      source: 'coingecko_trend',
+      title: `Will ${sym} be above $${threshold} in ${settlementHours}h?`,
+      description: `Trend-based: ${sym} ~$${price}. Settlement: ${dateStr} UTC.`,
+      resolutionCriteria: `${sym} price above $${threshold} on or before ${dateStr} UTC. Source: CoinGecko.`,
+      symbol: sym,
+      coinId: id,
+      threshold,
+      endDate: dateOnly,
+      commenceTime: settle.toISOString(),
+      oracleSource: 'coingecko',
+      oracleConfig: { coinId: id, symbol: sym, threshold, endDate: dateOnly, settlementHours },
+    })
+  }
+  return events
+}
+
+/** Default list of source keys for seed_all. Order: sports, stocks, crypto, weather, news. */
+export const AUTO_MARKET_SOURCES = [
+  'sports',
+  'stocks',
+  'stocks_trend',
+  'crypto',
+  'crypto_trend',
+  'weather',
+  'weatherapi',
+  'news',
+  'perigon',
+  'newsapi_ai',
+]
+
+/**
+ * Get events from a single named source. Returns [] if source unknown or API key missing.
+ * opts: { limit, sportKey, category, q }
+ */
+export async function getEventsFromSource(env, source, opts = {}) {
+  const limit = Math.min(opts.limit ?? 5, 20)
+  const sportKey = opts.sportKey ?? 'basketball_nba'
+  const category = opts.category ?? 'general'
+  const q = opts.q ?? 'technology'
+  try {
+    if (source === 'sports') return await eventsFromOdds(env, sportKey, limit)
+    if (source === 'alpha_vantage' || source === 'stocks') return await eventsFromAlphaVantage(env, ALPHA_VANTAGE_SYMBOLS.slice(0, 5))
+    if (source === 'stocks_trend') return await eventsFromStocksTrend(env, ALPHA_VANTAGE_SYMBOLS.slice(0, 5), 0.02, true)
+    if (source === 'crypto' || source === 'coingecko') return await eventsFromCoinGecko(env, COINGECKO_COINS.slice(0, 5))
+    if (source === 'crypto_trend') return await eventsFromCryptoTrend(env, COINGECKO_COINS.slice(0, 3), 24, 0.02)
+    if (source === 'openweather' || source === 'weather') return await eventsFromOpenWeather(env, WEATHER_CITIES?.slice(0, 3) || ['London', 'New York'])
+    if (source === 'weatherapi') return await eventsFromWeatherApi(env, WEATHER_CITIES?.slice(0, 3) || ['London', 'New York'])
+    if (source === 'gnews' || source === 'news') return await eventsFromGNews(env, category, limit)
+    if (source === 'perigon') return await eventsFromPerigon(env, q, limit)
+    if (source === 'newsapi_ai') return await eventsFromNewsApiAi(env, q, limit)
+  } catch (err) {
+    console.warn('[data-sources] getEventsFromSource', source, err?.message)
+    return []
+  }
+  return []
+}
+
+/**
+ * Gather events from multiple sources. Tries each source; on failure (e.g. no key) returns [] for that source.
+ * perSourceLimit applied to each source. Returns { events, bySource: { [source]: count } }.
+ */
+export async function gatherEventsFromAllSources(env, sources = AUTO_MARKET_SOURCES, perSourceLimit = 5) {
+  const bySource = {}
+  const allEvents = []
+  for (const src of sources) {
+    const events = await getEventsFromSource(env, src, { limit: perSourceLimit })
+    bySource[src] = events.length
+    allEvents.push(...events)
+  }
+  return { events: allEvents, bySource }
 }

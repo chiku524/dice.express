@@ -3,34 +3,42 @@
 ## Getting Started
 
 - **[../README.md](../README.md)** – Project overview and setup
-- **[../QUICKSTART.md](../QUICKSTART.md)** – Quick start guide
+- **[GET_APP_UP_AND_RUNNING.md](./GET_APP_UP_AND_RUNNING.md)** – Deploy and operate in production (D1, Stripe, crypto, cron, resolution)
 
 ## Architecture & Design
 
-- **[ARCHITECTURE.md](./ARCHITECTURE.md)** – System architecture, DAML contracts, lifecycle
+- **[ARCHITECTURE.md](./ARCHITECTURE.md)** – System architecture, Cloudflare stack, AMM, P2P
 - **[PLATFORM_VISION_AND_ROADMAP.md](./PLATFORM_VISION_AND_ROADMAP.md)** – Vision, virtual currency, multi-chain, roadmap
-- **[BLOCKCHAIN_AND_CANTON.md](./BLOCKCHAIN_AND_CANTON.md)** – Multi-chain architecture; virtual Credits; Canton and other networks for deposit/withdraw
 - **[AMM.md](./AMM.md)** – AMM design, implementation, and algorithms
 
 ## Platform Specs
 
 - **[VIRTUAL_CURRENCY_AND_MULTICHAIN.md](./VIRTUAL_CURRENCY_AND_MULTICHAIN.md)** – Credits, deposits/withdrawals, multi-chain
-- **[PREDICTION_STYLES_SPEC.md](./PREDICTION_STYLES_SPEC.md)** – Market styles (Yes/No, True/False, Multi-outcome, etc.)
+- **[PREDICTION_MARKETS.md](./PREDICTION_MARKETS.md)** – Prediction styles, topics/APIs (free & cheap), automated market creation
 - **[ORACLE_STRATEGY.md](./ORACLE_STRATEGY.md)** – Oracles by category (finance, sports, politics, etc.)
 
 ## API & Implementation
 
-- **[API.md](./API.md)** – API reference, ledger/JSON API (e.g. Canton), query endpoints note, contract interfaces
-- **[CLOUD_STORAGE_SETUP.md](./CLOUD_STORAGE_SETUP.md)** – Cloud storage (Supabase) setup
+- **[API.md](./API.md)** – API reference, query endpoints, contract interfaces
+- **[CLOUDFLARE.md](./CLOUDFLARE.md)** – Deploy to Cloudflare Pages, D1/R2/KV storage setup
 
-## Deployment
+## Deployment & Ops
 
-- **[CLOUDFLARE_DEPLOY.md](./CLOUDFLARE_DEPLOY.md)** – Deploy to Cloudflare Pages (dice.express), wrangler config, API proxy
+- **[GUAP_DEPOSIT_WITHDRAW_FLOW.md](./GUAP_DEPOSIT_WITHDRAW_FLOW.md)** – Pips deposit (crypto/Stripe) and withdraw flow
+- **[CRYPTO_DEPOSITS.md](./CRYPTO_DEPOSITS.md)** – Crypto deposit verification (on-chain), watcher, Cloudflare secrets
+- **[STRIPE.md](./STRIPE.md)** – Stripe integration (env, webhook) and business verification copy
+- **[NEXT_STEPS_AND_PROD_READINESS.md](./NEXT_STEPS_AND_PROD_READINESS.md)** – What’s done, what’s not, suggested next steps
 
-## Brand & theme
+## Brand & UX
 
-- **[BRAND_AND_THEME.md](./BRAND_AND_THEME.md)** – Platform model reminder, brand (Foresight), and theme (teal/cyan palette)
+- **[BRAND.md](./BRAND.md)** – Brand, theme colors, favicon/logo, Stripe branding
+- **[SEO.md](./SEO.md)** – SEO and sitemap
+- **[UX_UI_RECOMMENDATIONS.md](./UX_UI_RECOMMENDATIONS.md)** – UX/UI recommendations
+- **[USER_FLOW_AND_RISK_AUDIT.md](./USER_FLOW_AND_RISK_AUDIT.md)** – User flow and risk audit
+- **[ALGORITHMS_AND_RISK.md](./ALGORITHMS_AND_RISK.md)** – Algorithms and risk controls
+- **[P2P_AND_GROWTH_STRATEGY.md](./P2P_AND_GROWTH_STRATEGY.md)** – P2P-only mode and growth
 
 ## History
 
 - **[CHANGELOG.md](./CHANGELOG.md)** – Cleanup history and improvements summary
+- **[REDESIGN_SUMMARY.md](./REDESIGN_SUMMARY.md)** – Redesign summary

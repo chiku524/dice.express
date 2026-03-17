@@ -23,7 +23,7 @@ export default function WalletConnect({ onConnect }) {
       <p className="wallet-connect-slogan" style={{ marginBottom: '0.5rem', fontSize: '1rem', opacity: 0.9 }}>{BRAND_TAGLINE}</p>
       <h2>Get started</h2>
       <p style={{ marginBottom: '2rem', color: 'rgba(255, 255, 255, 0.6)' }}>
-        Pick a name to trade with virtual Credits. No signup required. No crypto.
+        Pick a name to trade with Pips. No signup required.
       </p>
       <form onSubmit={handleSubmit} style={{ marginBottom: '1.5rem' }}>
         <input

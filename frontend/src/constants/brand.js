@@ -12,7 +12,7 @@ export const BRAND = {
   /** Full title for nav/title bar */
   fullTitle: 'dice.express — Your choice. Your chance. | Prediction Markets',
   /** One-line description for footer/about and SEO */
-  description: 'Trade on real-world outcomes with virtual Credits. All activity is virtual; no blockchain. Your choice. Your chance.',
+  description: 'Trade on real-world outcomes with Pips. Deposit via crypto or card, trade, withdraw earnings. Your choice. Your chance.',
   /** Copyright line */
   copyright: 'dice.express',
   /** Tech stack line */

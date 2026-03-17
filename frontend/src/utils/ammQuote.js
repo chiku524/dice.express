@@ -1,6 +1,6 @@
 /**
  * AMM quote for display only (matches backend formula).
- * Used to show "You pay X CR, receive ~Y shares" before calling POST /api/trade.
+ * Used to show "You pay X PP, receive ~Y shares" before calling POST /api/trade.
  */
 const DEFAULT_FEE_RATE = 0.003
 const DEFAULT_MAX_TRADE_FRACTION = 0.1

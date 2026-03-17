@@ -8,6 +8,9 @@ import { getQuote, isTradeWithinLimit, applyTrade, createPoolState } from '../li
 import { hashPassword, verifyPassword } from '../lib/auth.mjs'
 import * as dataSources from '../lib/data-sources.mjs'
 import * as resolveMarkets from '../lib/resolve-markets.mjs'
+import { addPips, pipsToCents, centsToPipsStr, cryptoAmountToPipsStr } from '../lib/pips-precision.mjs'
+import { verifyErc20Deposit } from '../lib/verify-deposit-rpc.mjs'
+import { getAlchemyRpcUrl } from '../lib/alchemy-networks.mjs'
 
 const CORS = {
   'Access-Control-Allow-Origin': '*',
@@ -17,6 +20,23 @@ const CORS = {
 
 const TEMPLATE_VIRTUAL_MARKET = 'VirtualMarket'
 const R2_BUCKET_NAME = 'dice-express-r2'
+
+/** Map automated API source to webapp display source and category (Discover + Category filters). */
+const AUTO_SOURCE_DISPLAY = {
+  the_odds_api: { source: 'global_events', category: 'Sports' },
+  alpha_vantage: { source: 'industry', category: 'Finance' },
+  alpha_vantage_trend: { source: 'industry', category: 'Finance' },
+  coingecko: { source: 'industry', category: 'Crypto' },
+  coingecko_trend: { source: 'industry', category: 'Crypto' },
+  openweathermap: { source: 'global_events', category: 'Weather' },
+  weatherapi: { source: 'global_events', category: 'Weather' },
+  gnews: { source: 'global_events', category: 'News' },
+  perigon: { source: 'global_events', category: 'News' },
+  newsapi_ai: { source: 'global_events', category: 'News' },
+}
+function getDisplaySourceAndCategory(apiSource) {
+  return AUTO_SOURCE_DISPLAY[apiSource] || { source: 'global_events', category: 'Other' }
+}
 
 /** Fire-and-forget R2 backup; never throws. */
 async function backupToR2(r2, bucketName, contractId, payload) {
@@ -144,7 +164,7 @@ async function verifyStripeWebhook(rawBody, signatureHeader, secret) {
   }
 }
 
-/** Handle Stripe webhook: checkout.session.completed → credit Guap */
+/** Handle Stripe webhook: checkout.session.completed → credit Pips (precise 2-decimal) */
 async function handleStripeWebhook(db, r2, rawBody, headers, env) {
   const sig = headers.get('Stripe-Signature')
   const secret = env.STRIPE_WEBHOOK_SECRET
@@ -153,19 +173,20 @@ async function handleStripeWebhook(db, r2, rawBody, headers, env) {
   if (event.type === 'checkout.session.completed') {
     const session = event.data?.object
     const userParty = session?.client_reference_id || session?.metadata?.userParty
-    const amountTotal = session?.amount_total
+    const amountTotal = session?.amount_total // Stripe: USD cents
     if (!userParty) {
       console.warn('[stripe-webhook] No client_reference_id')
       return jsonResponse({ received: true }, 200)
     }
-    const guapAmount = amountTotal ? amountTotal / 100 : 0
-    if (guapAmount <= 0) return jsonResponse({ received: true }, 200)
-    const current = await storage.getBalance(db, userParty)
-    const newBal = current + guapAmount
-    await storage.setBalance(db, userParty, newBal)
+    // 1 USD cent = 1 Pips cent; amountTotal is integer cents
+    const amountPipsStr = amountTotal > 0 ? centsToPipsStr(Math.floor(Number(amountTotal))) : '0.00'
+    if (pipsToCents(amountPipsStr) <= 0) return jsonResponse({ received: true }, 200)
+    const currentRaw = await storage.getBalanceRaw(db, userParty)
+    const newBalStr = addPips(currentRaw, amountPipsStr)
+    await storage.setBalance(db, userParty, newBalStr)
     await storage.insertDepositRecord(db, {
       party: userParty,
-      amountGuap: guapAmount,
+      amountGuap: parseFloat(amountPipsStr),
       source: 'stripe',
       referenceId: session.id,
     })
@@ -269,64 +290,186 @@ async function handleWithD1(db, kv, r2, request, path, method, env = {}) {
     return jsonResponse({ url: data.url, sessionId: data.id })
   }
 
-  // POST /api/deposit-crypto — credit Guap after crypto deposit (platform wallet received funds; call from admin or automation)
+  // POST /api/deposit-crypto — credit Pips after crypto deposit (platform wallet received funds).
+  // Secured: requires DEPOSIT_CRYPTO_SECRET (header X-Deposit-Crypto-Secret or body.depositCryptoSecret). Idempotent by txHash.
   if (path === 'deposit-crypto' && method === 'POST') {
-    const { userParty, accountId, amount, networkId, txHash } = body
+    const depositSecret = env.DEPOSIT_CRYPTO_SECRET
+    const providedSecret = request.headers.get('X-Deposit-Crypto-Secret') || body.depositCryptoSecret || ''
+    if (depositSecret && depositSecret !== providedSecret) {
+      return jsonResponse({ error: 'Unauthorized', message: 'Invalid or missing deposit secret' }, 401)
+    }
+
+    const { userParty, accountId, amount, cryptoAmount, cryptoDecimals, networkId, txHash } = body
     const party = userParty || accountId
-    if (!party || amount === undefined) return jsonResponse({ error: 'userParty/accountId and amount required' }, 400)
-    const amountNum = parseFloat(amount)
-    if (isNaN(amountNum) || amountNum <= 0) return jsonResponse({ error: 'amount must be positive' }, 400)
-    const current = await storage.getBalance(db, party)
-    const newBal = current + amountNum
-    await storage.setBalance(db, party, newBal)
-    await storage.insertDepositRecord(db, {
-      party,
-      amountGuap: amountNum,
-      source: 'crypto',
-      referenceId: txHash || null,
-    })
+    if (!party) return jsonResponse({ error: 'userParty/accountId required' }, 400)
+
+    const referenceId = txHash ? String(txHash).trim() : null
+    // One-time use: same txHash cannot be used to credit twice (idempotency + DB unique on reference_id)
+    if (referenceId) {
+      const existing = await storage.getDepositRecordByReferenceId(db, referenceId)
+      if (existing) {
+        const currentRaw = await storage.getBalanceRaw(db, party)
+        return jsonResponse({
+          success: true,
+          alreadyCredited: true,
+          balance: currentRaw,
+          message: 'This deposit was already credited (idempotent).',
+        })
+      }
+    }
+
+    let amountPipsStr
+    let expectedAmountRaw = null
+    let cryptoDecimalsNum = 6
+    if (cryptoAmount !== undefined && cryptoDecimals !== undefined) {
+      cryptoDecimalsNum = Math.min(18, Math.max(0, parseInt(String(cryptoDecimals), 10) || 6))
+      amountPipsStr = cryptoAmountToPipsStr(cryptoAmount, cryptoDecimalsNum)
+      if (pipsToCents(amountPipsStr) <= 0) return jsonResponse({ error: 'cryptoAmount must be positive' }, 400)
+      expectedAmountRaw = String(Math.floor(Number(cryptoAmount)))
+    } else if (amount !== undefined) {
+      amountPipsStr = addPips('0', amount)
+      if (pipsToCents(amountPipsStr) <= 0) return jsonResponse({ error: 'amount must be positive' }, 400)
+      // For verification we need raw amount: assume USDC 6 decimals (1 PP = 1e6 raw)
+      const cents = pipsToCents(amountPipsStr)
+      expectedAmountRaw = String(Math.floor(cents * Math.pow(10, cryptoDecimalsNum - 2)))
+    } else {
+      return jsonResponse({ error: 'amount required, or cryptoAmount and cryptoDecimals' }, 400)
+    }
+
+    // On-chain verification: when RPC and platform wallet are set, require txHash and verify before crediting.
+    // Ensures (1) the tx sent the claimed amount to the platform address, (2) the tx can only be used once (idempotency below).
+    const netId = (networkId || 'ethereum').toString().toLowerCase()
+    const rpcUrl = env.DEPOSIT_VERIFICATION_RPC_URL || (env.ALCHEMY_API_KEY ? getAlchemyRpcUrl(env.ALCHEMY_API_KEY, netId) : null)
+    const platformWallet = env.PLATFORM_WALLET_ADDRESS || null
+    const tokenContract = env.DEPOSIT_VERIFICATION_USDC_CONTRACT || null
+    const minConfirmations = Math.max(0, parseInt(env.DEPOSIT_VERIFICATION_MIN_CONFIRMATIONS || '1', 10) || 1)
+    if (rpcUrl && platformWallet) {
+      if (!referenceId) {
+        return jsonResponse(
+          { error: 'txHash required when deposit verification is enabled', code: 'VERIFICATION_REQUIRED' },
+          400
+        )
+      }
+      const verification = await verifyErc20Deposit(rpcUrl, referenceId, {
+        platformWallet: platformWallet.trim(),
+        expectedAmountRaw,
+        tokenContractAddress: tokenContract || undefined,
+        minConfirmations,
+      })
+      if (!verification.ok) {
+        return jsonResponse(
+          { error: 'Deposit verification failed', message: verification.reason, code: 'VERIFICATION_FAILED' },
+          400
+        )
+      }
+    }
+
+    const currentRaw = await storage.getBalanceRaw(db, party)
+    const newBalStr = addPips(currentRaw, amountPipsStr)
+    try {
+      await storage.setBalance(db, party, newBalStr)
+      await storage.insertDepositRecord(db, {
+        party,
+        amountGuap: parseFloat(amountPipsStr),
+        source: 'crypto',
+        referenceId,
+      })
+    } catch (e) {
+      if (referenceId && /UNIQUE|constraint/i.test(e?.message)) {
+        const currentRaw2 = await storage.getBalanceRaw(db, party)
+        return jsonResponse({ success: true, alreadyCredited: true, balance: currentRaw2 }, 200)
+      }
+      throw e
+    }
     return jsonResponse({
       success: true,
-      balance: String(newBal),
-      added: String(amountNum),
+      balance: newBalStr,
+      added: amountPipsStr,
       networkId: networkId || null,
     })
   }
 
-  // POST /api/withdraw-request — debit Guap, create withdrawal request (platform wallet sends crypto separately)
+  // GET /api/deposit-addresses — public platform wallet addresses for crypto deposits (multi-chain)
+  if (path === 'deposit-addresses' && method === 'GET') {
+    const evm = env.PLATFORM_WALLET_ADDRESS || null
+    const solana = env.PLATFORM_WALLET_SOL || null
+    return jsonResponse({
+      success: true,
+      addresses: {
+        evm: evm ? { address: evm, networks: ['ethereum', 'polygon', 'arbitrum', 'optimism', 'base', 'avalanche', 'fantom', 'bnb'] } : null,
+        solana: solana ? { address: solana } : null,
+      },
+    })
+  }
+
+  // GET /api/deposit-records — list deposit history for a party (transparency/audit)
+  if (path === 'deposit-records' && method === 'GET') {
+    const userParty = query.userParty || query.accountId
+    if (!userParty) return jsonResponse({ error: 'userParty or accountId required' }, 400)
+    const limit = Math.min(100, parseInt(query.limit, 10) || 50)
+    const list = await storage.getDepositRecordsByParty(db, userParty, limit)
+    return jsonResponse({ success: true, records: list })
+  }
+
+  // POST /api/withdraw-request — debit Pips, create withdrawal request (platform wallet sends crypto separately).
+  // Validates destination address (EVM 0x + 40 hex); optional caps via WITHDRAW_MAX_PP, WITHDRAW_MAX_PENDING.
   if (path === 'withdraw-request' && method === 'POST') {
     const feeRate = parseFloat(env.WITHDRAWAL_FEE_RATE || '0.02')
     const feeMin = parseFloat(env.WITHDRAWAL_FEE_MIN || '1')
+    const withdrawMaxPp = parseFloat(env.WITHDRAW_MAX_PP || '0') || 0
+    const withdrawMaxPending = Math.max(0, parseInt(env.WITHDRAW_MAX_PENDING || '0', 10) || 0)
     const { userParty, accountId, amount, destinationAddress, networkId } = body
     const party = userParty || accountId
     if (!party || amount === undefined || !destinationAddress) {
       return jsonResponse({ error: 'userParty/accountId, amount, and destinationAddress required' }, 400)
     }
-    const amountNum = parseFloat(amount)
-    if (isNaN(amountNum) || amountNum <= 0) return jsonResponse({ error: 'amount must be positive' }, 400)
-    const fee = Math.max(amountNum * feeRate, feeMin)
-    const net = amountNum - fee
-    if (net <= 0) return jsonResponse({ error: 'Amount too small after fee' }, 400)
-    const current = await storage.getBalance(db, party)
-    if (current < amountNum) return jsonResponse({ error: 'Insufficient balance', current, required: amountNum }, 400)
+    const dest = String(destinationAddress).trim()
+    if (!/^0x[a-fA-F0-9]{40}$/.test(dest)) {
+      return jsonResponse({ error: 'Invalid destination address', message: 'Use a valid EVM address (0x + 40 hex characters)' }, 400)
+    }
+    const amountCents = pipsToCents(amount)
+    if (amountCents <= 0) return jsonResponse({ error: 'amount must be positive' }, 400)
+    if (withdrawMaxPp > 0 && parseFloat(centsToPipsStr(amountCents)) > withdrawMaxPp) {
+      return jsonResponse({ error: 'Amount exceeds maximum per withdrawal', max: String(withdrawMaxPp) }, 400)
+    }
+    if (withdrawMaxPending > 0) {
+      const pending = await storage.countPendingWithdrawalsByParty(db, party)
+      if (pending >= withdrawMaxPending) {
+        return jsonResponse({ error: 'Too many pending withdrawals', message: `Max ${withdrawMaxPending} pending. Wait for one to complete.` }, 429)
+      }
+    }
+    const feeMinCents = pipsToCents(String(feeMin))
+    const feeCents = Math.max(Math.floor(amountCents * feeRate), feeMinCents)
+    const netCents = amountCents - feeCents
+    if (netCents <= 0) return jsonResponse({ error: 'Amount too small after fee' }, 400)
+    const currentRaw = await storage.getBalanceRaw(db, party)
+    const currentCents = pipsToCents(currentRaw)
+    if (currentCents < amountCents) {
+      return jsonResponse({
+        error: 'Insufficient balance',
+        current: currentRaw,
+        required: centsToPipsStr(amountCents),
+      }, 400)
+    }
+    const newBalStr = centsToPipsStr(currentCents - amountCents)
     const requestId = `wd-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`
-    await storage.setBalance(db, party, current - amountNum)
+    await storage.setBalance(db, party, newBalStr)
     await storage.insertWithdrawalRequest(db, {
       requestId,
       party,
-      amountGuap: amountNum,
-      feeGuap: fee,
-      netGuap: net,
-      destination: destinationAddress,
+      amountGuap: parseFloat(centsToPipsStr(amountCents)),
+      feeGuap: parseFloat(centsToPipsStr(feeCents)),
+      netGuap: parseFloat(centsToPipsStr(netCents)),
+      destination: dest,
       networkId: networkId || 'ethereum',
     })
     return jsonResponse({
       success: true,
       requestId,
-      amount: amountNum,
-      fee,
-      net,
-      destination: destinationAddress,
+      amount: centsToPipsStr(amountCents),
+      fee: centsToPipsStr(feeCents),
+      net: centsToPipsStr(netCents),
+      destination: dest,
       networkId: networkId || 'ethereum',
       message: 'Withdrawal queued. Funds will be sent from the platform wallet.',
     })
@@ -340,23 +483,23 @@ async function handleWithD1(db, kv, r2, request, path, method, env = {}) {
     return jsonResponse({ success: true, requests: list })
   }
 
-  // POST /api/add-credits — virtual top-up (Credits added to balance; no blockchain)
+  // POST /api/add-credits — virtual top-up (Pips added to balance; no blockchain)
   if (path === 'add-credits' && method === 'POST') {
     const { userParty, accountId, amount } = body
     const party = userParty || accountId
     if (!party || amount === undefined) {
       return jsonResponse({ error: 'userParty or accountId and amount are required' }, 400)
     }
-    const amountNum = parseFloat(amount)
-    if (isNaN(amountNum) || amountNum <= 0) return jsonResponse({ error: 'amount must be a positive number' }, 400)
-    const current = await storage.getBalance(db, party)
-    const newBal = current + amountNum
-    await storage.setBalance(db, party, newBal)
+    const amountPipsStr = addPips('0', amount)
+    if (pipsToCents(amountPipsStr) <= 0) return jsonResponse({ error: 'amount must be a positive number' }, 400)
+    const currentRaw = await storage.getBalanceRaw(db, party)
+    const newBalStr = addPips(currentRaw, amountPipsStr)
+    await storage.setBalance(db, party, newBalStr)
     return jsonResponse({
       success: true,
-      balance: String(newBal),
-      previousBalance: String(current),
-      added: String(amountNum),
+      balance: newBalStr,
+      previousBalance: currentRaw,
+      added: amountPipsStr,
     })
   }
 
@@ -692,14 +835,14 @@ async function handleWithD1(db, kv, r2, request, path, method, env = {}) {
     })
   }
 
-  // GET/POST /api/get-user-balance
+  // GET/POST /api/get-user-balance — returns balance as 2-decimal string for precision
   if (path === 'get-user-balance' && (method === 'GET' || method === 'POST')) {
     const { userParty } = method === 'GET' ? query : body
     if (!userParty) return jsonResponse({ error: 'User party required', message: 'Please provide userParty' }, 400)
-    let bal = await storage.getBalance(db, userParty)
-    // Ensure row exists (create with 0 if not)
-    await storage.setBalance(db, userParty, bal)
-    return jsonResponse({ success: true, balance: String(bal) })
+    const raw = await storage.getBalanceRaw(db, userParty)
+    const normalized = centsToPipsStr(pipsToCents(raw))
+    await storage.setBalance(db, userParty, normalized)
+    return jsonResponse({ success: true, balance: normalized })
   }
 
   // POST /api/update-user-balance
@@ -708,27 +851,31 @@ async function handleWithD1(db, kv, r2, request, path, method, env = {}) {
     if (!userParty || amount === undefined || !operation) {
       return jsonResponse({ error: 'Missing required fields', required: ['userParty', 'amount', 'operation'] }, 400)
     }
-    const amountNum = parseFloat(amount)
-    if (isNaN(amountNum)) return jsonResponse({ error: 'Invalid amount' }, 400)
-    const current = await storage.getBalance(db, userParty)
-    let newBal = current
-    if (operation === 'add') newBal = current + amountNum
-    else if (operation === 'subtract') {
-      newBal = current - amountNum
-      if (newBal < 0) {
-        return jsonResponse({ error: 'Insufficient balance', currentBalance: current }, 400)
+    const amountPipsStr = addPips('0', amount)
+    const amountCents = pipsToCents(amountPipsStr)
+    if (amountCents < 0) return jsonResponse({ error: 'Invalid amount' }, 400)
+    const currentRaw = await storage.getBalanceRaw(db, userParty)
+    const currentCents = pipsToCents(currentRaw)
+    let newBalStr
+    if (operation === 'add') {
+      newBalStr = addPips(currentRaw, amountPipsStr)
+    } else if (operation === 'subtract') {
+      if (amountCents === 0) return jsonResponse({ error: 'Amount must be positive to subtract' }, 400)
+      if (currentCents < amountCents) {
+        return jsonResponse({ error: 'Insufficient balance', currentBalance: currentRaw }, 400)
       }
+      newBalStr = centsToPipsStr(currentCents - amountCents)
     } else {
       return jsonResponse({ error: 'Invalid operation', message: 'Operation must be "add" or "subtract"' }, 400)
     }
-    await storage.setBalance(db, userParty, newBal)
+    await storage.setBalance(db, userParty, newBalStr)
     return jsonResponse({
       success: true,
-      balance: String(newBal),
-      previousBalance: String(current),
-      newBalance: String(newBal),
+      balance: newBalStr,
+      previousBalance: currentRaw,
+      newBalance: newBalStr,
       operation,
-      amount: String(amountNum),
+      amount: amountPipsStr,
     })
   }
 
@@ -738,27 +885,15 @@ async function handleWithD1(db, kv, r2, request, path, method, env = {}) {
     const source = query.source || body?.source || 'sports'
     const limit = Math.min(parseInt(query.limit || body?.limit || '10', 10) || 10, 50)
     const sportKey = query.sport || body?.sport || 'basketball_nba'
+    const supportedSources = ['sports', 'stocks', 'stocks_trend', 'crypto', 'crypto_trend', 'weather', 'openweather', 'weatherapi', 'news', 'gnews', 'perigon', 'newsapi_ai']
 
     if (method === 'GET' && action === 'events') {
+      if (!supportedSources.includes(source)) {
+        return jsonResponse({ error: 'Unknown source', supported: supportedSources }, 400)
+      }
       let events = []
       try {
-        if (source === 'sports') {
-          events = await dataSources.eventsFromOdds(env, sportKey, limit)
-        } else if (source === 'alpha_vantage' || source === 'stocks') {
-          events = await dataSources.eventsFromAlphaVantage(env, dataSources.ALPHA_VANTAGE_SYMBOLS.slice(0, 5))
-        } else if (source === 'crypto' || source === 'coingecko') {
-          events = await dataSources.eventsFromCoinGecko(env, dataSources.COINGECKO_COINS.slice(0, 5))
-        } else if (source === 'openweather' || source === 'weather') {
-          events = await dataSources.eventsFromOpenWeather(env, dataSources.WEATHER_CITIES?.slice(0, 3) || ['London', 'New York'])
-        } else if (source === 'weatherapi') {
-          events = await dataSources.eventsFromWeatherApi(env, dataSources.WEATHER_CITIES?.slice(0, 3) || ['London', 'New York'])
-        } else if (source === 'gnews' || source === 'news') {
-          events = await dataSources.eventsFromGNews(env, query.category || 'general', limit)
-        } else if (source === 'perigon') {
-          events = await dataSources.eventsFromPerigon(env, query.q || body?.q || 'technology', limit)
-        } else {
-          return jsonResponse({ error: 'Unknown source', supported: ['sports', 'stocks', 'crypto', 'weather', 'openweather', 'weatherapi', 'news', 'gnews', 'perigon'] }, 400)
-        }
+        events = await dataSources.getEventsFromSource(env, source, { limit, sportKey, category: query.category || 'general', q: query.q || body?.q || 'technology' })
       } catch (err) {
         console.error('[auto-markets] events', source, err)
         return jsonResponse({ error: 'Failed to fetch events', message: err?.message }, 502)
@@ -766,33 +901,38 @@ async function handleWithD1(db, kv, r2, request, path, method, env = {}) {
       return jsonResponse({ success: true, source, events, count: events.length })
     }
 
-    if (method === 'POST' && action === 'seed') {
+    // POST seed: multi-source (sources array or seed_all) or single source
+    if (method === 'POST' && (action === 'seed' || action === 'seed_all')) {
       let events = []
-      try {
-        if (source === 'sports') {
-          events = await dataSources.eventsFromOdds(env, sportKey, limit)
-        } else if (source === 'alpha_vantage' || source === 'stocks') {
-          events = await dataSources.eventsFromAlphaVantage(env, dataSources.ALPHA_VANTAGE_SYMBOLS.slice(0, 5))
-        } else if (source === 'crypto' || source === 'coingecko') {
-          events = await dataSources.eventsFromCoinGecko(env, dataSources.COINGECKO_COINS.slice(0, 5))
-        } else if (source === 'openweather' || source === 'weather') {
-          events = await dataSources.eventsFromOpenWeather(env, dataSources.WEATHER_CITIES?.slice(0, 3) || ['London', 'New York'])
-        } else if (source === 'weatherapi') {
-          events = await dataSources.eventsFromWeatherApi(env, dataSources.WEATHER_CITIES?.slice(0, 3) || ['London', 'New York'])
-        } else if (source === 'gnews' || source === 'news') {
-          events = await dataSources.eventsFromGNews(env, body?.category || 'general', limit)
-        } else if (source === 'perigon') {
-          events = await dataSources.eventsFromPerigon(env, body?.q || 'technology', limit)
-        } else {
-          return jsonResponse({ error: 'Unknown source', supported: ['sports', 'stocks', 'crypto', 'weather', 'openweather', 'weatherapi', 'news', 'gnews', 'perigon'] }, 400)
+      let bySource = null
+      const sourcesList = Array.isArray(body?.sources) ? body.sources : (action === 'seed_all' || body?.seed_all ? dataSources.AUTO_MARKET_SOURCES : null)
+      const perSourceLimit = Math.min(parseInt(body?.perSourceLimit || '5', 10) || 5, 20)
+
+      if (sourcesList && sourcesList.length > 0) {
+        const gathered = await dataSources.gatherEventsFromAllSources(env, sourcesList, perSourceLimit)
+        events = gathered.events
+        bySource = gathered.bySource
+        if (events.length === 0 && Object.values(gathered.bySource).every((n) => n === 0)) {
+          return jsonResponse({ success: true, message: 'No events from any source (missing keys or empty)', bySource: gathered.bySource, created: [], count: 0, skipped: 0 }, 200)
         }
-      } catch (err) {
-        console.error('[auto-markets] seed fetch', source, err)
-        return jsonResponse({ error: 'Failed to fetch events', message: err?.message }, 502)
+      } else {
+        try {
+          events = await dataSources.getEventsFromSource(env, source, { limit, sportKey, category: body?.category || 'general', q: body?.q || 'technology' })
+        } catch (err) {
+          console.error('[auto-markets] seed fetch', source, err)
+          return jsonResponse({ error: 'Failed to fetch events', message: err?.message }, 502)
+        }
       }
+
       const created = []
       for (const ev of events) {
         const id = ev.id ? `market-${ev.id}` : `market-${ev.source}-${Date.now()}-${created.length}`
+        // Event-driven: only create if we don't already have a market for this event (avoids duplicates when cron runs frequently)
+        const existing = await storage.getContractById(db, id)
+        if (existing && (existing.templateId === TEMPLATE_VIRTUAL_MARKET || (existing.templateId && existing.templateId.includes('Market')))) {
+          continue // already have this event as a market, skip
+        }
+        const { source: displaySource, category: displayCategory } = getDisplaySourceAndCategory(ev.source)
         const payload = {
           marketId: id,
           title: ev.title,
@@ -806,9 +946,9 @@ async function handleWithD1(db, kv, r2, request, path, method, env = {}) {
           yesVolume: 0,
           noVolume: 0,
           outcomeVolumes: {},
-          category: ev.source,
+          category: displayCategory,
           styleLabel: ev.source,
-          source: ev.source,
+          source: displaySource,
           oracleSource: ev.oracleSource || ev.source,
           oracleConfig: ev.oracleConfig || {},
           createdAt: new Date().toISOString(),
@@ -821,7 +961,9 @@ async function handleWithD1(db, kv, r2, request, path, method, env = {}) {
           status: 'Active',
         })
         await backupToR2(r2, undefined, id, payload)
-        const poolState = createPoolState(id, 1000, 1000)
+        const useZeroLiquidity = env.AUTO_MARKETS_ZERO_LIQUIDITY === '1' || env.AUTO_MARKETS_ZERO_LIQUIDITY === 'true' || String(env.INITIAL_POOL_LIQUIDITY || '').trim() === '0'
+        const initialLiquidity = useZeroLiquidity ? 0 : 1000
+        const poolState = createPoolState(id, initialLiquidity, initialLiquidity)
         await storage.upsertContract(db, {
           contract_id: poolState.poolId,
           template_id: 'LiquidityPool',
@@ -833,10 +975,12 @@ async function handleWithD1(db, kv, r2, request, path, method, env = {}) {
         created.push({ marketId: id, title: ev.title, source: ev.source })
       }
       // Markets list cache will refresh on next GET (TTL)
-      return jsonResponse({ success: true, source, created, count: created.length })
+      const res = { success: true, source: bySource ? 'multiple' : source, created, count: created.length, skipped: events.length - created.length }
+      if (bySource) res.bySource = bySource
+      return jsonResponse(res)
     }
 
-    return jsonResponse({ error: 'Use GET ?action=events&source=... or POST { action: "seed", source: ... }' }, 400)
+    return jsonResponse({ error: 'Use GET ?action=events&source=... or POST { action: "seed", source: ... } or POST { action: "seed_all" } or POST { sources: ["sports", "stocks", ...] }' }, 400)
   }
 
   // GET/POST /api/markets
@@ -918,7 +1062,9 @@ async function handleWithD1(db, kv, r2, request, path, method, env = {}) {
         status: 'Active',
       })
       await backupToR2(r2, undefined, id, payload)
-      const poolState = createPoolState(id, 1000, 1000)
+      const useZeroLiquidity = env.AUTO_MARKETS_ZERO_LIQUIDITY === '1' || env.AUTO_MARKETS_ZERO_LIQUIDITY === 'true' || String(env.INITIAL_POOL_LIQUIDITY || '').trim() === '0'
+      const initialLiquidity = useZeroLiquidity ? 0 : 1000
+      const poolState = createPoolState(id, initialLiquidity, initialLiquidity)
       await storage.upsertContract(db, {
         contract_id: poolState.poolId,
         template_id: 'LiquidityPool',

@@ -577,3 +577,10 @@
   transition: all var(--transition-base, 0.2s ease);
 }
 
+.stripe-packages {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--spacing-xs);
+}
+

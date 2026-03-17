@@ -9,6 +9,7 @@ export const MARKET_CATEGORIES = [
   { value: 'Sports', label: 'Sports' },
   { value: 'Politics', label: 'Politics' },
   { value: 'Weather', label: 'Weather' },
+  { value: 'News', label: 'News' },
   { value: 'Entertainment', label: 'Entertainment' },
   { value: 'Science', label: 'Science' },
   { value: 'Other', label: 'Other' },
@@ -22,6 +23,50 @@ export const MARKET_SOURCES = [
   { value: 'virtual_realities', label: 'Virtual Realities' },
   { value: 'user', label: 'User-Created' },
 ]
+
+/** Map API source (from automated markets) to display source for Discover filter. */
+const API_SOURCE_TO_DISPLAY = {
+  the_odds_api: 'global_events',
+  alpha_vantage: 'industry',
+  alpha_vantage_trend: 'industry',
+  coingecko: 'industry',
+  coingecko_trend: 'industry',
+  openweathermap: 'global_events',
+  weatherapi: 'global_events',
+  gnews: 'global_events',
+  perigon: 'global_events',
+  newsapi_ai: 'global_events',
+}
+
+/** Map API source to display category (for Category filter; legacy markets may have category = API source). */
+const API_SOURCE_TO_CATEGORY = {
+  the_odds_api: 'Sports',
+  alpha_vantage: 'Finance',
+  alpha_vantage_trend: 'Finance',
+  coingecko: 'Crypto',
+  coingecko_trend: 'Crypto',
+  openweathermap: 'Weather',
+  weatherapi: 'Weather',
+  gnews: 'News',
+  perigon: 'News',
+  newsapi_ai: 'News',
+}
+
+/** Normalize payload.source for filtering (so both new display source and legacy API source work). */
+export function sourceForFilter(payloadSource) {
+  if (!payloadSource) return 'user'
+  return API_SOURCE_TO_DISPLAY[payloadSource] ?? payloadSource
+}
+
+/** Category to use for filter (payload.category may be display category or legacy API source). */
+export function categoryForFilter(payload) {
+  const cat = payload?.category
+  const src = payload?.source || payload?.styleLabel
+  if (API_SOURCE_TO_CATEGORY[cat]) return API_SOURCE_TO_CATEGORY[cat]
+  if (cat && MARKET_CATEGORIES.some(c => c.value === cat)) return cat
+  if (src && API_SOURCE_TO_CATEGORY[src]) return API_SOURCE_TO_CATEGORY[src]
+  return cat || 'Other'
+}
 
 export function getSourceLabel(value) {
   const s = MARKET_SOURCES.find(x => x.value === value)

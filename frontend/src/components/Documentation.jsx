@@ -110,31 +110,30 @@ function GettingStartedContent() {
   return (
     <div className="doc-section">
       <h1>Getting Started</h1>
-      <p>Welcome to dice.express — prediction markets with virtual Credits; multi-chain deposit and withdraw. Your choice. Your chance.</p>
+      <p>Welcome to dice.express — prediction markets with Pips. Your choice. Your chance.</p>
       
       <h2>Overview</h2>
       <p>
-        Create, manage, and trade on prediction markets. All activity on the platform uses virtual <strong>Credits</strong>. 
-        Only <strong>deposits</strong> (crypto → Credits) and <strong>withdrawals</strong> (Credits → crypto) touch real blockchain networks.
+        Trade on prediction markets. Deposit with <strong>card (Stripe)</strong> or <strong>crypto</strong> to get <strong>Pips</strong> (1 PP = $1 USD). Use Pips to buy Yes/No shares; withdraw earnings (fee applies). Markets are created automatically from real-world data; you only trade. All data runs on Cloudflare (D1, KV, R2).
       </p>
 
       <h2>Prerequisites</h2>
       <ul>
-        <li>An account (create one or sign in from the nav)</li>
-        <li>TokenBalance contracts for CC deposits/withdrawals (created via /test page) if using on-chain features</li>
+        <li>An account — create one (email + password) or sign in from the nav</li>
       </ul>
 
       <h2>Quick Start</h2>
       <ol>
-        <li><strong>Create or sign in:</strong> Use &quot;Create account&quot; or &quot;Sign in&quot; in the navigation to set up your account and display name</li>
-        <li><strong>Markets:</strong> Markets are created and managed automatically; browse from the home page</li>
-        <li><strong>Trade:</strong> Use the AMM on any market to buy Yes or No shares</li>
+        <li><strong>Create account:</strong> Click &quot;Create account&quot;, enter email, password, and display name. Choose how you&apos;ll add funds (card, crypto, or later).</li>
+        <li><strong>Add Pips:</strong> In Portfolio, use &quot;Deposit with card&quot; (pick $5, $10, $25, $50, or $100) or enter a custom amount. Or deposit crypto; we credit Pips 1:1.</li>
+        <li><strong>Discover markets:</strong> Browse All Markets or categories (Global Events, Industry, etc.). Markets are automated — no user-created markets.</li>
+        <li><strong>Trade:</strong> Open a market and use the trade panel to buy Yes or No with Pips. View positions and balance in Portfolio.</li>
       </ol>
 
       <h2>Key Concepts</h2>
       <ul>
-        <li><strong>Virtual CC Tracking:</strong> Market creation and position creation use database-backed virtual tracking</li>
-        <li><strong>Display name / Party ID:</strong> Your public identifier (display name) and account ID are stored and used for positions and balance</li>
+        <li><strong>Pips (PP):</strong> In-platform currency. 1 PP = $1 USD. You get Pips by depositing (card or crypto); you spend them to trade and can withdraw (fee applies).</li>
+        <li><strong>Display name / Party:</strong> Your public identifier; used for positions and balance. Account is stored locally and optionally on the server.</li>
       </ul>
     </div>
   )
@@ -147,28 +146,28 @@ function WalletAuthenticationContent() {
       
       <h2>Creating an account</h2>
       <p>
-        To use the platform, create an account or sign in. Your account is identified by a display name and an account ID (stored locally and optionally on the server).
+        Create an account with <strong>email and password</strong>. You choose a display name and how you&apos;ll add funds (card, crypto, or later). Your account is identified by display name and account ID (stored locally and on the server).
       </p>
       
-      <h3>Steps</h3>
+      <h3>Registration steps</h3>
       <ol>
-        <li>Click &quot;Create account&quot; in the navigation</li>
-        <li>Complete the short wizard: choose a display name and funding preference</li>
-        <li>You will be redirected to your Dashboard</li>
+        <li><strong>Step 1 — Account:</strong> Enter email, password, confirm password, and display name.</li>
+        <li><strong>Step 2 — Fund your account:</strong> Choose &quot;Card (Stripe)&quot;, &quot;Crypto&quot;, or &quot;Add funds later&quot;. If you choose card, you&apos;ll go to Portfolio after signup to pick a package ($5–$100).</li>
+        <li><strong>Step 3 — Complete:</strong> Review and click &quot;Create account&quot;. You&apos;re then taken to Dashboard (or Portfolio if you chose card, to add Pips).</li>
       </ol>
 
       <h2>Signing in</h2>
       <p>
-        If you already have an account (created on this browser), use &quot;Sign in&quot; and enter your display name to restore your session.
+        Use &quot;Sign in&quot; and enter your <strong>email and password</strong> to restore your session. You&apos;ll land on Dashboard (or the page you were trying to open).
       </p>
 
       <h2>Account page</h2>
-      <p>When signed in, use the &quot;Account&quot; link in the nav to view your display name, account ID, balance, and links to Dashboard, Profile, and Portfolio.</p>
+      <p>When signed in, use &quot;Account&quot; in the nav to view your display name, account ID, and links to Dashboard, Profile, and Portfolio.</p>
 
       <h2>Security notes</h2>
       <ul>
-        <li>Your display name and account ID are used to track positions and balance</li>
-        <li>Account data may be stored in browser localStorage and optionally on the server</li>
+        <li>Display name and account ID are used for positions and Pips balance</li>
+        <li>Session data is stored in browser localStorage and optionally synced to the server</li>
       </ul>
     </div>
   )
@@ -177,65 +176,31 @@ function WalletAuthenticationContent() {
 function MarketCreationContent() {
   return (
     <div className="doc-section">
-      <h1>Market Creation</h1>
+      <h1>Markets & Discovery</h1>
       
       <p>
-        Prediction markets on this platform are <strong>created and managed automatically</strong>. 
-        You can browse all markets and trade using the AMM (Automated Market Maker) — no need to create a market yourself.
+        Prediction markets on dice.express are <strong>created automatically</strong> from external data (sports, crypto, weather, news, etc.). 
+        <strong> Users do not create markets.</strong> You browse and trade only.
       </p>
 
       <h2>How to trade</h2>
       <ol>
-        <li>Browse markets from the home page or Discover menu</li>
-        <li>Open a market to see details and current Yes/No probabilities</li>
-        <li>Use the Trade section to buy Yes or No shares with Credits (AMM sets the price)</li>
-        <li>View your positions and balance in Portfolio</li>
+        <li>Go to <strong>Discover</strong> → All Markets or a category (Global Events, Industry, Virtual Realities)</li>
+        <li>Open a market to see details, resolution time, and current Yes/No odds</li>
+        <li>Use the <strong>Trade</strong> panel to buy Yes or No with Pips (AMM sets the price)</li>
+        <li>View positions and balance in <strong>Portfolio</strong></li>
       </ol>
 
-      <h2>Market Types</h2>
-      
-      <h3>Binary Markets</h3>
-      <p>Markets with two possible outcomes: Yes or No.</p>
+      <h2>Market sources</h2>
+      <p>Markets are seeded from APIs (e.g. The Odds API, CoinGecko, OpenWeatherMap, GNews). They auto-resolve when the outcome is known. No manual market creation or approval flow for users.</p>
+
+      <h2>Market types</h2>
+      <p>Most markets are <strong>binary</strong> (Yes/No). Multi-outcome markets are supported where the data source provides multiple outcomes.</p>
+
+      <h2>Important notes</h2>
       <ul>
-        <li>Simpler structure</li>
-        <li>Easier to understand</li>
-        <li>Best for clear yes/no questions</li>
-      </ul>
-
-      <h3>Multi-Outcome Markets</h3>
-      <p>Markets with multiple possible outcomes.</p>
-      <ul>
-        <li>More flexible</li>
-        <li>Can handle complex scenarios</li>
-        <li>Requires comma-separated outcomes</li>
-      </ul>
-
-      <h2>Settlement Types</h2>
-      
-      <h3>Time-Based Settlement</h3>
-      <p>The market settles at a specific date and time.</p>
-      
-      <h3>Event-Based Settlement</h3>
-      <p>The market settles when a specific event occurs.</p>
-      
-      <h3>Manual Settlement</h3>
-      <p>The market is settled manually by an admin.</p>
-
-      <h2>Market Creation Process</h2>
-      <ol>
-        <li><strong>Submission:</strong> Market creation request is submitted and stored in the database</li>
-        <li><strong>Pending Approval:</strong> Market appears in the Admin Dashboard with "Pending Approval" status</li>
-        <li><strong>Admin Review:</strong> Admin reviews the market details</li>
-        <li><strong>Approval/Rejection:</strong> Admin approves or rejects the market</li>
-        <li><strong>Active Market:</strong> Approved markets appear in the Markets List</li>
-      </ol>
-
-      <h2>Important Notes</h2>
-      <ul>
-        <li>Market creation uses virtual CC tracking (database-only)</li>
-        <li>No actual on-chain CC transfer occurs during market creation</li>
-        <li>Markets require admin approval before becoming active</li>
-        <li>All market data is stored in the Supabase database</li>
+        <li>All market and position data is stored in Cloudflare D1</li>
+        <li>Resolution is driven by oracles and due dates; no user-submitted resolution</li>
       </ul>
     </div>
   )
@@ -246,40 +211,32 @@ function AMMFeesContent() {
     <div className="doc-section">
       <h1>AMM &amp; Fees</h1>
       <p>
-        Markets on dice.express use an <strong>Automated Market Maker (AMM)</strong> for trading. 
-        You buy Yes or No shares with virtual <strong>Credits</strong>; the AMM sets prices based on the current pool state.
+        Markets use an <strong>Automated Market Maker (AMM)</strong>. You buy Yes or No shares with <strong>Pips</strong>; the AMM sets prices from the current pool state.
       </p>
 
-      <h2>How the AMM Works</h2>
+      <h2>How the AMM works</h2>
       <p>
-        The AMM maintains a liquidity pool for each market. When you trade, you pay Credits and receive shares (or vice versa). 
-        Prices are derived from the pool so that larger orders move the price more than smaller ones. This provides continuous liquidity without requiring a counterparty.
+        Each market has a liquidity pool. You pay Pips and receive shares (or sell shares for Pips). 
+        Larger orders move the price more; this gives continuous liquidity without a counterparty.
       </p>
 
-      <h2>Trading with Credits</h2>
+      <h2>Trading with Pips</h2>
       <ul>
-        <li>All trading uses <strong>virtual Credits</strong> — no on-chain transfer at trade time.</li>
-        <li>You deposit real assets (e.g. CC) via Deposit to get Credits; you withdraw Credits via Withdraw to get assets back.</li>
-        <li>Buying Yes or No shares spends Credits; selling or settling positions returns Credits to your balance.</li>
+        <li>All trading uses <strong>Pips (PP)</strong> — 1 PP = $1 USD.</li>
+        <li>Add Pips via Portfolio: <strong>Deposit with card</strong> (Stripe: $5, $10, $25, $50, $100 or custom) or <strong>deposit crypto</strong> (we credit Pips 1:1).</li>
+        <li>Buying Yes/No spends Pips; settling or selling returns Pips to your balance.</li>
       </ul>
 
       <h2>Fees</h2>
-      <p>
-        Fee structure is set per deployment. Typically:
-      </p>
       <ul>
-        <li><strong>Trading:</strong> A small fee may be applied on each trade (e.g. a percentage of the trade size) to support the pool and platform.</li>
-        <li><strong>Deposit / Withdraw:</strong> Network or ledger fees may apply when moving assets on-chain; the UI shows estimated costs where applicable.</li>
+        <li><strong>Deposit (card):</strong> No extra fee; you pay the package or custom amount in USD.</li>
+        <li><strong>Withdrawal:</strong> A fee applies (e.g. 2%, min 1 PP). Shown in Portfolio when you request a withdrawal.</li>
+        <li><strong>Trading:</strong> Any trading fee is shown in the trade panel when you place an order.</li>
       </ul>
-      <p>
-        Exact fee rates and any minimums are shown in the Trade and Portfolio flows when you place an order or initiate a deposit/withdrawal.
-      </p>
 
-      <h2>Quotes and Slippage</h2>
+      <h2>Quotes and slippage</h2>
       <p>
-        Before you confirm a trade, the UI shows a quote (e.g. &quot;You pay X CR, receive ~Y shares&quot;). 
-        Quotes are based on the current pool state; if the pool changes before your transaction is processed, your execution may differ slightly (slippage). 
-        You can set a minimum acceptable amount to limit downside from slippage.
+        The UI shows a quote before you confirm (e.g. how many shares for X PP). Quotes use the current pool; execution may differ slightly if the pool changes (slippage). You can set a minimum acceptable amount to limit downside.
       </p>
     </div>
   )
@@ -288,69 +245,34 @@ function AMMFeesContent() {
 function PositionCreationContent() {
   return (
     <div className="doc-section">
-      <h1>Position Creation</h1>
+      <h1>Positions &amp; Trading</h1>
       
       <p>
-        Create positions on active markets to trade. Position creation uses virtual CC tracking 
-        (database-only), assuming you have already deposited CC via the deposit feature.
+        You open positions by buying Yes or No (or outcome) shares on a market, using your <strong>Pips</strong> balance. Positions are stored in Cloudflare D1. Add Pips from Portfolio (card or crypto) if needed.
       </p>
 
-      <h2>Creating a Position</h2>
+      <h2>Placing a trade</h2>
       <ol>
-        <li>Navigate to a market's detail page from the Markets List</li>
-        <li>Fill in the position details:</li>
-        <ul>
-          <li><strong>Position Type:</strong> Select the outcome you're betting on</li>
-          <ul>
-            <li>For Binary markets: "Yes" or "No"</li>
-            <li>For Multi-Outcome markets: Choose from the available outcomes</li>
-          </ul>
-          <li><strong>Amount:</strong> The amount of CC you want to invest</li>
-          <li><strong>Price per Share:</strong> Your prediction of the probability (0.0 to 1.0)</li>
-        </ul>
-        <li>Click "Create Position"</li>
-        <li>Your position will be created and stored in the database</li>
+        <li>Open a market from Discover (All Markets or a category)</li>
+        <li>In the <strong>Trade</strong> section, choose <strong>Yes</strong> or <strong>No</strong> (or the outcome for multi-outcome markets)</li>
+        <li>Enter the amount of Pips you want to spend (or shares you want to buy)</li>
+        <li>Review the quote and confirm. Your position is created and appears in Portfolio</li>
       </ol>
 
-      <h2>Position Types</h2>
-      
-      <h3>Binary Market Positions</h3>
+      <h2>Position types</h2>
       <ul>
-        <li><strong>Yes:</strong> Betting that the market outcome will be "Yes"</li>
-        <li><strong>No:</strong> Betting that the market outcome will be "No"</li>
+        <li><strong>Yes:</strong> You profit if the market resolves to Yes</li>
+        <li><strong>No:</strong> You profit if the market resolves to No</li>
+        <li>Multi-outcome markets: choose one of the listed outcomes</li>
       </ul>
 
-      <h3>Multi-Outcome Market Positions</h3>
-      <p>Select from the available outcomes defined when the market was created.</p>
+      <h2>Resolution</h2>
+      <p>Markets auto-resolve when the outcome is known (from oracles/APIs). When resolved, winning positions are settled and Pips are credited to your balance.</p>
 
-      <h2>Price per Share</h2>
-      <p>
-        The price per share represents your prediction of the probability that your chosen outcome 
-        will occur. It must be between 0.0 and 1.0.
-      </p>
+      <h2>Important notes</h2>
       <ul>
-        <li><strong>0.0:</strong> You believe the outcome has 0% probability</li>
-        <li><strong>0.5:</strong> You believe the outcome has 50% probability</li>
-        <li><strong>1.0:</strong> You believe the outcome has 100% probability</li>
-      </ul>
-
-      <h2>Position Creation Process</h2>
-      <ol>
-        <li><strong>Validation:</strong> Market is verified to exist and be active</li>
-        <li><strong>Position Creation:</strong> Position is created with your chosen parameters</li>
-        <li><strong>Volume Update:</strong> Market volumes are updated in the database</li>
-        <li><strong>Storage:</strong> Position is stored in Supabase database</li>
-        <li><strong>Portfolio:</strong> Position appears in your Portfolio page</li>
-      </ol>
-
-      <h2>Important Notes</h2>
-      <ul>
-        <li>Position creation uses virtual CC tracking (database-only)</li>
-        <li>No actual on-chain CC transfer occurs during position creation</li>
-        <li>Positions assume you have already deposited CC via the deposit feature</li>
-        <li>All position data is stored in the Supabase database</li>
-        <li>Positions are linked to your wallet Party ID</li>
-        <li>Market volumes (total, yes, no, outcome volumes) are updated automatically</li>
+        <li>Positions use your Pips balance (deposit via card or crypto in Portfolio)</li>
+        <li>All position data is stored in Cloudflare D1 and linked to your account (party ID)</li>
       </ul>
     </div>
   )
@@ -359,89 +281,31 @@ function PositionCreationContent() {
 function DepositWithdrawContent() {
   return (
     <div className="doc-section">
-      <h1>Deposit & Withdraw</h1>
+      <h1>Pips: Deposit &amp; Withdraw</h1>
       
       <p>
-        <strong>Deposit</strong> (crypto → Credits) and <strong>withdraw</strong> (Credits → crypto) are the only operations 
-        that perform actual blockchain transactions. All other platform activity is in virtual Credits.
+        <strong>Pips (PP)</strong> are the in-platform currency (1 PP = $1 USD). You get Pips by depositing with <strong>card (Stripe)</strong> or <strong>crypto</strong>. You trade with Pips and can withdraw earnings; a withdrawal fee applies. Balance is stored in Cloudflare D1.
       </p>
 
-      <h2>Prerequisites</h2>
+      <h2>Deposit with card (Stripe)</h2>
+      <p>In <strong>Portfolio</strong> → Deposit with card:</p>
       <ul>
-        <li>Connected wallet (Party ID)</li>
-        <li>Authentication token (JWT)</li>
-        <li>TokenBalance contract for your wallet (created via /test page)</li>
-        <li>Platform TokenBalance contract ID (for withdrawals)</li>
+        <li><strong>Quick add:</strong> Choose $5, $10, $25, $50, or $100 — you’re sent to Stripe Checkout for that amount. After payment, Pips are credited via webhook.</li>
+        <li><strong>Custom amount:</strong> Enter any amount (PP) and click &quot;Deposit with card&quot; for a one-off Stripe Checkout.</li>
       </ul>
+      <p>Stripe products ($5–$100) can be configured in Stripe Dashboard; optional env vars <code>VITE_STRIPE_PRICE_5</code> etc. let the app use those product Price IDs so Checkout shows the correct name and image.</p>
 
-      <h2>Depositing CC</h2>
-      <p>
-        Transfer CC from your wallet to the platform wallet using on-chain blockchain transactions.
-      </p>
-      
-      <h3>Steps to Deposit</h3>
-      <ol>
-        <li>Navigate to the Portfolio page</li>
-        <li>Find the "Deposit / Withdraw Credits" section</li>
-        <li>Enter the amount you want to deposit</li>
-        <li>Click "Deposit"</li>
-        <li>Wait for the blockchain transaction to complete</li>
-        <li>Your deposit will be tracked in the database</li>
-      </ol>
+      <h2>Deposit with crypto</h2>
+      <p>Send supported crypto (e.g. USDC) to the platform wallet; include your account ID in the memo when possible. After confirmation, we credit Pips (1:1 for stablecoins). Deposit address and networks are provided by support or in-app.</p>
 
-      <h3>Deposit Requirements</h3>
+      <h2>Withdrawals</h2>
+      <p>In Portfolio, request a withdrawal by entering amount, destination address, and network. A fee (e.g. 2%, min 1 PP) applies. Funds are sent from the platform wallet; status appears under &quot;Your withdrawal requests&quot;.</p>
+
+      <h2>APIs (reference)</h2>
       <ul>
-        <li>User TokenBalance contract ID must be stored in localStorage as <code>userTokenBalanceContractId</code></li>
-        <li>You must have sufficient CC balance in your TokenBalance contract</li>
-        <li>Valid authentication token</li>
-      </ul>
-
-      <h2>Withdrawing CC</h2>
-      <p>
-        Transfer CC from the platform wallet back to your wallet using on-chain blockchain transactions.
-      </p>
-      
-      <h3>Steps to Withdraw</h3>
-      <ol>
-        <li>Navigate to the Portfolio page</li>
-        <li>Find the "Deposit / Withdraw Credits" section</li>
-        <li>Enter the amount you want to withdraw</li>
-        <li>Click "Withdraw"</li>
-        <li>Wait for the blockchain transaction to complete</li>
-        <li>Your withdrawal will be tracked in the database</li>
-      </ol>
-
-      <h3>Withdrawal Requirements</h3>
-      <ul>
-        <li>Platform TokenBalance contract ID must be stored in localStorage as <code>platformTokenBalanceContractId</code></li>
-        <li>Platform wallet must have sufficient CC balance</li>
-        <li>Valid authentication token</li>
-      </ul>
-
-      <h2>On-Chain Transactions</h2>
-      <p>
-        Deposit and withdraw use the connected ledger to perform on-chain transfers. 
-        Your balance is credited or debited in platform Credits accordingly.
-      </p>
-      
-      <ul>
-        <li><strong>Deposit:</strong> Transfers CC from your TokenBalance to the platform wallet's TokenBalance</li>
-        <li><strong>Withdraw:</strong> Transfers CC from the platform wallet's TokenBalance to your TokenBalance</li>
-      </ul>
-
-      <h2>Transaction Tracking</h2>
-      <p>
-        All deposit and withdraw transactions are tracked in the Supabase database for history and auditing.
-      </p>
-
-      <h2>Important Notes</h2>
-      <ul>
-        <li>Deposit and withdraw are the ONLY operations that perform on-chain CC transfers</li>
-        <li>Market creation and position creation use virtual CC tracking (database-only)</li>
-        <li>You must create TokenBalance contracts before depositing/withdrawing</li>
-        <li>Use the /test page to create TokenBalance contracts</li>
-        <li>Store contract IDs in localStorage for the deposit/withdraw features to work</li>
-        <li>Transactions may take a few seconds to complete on the blockchain</li>
+        <li><code>POST /api/stripe-create-checkout-session</code> — create Stripe Checkout (body: <code>{`{ userParty, amount }`}</code> or <code>{`{ userParty, priceId }`}</code>)</li>
+        <li><code>POST /api/get-user-balance</code> — get balance (body: <code>{`{ userParty }`}</code>)</li>
+        <li><code>POST /api/add-credits</code> — internal/testing: add Pips (body: <code>{`{ userParty, amount }`}</code>)</li>
       </ul>
     </div>
   )
@@ -453,52 +317,26 @@ function PortfolioContent() {
       <h1>Portfolio</h1>
       
       <p>
-        View all your positions and manage your CC deposits/withdrawals.
+        Your hub for <strong>balance</strong>, <strong>deposits</strong>, <strong>withdrawals</strong>, and <strong>positions</strong>. Use the tabs: Balance, Positions, Activity.
       </p>
 
-      <h2>Portfolio Features</h2>
-      
-      <h3>My Positions</h3>
-      <p>View all your active positions across all markets.</p>
+      <h2>Balance tab</h2>
       <ul>
-        <li>Market ID for each position</li>
-        <li>Position type (Yes/No or outcome)</li>
-        <li>Amount invested</li>
-        <li>Price per share</li>
-        <li>Deposit information</li>
-        <li>Creation timestamp</li>
-        <li>Link to view the market</li>
+        <li><strong>Balance (PP):</strong> Your current Pips balance.</li>
+        <li><strong>Add Pips:</strong> Testing-only top-up (internal API).</li>
+        <li><strong>Deposit with card:</strong> Quick-add packages ($5, $10, $25, $50, $100) or enter a custom amount. Redirects to Stripe Checkout; Pips are credited after payment.</li>
+        <li><strong>Deposit with crypto:</strong> Instructions and your account ID for memo. We credit Pips when the platform wallet receives funds.</li>
+        <li><strong>Withdraw Pips:</strong> Enter amount, destination address, and network. A fee applies; requests appear in &quot;Your withdrawal requests&quot;.</li>
       </ul>
 
-      <h3>Deposit / Withdraw CC</h3>
-      <p>
-        Manage your CC deposits and withdrawals. These are the only operations that perform 
-        on-chain blockchain transactions.
-      </p>
+      <h2>Positions tab</h2>
+      <p>All your active positions: market, outcome (Yes/No), size, and link to the market. Resolved positions are settled and Pips returned to your balance.</p>
 
-      <h3>Activity Log</h3>
-      <p>
-        View a chronological log of all your position creation activities, sorted by date (newest first).
-      </p>
-      <ul>
-        <li>Position creation timestamp</li>
-        <li>Market ID</li>
-        <li>Position type and amount</li>
-        <li>Deposit information</li>
-        <li>Link to view the market</li>
-      </ul>
+      <h2>Activity tab</h2>
+      <p>Chronological log of your activity (e.g. position creation, deposits). Newest first.</p>
 
-      <h2>Data Source</h2>
-      <p>
-        Portfolio data is retrieved from the Supabase database, not directly from the blockchain. 
-        This ensures fast, reliable access to your positions.
-      </p>
-
-      <h2>Empty Portfolio</h2>
-      <p>
-        If you don't have any positions yet, the Portfolio page will display a message encouraging 
-        you to start trading by browsing markets.
-      </p>
+      <h2>Data source</h2>
+      <p>Balance and positions are stored in Cloudflare D1 and loaded via the app API.</p>
     </div>
   )
 }
@@ -509,62 +347,14 @@ function AdminDashboardContent() {
       <h1>Admin Dashboard</h1>
       
       <p>
-        Review and approve/reject market creation requests. Only accessible to admin parties.
+        Optional admin area for reviewing and approving/rejecting market creation requests (if your deployment allows user-submitted markets). In the default dice.express setup, <strong>markets are automated</strong> from APIs, so this dashboard may be used for other admin tasks or legacy flows.
       </p>
 
-      <h2>Market Creation Requests</h2>
-      <p>
-        View all pending market creation requests that require admin approval.
-      </p>
+      <h2>Access</h2>
+      <p>Only users with admin privileges can access the Admin Dashboard. Typical use: review pending requests, approve or reject, and have approved markets appear in the list.</p>
 
-      <h3>Request Details</h3>
-      <p>Each request displays:</p>
-      <ul>
-        <li>Market title and description</li>
-        <li>Market type (Binary or Multi-Outcome)</li>
-        <li>Outcomes (for Multi-Outcome markets)</li>
-        <li>Settlement trigger</li>
-        <li>Resolution criteria</li>
-        <li>Creator information</li>
-        <li>Creation timestamp</li>
-        <li>Contract ID</li>
-      </ul>
-
-      <h2>Approving Markets</h2>
-      <ol>
-        <li>Review the market creation request details</li>
-        <li>Verify the market information is correct</li>
-        <li>Click "Approve" button</li>
-        <li>Market status is updated to "Approved" in the database</li>
-        <li>Market appears in the Markets List for all users</li>
-      </ol>
-
-      <h2>Rejecting Markets</h2>
-      <ol>
-        <li>Review the market creation request details</li>
-        <li>If the market doesn't meet requirements, click "Reject"</li>
-        <li>Confirm the rejection</li>
-        <li>Market status is updated to "Rejected" in the database</li>
-        <li>Market is removed from pending requests</li>
-      </ol>
-
-      <h2>Data Source</h2>
-      <p>
-        The Admin Dashboard uses a database-first approach:
-      </p>
-      <ul>
-        <li><strong>Primary:</strong> Queries Supabase database for pending requests</li>
-        <li><strong>Fallback:</strong> Attempts blockchain queries if database fails</li>
-        <li><strong>Status Updates:</strong> Updates are made directly to the database</li>
-      </ul>
-
-      <h2>Important Notes</h2>
-      <ul>
-        <li>Only admin parties can access the Admin Dashboard</li>
-        <li>Approval/rejection updates the database status directly</li>
-        <li>Approved markets immediately appear in the Markets List</li>
-        <li>Market data is stored in the Supabase database</li>
-      </ul>
+      <h2>Data source</h2>
+      <p>Admin data is read from and written to Cloudflare D1.</p>
     </div>
   )
 }
@@ -572,105 +362,15 @@ function AdminDashboardContent() {
 function BlockchainContent() {
   return (
     <div className="doc-section">
-      <h1>Blockchain Integration</h1>
+      <h1>Infrastructure &amp; Data</h1>
       
-      <h2>Overview</h2>
+      <h2>Cloudflare-first</h2>
       <p>
-        The application uses a <strong>dynamic blockchain integration system</strong> that allows seamless 
-        support for multiple blockchain networks while maintaining a consistent interface. The architecture 
-        is designed to be network-agnostic, extensible, and future-proof.
+        Core data and API run on <strong>Cloudflare</strong>: D1 (SQL for markets, positions, balances), KV (cache), R2 (optional backup). Pips balances are in D1. No on-chain ledger is required for trading.
       </p>
 
-      <h2>Virtual-first, multi-chain</h2>
-      <p>
-        The platform uses <strong>virtual Credits</strong> for all trading and fees. Blockchain/ledger integration for deposits and withdrawals may be re-enabled in a future release. A <strong>hybrid approach</strong> combines database-backed storage with optional on-chain operations when configured.
-      </p>
-
-      <h3>Hybrid Architecture</h3>
-      <ul>
-        <li><strong>On-Chain:</strong> Contract creation, choice exercising, and deposit/withdraw (per supported chain)</li>
-        <li><strong>Database-Backed:</strong> Contract queries, position tracking, and market listings</li>
-        <li><strong>Rationale:</strong> Some ledger JSON APIs do not provide general contract query endpoints</li>
-      </ul>
-
-      <h3>Supported Operations</h3>
-      <ul>
-        <li>✅ <strong>Contract Creation:</strong> Market creation and positions stored in database</li>
-        <li>✅ <strong>Choice Exercising:</strong> Admin approval/rejection, market resolution</li>
-        <li>✅ <strong>CC Transfers:</strong> Deposits and withdrawals via TokenBalance contracts</li>
-        <li>⚠️ <strong>Contract Querying:</strong> Limited - uses database as primary source</li>
-        <li>❌ <strong>Real-Time Events:</strong> Not yet supported (requires WebSocket/gRPC)</li>
-      </ul>
-
-      <h2>Blockchain Provider System</h2>
-      <p>
-        The application uses a provider-based architecture that makes it easy to add support for additional 
-        blockchain networks in the future.
-      </p>
-
-      <h3>Core Components</h3>
-      <ul>
-        <li><strong>BlockchainProvider:</strong> Abstract interface for blockchain operations</li>
-        <li><strong>BlockchainRegistry:</strong> Central registry for network providers</li>
-        <li><strong>Ledger providers:</strong> Optional ledger/blockchain integration when re-enabled</li>
-      </ul>
-
-      <h3>Provider Interface</h3>
-      <p>All blockchain providers implement a consistent interface:</p>
-      <pre>{`class BlockchainProvider {
-  async connect()                    // Initialize connection
-  async disconnect()                 // Close connection
-  async getAccount()                 // Get current account/party
-  async createContract(...)          // Create a contract
-  async exerciseChoice(...)          // Exercise a contract choice
-  async queryContracts(...)          // Query contracts
-  async getContract(...)             // Get contract by ID
-  getSupportedFeatures()             // List supported features
-}`}</pre>
-
-      <h2>Future: Full On-Chain Support</h2>
-      <p>
-        When supported ledgers provide the necessary capabilities (contract query endpoints, real-time events, etc.), 
-        the application can migrate to a full on-chain approach for those networks. The architecture is already prepared for 
-        this transition. The platform remains virtual-first: trading and fees stay in Credits; blockchain is for deposit/withdraw.
-      </p>
-
-      <h3>Required Ledger Features</h3>
-      <ul>
-        <li><strong>Contract Query Endpoints:</strong> General contract querying via JSON API</li>
-        <li><strong>Contract Retrieval:</strong> Get contract by ID endpoint</li>
-        <li><strong>Real-Time Events:</strong> WebSocket/SSE support for contract updates</li>
-        <li><strong>Transaction History:</strong> Query transaction history for accounts</li>
-      </ul>
-
-      <h3>Migration Path</h3>
-      <p>The migration will happen in phases:</p>
-      <ol>
-        <li><strong>Phase 1:</strong> Add query endpoints (database as cache/fallback)</li>
-        <li><strong>Phase 2:</strong> Add contract retrieval (remove database dependency)</li>
-        <li><strong>Phase 3:</strong> Add real-time events (remove polling)</li>
-        <li><strong>Phase 4:</strong> Full on-chain (database for indexing only)</li>
-      </ol>
-
-      <h2>Adding New Blockchain Networks</h2>
-      <p>
-        The provider system makes it straightforward to add support for additional blockchain networks 
-        (Ethereum, Polygon, etc.) in the future. See the <code>BLOCKCHAIN_INTEGRATION.md</code> documentation 
-        for detailed instructions.
-      </p>
-
-      <h2>Configuration</h2>
-      <p>Blockchain providers are configured via environment variables:</p>
-      <pre>{`# Ledger configuration
-VITE_CANTON_LEDGER_URL=https://participant.dev.canton.wolfedgelabs.com/json-api
-VITE_CANTON_PACKAGE_ID=b87ef31c8ea5c53a940a7f71a4bc6513cf44048730c0551f1fc2e02adc7271f0`}</pre>
-
-      <h2>Documentation</h2>
-      <p>For more detailed information, see:</p>
-      <ul>
-        <li><strong>Blockchain Integration Guide:</strong> Architecture and provider system</li>
-        <li><strong>Ledger integration:</strong> Integration details when blockchain/ledger support is re-enabled</li>
-      </ul>
+      <h2>Payments</h2>
+      <p><strong>Card:</strong> Stripe Checkout and webhooks; no blockchain. <strong>Crypto:</strong> Deposit/withdraw use the platform wallet; you send/receive crypto and we credit or debit Pips in D1. Supported networks (e.g. Ethereum, Polygon) are configured per deployment.</p>
     </div>
   )
 }
@@ -705,24 +405,17 @@ function APIsAndOraclesContent() {
       <p><strong>Cost:</strong> Free (no API key required for basic usage)</p>
       <p><strong>Documentation:</strong> <a href="https://docs.redstone.finance/" target="_blank" rel="noopener noreferrer">RedStone Documentation</a></p>
 
-      <h3>Supabase Database API ✅</h3>
+      <h3>Cloudflare D1 ✅</h3>
       <p><strong>Status:</strong> Implemented and Active</p>
-      <p><strong>Purpose:</strong> Data storage and retrieval (markets, positions, contracts)</p>
+      <p><strong>Purpose:</strong> Data storage (markets, positions, balances, contracts)</p>
       <p><strong>What it provides:</strong></p>
       <ul>
-        <li>Market data storage</li>
+        <li>Market and pool data</li>
         <li>Position tracking</li>
-        <li>Contract metadata storage</li>
-        <li>Transaction history</li>
+        <li>User balances (Credits)</li>
+        <li>Contract metadata</li>
       </ul>
-      <p><strong>API Endpoints:</strong></p>
-      <ul>
-        <li><code>POST /api/get-contracts</code> - Get contracts from database</li>
-        <li><code>POST /api/store-contract</code> - Store contract in database</li>
-        <li><code>PUT /api/update-contract-status</code> - Update contract status</li>
-        <li><code>POST /api/create-position</code> - Create position (database)</li>
-      </ul>
-      <p><strong>Usage:</strong> Primary data source for market listings and position tracking</p>
+      <p><strong>API:</strong> All <code>/api/*</code> routes are served by Cloudflare Pages Functions and read/write D1 (and optional KV/R2).</p>
 
       <h2>Potential Future APIs & Oracles</h2>
 
@@ -875,89 +568,41 @@ function ArchitectureContent() {
       
       <h2>Overview</h2>
       <p>
-        The application is <strong>virtual-first and multi-chain</strong>: all trading and fees use <strong>Credits</strong>; 
-        blockchain may be used for <strong>deposits and withdrawals</strong> when ledger integration is enabled. 
-        Architecture combines ledger(s) for deposit/withdraw with Supabase database for market and position data.
+        Trading uses <strong>Pips</strong> stored in <strong>Cloudflare D1</strong>. Deposits: Stripe (card) and crypto (platform wallet). Markets are automated from APIs; resolution runs on oracles and due dates.
       </p>
 
-      <h2>Technology Stack</h2>
+      <h2>Technology stack</h2>
       <ul>
-        <li><strong>Frontend:</strong> React with React Router</li>
-        <li><strong>Backend API:</strong> Vercel Serverless Functions</li>
-        <li><strong>Blockchain:</strong> Optional; ledger integration may be re-enabled for deposit/withdraw</li>
-        <li><strong>Database:</strong> Supabase (PostgreSQL)</li>
-        <li><strong>Authentication:</strong> Account sign-in (display name, account ID)</li>
-        <li><strong>Storage:</strong> Browser localStorage (tokens, wallet info)</li>
+        <li><strong>Frontend:</strong> React, React Router</li>
+        <li><strong>API:</strong> Cloudflare Pages Functions (<code>/api/*</code>)</li>
+        <li><strong>Database:</strong> Cloudflare D1 (markets, pools, positions, balances)</li>
+        <li><strong>Auth:</strong> Email/password register and sign-in; session in localStorage</li>
+        <li><strong>Payments:</strong> Stripe Checkout + webhook; crypto deposit/withdraw via platform wallet</li>
       </ul>
 
-      <h2>Architecture Approach</h2>
-      
-      <h3>Hybrid Model</h3>
-      <p>
-        Platform uses virtual Credits for activity; blockchain only for moving value in/out. Due to some ledger APIs lacking full query support, a hybrid approach is used:
-      </p>
+      <h2>Data flow</h2>
       <ul>
-        <li><strong>On-Chain:</strong> Deposits and withdrawals when ledger integration is enabled</li>
-        <li><strong>Database:</strong> Markets, positions, and transaction history</li>
+        <li><strong>Deposit (card):</strong> App → Stripe Checkout → webhook <code>checkout.session.completed</code> → credit Pips in D1</li>
+        <li><strong>Trade:</strong> User buys Yes/No → API updates pool and position in D1</li>
+        <li><strong>Resolution:</strong> Cron or manual trigger resolves due markets; winning positions credited in D1</li>
+        <li><strong>Withdraw:</strong> User submits request → platform sends crypto → status stored in D1</li>
       </ul>
 
-      <h3>Database-First Strategy</h3>
-      <p>
-        For most operations, the database is the primary source of truth:
-      </p>
+      <h2>API overview</h2>
       <ul>
-        <li>Market creation requests are stored in the database immediately</li>
-        <li>Positions are stored in the database</li>
-        <li>Market volumes are tracked in the database</li>
-        <li>Blockchain queries are used as fallback or for on-chain transfers</li>
-      </ul>
-
-      <h2>Data Flow</h2>
-      
-      <h3>Market Creation</h3>
-      <ol>
-        <li>User submits market creation request</li>
-        <li>Request is stored in Supabase database</li>
-        <li>Status set to "Pending Approval"</li>
-        <li>Admin reviews in Admin Dashboard</li>
-        <li>Admin approves/rejects (database update)</li>
-        <li>Approved markets appear in Markets List</li>
-      </ol>
-
-      <h3>Position Creation</h3>
-      <ol>
-        <li>User creates position on a market</li>
-        <li>Position stored in Supabase database</li>
-        <li>Market volumes updated in database</li>
-        <li>Position appears in user's Portfolio</li>
-      </ol>
-
-      <h3>Deposits/Withdrawals</h3>
-      <ol>
-        <li>User initiates deposit/withdraw (on chosen supported chain)</li>
-        <li>On-chain transfer executed when ledger is configured</li>
-        <li>Transaction recorded in Supabase database</li>
-        <li>User virtual balance (Credits) updated</li>
-      </ol>
-
-      <h2>API Endpoints</h2>
-      <ul>
-        <li><code>/api/command</code> - Proxy for ledger JSON API commands (when enabled)</li>
-        <li><code>/api/query</code> - Proxy for ledger JSON API queries (when enabled)</li>
-        <li><code>/api/account</code> - Get or save account (display name, onboarding)</li>
-        <li><code>/api/deposit</code> - Deposit CC (on-chain transfer)</li>
-        <li><code>/api/withdraw</code> - Withdraw CC (on-chain transfer)</li>
-        <li><code>/api/create-position</code> - Create position (database)</li>
-        <li><code>/api/get-contracts</code> - Get contracts from database</li>
-        <li><code>/api/store-contract</code> - Store contract in database</li>
-        <li><code>/api/update-contract-status</code> - Update contract status in database</li>
+        <li><code>/api/register</code>, <code>/api/sign-in</code> — Auth</li>
+        <li><code>/api/stripe-create-checkout-session</code>, <code>/api/stripe-webhook</code> — Stripe</li>
+        <li><code>/api/get-user-balance</code>, <code>/api/add-credits</code> — Balance</li>
+        <li><code>/api/markets</code>, <code>/api/pools</code>, <code>/api/trade</code> — Markets and AMM</li>
+        <li><code>/api/withdrawal-requests</code>, withdraw flow — Withdrawals</li>
+        <li><code>/api/health</code>, <code>/api/oracle?symbol=</code> — Health and oracles</li>
       </ul>
 
       <h2>Storage</h2>
       <ul>
-        <li><strong>Supabase:</strong> Markets, positions, transactions, contract metadata</li>
-        <li><strong>localStorage:</strong> Authentication tokens, wallet info, contract IDs</li>
-        <li><strong>Ledger:</strong> TokenBalance contracts for deposit/withdraw when integration is enabled</li>
+        <li><strong>D1:</strong> Markets, pools, positions, balances, deposits, withdrawal requests</li>
+        <li><strong>KV/R2:</strong> Optional cache and backup</li>
+        <li><strong>localStorage:</strong> Session (accountId, display name)</li>
       </ul>
     </div>
   )
@@ -981,27 +626,18 @@ function SecurityContent() {
         <li>Party IDs cannot be used to steal funds or impersonate users</li>
       </ul>
 
-      <h3>Authentication Tokens</h3>
+      <h3>Authentication</h3>
       <p>
-        Authentication tokens (JWTs) are the actual security mechanism that authorize blockchain interactions.
+        Sign-in uses email and password. Session data (accountId, display name) is stored in the browser and optionally on the server.
       </p>
       <ul>
-        <li>Account sign-in uses your display name (stored when you created your account)</li>
-        <li>Tokens must be kept secure and never shared</li>
-        <li>Tokens are stored in browser localStorage</li>
-        <li>Tokens expire and are automatically refreshed</li>
+        <li>Keep your password private; never share account or session data</li>
+        <li>Session is stored in browser localStorage</li>
       </ul>
 
-      <h3>Authorization Model</h3>
+      <h3>Authorization</h3>
       <p>
-        To interact with contracts, you need BOTH:
-      </p>
-      <ul>
-        <li>A Party ID (public identifier)</li>
-        <li>A valid authentication token (private authorization)</li>
-      </ul>
-      <p>
-        Without a valid token, knowing a Party ID only allows you to VIEW contracts, not INTERACT with them.
+        Actions (trading, withdrawals) are tied to your account. Your party ID (display name) is the public identifier; the session proves you own that account.
       </p>
 
       <h2>Best Practices</h2>
@@ -1013,20 +649,11 @@ function SecurityContent() {
         <li><strong>Clear Tokens:</strong> Use "Clear Token" button when using a shared computer</li>
       </ul>
 
-      <h2>Database Security</h2>
+      <h2>Data Security</h2>
       <ul>
-        <li>Database operations use Supabase service role key (server-side only)</li>
-        <li>Client-side code never has direct database access</li>
-        <li>All database operations go through API endpoints</li>
-        <li>Contract data is stored securely in Supabase</li>
-      </ul>
-
-      <h2>Blockchain Security</h2>
-      <ul>
-        <li>All blockchain interactions require valid authentication tokens</li>
-        <li>Transactions are recorded in the database; ledger signing when enabled</li>
-        <li>CC transfers use on-chain TokenBalance contracts</li>
-        <li>Transaction history is immutable on the blockchain</li>
+        <li>D1 is only accessible from Cloudflare Workers (server-side)</li>
+        <li>All writes go through API endpoints; no direct DB access from the client</li>
+        <li>Credentials and secrets live in Cloudflare env (wrangler.toml / dashboard)</li>
       </ul>
     </div>
   )
@@ -1037,172 +664,32 @@ function APIReferenceContent() {
     <div className="doc-section">
       <h1>API Reference</h1>
       
-      <h2>Account</h2>
-      <p>Account creation and sign-in are handled via the web app (Create account / Sign in). Account data is persisted via <code>POST /api/account</code> and <code>GET /api/account?accountId=...</code>.</p>
+      <h2>Account &amp; Auth</h2>
+      <p>Registration and sign-in: <code>POST /api/register</code>, <code>POST /api/sign-in</code>. Account data: <code>POST /api/account</code>, <code>GET /api/account?accountId=...</code>.</p>
 
-      <h2>Deposit/Withdraw Endpoints</h2>
-      
-      <h3>POST /api/deposit</h3>
-      <p>Deposit CC to platform wallet (on-chain transfer).</p>
-      <p><strong>Headers:</strong> Authorization: Bearer {'{token}'}</p>
-      <p><strong>Request:</strong></p>
-      <pre>{`{
-  "amount": number,
-  "userParty": "string",
-  "userTokenBalanceContractId": "string"
-}`}</pre>
+      <h2>Stripe</h2>
+      <h3>POST /api/stripe-create-checkout-session</h3>
+      <p>Create a Stripe Checkout session. Body: <code>{`{ userParty, amount }`}</code> (custom amount in PP) or <code>{`{ userParty, priceId }`}</code> (Stripe Price ID for $5–$100 products). Optional: <code>successUrl</code>, <code>cancelUrl</code>. Returns <code>{ url, sessionId }</code>.</p>
+      <h3>POST /api/stripe-webhook</h3>
+      <p>Stripe webhook endpoint. Handles <code>checkout.session.completed</code> and credits Pips to <code>client_reference_id</code> (userParty). Requires <code>STRIPE_WEBHOOK_SECRET</code> for signature verification.</p>
 
-      <h3>POST /api/withdraw</h3>
-      <p>Withdraw CC from platform wallet (on-chain transfer).</p>
-      <p><strong>Headers:</strong> Authorization: Bearer {'{token}'}</p>
-      <p><strong>Request:</strong></p>
-      <pre>{`{
-  "amount": number,
-  "userParty": "string",
-  "platformTokenBalanceContractId": "string"
-}`}</pre>
+      <h2>Balance</h2>
+      <h3>POST /api/get-user-balance</h3>
+      <p>Get Pips balance. Body: <code>{`{ userParty }`}</code>. Returns <code>{ balance }</code>.</p>
+      <h3>POST /api/add-credits</h3>
+      <p>Add Pips (testing/internal). Body: <code>{`{ userParty or accountId, amount }`}</code>.</p>
 
-      <h2>Position Endpoints</h2>
-      
-      <h3>POST /api/create-position</h3>
-      <p>Create a position on a market (database-only).</p>
-      <p><strong>Request:</strong></p>
-      <pre>{`{
-  "marketId": "string",
-  "positionType": "string",
-  "amount": number,
-  "price": number,
-  "owner": "string"
-}`}</pre>
-      <p><strong>Response:</strong></p>
-      <pre>{`{
-  "success": true,
-  "position": {...},
-  "market": {...},
-  "volumes": {
-    "totalVolume": number,
-    "yesVolume": number,
-    "noVolume": number,
-    "outcomeVolumes": {...}
-  }
-}`}</pre>
+      <h2>Markets &amp; Trading</h2>
+      <p><code>GET /api/markets</code>, <code>GET /api/pools</code>, <code>POST /api/trade</code> — markets, pool state, and placing trades. Positions and resolution use the same API surface.</p>
 
-      <h2>Contract Endpoints</h2>
-      
-      <h3>POST /api/get-contracts</h3>
-      <p>Get contracts from database.</p>
-      <p><strong>Query Parameters:</strong></p>
-      <ul>
-        <li><code>party</code> - Filter by party</li>
-        <li><code>templateType</code> - Filter by template type</li>
-        <li><code>status</code> - Filter by status</li>
-        <li><code>limit</code> - Limit results</li>
-      </ul>
+      <h2>Deposits &amp; withdrawals</h2>
+      <p><code>GET /api/deposit-records?userParty=...</code> — list deposit history (crypto/card). <code>POST /api/deposit-crypto</code> — credit Pips (requires <code>X-Deposit-Crypto-Secret</code> when <code>DEPOSIT_CRYPTO_SECRET</code> is set; idempotent by <code>txHash</code>). <code>POST /api/withdraw-request</code> — submit withdrawal (EVM address required). <code>GET /api/withdrawal-requests?userParty=...</code> — list requests.</p>
 
-      <h3>POST /api/store-contract</h3>
-      <p>Store contract in database.</p>
-      <p><strong>Request:</strong></p>
-      <pre>{`{
-  "contractId": "string",
-  "templateId": "string",
-  "payload": {...},
-  "party": "string",
-  "updateId": "string",
-  "completionOffset": "string",
-  "explorerUrl": "string",
-  "status": "string"
-}`}</pre>
+      <h2>Oracles &amp; Health</h2>
+      <p><code>GET /api/oracle?symbol=</code> — RedStone price data. <code>GET /api/health</code> — health check.</p>
 
-      <h3>PUT /api/update-contract-status</h3>
-      <p>Update contract status in database.</p>
-      <p><strong>Request:</strong></p>
-      <pre>{`{
-  "contractId": "string",
-  "updateId": "string",
-  "status": "string"
-}`}</pre>
-
-      <h2>Oracle Endpoints</h2>
-      
-      <h3>GET /api/oracle</h3>
-      <p>Fetch price data from RedStone Oracle for market resolution.</p>
-      <p><strong>Query Parameters:</strong></p>
-      <ul>
-        <li><code>symbol</code> - Asset symbol (e.g., "BTC", "ETH")</li>
-      </ul>
-      <p><strong>Response:</strong></p>
-      <pre>{`{
-  "symbol": "BTC",
-  "value": 50000.00,
-  "timestamp": 1234567890,
-  "source": "redstone"
-}`}</pre>
-
-      <h2>Ledger API Proxies</h2>
-      <p>Ledger/blockchain integration may be re-enabled in a future release. The following endpoints are documented for reference.</p>
-      
-      <h3>POST /api/command</h3>
-      <p>Proxy for ledger JSON API command submission (create contracts, exercise choices).</p>
-      <p><strong>Headers:</strong> Authorization: Bearer {'{token}'} (if applicable)</p>
-      <p><strong>Request:</strong></p>
-      <pre>{`{
-  "commands": {
-    "party": "string",
-    "applicationId": "string",
-    "commandId": "string",
-    "list": [
-      {
-        "templateId": "string",
-        "payload": {...},
-        "contractId": "string",
-        "choice": "string",
-        "argument": {...}
-      }
-    ]
-  }
-}`}</pre>
-      <p><strong>Response:</strong></p>
-      <pre>{`{
-  "updateId": "string",
-  "contractId": "string",
-  "result": {...},
-  "transactionHash": "string"
-}`}</pre>
-      
-      <h3>POST /api/query</h3>
-      <p>Proxy for ledger JSON API queries (active-contracts endpoint). Note: Limited support on some ledgers - returns empty array if endpoints unavailable.</p>
-      <p><strong>Request:</strong></p>
-      <pre>{`{
-  "templateIds": ["string"],
-  "query": {},
-  "walletParty": "string"
-}`}</pre>
-      <p><strong>Response:</strong></p>
-      <pre>{`[
-  {
-    "contractId": "string",
-    "templateId": "string",
-    "payload": {...}
-  }
-]`}</pre>
-
-      <h2>Health & Diagnostics</h2>
-      
-      <h3>GET /api/health</h3>
-      <p>Check API health status.</p>
-      <p><strong>Response:</strong></p>
-      <pre><code>{`{
-  "status": "ok",
-  "timestamp": "2025-01-01T00:00:00Z"
-}`}</code></pre>
-
-      <h2>Error Responses</h2>
-      <p>All endpoints may return error responses in the format:</p>
-      <pre>{`{
-  "error": "string",
-  "message": "string",
-  "details": {...}
-}`}</pre>
+      <h2>Error responses</h2>
+      <p>Errors return JSON: <code>{`{ error, message?, details? }`}</code> with appropriate HTTP status.</p>
     </div>
   )
 }

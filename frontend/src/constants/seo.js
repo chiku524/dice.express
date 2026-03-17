@@ -1,66 +1,113 @@
 /**
- * Per-page SEO: title and meta description.
- * Used by PageSEO to set document.title and meta description on route change.
+ * Per-page SEO: title, meta description, and optional OG/Twitter overrides.
+ * Tailored to prediction markets, Pips, trading, deposit/withdraw.
  */
 const BASE_TITLE = 'dice.express'
-const BASE_DESCRIPTION = 'Trade on real-world outcomes with virtual Credits. Deposit and withdraw on your preferred chain. Your choice. Your chance.'
+const BASE_DESCRIPTION = 'Trade on prediction markets with Pips. Deposit via card or crypto, trade on sports, markets, weather & more, withdraw earnings. Peer-to-peer. Your choice. Your chance.'
 
 export const SEO_PAGES = {
   '/': {
-    title: `${BASE_TITLE} — Your choice. Your chance.`,
-    description: BASE_DESCRIPTION,
+    title: `Prediction Markets — Trade on Real-World Outcomes | ${BASE_TITLE}`,
+    description: 'Trade on prediction markets: sports, crypto, stocks, weather & more. Deposit with card or crypto, get Pips, trade peer-to-peer, withdraw earnings. No bookmaker — you vs other traders.',
+    keywords: 'prediction markets, trade outcomes, sports predictions, crypto markets, event trading, Pips, dice.express',
+  },
+  '/discover/global-events': {
+    title: `Global Events — Prediction Markets | ${BASE_TITLE}`,
+    description: 'Browse and trade prediction markets on global events. Sports, weather, news, and more. Deposit Pips via card or crypto, trade peer-to-peer.',
+    keywords: 'global events, prediction markets, event trading, sports, weather',
+  },
+  '/discover/industry': {
+    title: `Industry & Markets — Prediction Markets | ${BASE_TITLE}`,
+    description: 'Prediction markets on industry and financial outcomes. Trade on stocks, crypto, and market events with Pips. Deposit, trade, withdraw.',
+    keywords: 'industry predictions, market outcomes, stocks, crypto, financial predictions',
+  },
+  '/discover/virtual-realities': {
+    title: `Virtual Realities — Prediction Markets | ${BASE_TITLE}`,
+    description: 'Prediction markets in virtual and digital realms. Trade on outcomes with Pips. Deposit via card or crypto, peer-to-peer trading.',
+    keywords: 'virtual predictions, digital outcomes, prediction markets',
+  },
+  '/discover/user': {
+    title: `Community Markets | ${BASE_TITLE}`,
+    description: 'Explore prediction markets. Trade with Pips, deposit by card or crypto, withdraw earnings. Your choice. Your chance.',
+    keywords: 'prediction markets, community, trade outcomes',
   },
   '/market': {
-    title: `Market | ${BASE_TITLE}`,
-    description: 'View and trade on a prediction market. Your choice. Your chance.',
+    title: `Market — Trade Yes/No | ${BASE_TITLE}`,
+    description: 'View and trade on a prediction market. Buy Yes or No with Pips. Peer-to-peer order book. Deposit via card or crypto to get started.',
+    keywords: 'prediction market, trade yes no, binary market, Pips',
   },
   '/create': {
-    title: `Markets | ${BASE_TITLE}`,
-    description: 'Markets are automated. Browse and trade with the AMM.',
+    title: `How Markets Work | ${BASE_TITLE}`,
+    description: 'Markets are created automatically from real-world events (sports, weather, crypto, news). Browse and trade with Pips — no need to create a market yourself.',
+    keywords: 'prediction markets, automated markets, trade outcomes',
   },
   '/dashboard': {
-    title: `Dashboard | ${BASE_TITLE}`,
-    description: 'Your dashboard: balance, positions, and quick actions.',
+    title: `Dashboard — Balance & Positions | ${BASE_TITLE}`,
+    description: 'Your prediction market dashboard: Pips balance, open positions, and quick actions. Trade on sports, crypto, weather & more.',
+    keywords: 'dashboard, balance, positions, prediction markets',
   },
   '/profile': {
     title: `Profile | ${BASE_TITLE}`,
-    description: 'Your account profile and display name.',
+    description: 'Manage your dice.express profile and display name. Trade prediction markets with Pips.',
+    keywords: 'profile, account, dice.express',
   },
   '/portfolio': {
-    title: `Portfolio | ${BASE_TITLE}`,
-    description: 'Your positions, balance, and activity across prediction markets.',
+    title: `Portfolio — Balance, Deposit & Withdraw Pips | ${BASE_TITLE}`,
+    description: 'Manage your Pips balance: deposit with card (Stripe) or crypto, withdraw to crypto (fee applies), view positions and withdrawal history.',
+    keywords: 'portfolio, Pips balance, deposit, withdraw, prediction market funds',
   },
   '/admin': {
     title: `Admin | ${BASE_TITLE}`,
-    description: 'Admin dashboard for prediction market management.',
+    description: 'Admin dashboard for prediction market management. dice.express platform administration.',
+    keywords: 'admin, prediction markets',
   },
   '/history': {
     title: `Contract History | ${BASE_TITLE}`,
-    description: 'View contract and transaction history.',
+    description: 'View your prediction market contract and transaction history. Trades, positions, and settlements.',
+    keywords: 'history, contracts, transactions, prediction markets',
   },
   '/docs': {
-    title: `Documentation | ${BASE_TITLE}`,
-    description: 'API and platform documentation for dice.express.',
+    title: `API & Documentation | ${BASE_TITLE}`,
+    description: 'dice.express API and platform documentation. Integrate with prediction markets, Pips balance, deposits, withdrawals, and trading.',
+    keywords: 'API, documentation, prediction markets, dice.express',
   },
   '/documentation': {
-    title: `Documentation | ${BASE_TITLE}`,
-    description: 'API and platform documentation for dice.express.',
+    title: `API & Documentation | ${BASE_TITLE}`,
+    description: 'dice.express API and platform documentation. Prediction markets, Pips, trading, and deposits.',
+    keywords: 'documentation, API, prediction markets',
   },
   '/privacy': {
     title: `Privacy Policy | ${BASE_TITLE}`,
-    description: 'Privacy policy for dice.express — how we collect, use, and protect your information.',
+    description: 'Privacy policy for dice.express. How we collect, use, and protect your information when you trade prediction markets and use Pips.',
+    keywords: 'privacy policy, dice.express, prediction markets',
   },
   '/terms': {
     title: `Terms of Service | ${BASE_TITLE}`,
-    description: 'Terms of service for using the dice.express prediction markets platform.',
+    description: 'Terms of service for the dice.express prediction markets platform. Trading, Pips, deposits, and withdrawals.',
+    keywords: 'terms of service, dice.express, prediction markets',
+  },
+  '/sign-in': {
+    title: `Sign In | ${BASE_TITLE}`,
+    description: 'Sign in to your dice.express account. Trade prediction markets with Pips.',
+    keywords: 'sign in, login, dice.express',
+  },
+  '/register': {
+    title: `Create Account | ${BASE_TITLE}`,
+    description: 'Create your dice.express account. Start trading prediction markets — deposit Pips via card or crypto and trade on real-world outcomes.',
+    keywords: 'register, create account, prediction markets',
+  },
+  '/account': {
+    title: `Account | ${BASE_TITLE}`,
+    description: 'Your dice.express account. Manage your profile and trade prediction markets with Pips.',
+    keywords: 'account, dice.express',
   },
   '/test': {
-    title: `Test Contracts | ${BASE_TITLE}`,
-    description: 'Test contract and API tools.',
+    title: `Test | ${BASE_TITLE}`,
+    description: 'Test contract and API tools for dice.express.',
   },
   '/test-active-contracts': {
     title: `Active Contracts Test | ${BASE_TITLE}`,
-    description: 'Test active contracts.',
+    description: 'Test active contracts on dice.express.',
   },
 }
 
@@ -72,7 +119,8 @@ export function getSEOForPath(pathname) {
   if (exact) return exact
   if (pathname.startsWith('/market/')) return SEO_PAGES['/market']
   return {
-    title: BASE_TITLE,
+    title: `Prediction Markets | ${BASE_TITLE}`,
     description: BASE_DESCRIPTION,
+    keywords: 'prediction markets, trade outcomes, Pips, dice.express',
   }
 }

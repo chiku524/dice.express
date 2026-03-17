@@ -4,8 +4,8 @@ import { useWallet } from '../contexts/WalletContext'
 import { SkeletonMarketGrid } from './SkeletonLoader'
 import { fetchMarkets } from '../services/marketsApi'
 import { useDebounce } from '../utils/useDebounce'
-import { MARKET_CATEGORIES, PREDICTION_STYLES, MARKET_SOURCES, getSourceLabel } from '../constants/marketConfig'
-import { formatCredits } from '../constants/currency'
+import { MARKET_CATEGORIES, PREDICTION_STYLES, MARKET_SOURCES, getSourceLabel, sourceForFilter, categoryForFilter } from '../constants/marketConfig'
+import { formatPips } from '../constants/currency'
 
 export default function MarketsList({ source: sourceFromRoute }) {
   const { wallet } = useWallet()
@@ -179,15 +179,15 @@ export default function MarketsList({ source: sourceFromRoute }) {
       )
     }
     
-    // Apply source filter (global_events, industry, virtual_realities, user)
+    // Apply source filter (global_events, industry, virtual_realities, user; normalize API source for legacy markets)
     const effectiveSource = sourceFromRoute || selectedSource
     if (effectiveSource !== 'all') {
-      filtered = filtered.filter(market => (market.payload?.source ?? 'user') === effectiveSource)
+      filtered = filtered.filter(market => sourceForFilter(market.payload?.source) === effectiveSource)
     }
 
-    // Apply category filter (payload.category from Create Market)
+    // Apply category filter (normalize so automated markets show under Sports, Weather, etc.)
     if (selectedCategory !== 'all') {
-      filtered = filtered.filter(market => market.payload?.category === selectedCategory)
+      filtered = filtered.filter(market => categoryForFilter(market.payload) === selectedCategory)
     }
 
     // Apply topic filter
@@ -239,7 +239,7 @@ export default function MarketsList({ source: sourceFromRoute }) {
   const pageTitle = sourceFromRoute ? getSourceLabel(sourceFromRoute) : 'Prediction Markets'
   const pageSubtitle = sourceFromRoute
     ? `Markets from ${getSourceLabel(sourceFromRoute).toLowerCase()}. Trade with AMM-backed liquidity.`
-    : 'Discover and trade on prediction markets. Trade with virtual Credits. No crypto required.'
+    : 'Discover and trade on prediction markets. Trade with Pips. Deposit via crypto or card to get started.'
 
   if (loading) {
     return (
@@ -576,7 +576,7 @@ export default function MarketsList({ source: sourceFromRoute }) {
         <div className="card">
           <div className="alert-warning">
             <h3>Markets API unavailable</h3>
-            <p>Could not load markets. Check your connection and that the backend (e.g. Vercel) and Supabase are configured.</p>
+            <p>Could not load markets. Check your connection and that the API (Cloudflare) is reachable.</p>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--spacing-md)', marginTop: 'var(--spacing-md)' }}>
               <button type="button" className="btn-primary" onClick={handleRetry}>
                 Try again
@@ -649,7 +649,7 @@ export default function MarketsList({ source: sourceFromRoute }) {
                 </p>
                 <div className="mt-md" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 'auto' }}>
                   <span className="text-secondary" style={{ fontSize: 'var(--font-size-sm)' }}>
-                    Volume: {formatCredits(market.payload.totalVolume ?? 0)}
+                    Volume: {formatPips(market.payload.totalVolume ?? 0)}
                   </span>
                   <span className="text-secondary" style={{ fontSize: 'var(--font-size-sm)' }}>
                     {market.payload.marketType === 'Binary' ? (PREDICTION_STYLES.find(s => s.value === market.payload?.styleLabel)?.label || 'Binary') : 'Multi-Outcome'}
