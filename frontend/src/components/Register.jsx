@@ -99,11 +99,25 @@ export default function Register() {
 
   return (
     <div className="auth-page">
-      <div className="auth-card auth-wizard">
-        <h1 className="auth-title">Create account</h1>
-        <p className="auth-subtitle">Set up your {BRAND_NAME} account in a few steps.</p>
+      <div className="auth-brand-panel">
+        <div className="auth-brand-content">
+          <h2 className="auth-brand-title">Join {BRAND_NAME}</h2>
+          <p className="auth-brand-tagline">
+            Create an account in a few steps. Trade on prediction markets with Pips — deposit with card or crypto.
+          </p>
+          <ul className="auth-brand-features">
+            <li>One account for all your trading</li>
+            <li>Fund with card (Stripe) or crypto</li>
+            <li>Withdraw earnings from your portfolio</li>
+          </ul>
+        </div>
+      </div>
+      <div className="auth-form-panel">
+        <div className="auth-card auth-wizard">
+          <h1 className="auth-title">Create account</h1>
+          <p className="auth-subtitle">Set up your {BRAND_NAME} account in a few steps.</p>
 
-        <div className="wizard-progress-bar" role="progressbar" aria-valuenow={step} aria-valuemin={1} aria-valuemax={3} aria-label={`Step ${step} of 3`}>
+          <div className="wizard-progress-bar" role="progressbar" aria-valuenow={step} aria-valuemin={1} aria-valuemax={3} aria-label={`Step ${step} of 3`}>
           {STEPS.map((s, i) => (
             <span key={s.id} className={`wizard-step ${step >= s.id ? 'active' : ''}`}>
               <span className="wizard-step-dot" />
@@ -259,9 +273,10 @@ export default function Register() {
           </div>
         )}
 
-        <p className="auth-footer">
-          Already have an account? <Link to="/sign-in">Sign in</Link>
-        </p>
+          <p className="auth-footer">
+            Already have an account? <Link to="/sign-in">Sign in</Link>
+          </p>
+        </div>
       </div>
     </div>
   )

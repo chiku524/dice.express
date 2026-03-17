@@ -1,3 +1,8 @@
+/**
+ * Navbar redesign — keep .logo / .logo-name / .logo-tagline in App.css for brand.
+ * This file styles nav dropdowns, wallet area, and CTAs only.
+ */
+
 .nav-dropdown {
   position: relative;
   display: inline-block;
@@ -7,39 +12,37 @@
 .nav-dropdown-toggle {
   display: inline-flex;
   align-items: center;
-  gap: var(--spacing-xs, 0.25rem);
-  padding: var(--spacing-sm, 0.5rem) var(--spacing-md, 0.75rem);
+  gap: var(--spacing-xs);
+  padding: 10px 16px;
   min-height: 44px;
-  background: var(--color-primary-light);
-  border: 1px solid var(--color-primary-border);
-  border-radius: var(--radius-md, 6px);
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
   color: var(--color-text-primary);
-  font-size: var(--font-size-sm, 0.9rem);
-  font-weight: var(--font-weight-medium, 500);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
   cursor: pointer;
-  transition: all var(--transition-base, 0.2s ease);
+  transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease;
   white-space: nowrap;
   line-height: 1.2;
 }
 
 .nav-dropdown-toggle:hover {
-  background: rgba(139, 92, 246, 0.22);
-  border-color: var(--color-primary);
-  color: var(--color-aqua);
-  transform: translateY(-1px);
-  box-shadow: 0 2px 8px rgba(139, 92, 246, 0.25);
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(139, 92, 246, 0.3);
+  color: var(--color-text-primary);
 }
 
 .nav-dropdown-toggle.active {
-  background: var(--color-teal-soft);
-  border-color: rgba(20, 184, 166, 0.4);
+  background: rgba(139, 92, 246, 0.12);
+  border-color: rgba(139, 92, 246, 0.35);
   color: var(--color-teal);
 }
 
 .dropdown-arrow {
-  font-size: 0.7rem;
-  transition: transform 0.2s;
-  opacity: 0.7;
+  font-size: 0.65rem;
+  opacity: 0.8;
+  transition: transform 0.2s ease;
 }
 
 .nav-dropdown-toggle:hover .dropdown-arrow,
@@ -49,25 +52,23 @@
 
 .nav-dropdown-menu {
   position: absolute;
-  top: calc(100% + var(--spacing-sm, 0.5rem));
+  top: calc(100% + var(--spacing-sm));
   left: 0;
-  background: var(--color-navy-light);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(34, 211, 238, 0.2);
-  border-radius: var(--radius-lg, 8px);
-  padding: var(--spacing-xs, 0.25rem) 0;
-  min-width: 180px;
-  box-shadow: var(--shadow-lg);
+  background: rgba(15, 23, 42, 0.98);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 14px;
+  padding: var(--spacing-xs) 0;
+  min-width: 200px;
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.4);
   z-index: 10001;
-  animation: slideDown var(--transition-base, 0.2s ease-out);
-  pointer-events: auto;
+  animation: navSlideDown 0.2s ease-out;
 }
 
-@keyframes slideDown {
+@keyframes navSlideDown {
   from {
     opacity: 0;
-    transform: translateY(-10px);
+    transform: translateY(-8px);
   }
   to {
     opacity: 1;
@@ -77,51 +78,45 @@
 
 .nav-dropdown-menu a {
   display: block;
-  padding: var(--spacing-sm, 0.5rem) var(--spacing-lg, 1.25rem);
-  color: var(--color-text-primary, rgba(255, 255, 255, 0.87));
+  padding: 12px 20px;
+  color: var(--color-text-secondary);
   text-decoration: none;
-  font-size: var(--font-size-sm, 0.9rem);
-  transition: all var(--transition-base, 0.2s ease);
-  border-radius: var(--radius-sm, 4px);
-  margin: var(--spacing-xs, 0.125rem) var(--spacing-xs, 0.25rem);
-  pointer-events: auto;
-  cursor: pointer;
-  position: relative;
-  z-index: 10001;
+  font-size: var(--font-size-sm);
+  transition: background 0.15s ease, color 0.15s ease;
+  border-radius: 0;
+  margin: 0 var(--spacing-xs);
+  border-radius: 8px;
 }
 
 .nav-dropdown-menu a:hover {
-  background: var(--color-aqua-soft);
-  color: var(--color-aqua);
-  transform: translateX(4px);
+  background: rgba(139, 92, 246, 0.1);
+  color: var(--color-teal);
 }
 
 .nav-dropdown-menu a.active {
-  background: var(--color-teal-soft);
+  background: rgba(20, 184, 166, 0.12);
   color: var(--color-teal);
-  font-weight: var(--font-weight-semibold, 600);
+  font-weight: var(--font-weight-semibold);
 }
 
 .nav-dropdown-divider {
   height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(34, 211, 238, 0.25), transparent);
-  margin: var(--spacing-xs, 0.25rem) var(--spacing-lg, 1.25rem);
-  pointer-events: none;
+  background: rgba(255, 255, 255, 0.08);
+  margin: var(--spacing-xs) var(--spacing-md);
 }
 
 .btn-connect {
-  padding: var(--spacing-sm, 0.5rem) var(--spacing-md, 1rem);
+  padding: 10px 20px;
   min-height: 44px;
-  background: var(--color-primary);
-  border: 1px solid var(--color-primary-border);
-  border-radius: var(--radius-md, 6px);
+  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-hover) 100%);
+  border: none;
+  border-radius: 12px;
   color: #fff;
-  font-size: var(--font-size-sm, 0.9rem);
-  font-weight: var(--font-weight-medium, 500);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
   cursor: pointer;
-  transition: all var(--transition-base, 0.2s ease);
-  white-space: nowrap;
-  box-shadow: 0 2px 8px rgba(139, 92, 246, 0.3);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  box-shadow: 0 4px 14px rgba(139, 92, 246, 0.35);
   line-height: 1.2;
   display: inline-flex;
   align-items: center;
@@ -129,77 +124,96 @@
 }
 
 .btn-connect:hover:not(:disabled) {
-  background: var(--color-primary-hover);
-  border-color: var(--color-primary-border);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(139, 92, 246, 0.4);
   color: #fff;
-  transform: translateY(-1px);
-  box-shadow: 0 4px 16px rgba(139, 92, 246, 0.35);
 }
 
 .wallet-info {
   display: flex;
   align-items: center;
-  gap: var(--spacing-sm, 0.5rem);
+  gap: var(--spacing-sm);
   flex-wrap: wrap;
 }
 
 .wallet-info .nav-balance {
-  font-weight: var(--font-weight-semibold, 600);
+  font-weight: var(--font-weight-semibold);
   color: var(--color-teal);
   text-decoration: none;
-  font-size: var(--font-size-sm, 0.9rem);
-  padding: var(--spacing-sm, 0.5rem) var(--spacing-md, 0.75rem);
+  font-size: var(--font-size-sm);
+  padding: 8px 14px;
   min-height: 36px;
   display: inline-flex;
   align-items: center;
-  border-radius: var(--radius-md, 6px);
-  background: transparent;
-  border: none;
-  transition: all var(--transition-base, 0.2s ease);
+  border-radius: 10px;
+  background: rgba(20, 184, 166, 0.1);
+  border: 1px solid rgba(20, 184, 166, 0.2);
+  transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease;
 }
 
 .wallet-info .nav-balance:hover {
+  background: rgba(20, 184, 166, 0.18);
+  border-color: rgba(20, 184, 166, 0.35);
   color: var(--color-aqua);
 }
 
 .wallet-info .nav-user-name {
   color: var(--color-text-primary);
   text-decoration: none;
-  font-size: var(--font-size-sm, 0.9rem);
-  padding: var(--spacing-xs, 0.25rem) var(--spacing-sm, 0.5rem);
-  border-radius: var(--radius-sm, 4px);
-  transition: all var(--transition-base, 0.2s ease);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  padding: 8px 12px;
+  border-radius: 10px;
+  transition: background 0.2s ease, color 0.2s ease;
 }
 
 .wallet-info .nav-user-name:hover {
-  color: var(--color-aqua);
+  color: var(--color-teal);
   background: rgba(255, 255, 255, 0.06);
 }
 
 .wallet-info .nav-account-link {
   color: var(--color-text-secondary);
   text-decoration: none;
-  font-size: var(--font-size-sm, 0.9rem);
-  padding: var(--spacing-xs, 0.25rem) var(--spacing-sm, 0.5rem);
-  border-radius: var(--radius-sm, 4px);
-  transition: all var(--transition-base, 0.2s ease);
+  font-size: var(--font-size-sm);
+  padding: 8px 12px;
+  border-radius: 10px;
+  transition: background 0.2s ease, color 0.2s ease;
 }
 
 .wallet-info .nav-account-link:hover {
-  color: var(--color-aqua);
+  color: var(--color-teal);
   background: rgba(255, 255, 255, 0.06);
+}
+
+.wallet-info button {
+  padding: 8px 14px;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-muted);
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  cursor: pointer;
+  transition: border-color 0.2s ease, color 0.2s ease;
+}
+
+.wallet-info button:hover {
+  border-color: rgba(239, 68, 68, 0.4);
+  color: var(--color-error);
 }
 
 nav .nav-sign-in-link {
   color: var(--color-text-secondary);
   text-decoration: none;
-  font-size: var(--font-size-sm, 0.9rem);
-  padding: var(--spacing-sm, 0.5rem) var(--spacing-md, 0.75rem);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  padding: 10px 16px;
   min-height: 36px;
   display: inline-flex;
   align-items: center;
-  border-radius: var(--radius-md, 6px);
-  transition: all var(--transition-base, 0.2s ease);
+  border-radius: 12px;
+  transition: background 0.2s ease, color 0.2s ease;
 }
 
 nav .nav-sign-in-link:hover {
@@ -211,11 +225,11 @@ nav .nav-sign-in-link:hover {
   .nav-dropdown-menu {
     right: 0;
     left: auto;
+    min-width: 180px;
   }
-  
+
   .nav-dropdown-toggle {
-    font-size: 0.85rem;
-    padding: 0.4rem 0.75rem;
+    padding: 8px 12px;
+    font-size: 0.875rem;
   }
 }
-

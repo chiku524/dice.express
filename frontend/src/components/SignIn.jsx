@@ -59,8 +59,22 @@ export default function SignIn() {
 
   return (
     <div className="auth-page">
-      <div className="auth-card">
-        <h1 className="auth-title">Sign in</h1>
+      <div className="auth-brand-panel">
+        <div className="auth-brand-content">
+          <h2 className="auth-brand-title">Welcome back</h2>
+          <p className="auth-brand-tagline">
+            Sign in to access your dashboard, portfolio, and prediction markets on {BRAND_NAME}.
+          </p>
+          <ul className="auth-brand-features">
+            <li>Trade on real-world outcomes with Pips</li>
+            <li>Deposit via crypto or card, withdraw anytime</li>
+            <li>Your choice. Your chance.</li>
+          </ul>
+        </div>
+      </div>
+      <div className="auth-form-panel">
+        <div className="auth-card">
+          <h1 className="auth-title">Sign in</h1>
         <p className="auth-subtitle">Use your email and password to continue to {BRAND_NAME}.</p>
         <form onSubmit={handleSubmit} className="auth-form">
           {error && <div className="auth-error" role="alert">{error}</div>}
@@ -91,9 +105,10 @@ export default function SignIn() {
             {loading ? 'Signing in…' : 'Sign in'}
           </button>
         </form>
-        <p className="auth-footer">
-          New to {BRAND_NAME}? <Link to="/register">Create an account</Link>
-        </p>
+          <p className="auth-footer">
+            New to {BRAND_NAME}? <Link to="/register">Create an account</Link>
+          </p>
+        </div>
       </div>
     </div>
   )
