@@ -39,6 +39,29 @@
   color: var(--color-teal);
 }
 
+/* Resources — distinct color on dark navbar so neon stands out */
+.nav-dropdown-resources .nav-dropdown-toggle {
+  color: rgba(203, 213, 225, 0.95);
+}
+
+.nav-dropdown-resources .nav-dropdown-toggle:hover {
+  color: rgba(226, 232, 240, 1);
+  border-color: rgba(203, 213, 225, 0.25);
+}
+
+.nav-dropdown-resources .nav-dropdown-toggle.active {
+  color: rgba(34, 211, 238, 0.9);
+}
+
+.wallet-info .nav-disconnect-btn {
+  color: rgba(203, 213, 225, 0.9);
+}
+
+.wallet-info .nav-disconnect-btn:hover {
+  color: rgba(248, 250, 252, 1);
+  border-color: rgba(203, 213, 225, 0.3);
+}
+
 .dropdown-arrow {
   font-size: 0.65rem;
   opacity: 0.8;

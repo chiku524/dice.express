@@ -8,10 +8,10 @@
 }
 
 .app-header {
-  background: linear-gradient(135deg, rgba(15, 23, 42, 0.92) 0%, rgba(30, 41, 59, 0.9) 50%, rgba(15, 23, 42, 0.92) 100%);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
-  border-bottom: 1px solid rgba(148, 163, 184, 0.12);
+  background: linear-gradient(180deg, rgba(3, 6, 12, 0.97) 0%, rgba(8, 12, 22, 0.96) 50%, rgba(3, 6, 12, 0.97) 100%);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-bottom: 1px solid rgba(148, 163, 184, 0.1);
   padding: var(--spacing-sm, 0.5rem) 0;
   min-height: 60px;
   transition: all var(--transition-base, 0.2s ease);
@@ -25,7 +25,7 @@
   pointer-events: auto;
 }
 
-/* Navbar — subtle violet/slate tint; logo and tagline keep their colors in .logo-name / .logo-tagline */
+/* Navbar — very subtle tint so neon background stands out; logo/tagline keep .logo-name / .logo-tagline */
 .app-header::before {
   content: '';
   position: absolute;
@@ -34,9 +34,8 @@
   right: 0;
   bottom: 0;
   background:
-    radial-gradient(circle at 20% 50%, rgba(139, 92, 246, 0.06) 0%, transparent 45%),
-    radial-gradient(circle at 80% 50%, rgba(99, 102, 241, 0.04) 0%, transparent 45%),
-    radial-gradient(circle at 50% 0%, rgba(139, 92, 246, 0.03) 0%, transparent 50%);
+    radial-gradient(circle at 20% 50%, rgba(139, 92, 246, 0.03) 0%, transparent 50%),
+    radial-gradient(circle at 80% 50%, rgba(99, 102, 241, 0.02) 0%, transparent 50%);
   animation: navbarGradientShift 8s ease-in-out infinite;
   z-index: -1;
   pointer-events: none;

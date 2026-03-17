@@ -104,7 +104,7 @@ export default function Navbar({ setShowWalletModal }) {
           </div>
 
           {/* Resources / Tools */}
-          <div className="nav-dropdown" ref={resourcesMenuRef}>
+          <div className="nav-dropdown nav-dropdown-resources" ref={resourcesMenuRef}>
             <button
               className={`nav-dropdown-toggle ${isActive('/history') || isActive('/docs') || isActive('/documentation') ? 'active' : ''}`}
               onClick={() => {
@@ -139,7 +139,7 @@ export default function Navbar({ setShowWalletModal }) {
                 {wallet.party.length > 16 ? wallet.party.substring(0, 16) + '…' : wallet.party}
               </Link>
               <Link to="/account" className="nav-account-link">Account</Link>
-              <button onClick={disconnectWallet}>Disconnect</button>
+              <button type="button" className="nav-disconnect-btn" onClick={disconnectWallet}>Disconnect</button>
             </div>
           ) : (
             <>
