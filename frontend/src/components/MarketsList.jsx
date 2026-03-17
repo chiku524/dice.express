@@ -4,7 +4,7 @@ import { useWallet } from '../contexts/WalletContext'
 import { SkeletonMarketGrid } from './SkeletonLoader'
 import { fetchMarkets } from '../services/marketsApi'
 import { useDebounce } from '../utils/useDebounce'
-import { MARKET_CATEGORIES, PREDICTION_STYLES, MARKET_SOURCES, getSourceLabel, sourceForFilter, categoryForFilter } from '../constants/marketConfig'
+import { MARKET_CATEGORIES, PREDICTION_STYLES, MARKET_SOURCES, getSourceLabel, sourceForFilter, categoryForFilter, getCategoryDisplay, getApiSourceLabel } from '../constants/marketConfig'
 import { formatPips } from '../constants/currency'
 
 export default function MarketsList({ source: sourceFromRoute }) {
@@ -18,14 +18,17 @@ export default function MarketsList({ source: sourceFromRoute }) {
   
   // Filter states (when on /, allow picking source; when on /discover/:source, fix to that source)
   const [searchQuery, setSearchQuery] = useState('')
-  const [selectedCategory, setSelectedCategory] = useState('all')
+  const [selectedCategory, setSelectedCategory] = useState('trending')
   const [selectedTopic, setSelectedTopic] = useState('all')
   const [selectedType, setSelectedType] = useState('all')
   const [selectedStatus, setSelectedStatus] = useState('all')
   const [selectedSource, setSelectedSource] = useState(sourceFromRoute || 'all')
   const [sortBy, setSortBy] = useState('volume') // 'volume', 'newest', 'oldest'
+  const [currentPage, setCurrentPage] = useState(1)
   const [filtersExpanded, setFiltersExpanded] = useState(() => typeof window !== 'undefined' && window.innerWidth >= 768)
   const [retryCount, setRetryCount] = useState(0)
+
+  const MARKETS_PER_PAGE = 12
 
   // Keep selectedSource in sync with route (e.g. when navigating to /discover/industry)
   useEffect(() => {
@@ -55,11 +58,11 @@ export default function MarketsList({ source: sourceFromRoute }) {
     return Array.from(topics).sort()
   }, [markets])
   
-  // Count active filters (source from route doesn't count as "filter" when on discover/:source)
+  // Count active filters (trending/all and source from route don't count)
   const activeFilterCount = useMemo(() => {
     let count = 0
     if (debouncedSearchQuery.trim()) count++
-    if (selectedCategory !== 'all') count++
+    if (selectedCategory !== 'all' && selectedCategory !== 'trending') count++
     if (selectedTopic !== 'all') count++
     if (selectedType !== 'all') count++
     if (selectedStatus !== 'all') count++
@@ -185,8 +188,8 @@ export default function MarketsList({ source: sourceFromRoute }) {
       filtered = filtered.filter(market => sourceForFilter(market.payload?.source) === effectiveSource)
     }
 
-    // Apply category filter (normalize so automated markets show under Sports, Weather, etc.)
-    if (selectedCategory !== 'all') {
+    // Apply category filter (trending = no category filter, just sort by volume later)
+    if (selectedCategory !== 'all' && selectedCategory !== 'trending') {
       filtered = filtered.filter(market => categoryForFilter(market.payload) === selectedCategory)
     }
 
@@ -216,25 +219,38 @@ export default function MarketsList({ source: sourceFromRoute }) {
       filtered = filtered.filter(market => market.payload.status === selectedStatus)
     }
     
-    // Apply sorting
+    // Apply sorting (trending = always by volume)
+    const effectiveSort = selectedCategory === 'trending' ? 'volume' : sortBy
     filtered.sort((a, b) => {
-      if (sortBy === 'volume') {
+      if (effectiveSort === 'volume') {
         return (b.payload.totalVolume || 0) - (a.payload.totalVolume || 0)
-      } else if (sortBy === 'newest') {
-        // Sort by contractId (newer contracts typically have later IDs)
+      } else if (effectiveSort === 'newest') {
         return b.contractId.localeCompare(a.contractId)
-      } else if (sortBy === 'oldest') {
+      } else if (effectiveSort === 'oldest') {
         return a.contractId.localeCompare(b.contractId)
       }
-      // Default: status priority then volume
       const statusOrder = { Active: 0, Resolving: 1, PendingApproval: 2, Settled: 3 }
       const statusDiff = (statusOrder[a.payload.status] || 99) - (statusOrder[b.payload.status] || 99)
       if (statusDiff !== 0) return statusDiff
       return (b.payload.totalVolume || 0) - (a.payload.totalVolume || 0)
     })
-    
+
     return filtered
   }, [markets, debouncedSearchQuery, selectedCategory, selectedTopic, selectedType, selectedStatus, selectedSource, sourceFromRoute, sortBy])
+
+  // Pagination: slice to current page and reset page when results change
+  const totalFiltered = filteredAndSortedMarkets.length
+  const totalPages = Math.max(1, Math.ceil(totalFiltered / MARKETS_PER_PAGE))
+  const effectivePage = Math.min(currentPage, totalPages)
+  const paginatedMarkets = useMemo(() => {
+    const start = (effectivePage - 1) * MARKETS_PER_PAGE
+    return filteredAndSortedMarkets.slice(start, start + MARKETS_PER_PAGE)
+  }, [filteredAndSortedMarkets, effectivePage])
+
+  // Reset to page 1 when filters or sort change
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [debouncedSearchQuery, selectedCategory, selectedTopic, selectedType, selectedStatus, selectedSource, sortBy])
 
   const pageTitle = sourceFromRoute ? getSourceLabel(sourceFromRoute) : 'Prediction Markets'
   const pageSubtitle = sourceFromRoute
@@ -363,6 +379,7 @@ export default function MarketsList({ source: sourceFromRoute }) {
                 onChange={(e) => setSelectedCategory(e.target.value)}
                 className="filter-select"
               >
+                <option value="trending">Trending</option>
                 <option value="all">All Categories</option>
                 {MARKET_CATEGORIES.map(c => (
                   <option key={c.value} value={c.value}>{c.label}</option>
@@ -453,12 +470,12 @@ export default function MarketsList({ source: sourceFromRoute }) {
                       </button>
                     </span>
                   )}
-                  {selectedCategory !== 'all' && (
+                  {selectedCategory !== 'all' && selectedCategory !== 'trending' && (
                     <span className="filter-chip">
                       Category: {selectedCategory}
                       <button
                         type="button"
-                        onClick={() => setSelectedCategory('all')}
+                        onClick={() => setSelectedCategory('trending')}
                         className="filter-chip-remove"
                         aria-label="Remove category filter"
                       >
@@ -523,7 +540,7 @@ export default function MarketsList({ source: sourceFromRoute }) {
                     className="filter-chip-clear-all"
                     onClick={() => {
                       setSearchQuery('')
-                      setSelectedCategory('all')
+                      setSelectedCategory('trending')
                       setSelectedTopic('all')
                       setSelectedType('all')
                       setSelectedStatus('all')
@@ -544,7 +561,7 @@ export default function MarketsList({ source: sourceFromRoute }) {
                     className="btn-secondary btn-clear-filters"
                     onClick={() => {
                       setSearchQuery('')
-                      setSelectedCategory('all')
+                      setSelectedCategory('trending')
                       setSelectedTopic('all')
                       setSelectedType('all')
                       setSelectedStatus('all')
@@ -562,7 +579,9 @@ export default function MarketsList({ source: sourceFromRoute }) {
           {/* Results Count */}
           <div className="filter-results">
             <span className="filter-results-text">
-              Showing <strong>{filteredAndSortedMarkets.length}</strong> of <strong>{markets.length}</strong> markets
+              {totalFiltered === 0
+                ? 'No markets match.'
+                : <>Showing <strong>{(effectivePage - 1) * MARKETS_PER_PAGE + 1}</strong>–<strong>{Math.min(effectivePage * MARKETS_PER_PAGE, totalFiltered)}</strong> of <strong>{totalFiltered}</strong> markets{totalFiltered !== markets.length && ` (of ${markets.length} total)`}</>}
             </span>
             {activeFilterCount > 0 && filteredAndSortedMarkets.length === 0 && (
               <span className="filter-no-results">
@@ -605,7 +624,7 @@ export default function MarketsList({ source: sourceFromRoute }) {
                   className="btn-primary mt-md"
                   onClick={() => {
                     setSearchQuery('')
-                    setSelectedCategory('all')
+                    setSelectedCategory('trending')
                     setSelectedTopic('all')
                     setSelectedType('all')
                     setSelectedStatus('all')
@@ -618,47 +637,72 @@ export default function MarketsList({ source: sourceFromRoute }) {
               </div>
             </div>
           ) : (
-            <div className="market-grid">
-              {filteredAndSortedMarkets.map((market) => (
-            <Link
-              key={market.contractId}
-              to={`/market/${market.payload.marketId}`}
-              style={{ textDecoration: 'none' }}
-            >
-              <div className="market-card">
-                <div>
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--spacing-xs)', marginBottom: 'var(--spacing-sm)' }}>
-                    {market.payload?.category && (
-                      <span className="filter-chip" style={{ margin: 0, padding: '2px 6px', fontSize: 'var(--font-size-xs)' }}>
-                        {market.payload.category}
-                      </span>
-                    )}
-                    {market.payload?.styleLabel && (
-                      <span className="status-badge status-pending" style={{ fontSize: 'var(--font-size-xs)' }}>
-                        {PREDICTION_STYLES.find(s => s.value === market.payload.styleLabel)?.label || market.payload.styleLabel}
-                      </span>
-                    )}
-                  </div>
-                  <h3>{market.payload.title}</h3>
-                  <span className={`status ${getStatusClass(market.payload.status)}`}>
-                    {market.payload.status}
-                  </span>
-                </div>
-                <p className="mt-md">
-                  {market.payload.description?.substring(0, 100) || ''}...
-                </p>
-                <div className="mt-md" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 'auto' }}>
-                  <span className="text-secondary" style={{ fontSize: 'var(--font-size-sm)' }}>
-                    Volume: {formatPips(market.payload.totalVolume ?? 0)}
-                  </span>
-                  <span className="text-secondary" style={{ fontSize: 'var(--font-size-sm)' }}>
-                    {market.payload.marketType === 'Binary' ? (PREDICTION_STYLES.find(s => s.value === market.payload?.styleLabel)?.label || 'Binary') : 'Multi-Outcome'}
-                  </span>
-                </div>
+            <>
+              <div className="market-grid">
+                {paginatedMarkets.map((market) => (
+                  <Link
+                    key={market.contractId}
+                    to={`/market/${market.payload.marketId}`}
+                    style={{ textDecoration: 'none' }}
+                  >
+                    <div className="market-card">
+                      <div>
+                        <div className="market-card-tags">
+                          <span className="market-card-tag market-card-tag-category">
+                            {getCategoryDisplay(market.payload)}
+                          </span>
+                          <span className="market-card-tag market-card-tag-api">
+                            {getApiSourceLabel(market.payload)}
+                          </span>
+                        </div>
+                        <h3>{market.payload.title}</h3>
+                        <span className={`status ${getStatusClass(market.payload.status)}`}>
+                          {market.payload.status}
+                        </span>
+                      </div>
+                      <p className="mt-md">
+                        {market.payload.description?.substring(0, 100) || ''}...
+                      </p>
+                      <div className="mt-md" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 'auto' }}>
+                        <span className="text-secondary" style={{ fontSize: 'var(--font-size-sm)' }}>
+                          Volume: {formatPips(market.payload.totalVolume ?? 0)}
+                        </span>
+                        <span className="text-secondary" style={{ fontSize: 'var(--font-size-sm)' }}>
+                          {market.payload.marketType === 'Binary' ? (PREDICTION_STYLES.find(s => s.value === market.payload?.styleLabel)?.label || 'Binary') : 'Multi-Outcome'}
+                        </span>
+                      </div>
+                    </div>
+                  </Link>
+                ))}
               </div>
-            </Link>
-          ))}
-            </div>
+              {totalPages > 1 && (
+                <nav className="pagination" aria-label="Markets pagination">
+                  <div className="pagination-inner">
+                    <button
+                      type="button"
+                      className="btn-secondary pagination-btn"
+                      onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                      disabled={effectivePage === 1}
+                      aria-label="Previous page"
+                    >
+                      Previous
+                    </button>
+                    <span className="pagination-info">
+                      Page <strong>{effectivePage}</strong> of <strong>{totalPages}</strong>
+                    </span>
+                    <button
+                      type="button"
+                      className="btn-secondary pagination-btn"
+                      onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                      disabled={effectivePage === totalPages}
+                      aria-label="Next page"
+                    >
+                      Next
+                    </button>
+                  </div>
+                </nav>
+              )}
+            </>
           )}
         </>
       )}

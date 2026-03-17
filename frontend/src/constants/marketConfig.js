@@ -52,6 +52,20 @@ const API_SOURCE_TO_CATEGORY = {
   newsapi_ai: 'News',
 }
 
+/** Map API source to short label for card tag (e.g. "The Odds API", "User-Created"). */
+const API_SOURCE_TO_LABEL = {
+  the_odds_api: 'The Odds API',
+  alpha_vantage: 'Alpha Vantage',
+  alpha_vantage_trend: 'Alpha Vantage',
+  coingecko: 'CoinGecko',
+  coingecko_trend: 'CoinGecko',
+  openweathermap: 'OpenWeatherMap',
+  weatherapi: 'Weather API',
+  gnews: 'GNews',
+  perigon: 'Perigon',
+  newsapi_ai: 'NewsAPI',
+}
+
 /** Normalize payload.source for filtering (so both new display source and legacy API source work). */
 export function sourceForFilter(payloadSource) {
   if (!payloadSource) return 'user'
@@ -66,6 +80,18 @@ export function categoryForFilter(payload) {
   if (cat && MARKET_CATEGORIES.some(c => c.value === cat)) return cat
   if (src && API_SOURCE_TO_CATEGORY[src]) return API_SOURCE_TO_CATEGORY[src]
   return cat || 'Other'
+}
+
+/** Display category for card tag (consistent with filter). */
+export function getCategoryDisplay(payload) {
+  return categoryForFilter(payload)
+}
+
+/** API/source label for card tag (e.g. "The Odds API", "User-Created"). */
+export function getApiSourceLabel(payload) {
+  const src = payload?.source
+  if (!src) return 'User-Created'
+  return API_SOURCE_TO_LABEL[src] || getSourceLabel(sourceForFilter(src))
 }
 
 export function getSourceLabel(value) {
