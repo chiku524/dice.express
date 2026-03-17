@@ -7,9 +7,10 @@ import { fetchMarkets, fetchPool, executeTrade } from '../services/marketsApi'
 import { fetchOpenOrders, placeOrder } from '../services/ordersApi'
 import MarketResolution from './MarketResolution'
 import { formatPips, PLATFORM_CURRENCY_SYMBOL } from '../constants/currency'
-import { PREDICTION_STYLES } from '../constants/marketConfig'
+import { PREDICTION_STYLES, getCategoryDisplay, getApiSourceLabel } from '../constants/marketConfig'
 import { getQuote, isTradeWithinLimit, yesProbability } from '../utils/ammQuote'
 import { getSEOForPath } from '../constants/seo'
+import './MarketDetail.css'
 
 export default function MarketDetail() {
   const { marketId } = useParams()
@@ -20,10 +21,6 @@ export default function MarketDetail() {
   const [market, setMarket] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
-  const [positionAmount, setPositionAmount] = useState('')
-  const [positionType, setPositionType] = useState('Yes')
-  const [positionPrice, setPositionPrice] = useState('0.5')
-  const [positionLoading, setPositionLoading] = useState(false)
   const [pool, setPool] = useState(null)
   const [tradeSide, setTradeSide] = useState('Yes')
   const [tradeAmount, setTradeAmount] = useState('')
@@ -35,19 +32,6 @@ export default function MarketDetail() {
   const [orderAmount, setOrderAmount] = useState('')
   const [orderPrice, setOrderPrice] = useState('0.5')
   const [orderLoading, setOrderLoading] = useState(false)
-
-  useEffect(() => {
-    if (market?.payload) {
-      const marketData = market.payload
-      if (marketData.marketType === 'MultiOutcome' && marketData.outcomes?.length > 0) {
-        setPositionType(marketData.outcomes[0])
-      } else if (marketData.outcomes?.length >= 2) {
-        setPositionType(marketData.outcomes[0])
-      } else {
-        setPositionType('Yes')
-      }
-    }
-  }, [market])
 
   // SEO: set page title to market title when viewing a specific market
   useEffect(() => {
@@ -187,89 +171,6 @@ export default function MarketDetail() {
     }
   }
 
-  const handleCreatePosition = async () => {
-    if (!wallet) {
-      showToast('Sign in to create a position', 'error')
-      openAccountModal()
-      return
-    }
-
-    if (!positionAmount || parseFloat(positionAmount) <= 0) {
-      showToast('Please enter a valid amount', 'error')
-      return
-    }
-
-    if (!positionPrice || parseFloat(positionPrice) < 0 || parseFloat(positionPrice) > 1) {
-      showToast('Please enter a valid price between 0.0 and 1.0', 'error')
-      return
-    }
-
-    if (!market?.payload?.marketId) {
-      showToast('Market not found. Please refresh the page.', 'error')
-      return
-    }
-
-    setPositionLoading(true)
-    try {
-      console.log('[MarketDetail] Creating position:', {
-        marketId: market.payload.marketId,
-        positionType,
-        amount: positionAmount,
-        price: positionPrice,
-        owner: wallet.party
-      })
-
-      // Call API to create position in database
-      const response = await fetch('/api/create-position', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          marketId: market.payload.marketId,
-          positionType,
-          amount: positionAmount,
-          price: positionPrice,
-          owner: wallet.party
-        })
-      })
-
-      if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.message || errorData.error || 'Failed to create position')
-      }
-
-      const result = await response.json()
-      console.log('[MarketDetail] ✅ Position created successfully:', result)
-
-      // Update market data with new volumes
-      if (result.market && result.market.payload) {
-        setMarket({
-          ...market,
-          payload: {
-            ...market.payload,
-            totalVolume: result.volumes.totalVolume.toString(),
-            yesVolume: result.volumes.yesVolume.toString(),
-            noVolume: result.volumes.noVolume.toString(),
-            outcomeVolumes: result.volumes.outcomeVolumes
-          }
-        })
-      }
-
-      // Reset form
-      setPositionAmount('')
-      setPositionPrice('0.5')
-
-      showToast('Position created successfully', 'success')
-      navigate('/')
-    } catch (err) {
-      console.error('[MarketDetail] Error creating position:', err)
-      showToast(err.message || 'Failed to create position', 'error')
-    } finally {
-      setPositionLoading(false)
-    }
-  }
-
   if (loading) {
     return (
       <div className="loading">
@@ -304,293 +205,223 @@ export default function MarketDetail() {
   }
 
   const marketData = market.payload
-
   const title = marketData.title || 'Market'
   const breadcrumbTitle = title.length > 50 ? title.slice(0, 47) + '…' : title
+  const categoryLabel = getCategoryDisplay(marketData)
+  const apiLabel = getApiSourceLabel(marketData)
+  const marketTypeLabel = marketData.marketType === 'Binary'
+    ? (PREDICTION_STYLES.find(s => s.value === marketData.styleLabel)?.label || 'Binary')
+    : 'Multi-Outcome'
+  const isActiveBinary = marketData.status === 'Active' && marketData.marketType === 'Binary' && pool
 
   return (
-    <div>
-      <nav className="breadcrumb mb-lg" aria-label="Breadcrumb" style={{ fontSize: 'var(--font-size-sm)', color: 'var(--color-text-secondary)' }}>
-        <Link to="/" style={{ color: 'inherit', textDecoration: 'none' }}>Markets</Link>
-        <span style={{ margin: '0 var(--spacing-sm)' }} aria-hidden>→</span>
+    <div className="market-detail">
+      <nav className="market-detail-breadcrumb" aria-label="Breadcrumb">
+        <Link to="/">Markets</Link>
+        <span className="market-detail-breadcrumb-sep" aria-hidden>→</span>
         <span title={title}>{breadcrumbTitle}</span>
       </nav>
 
-      <div className="card">
-        {(marketData.category || marketData.styleLabel) && (
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--spacing-sm)', marginBottom: 'var(--spacing-md)' }}>
-            {marketData.category && (
-              <span className="filter-chip" style={{ margin: 0 }}>{marketData.category}</span>
-            )}
-            {marketData.styleLabel && (
-              <span className="status-badge status-pending">
-                {PREDICTION_STYLES.find(s => s.value === marketData.styleLabel)?.label || marketData.styleLabel}
-              </span>
-            )}
+      <div className="market-detail-layout">
+        {/* Left: market info — compact */}
+        <div className="market-detail-info card">
+          <div className="market-detail-tags">
+            <span className="market-detail-tag market-detail-tag-category">{categoryLabel}</span>
+            <span className="market-detail-tag market-detail-tag-api">{apiLabel}</span>
+            <span className="market-detail-tag market-detail-tag-type">{marketTypeLabel}</span>
           </div>
-        )}
-        <h1>{marketData.title}</h1>
-        <span className={`status status-${marketData.status?.toLowerCase() || 'active'}`}>
-          {marketData.status}
-        </span>
-        <p className="mt-md">{marketData.description}</p>
+          <h1 className="market-detail-title">{marketData.title}</h1>
+          <span className={`status status-${marketData.status?.toLowerCase() || 'active'}`}>
+            {marketData.status}
+          </span>
+          <p className="market-detail-desc">{marketData.description}</p>
 
-        {marketData.marketType === 'Binary' && pool && (
-          <div className="mt-lg" style={{ display: 'flex', gap: 'var(--spacing-lg)', flexWrap: 'wrap', alignItems: 'center' }}>
-            <span className="status-badge status-active">
-              Yes {(yesProbability(pool) * 100).toFixed(0)}%
-            </span>
-            <span className="status-badge status-pending">
-              No {(100 - yesProbability(pool) * 100).toFixed(0)}%
-            </span>
-            <span className="text-secondary" style={{ fontSize: 'var(--font-size-sm)' }}>
-              (from pool)
-            </span>
-          </div>
-        )}
-
-        <div className="grid-auto-fit-md mt-xl">
-          <div>
-            <h3>Total Volume</h3>
-            <p className="volume-display">{formatPips(marketData.totalVolume ?? 0)}</p>
-          </div>
-          {marketData.marketType === 'Binary' && (
-            <>
-              <div>
-                <h3>{marketData.outcomes?.[0] || 'Yes'} Volume</h3>
-                <p className="volume-display">{formatPips(marketData.yesVolume ?? 0)}</p>
-              </div>
-              <div>
-                <h3>{marketData.outcomes?.[1] || 'No'} Volume</h3>
-                <p className="volume-display">{formatPips(marketData.noVolume ?? 0)}</p>
-              </div>
-            </>
+          {marketData.marketType === 'Binary' && pool && (
+            <div className="market-detail-odds">
+              <span className="status-badge status-active">Yes {(yesProbability(pool) * 100).toFixed(0)}%</span>
+              <span className="status-badge status-pending">No {(100 - yesProbability(pool) * 100).toFixed(0)}%</span>
+            </div>
           )}
+
+          <div className="market-detail-volumes">
+            <div className="market-detail-volume-item">
+              <span className="market-detail-volume-label">Total volume</span>
+              <span className="volume-display">{formatPips(marketData.totalVolume ?? 0)}</span>
+            </div>
+            {marketData.marketType === 'Binary' && (
+              <>
+                <div className="market-detail-volume-item">
+                  <span className="market-detail-volume-label">{marketData.outcomes?.[0] || 'Yes'}</span>
+                  <span className="volume-display">{formatPips(marketData.yesVolume ?? 0)}</span>
+                </div>
+                <div className="market-detail-volume-item">
+                  <span className="market-detail-volume-label">{marketData.outcomes?.[1] || 'No'}</span>
+                  <span className="volume-display">{formatPips(marketData.noVolume ?? 0)}</span>
+                </div>
+              </>
+            )}
+          </div>
           {marketData.marketType === 'MultiOutcome' && marketData.outcomeVolumes && Object.keys(marketData.outcomeVolumes).length > 0 && (
-            <div style={{ gridColumn: '1 / -1' }}>
-              <h3>Outcome Volumes</h3>
-              <div className="grid-auto-fit-xs mt-sm">
+            <div className="market-detail-outcome-volumes">
+              <span className="market-detail-volume-label">Outcome volumes</span>
+              <div className="market-detail-outcome-list">
                 {Object.entries(marketData.outcomeVolumes).map(([outcome, volume]) => (
-                  <div key={outcome} className="outcome-item">
-                    <strong>{outcome}:</strong> {formatPips(volume)}
-                  </div>
+                  <span key={outcome} className="outcome-item">{outcome}: {formatPips(volume)}</span>
                 ))}
               </div>
             </div>
           )}
         </div>
-      </div>
 
-      {/* AMM Trade (binary markets only) */}
-      {marketData.status === 'Active' && marketData.marketType === 'Binary' && pool && (
-        <div className="card mt-xl">
-          <h2>Trade</h2>
-          <p className="text-secondary mt-sm" style={{ fontSize: 'var(--font-size-sm)' }}>
-            Spend Pips to buy Yes or No shares at the current AMM price. 0.3% fee.
-          </p>
-          <div className="form-group mt-md">
-            <label>Side</label>
-            <div style={{ display: 'flex', gap: 'var(--spacing-sm)' }}>
-              <button
-                type="button"
-                className={tradeSide === 'Yes' ? 'btn-primary' : 'btn-secondary'}
-                onClick={() => setTradeSide('Yes')}
-              >
-                Buy Yes
-              </button>
-              <button
-                type="button"
-                className={tradeSide === 'No' ? 'btn-primary' : 'btn-secondary'}
-                onClick={() => setTradeSide('No')}
-              >
-                Buy No
-              </button>
-            </div>
-          </div>
-          <div className="form-group">
-            <label>Amount ({PLATFORM_CURRENCY_SYMBOL})</label>
-            <input
-              type="number"
-              value={tradeAmount}
-              onChange={(e) => setTradeAmount(e.target.value)}
-              placeholder="0"
-              min="0"
-              step="0.01"
-            />
-          </div>
-          {tradeAmount && parseFloat(tradeAmount) > 0 && pool && (() => {
-            const { outputAmount, feeAmount } = getQuote(
-              { yesReserve: pool.yesReserve ?? 0, noReserve: pool.noReserve ?? 0, feeRate: pool.feeRate ?? 0.003 },
-              tradeSide,
-              parseFloat(tradeAmount)
-            )
-            const withinLimit = isTradeWithinLimit(
-              { yesReserve: pool.yesReserve ?? 0, noReserve: pool.noReserve ?? 0, maxTradeReserveFraction: pool.maxTradeReserveFraction ?? 0.1 },
-              tradeSide,
-              outputAmount
-            )
-            return (
-              <div className="alert-info mb-md">
-                <p style={{ margin: 0 }}>
-                  You pay {formatPips(tradeAmount)} → receive ~{outputAmount.toFixed(2)} {tradeSide} shares
-                  {feeAmount > 0 && ` (fee ${formatPips(feeAmount)})`}.
-                </p>
-                {!withinLimit && (
-                  <p style={{ margin: '0.5rem 0 0', color: 'var(--color-warning)' }}>
-                    This trade exceeds the per-trade limit. Use a smaller amount.
-                  </p>
-                )}
-              </div>
-            )
-          })()}
-          <button
-            className="btn-primary"
-            onClick={handleTrade}
-            disabled={tradeLoading || !tradeAmount || parseFloat(tradeAmount) <= 0}
-          >
-            {tradeLoading ? 'Trading…' : 'Confirm trade'}
-          </button>
-        </div>
-      )}
-
-      {/* Market Resolution Component (for admins) */}
-      {marketData.status === 'Active' && wallet?.party === 'Admin' && (
-        <MarketResolution market={market} onResolved={() => window.location.reload()} />
-      )}
-
-      {marketData.status === 'Active' && (
-        <div className="card mt-xl">
-          <h2>Create Position (manual price)</h2>
-          <div className="alert-info mb-md">
-            <strong>Note:</strong> Amounts are in Pips. Positions are stored in the database and market volumes are updated immediately.
-          </div>
-          <div className="form-group">
-            <label>Position Type</label>
-            <select
-              value={positionType}
-              onChange={(e) => setPositionType(e.target.value)}
-            >
-              {marketData.marketType === 'MultiOutcome' && marketData.outcomes && marketData.outcomes.length > 0 ? (
-                marketData.outcomes.map((outcome, index) => (
-                  <option key={index} value={outcome}>{outcome}</option>
-                ))
-              ) : (
-                // Binary: use market outcomes if set (True/False, Happens/Doesn't), else Yes/No
-                (marketData.outcomes && marketData.outcomes.length >= 2)
-                  ? marketData.outcomes.map((outcome, index) => (
-                      <option key={index} value={outcome}>{outcome}</option>
-                    ))
-                  : (
-                    <>
-                      <option value="Yes">Yes</option>
-                      <option value="No">No</option>
-                    </>
-                  )
-              )}
-            </select>
-          </div>
-          <div className="form-group">
-            <label>Amount</label>
-            <input
-              type="number"
-              value={positionAmount}
-              onChange={(e) => setPositionAmount(e.target.value)}
-              placeholder="Enter amount"
-              min="0"
-              step="0.01"
-            />
-          </div>
-          <div className="form-group">
-            <label>Price per Share (0.0 - 1.0)</label>
-            <input
-              type="number"
-              value={positionPrice}
-              onChange={(e) => setPositionPrice(e.target.value)}
-              placeholder="0.5"
-              min="0"
-              max="1"
-              step="0.01"
-            />
-          </div>
-          <button
-            className="btn-primary"
-            onClick={handleCreatePosition}
-            disabled={positionLoading}
-          >
-            {positionLoading ? 'Creating…' : 'Create Position'}
-          </button>
-        </div>
-      )}
-
-      {/* P2P orders — place order or take the other side; when matched, positions are created */}
-      {marketData.status === 'Active' && marketData.marketType === 'Binary' && (
-        <div className="card mt-xl">
-          <h2>P2P orders</h2>
-          <p className="text-secondary mt-sm" style={{ fontSize: 'var(--font-size-sm)' }}>
-            Place a limit order. When someone takes the other side, you get a position and settlement pays winners (2% fee).
-          </p>
-          {ordersLoading ? (
-            <p className="text-secondary">Loading orders…</p>
-          ) : (
-            <>
-              {openOrders.length > 0 && (
-                <div className="mb-md">
-                  <h3 className="mb-sm">Open orders</h3>
-                  <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
-                    {openOrders.slice(0, 10).map((o) => (
-                      <li key={o.orderId} className="mb-xs" style={{ fontSize: 'var(--font-size-sm)' }}>
-                        {o.side === 'buy' ? 'Buy' : 'Sell'} {o.outcome} — {o.amountReal} @ {(o.priceReal * 100).toFixed(0)}%
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-              <div className="form-group">
-                <label>Outcome</label>
-                <select value={orderOutcome} onChange={(e) => setOrderOutcome(e.target.value)}>
-                  <option value="Yes">Yes</option>
-                  <option value="No">No</option>
-                </select>
-              </div>
+        {/* Right: trade + limit orders — single column, less scroll */}
+        <div className="market-detail-actions">
+          {isActiveBinary && (
+            <div className="card market-detail-trade">
+              <h2 className="market-detail-trade-title">Buy shares</h2>
+              <p className="market-detail-trade-hint">Spend {PLATFORM_CURRENCY_SYMBOL} to buy Yes or No at the current pool price (0.3% fee).</p>
               <div className="form-group">
                 <label>Side</label>
-                <select value={orderSide} onChange={(e) => setOrderSide(e.target.value)}>
-                  <option value="buy">Buy</option>
-                  <option value="sell">Sell</option>
-                </select>
+                <div className="market-detail-side-buttons">
+                  <button
+                    type="button"
+                    className={tradeSide === 'Yes' ? 'btn-primary' : 'btn-secondary'}
+                    onClick={() => setTradeSide('Yes')}
+                  >
+                    Buy Yes
+                  </button>
+                  <button
+                    type="button"
+                    className={tradeSide === 'No' ? 'btn-primary' : 'btn-secondary'}
+                    onClick={() => setTradeSide('No')}
+                  >
+                    Buy No
+                  </button>
+                </div>
               </div>
               <div className="form-group">
-                <label>Amount (shares)</label>
+                <label>Amount ({PLATFORM_CURRENCY_SYMBOL})</label>
                 <input
                   type="number"
-                  value={orderAmount}
-                  onChange={(e) => setOrderAmount(e.target.value)}
-                  placeholder="e.g. 100"
-                  min="1"
-                  step="1"
-                />
-              </div>
-              <div className="form-group">
-                <label>Price (0–1)</label>
-                <input
-                  type="number"
-                  value={orderPrice}
-                  onChange={(e) => setOrderPrice(e.target.value)}
+                  value={tradeAmount}
+                  onChange={(e) => setTradeAmount(e.target.value)}
+                  placeholder="0"
                   min="0"
-                  max="1"
                   step="0.01"
                 />
               </div>
+              {tradeAmount && parseFloat(tradeAmount) > 0 && pool && (() => {
+                const { outputAmount, feeAmount } = getQuote(
+                  { yesReserve: pool.yesReserve ?? 0, noReserve: pool.noReserve ?? 0, feeRate: pool.feeRate ?? 0.003 },
+                  tradeSide,
+                  parseFloat(tradeAmount)
+                )
+                const withinLimit = isTradeWithinLimit(
+                  { yesReserve: pool.yesReserve ?? 0, noReserve: pool.noReserve ?? 0, maxTradeReserveFraction: pool.maxTradeReserveFraction ?? 0.1 },
+                  tradeSide,
+                  outputAmount
+                )
+                return (
+                  <div className="alert-info market-detail-quote">
+                    <p style={{ margin: 0 }}>
+                      Pay {formatPips(tradeAmount)} → ~{outputAmount.toFixed(2)} {tradeSide} shares
+                      {feeAmount > 0 && ` (fee ${formatPips(feeAmount)})`}
+                    </p>
+                    {!withinLimit && (
+                      <p style={{ margin: '0.5rem 0 0', color: 'var(--color-warning)' }}>Reduce amount to stay within limit.</p>
+                    )}
+                  </div>
+                )
+              })()}
               <button
-                className="btn-primary"
-                onClick={handlePlaceOrder}
-                disabled={orderLoading || !wallet || !orderAmount || parseFloat(orderAmount) <= 0}
+                className="btn-primary market-detail-confirm"
+                onClick={handleTrade}
+                disabled={tradeLoading || !tradeAmount || parseFloat(tradeAmount) <= 0}
               >
-                {orderLoading ? 'Placing…' : 'Place order'}
+                {tradeLoading ? 'Trading…' : 'Confirm trade'}
               </button>
-            </>
+            </div>
+          )}
+
+          {marketData.status === 'Active' && marketData.marketType === 'Binary' && (
+            <div className="card market-detail-orders">
+              <h2 className="market-detail-orders-title">Limit orders</h2>
+              <p className="market-detail-orders-hint">Place a limit order. Fills when someone takes the other side (2% fee on settlement).</p>
+              {ordersLoading ? (
+                <p className="text-secondary">Loading orders…</p>
+              ) : (
+                <>
+                  {openOrders.length > 0 && (
+                    <div className="market-detail-open-orders">
+                      <h3 className="market-detail-open-orders-heading">Open orders</h3>
+                      <ul className="market-detail-order-list">
+                        {openOrders.slice(0, 8).map((o) => (
+                          <li key={o.orderId}>
+                            {o.side === 'buy' ? 'Buy' : 'Sell'} {o.outcome} — {o.amountReal} @ {(o.priceReal * 100).toFixed(0)}%
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                  <div className="market-detail-order-form">
+                    <div className="form-group">
+                      <label>Outcome</label>
+                      <select value={orderOutcome} onChange={(e) => setOrderOutcome(e.target.value)}>
+                        <option value="Yes">Yes</option>
+                        <option value="No">No</option>
+                      </select>
+                    </div>
+                    <div className="form-group">
+                      <label>Side</label>
+                      <select value={orderSide} onChange={(e) => setOrderSide(e.target.value)}>
+                        <option value="buy">Buy</option>
+                        <option value="sell">Sell</option>
+                      </select>
+                    </div>
+                    <div className="form-group">
+                      <label>Amount (shares)</label>
+                      <input
+                        type="number"
+                        value={orderAmount}
+                        onChange={(e) => setOrderAmount(e.target.value)}
+                        placeholder="e.g. 100"
+                        min="1"
+                        step="1"
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label>Price (0–1)</label>
+                      <input
+                        type="number"
+                        value={orderPrice}
+                        onChange={(e) => setOrderPrice(e.target.value)}
+                        min="0"
+                        max="1"
+                        step="0.01"
+                      />
+                    </div>
+                    <button
+                      className="btn-secondary"
+                      onClick={handlePlaceOrder}
+                      disabled={orderLoading || !wallet || !orderAmount || parseFloat(orderAmount) <= 0}
+                    >
+                      {orderLoading ? 'Placing…' : 'Place order'}
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+          )}
+
+          {marketData.status !== 'Active' && (
+            <div className="card market-detail-closed">
+              <p className="text-secondary">This market is {marketData.status?.toLowerCase() || 'closed'}. Trading is disabled.</p>
+            </div>
           )}
         </div>
+      </div>
+
+      {marketData.status === 'Active' && wallet?.party === 'Admin' && (
+        <MarketResolution market={market} onResolved={() => window.location.reload()} />
       )}
     </div>
   )
