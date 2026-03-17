@@ -9,9 +9,11 @@ export default function Navbar({ setShowWalletModal }) {
   const { wallet, disconnectWallet } = useWallet()
   const location = useLocation()
   const [showDiscoverMenu, setShowDiscoverMenu] = useState(false)
+  const [showAccountMenu, setShowAccountMenu] = useState(false)
   const [showResourcesMenu, setShowResourcesMenu] = useState(false)
   const [balanceFormatted, setBalanceFormatted] = useState(null)
   const discoverMenuRef = useRef(null)
+  const accountMenuRef = useRef(null)
   const resourcesMenuRef = useRef(null)
 
   // Fetch virtual balance when wallet is connected
@@ -33,6 +35,9 @@ export default function Navbar({ setShowWalletModal }) {
       if (discoverMenuRef.current && !discoverMenuRef.current.contains(event.target)) {
         setShowDiscoverMenu(false)
       }
+      if (accountMenuRef.current && !accountMenuRef.current.contains(event.target)) {
+        setShowAccountMenu(false)
+      }
       if (resourcesMenuRef.current && !resourcesMenuRef.current.contains(event.target)) {
         setShowResourcesMenu(false)
       }
@@ -45,12 +50,13 @@ export default function Navbar({ setShowWalletModal }) {
   // Close dropdowns when route changes
   useEffect(() => {
     setShowDiscoverMenu(false)
+    setShowAccountMenu(false)
     setShowResourcesMenu(false)
   }, [location.pathname])
 
   const isActive = (path) => location.pathname === path
-  const isDiscoverActive = () => ['/', '/portfolio', '/dashboard', '/profile'].some(isActive) ||
-    location.pathname.startsWith('/discover')
+  const isDiscoverActive = () => isActive('/') || location.pathname.startsWith('/discover') || location.pathname.startsWith('/market')
+  const isAccountActive = () => ['/dashboard', '/portfolio', '/profile', '/account'].some(isActive)
 
   return (
     <header className="app-header">
@@ -63,12 +69,13 @@ export default function Navbar({ setShowWalletModal }) {
           </span>
         </Link>
         <nav>
-          {/* Discover: markets by source + portfolio */}
+          {/* Discover: markets only */}
           <div className="nav-dropdown" ref={discoverMenuRef}>
             <button
               className={`nav-dropdown-toggle ${isDiscoverActive() ? 'active' : ''}`}
               onClick={() => {
                 setShowDiscoverMenu(!showDiscoverMenu)
+                setShowAccountMenu(false)
                 setShowResourcesMenu(false)
               }}
             >
@@ -89,27 +96,52 @@ export default function Navbar({ setShowWalletModal }) {
                 <Link to="/discover/virtual-realities" className={location.pathname === '/discover/virtual-realities' ? 'active' : ''}>
                   Virtual Realities
                 </Link>
-                <div className="nav-dropdown-divider" />
-                <Link to="/dashboard" className={isActive('/dashboard') ? 'active' : ''}>
-                  Dashboard
-                </Link>
-                <Link to="/portfolio" className={isActive('/portfolio') ? 'active' : ''}>
-                  My Portfolio
-                </Link>
-                <Link to="/profile" className={isActive('/profile') ? 'active' : ''}>
-                  Profile
-                </Link>
               </div>
             )}
           </div>
 
-          {/* Resources / Tools */}
+          {/* Account: dashboard, portfolio, profile (when logged in) */}
+          {wallet && (
+            <div className="nav-dropdown nav-dropdown-account" ref={accountMenuRef}>
+              <button
+                className={`nav-dropdown-toggle ${isAccountActive() ? 'active' : ''}`}
+                onClick={() => {
+                  setShowAccountMenu(!showAccountMenu)
+                  setShowDiscoverMenu(false)
+                  setShowResourcesMenu(false)
+                }}
+              >
+                Account
+                <span className="dropdown-arrow">▼</span>
+              </button>
+              {showAccountMenu && (
+                <div className="nav-dropdown-menu">
+                  <Link to="/dashboard" className={isActive('/dashboard') ? 'active' : ''}>
+                    Dashboard
+                  </Link>
+                  <Link to="/portfolio" className={isActive('/portfolio') ? 'active' : ''}>
+                    Portfolio
+                  </Link>
+                  <Link to="/profile" className={isActive('/profile') ? 'active' : ''}>
+                    Profile
+                  </Link>
+                  <div className="nav-dropdown-divider" />
+                  <Link to="/account" className={isActive('/account') ? 'active' : ''}>
+                    Account summary
+                  </Link>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Resources */}
           <div className="nav-dropdown nav-dropdown-resources" ref={resourcesMenuRef}>
             <button
               className={`nav-dropdown-toggle ${isActive('/history') || isActive('/docs') || isActive('/documentation') ? 'active' : ''}`}
               onClick={() => {
                 setShowResourcesMenu(!showResourcesMenu)
                 setShowDiscoverMenu(false)
+                setShowAccountMenu(false)
               }}
             >
               Resources

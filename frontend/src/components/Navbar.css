@@ -39,27 +39,47 @@
   color: var(--color-teal);
 }
 
-/* Resources — distinct color on dark navbar so neon stands out */
+/* Account & Resources — teal/slate (not purple) on dark navbar */
+.nav-dropdown-account .nav-dropdown-toggle,
 .nav-dropdown-resources .nav-dropdown-toggle {
-  color: rgba(203, 213, 225, 0.95);
+  background: rgba(30, 41, 59, 0.6);
+  border-color: rgba(71, 85, 105, 0.5);
+  color: #94a3b8;
 }
 
+.nav-dropdown-account .nav-dropdown-toggle:hover,
 .nav-dropdown-resources .nav-dropdown-toggle:hover {
-  color: rgba(226, 232, 240, 1);
-  border-color: rgba(203, 213, 225, 0.25);
+  background: rgba(51, 65, 85, 0.7);
+  border-color: rgba(100, 116, 139, 0.5);
+  color: #cbd5e1;
 }
 
+.nav-dropdown-account .nav-dropdown-toggle.active,
 .nav-dropdown-resources .nav-dropdown-toggle.active {
-  color: rgba(34, 211, 238, 0.9);
+  background: rgba(20, 184, 166, 0.15);
+  border-color: rgba(20, 184, 166, 0.4);
+  color: #2dd4bf;
 }
 
+/* Disconnect — slate/gray (not purple) */
 .wallet-info .nav-disconnect-btn {
-  color: rgba(203, 213, 225, 0.9);
+  background: transparent;
+  border: 1px solid rgba(100, 116, 139, 0.5);
+  color: #94a3b8;
+  white-space: nowrap;
+  padding: 8px 14px;
+  min-height: 36px;
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: border-color 0.2s ease, color 0.2s ease, background 0.2s ease;
 }
 
 .wallet-info .nav-disconnect-btn:hover {
-  color: rgba(248, 250, 252, 1);
-  border-color: rgba(203, 213, 225, 0.3);
+  background: rgba(51, 65, 85, 0.5);
+  border-color: rgba(148, 163, 184, 0.5);
+  color: #e2e8f0;
 }
 
 .dropdown-arrow {

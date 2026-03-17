@@ -191,7 +191,8 @@
   font-family: var(--font-family-mono, 'Courier New', monospace);
 }
 
-.wallet-info button {
+/* Disconnect button styling is in Navbar.css (.nav-disconnect-btn) */
+.wallet-info button:not(.nav-disconnect-btn) {
   white-space: nowrap;
   padding: var(--spacing-sm, 0.5rem) var(--spacing-md, 0.75rem);
   min-height: 36px;
@@ -205,13 +206,14 @@
   font-weight: var(--font-weight-medium, 500);
 }
 
-.wallet-info button:hover {
+.wallet-info button:not(.nav-disconnect-btn):hover {
   background: var(--color-primary-light, rgba(100, 108, 255, 0.3));
   border-color: var(--color-primary-border, rgba(100, 108, 255, 0.5));
   transform: translateY(-1px);
 }
 
-.app-header nav button {
+/* Only style nav buttons that are not dropdown toggles or disconnect (those are in Navbar.css) */
+.app-header nav button:not(.nav-dropdown-toggle):not(.nav-disconnect-btn) {
   padding: var(--spacing-sm, 0.5rem) var(--spacing-md, 1rem);
   min-height: 44px;
   font-size: var(--font-size-sm, 0.9rem);
@@ -227,7 +229,7 @@
   align-items: center;
 }
 
-.app-header nav button:hover:not(:disabled) {
+.app-header nav button:not(.nav-dropdown-toggle):not(.nav-disconnect-btn):hover:not(:disabled) {
   background: var(--color-primary-hover, #535bf2);
   transform: translateY(-1px);
   box-shadow: var(--shadow-md, 0 4px 6px rgba(0, 0, 0, 0.2));

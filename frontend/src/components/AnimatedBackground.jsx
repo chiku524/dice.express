@@ -40,11 +40,13 @@ export default function AnimatedBackground() {
     let pulsingRings = []
     let time = 0
 
-    // Set canvas size - use getBoundingClientRect to match CSS sizing
+    // Set canvas size — match viewport so animation is always visible
     const resizeCanvas = () => {
       const rect = canvas.getBoundingClientRect()
-      canvas.width = rect.width
-      canvas.height = rect.height
+      const w = rect.width > 0 ? rect.width : window.innerWidth
+      const h = rect.height > 0 ? rect.height : window.innerHeight
+      canvas.width = w
+      canvas.height = h
     }
     resizeCanvas()
     window.addEventListener('resize', resizeCanvas)
@@ -456,7 +458,7 @@ export default function AnimatedBackground() {
         this.angle = Math.random() * Math.PI * 2
         this.spread = 0.35 + Math.random() * 0.45
         this.color = getColor('secondary')
-        this.opacity = Math.random() * 0.07 + 0.04
+        this.opacity = Math.random() * 0.1 + 0.06
         this.phase = Math.random() * Math.PI * 2
         this.phaseSpeed = 0.004 + Math.random() * 0.006
         this.winBranch = Math.random() < 0.5 ? 'left' : 'right'
@@ -513,20 +515,20 @@ export default function AnimatedBackground() {
         this.baseLength = Math.PI * (0.25 + Math.random() * 0.2)
         this.lengthAmplitude = Math.PI * 0.2
         this.color = getColor('subtle')
-        this.opacity = Math.random() * 0.06 + 0.03
+        this.opacity = Math.random() * 0.08 + 0.05
         this.phase = Math.random() * Math.PI * 2
         this.phaseSpeed = 0.008 + Math.random() * 0.006
       }
 
       update() {
         this.phase += this.phaseSpeed
-        this.currentOpacity = this.opacity * (0.65 + 0.35 * Math.sin(this.phase))
+        this.currentOpacity = this.opacity * (0.7 + 0.3 * Math.sin(this.phase))
         this.arcLength = this.baseLength + this.lengthAmplitude * Math.sin(this.phase * 0.7)
       }
 
       draw() {
         const c = this.color
-        const o = this.currentOpacity
+        const o = Math.min(1, this.currentOpacity * 1.2)
         ctx.strokeStyle = `rgba(${c.r}, ${c.g}, ${c.b}, ${o})`
         ctx.lineWidth = 1.5
         ctx.beginPath()
@@ -562,10 +564,11 @@ export default function AnimatedBackground() {
 
       draw() {
         const c = this.useCyan ? themeColors.cyan : this.color
-        const o = 0.04 + 0.03 * Math.sin(time * 2)
-        ctx.fillStyle = `rgba(${c.r}, ${c.g}, ${c.b}, ${o * 0.3})`
+        const trackO = 0.06 + 0.02 * Math.sin(time * 2)
+        const fillO = 0.1 + 0.05 * Math.sin(time * 2)
+        ctx.fillStyle = `rgba(${c.r}, ${c.g}, ${c.b}, ${trackO})`
         ctx.fillRect(this.x, this.y - 2, this.width, 4)
-        ctx.fillStyle = `rgba(${c.r}, ${c.g}, ${c.b}, ${o})`
+        ctx.fillStyle = `rgba(${c.r}, ${c.g}, ${c.b}, ${fillO})`
         ctx.fillRect(this.x, this.y - 2, this.width * this.progress, 4)
       }
     }
@@ -737,8 +740,8 @@ export default function AnimatedBackground() {
     const animate = () => {
       time += 0.01
 
-      // Clear canvas with dark fade for trail effect (near-black base)
-      ctx.fillStyle = 'rgba(0, 0, 0, 0.42)'
+      // Clear with slight fade so outcome elements leave soft trails and stay visible
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.32)'
       ctx.fillRect(0, 0, canvas.width, canvas.height)
 
       // Mid layer: graph lines
