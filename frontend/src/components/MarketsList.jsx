@@ -25,7 +25,7 @@ export default function MarketsList({ source: sourceFromRoute }) {
   const [selectedSource, setSelectedSource] = useState(sourceFromRoute || 'all')
   const [sortBy, setSortBy] = useState('volume') // 'volume', 'newest', 'oldest'
   const [currentPage, setCurrentPage] = useState(1)
-  const [filtersExpanded, setFiltersExpanded] = useState(() => typeof window !== 'undefined' && window.innerWidth >= 768)
+  const [filtersExpanded, setFiltersExpanded] = useState(false)
   const [retryCount, setRetryCount] = useState(0)
 
   const MARKETS_PER_PAGE = 12
@@ -306,24 +306,23 @@ export default function MarketsList({ source: sourceFromRoute }) {
       {/* Filters Section */}
       {markets.length > 0 && (
         <div className="card mb-xl filters-card">
-          <div className="filters-header">
+          <button
+            type="button"
+            className="filters-header filters-header-btn"
+            onClick={() => setFiltersExpanded(!filtersExpanded)}
+            aria-expanded={filtersExpanded}
+            aria-label={filtersExpanded ? 'Collapse filters' : 'Expand filters'}
+          >
             <div className="filters-header-left">
               <h3 className="filters-title">Filters</h3>
               {activeFilterCount > 0 && (
                 <span className="filter-badge">{activeFilterCount} active</span>
               )}
             </div>
-            <button
-              type="button"
-              className="btn-icon"
-              onClick={() => setFiltersExpanded(!filtersExpanded)}
-              aria-label={filtersExpanded ? 'Collapse filters' : 'Expand filters'}
-            >
-              <span className={filtersExpanded ? 'icon-chevron-up' : 'icon-chevron-down'}>
-                {filtersExpanded ? '▲' : '▼'}
-              </span>
-            </button>
-          </div>
+            <span className={`filters-header-chevron ${filtersExpanded ? 'icon-chevron-up' : 'icon-chevron-down'}`} aria-hidden>
+              {filtersExpanded ? '▲' : '▼'}
+            </span>
+          </button>
           
           {filtersExpanded && (
             <>

@@ -26,10 +26,13 @@
   width: 100%;
   height: 100%;
   background:
-    /* Soft radial ambiance — no orbs; gentle violet/cyan wash */
+    /* Soft radial ambiance — violet/teal, prediction-market feel */
     radial-gradient(ellipse 100% 80% at 70% 20%, rgba(139, 92, 246, 0.06) 0%, transparent 55%),
     radial-gradient(ellipse 90% 70% at 30% 80%, rgba(34, 211, 238, 0.05) 0%, transparent 50%),
     radial-gradient(circle at 50% 50%, rgba(139, 92, 246, 0.03) 0%, transparent 60%),
+    /* Outcome split — very subtle diagonal bands (two paths / Yes–No) */
+    linear-gradient(165deg, transparent 0%, rgba(139, 92, 246, 0.02) 48%, transparent 52%),
+    linear-gradient(195deg, transparent 0%, rgba(34, 211, 238, 0.015) 48%, transparent 52%),
     /* Subtle grid — theme-aligned */
     repeating-linear-gradient(
       0deg,

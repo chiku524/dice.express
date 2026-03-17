@@ -8,10 +8,10 @@
 }
 
 .app-header {
-  background: linear-gradient(135deg, rgba(2, 4, 8, 0.78) 0%, rgba(6, 10, 18, 0.82) 50%, rgba(2, 4, 8, 0.78) 100%);
+  background: linear-gradient(135deg, rgba(15, 23, 42, 0.92) 0%, rgba(30, 41, 59, 0.9) 50%, rgba(15, 23, 42, 0.92) 100%);
   backdrop-filter: blur(14px);
   -webkit-backdrop-filter: blur(14px);
-  border-bottom: 1px solid rgba(34, 211, 238, 0.1);
+  border-bottom: 1px solid rgba(148, 163, 184, 0.12);
   padding: var(--spacing-sm, 0.5rem) 0;
   min-height: 60px;
   transition: all var(--transition-base, 0.2s ease);
@@ -25,7 +25,7 @@
   pointer-events: auto;
 }
 
-/* Navbar — very subtle tint so it blends with black animated background */
+/* Navbar — subtle violet/slate tint; logo and tagline keep their colors in .logo-name / .logo-tagline */
 .app-header::before {
   content: '';
   position: absolute;
@@ -34,9 +34,9 @@
   right: 0;
   bottom: 0;
   background:
-    radial-gradient(circle at 15% 50%, rgba(34, 211, 238, 0.04) 0%, transparent 45%),
-    radial-gradient(circle at 85% 50%, rgba(20, 184, 166, 0.03) 0%, transparent 45%),
-    radial-gradient(circle at 50% 0%, rgba(59, 130, 246, 0.025) 0%, transparent 50%);
+    radial-gradient(circle at 20% 50%, rgba(139, 92, 246, 0.06) 0%, transparent 45%),
+    radial-gradient(circle at 80% 50%, rgba(99, 102, 241, 0.04) 0%, transparent 45%),
+    radial-gradient(circle at 50% 0%, rgba(139, 92, 246, 0.03) 0%, transparent 50%);
   animation: navbarGradientShift 8s ease-in-out infinite;
   z-index: -1;
   pointer-events: none;
@@ -64,8 +64,8 @@
     90deg,
     transparent,
     transparent 2px,
-    rgba(34, 211, 238, 0.03) 2px,
-    rgba(34, 211, 238, 0.03) 4px
+    rgba(148, 163, 184, 0.04) 2px,
+    rgba(148, 163, 184, 0.04) 4px
   );
   animation: navbarGridMove 20s linear infinite;
   z-index: -1;
@@ -479,6 +479,36 @@
 .btn-secondary:disabled {
   opacity: 0.6;
   cursor: not-allowed;
+}
+
+/* Filters header as full-width clickable button (markets page) */
+.filters-header-btn {
+  width: 100%;
+  cursor: pointer;
+  background: none;
+  border: none;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  padding: 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.filters-header-btn:hover .filters-header-chevron {
+  color: var(--color-teal);
+}
+
+.filters-header-chevron {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 32px;
+  height: 32px;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  transition: color var(--transition-base);
 }
 
 .market-grid {

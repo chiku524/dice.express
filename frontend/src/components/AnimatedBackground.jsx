@@ -2,12 +2,11 @@ import { useEffect, useRef } from 'react'
 import './AnimatedBackground.css'
 
 /**
- * Animated background component for prediction markets app
+ * Animated background for prediction markets — bet on outcomes.
  * Features:
- * - Market-themed animations (graph lines, data points, probability curves)
- * - Neon colors with opacity variations
- * - Subtle, elegant movements
- * - Canvas-based particles and CSS-based overlays
+ * - Outcome forks (Yes/No branching), probability arcs, trend lines
+ * - Particles as data points; pulsing rings as resolved markets
+ * - Soft violet/teal palette; subtle and non-distracting
  */
 export default function AnimatedBackground() {
   const canvasRef = useRef(null)
@@ -30,6 +29,9 @@ export default function AnimatedBackground() {
     let graphLines = []
     let geometricShapes = []
     let softStreaks = []
+    let outcomeForks = []
+    let probabilityArcs = []
+    let tickerStrips = []
     let pulsingRings = []
     let time = 0
 
@@ -435,6 +437,126 @@ export default function AnimatedBackground() {
       }
     }
 
+    // Outcome fork — two diverging lines (Yes/No, outcome split), prediction-market themed
+    class OutcomeFork {
+      constructor() {
+        this.reset()
+      }
+
+      reset() {
+        this.x = Math.random() * canvas.width
+        this.y = Math.random() * canvas.height
+        this.length = 40 + Math.random() * 80
+        this.angle = Math.random() * Math.PI * 2
+        this.spread = 0.4 + Math.random() * 0.5
+        this.color = getColor('secondary')
+        this.opacity = Math.random() * 0.08 + 0.04
+        this.speed = 0.002 + Math.random() * 0.004
+        this.phase = Math.random() * Math.PI * 2
+      }
+
+      update() {
+        this.phase += this.speed
+        this.currentOpacity = this.opacity * (0.7 + 0.3 * Math.sin(this.phase))
+      }
+
+      draw() {
+        const leftAngle = this.angle - this.spread
+        const rightAngle = this.angle + this.spread
+        const x2 = this.x + Math.cos(this.angle) * this.length * 0.4
+        const y2 = this.y + Math.sin(this.angle) * this.length * 0.4
+        const xL = this.x + Math.cos(leftAngle) * this.length
+        const yL = this.y + Math.sin(leftAngle) * this.length
+        const xR = this.x + Math.cos(rightAngle) * this.length
+        const yR = this.y + Math.sin(rightAngle) * this.length
+        const c = this.color
+        const o = this.currentOpacity
+        ctx.strokeStyle = `rgba(${c.r}, ${c.g}, ${c.b}, ${o})`
+        ctx.lineWidth = 1
+        ctx.beginPath()
+        ctx.moveTo(this.x, this.y)
+        ctx.lineTo(x2, y2)
+        ctx.stroke()
+        ctx.beginPath()
+        ctx.moveTo(x2, y2)
+        ctx.lineTo(xL, yL)
+        ctx.stroke()
+        ctx.beginPath()
+        ctx.moveTo(x2, y2)
+        ctx.lineTo(xR, yR)
+        ctx.stroke()
+      }
+    }
+
+    // Probability arc — semi-circle gauge (0–100% feel), pulses softly
+    class ProbabilityArc {
+      constructor() {
+        this.reset()
+      }
+
+      reset() {
+        this.x = Math.random() * canvas.width
+        this.y = Math.random() * canvas.height
+        this.radius = 25 + Math.random() * 50
+        this.startAngle = Math.random() * Math.PI * 2
+        this.arcLength = Math.PI * (0.3 + Math.random() * 0.5)
+        this.color = getColor('subtle')
+        this.opacity = Math.random() * 0.06 + 0.03
+        this.speed = 0.006 + Math.random() * 0.008
+        this.phase = Math.random() * Math.PI * 2
+      }
+
+      update() {
+        this.phase += this.speed
+        this.currentOpacity = this.opacity * (0.6 + 0.4 * Math.sin(this.phase))
+      }
+
+      draw() {
+        const c = this.color
+        const o = this.currentOpacity
+        ctx.strokeStyle = `rgba(${c.r}, ${c.g}, ${c.b}, ${o})`
+        ctx.lineWidth = 1.5
+        ctx.beginPath()
+        ctx.arc(this.x, this.y, this.radius, this.startAngle, this.startAngle + this.arcLength)
+        ctx.stroke()
+      }
+    }
+
+    // Ticker strip — horizontal moving dashes (ticker tape / odds feed)
+    class TickerStrip {
+      constructor() {
+        this.reset()
+      }
+
+      reset() {
+        this.y = Math.random() * canvas.height
+        this.segmentWidth = 8 + Math.random() * 16
+        this.gap = 4 + Math.random() * 8
+        this.speed = 0.3 + Math.random() * 0.6
+        this.offset = Math.random() * (this.segmentWidth + this.gap) * 10
+        this.color = getColor('subtle')
+        this.opacity = Math.random() * 0.05 + 0.02
+      }
+
+      update() {
+        this.offset += this.speed
+        if (this.offset > (this.segmentWidth + this.gap) * 2) this.offset = 0
+      }
+
+      draw() {
+        const c = this.color
+        const o = this.opacity
+        ctx.strokeStyle = `rgba(${c.r}, ${c.g}, ${c.b}, ${o})`
+        ctx.lineWidth = 1
+        for (let x = -this.offset; x < canvas.width + this.segmentWidth + this.gap; x += this.segmentWidth + this.gap) {
+          ctx.beginPath()
+          ctx.moveTo(x, this.y)
+          ctx.lineTo(x + this.segmentWidth, this.y)
+          ctx.stroke()
+        }
+      }
+    }
+
     // Pulsing Ring class - expanding/contracting rings with multiple layers
     class PulsingRing {
       constructor() {
@@ -533,6 +655,24 @@ export default function AnimatedBackground() {
       softStreaks.push(new SoftStreak())
     }
 
+    // Outcome forks — Yes/No branching, prediction-market themed
+    const numForks = 3 + Math.floor(Math.random() * 3)
+    for (let i = 0; i < numForks; i++) {
+      outcomeForks.push(new OutcomeFork())
+    }
+
+    // Probability arcs — gauge-like semi-circles
+    const numArcs = 2 + Math.floor(Math.random() * 2)
+    for (let i = 0; i < numArcs; i++) {
+      probabilityArcs.push(new ProbabilityArc())
+    }
+
+    // Ticker strips — horizontal odds-feed feel
+    const numTickers = 2 + Math.floor(Math.random() * 2)
+    for (let i = 0; i < numTickers; i++) {
+      tickerStrips.push(new TickerStrip())
+    }
+
     // Pulsing rings — main radial animation; keep these
     const numRings = 4 + Math.floor(Math.random() * 3)
     for (let i = 0; i < numRings; i++) {
@@ -557,6 +697,24 @@ export default function AnimatedBackground() {
       softStreaks.forEach(s => {
         s.update()
         s.draw()
+      })
+
+      // Outcome forks (Yes/No branches)
+      outcomeForks.forEach(f => {
+        f.update()
+        f.draw()
+      })
+
+      // Probability arcs
+      probabilityArcs.forEach(a => {
+        a.update()
+        a.draw()
+      })
+
+      // Ticker strips
+      tickerStrips.forEach(t => {
+        t.update()
+        t.draw()
       })
 
       // Foreground layer: geometric shapes
