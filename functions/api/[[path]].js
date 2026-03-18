@@ -11,7 +11,8 @@ import * as resolveMarkets from '../lib/resolve-markets.mjs'
 import { addPips, pipsToCents, centsToPipsStr, cryptoAmountToPipsStr } from '../lib/pips-precision.mjs'
 import { verifyErc20Deposit, verifyNativeDeposit } from '../lib/verify-deposit-rpc.mjs'
 import { getAlchemyRpcUrl } from '../lib/alchemy-networks.mjs'
-import { createWalletClient, createPublicClient, http, privateKeyToAccount, encodeFunctionData, parseAbi, verifyMessage } from 'viem'
+import { createWalletClient, createPublicClient, http, encodeFunctionData, parseAbi, verifyMessage } from 'viem'
+import { privateKeyToAccount } from 'viem/accounts'
 import { mainnet, polygon } from 'viem/chains'
 
 const CORS = {
