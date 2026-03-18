@@ -110,6 +110,27 @@ export function sourceForFilter(payloadOrSource) {
   return API_SOURCE_TO_DISPLAY[payloadSource] ?? payloadSource
 }
 
+/** Map news topic (oracleConfig.q or category) to display category so news markets show under Tech & AI, Politics, etc. */
+const NEWS_TOPIC_TO_CATEGORY = {
+  technology: 'Tech & AI',
+  tech: 'Tech & AI',
+  politics: 'Politics',
+  election: 'Politics',
+  science: 'Science',
+  entertainment: 'Entertainment',
+  business: 'Finance',
+  finance: 'Finance',
+  health: 'Science',
+  sports: 'Sports',
+  world: 'News',
+  general: 'News',
+}
+function categoryFromNewsTopic(topic) {
+  if (!topic || typeof topic !== 'string') return null
+  const key = topic.toLowerCase().trim()
+  return NEWS_TOPIC_TO_CATEGORY[key] ?? null
+}
+
 /** Keyword hints for inferring category when source/category are missing or legacy. Order matters: first match wins. */
 const CATEGORY_KEYWORDS = {
   Sports: [/\b(win|vs\.?|game|match|championship|playoff|score|team|league|nba|nfl|mlb|soccer|football|basketball)\b/i, /\b(odds|spread|over\/under)\b/i],
@@ -135,6 +156,8 @@ function inferCategoryFromText(title, description) {
 
 /** Category to use for filter (payload.category may be display category or legacy API source). */
 export function categoryForFilter(payload) {
+  const topicCat = categoryFromNewsTopic(payload?.oracleConfig?.q || payload?.oracleConfig?.category)
+  if (topicCat) return topicCat
   const cat = payload?.category
   const src = payload?.source || payload?.styleLabel
   if (API_SOURCE_TO_CATEGORY[cat]) return API_SOURCE_TO_CATEGORY[cat]

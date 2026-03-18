@@ -102,6 +102,27 @@ function getDisplaySourceAndCategory(apiSource) {
   return AUTO_SOURCE_DISPLAY[apiSource] || { source: 'global_events', category: 'Other' }
 }
 
+/** Map news topic (oracleConfig.q or category) to display category so news markets show under Tech & AI, Politics, etc. */
+const NEWS_TOPIC_TO_CATEGORY = {
+  technology: 'Tech & AI',
+  tech: 'Tech & AI',
+  politics: 'Politics',
+  election: 'Politics',
+  science: 'Science',
+  entertainment: 'Entertainment',
+  business: 'Finance',
+  finance: 'Finance',
+  health: 'Science',
+  sports: 'Sports',
+  world: 'News',
+  general: 'News',
+}
+function categoryFromNewsTopic(topic) {
+  if (!topic || typeof topic !== 'string') return null
+  const key = topic.toLowerCase().trim()
+  return NEWS_TOPIC_TO_CATEGORY[key] || null
+}
+
 /** Fire-and-forget R2 backup; never throws. */
 async function backupToR2(r2, bucketName, contractId, payload) {
   if (!r2) return
@@ -1193,6 +1214,8 @@ async function handleWithD1(db, kv, r2, request, path, method, env = {}) {
           continue // already have this event as a market, skip
         }
         const { source: displaySource, category: displayCategory } = getDisplaySourceAndCategory(ev.source)
+        const topicCategory = categoryFromNewsTopic(ev.oracleConfig?.q || ev.oracleConfig?.category)
+        const finalCategory = topicCategory || displayCategory
         let resolutionDeadline = ev.resolutionDeadline || null
         if (!resolutionDeadline && ev.endDate && String(ev.endDate).length >= 10) {
           resolutionDeadline = `${String(ev.endDate).slice(0, 10)}T23:59:59.000Z`
@@ -1222,7 +1245,7 @@ async function handleWithD1(db, kv, r2, request, path, method, env = {}) {
           yesVolume: 0,
           noVolume: 0,
           outcomeVolumes: {},
-          category: displayCategory,
+          category: finalCategory,
           styleLabel: ev.source,
           source: displaySource,
           oracleSource: ev.oracleSource || ev.source,
