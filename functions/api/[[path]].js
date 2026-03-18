@@ -96,6 +96,7 @@ const AUTO_SOURCE_DISPLAY = {
   gnews: { source: 'global_events', category: 'News' },
   perigon: { source: 'global_events', category: 'News' },
   newsapi_ai: { source: 'global_events', category: 'News' },
+  newsdata_io: { source: 'global_events', category: 'News' },
 }
 function getDisplaySourceAndCategory(apiSource) {
   return AUTO_SOURCE_DISPLAY[apiSource] || { source: 'global_events', category: 'Other' }

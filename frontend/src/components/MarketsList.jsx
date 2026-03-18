@@ -4,7 +4,7 @@ import { useWallet } from '../contexts/WalletContext'
 import { SkeletonMarketGrid } from './SkeletonLoader'
 import { fetchMarkets } from '../services/marketsApi'
 import { useDebounce } from '../utils/useDebounce'
-import { MARKET_CATEGORIES, PREDICTION_STYLES, MARKET_SOURCES, getSourceLabel, sourceForFilter, categoryForFilter, getCategoryDisplay, getApiSourceLabel } from '../constants/marketConfig'
+import { MARKET_CATEGORIES, PREDICTION_STYLES, MARKET_SOURCES, getSourceLabel, sourceForFilter, categoryForFilter, getCategoryDisplay, getApiSourceLabel, formatResolutionDeadline } from '../constants/marketConfig'
 import { formatPips } from '../constants/currency'
 
 export default function MarketsList({ source: sourceFromRoute }) {
@@ -679,9 +679,14 @@ export default function MarketsList({ source: sourceFromRoute }) {
                           {market.payload.status}
                         </span>
                       </div>
-                      <p className="mt-md">
-                        {market.payload.description?.substring(0, 100) || ''}...
+                      <p className="mt-md market-card-desc">
+                        {market.payload.description ? (market.payload.description.length > 120 ? market.payload.description.substring(0, 120).trim() + '…' : market.payload.description) : ''}
                       </p>
+                      {market.payload.resolutionDeadline && (
+                        <p className="market-card-resolves" style={{ fontSize: 'var(--font-size-xs)', color: 'var(--color-teal)', marginTop: 'var(--spacing-xs)' }}>
+                          Resolves by {formatResolutionDeadline(market.payload.resolutionDeadline, true)}
+                        </p>
+                      )}
                       <div className="mt-md" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 'auto' }}>
                         <span className="text-secondary" style={{ fontSize: 'var(--font-size-sm)' }}>
                           Volume: {formatPips(market.payload.totalVolume ?? 0)}

@@ -13,6 +13,7 @@ const WEATHERAPI_BASE = 'https://api.weatherapi.com/v1'
 const GNEWS_BASE = 'https://gnews.io/api/v4'
 const PERIGON_BASE = 'https://api.goperigon.com/v1'
 const NEWSAPI_AI_BASE = 'https://eventregistry.org/api/v1'
+const NEWSDATA_BASE = 'https://newsdata.io/api/1'
 
 /** Generic fetch with timeout; returns JSON or text. */
 async function fetchApi(url, options = {}, timeoutMs = 15000) {
@@ -190,6 +191,23 @@ export async function fetchPerigonSearch(env, q = 'technology', limit = 10) {
 
 // --- NewsAPI.ai (Event Registry) ---
 /** Search articles. env.NEWSAPI_AI_KEY. Uses Event Registry getArticles (newsapi.ai). */
+// --- NewsData.io ---
+/** Latest news by query. env.NEWSDATA_API_KEY. API: https://newsdata.io/documentation */
+export async function fetchNewsDataIoLatest(env, q = 'technology', language = 'en', limit = 10) {
+  const key = env.NEWSDATA_API_KEY
+  if (!key) throw new Error('NEWSDATA_API_KEY not set')
+  const params = new URLSearchParams({
+    apikey: key,
+    q: q,
+    language,
+  })
+  const url = `${NEWSDATA_BASE}/latest?${params}`
+  const data = await fetchApi(url)
+  if (data?.status === 'error') throw new Error(data?.message || 'NewsData.io error')
+  const results = data?.results || []
+  return results.slice(0, Math.min(limit, 20))
+}
+
 export async function fetchNewsApiAiSearch(env, q = 'technology', limit = 10) {
   const key = env.NEWSAPI_AI_KEY
   if (!key) throw new Error('NEWSAPI_AI_KEY not set')
@@ -460,6 +478,26 @@ export async function eventsFromNewsApiAi(env, q = 'technology', limit = 5) {
   return events
 }
 
+export async function eventsFromNewsDataIo(env, q = 'technology', limit = 5) {
+  const articles = await fetchNewsDataIoLatest(env, q, 'en', limit)
+  const dateStr = new Date().toISOString().slice(0, 10)
+  const events = (articles || []).slice(0, limit).map((a, i) => {
+    const headline = sanitizeHeadline(a.title, 60)
+    const title = `Will "${headline}${headline.length >= 60 ? '...' : ''}" be in top news on ${dateStr}?`
+    const description = `Binary market. ${title} Resolves based on NewsData.io latest news for topic "${q}". Yes = matching article in top results; No = otherwise. Data source: NewsData.io (English).`
+    return {
+      id: `newsdata_io-${Date.now()}-${i}`,
+      source: 'newsdata_io',
+      title,
+      description,
+      resolutionCriteria: `Article matching this topic appears in NewsData.io latest news on ${dateStr}. Data source: NewsData.io.`,
+      oracleSource: 'newsdata_io',
+      oracleConfig: { title: a.title, link: a.link, article_id: a.article_id, pubDate: a.pubDate, dateStr },
+    }
+  })
+  return events
+}
+
 // --- Trend-based algorithms: settlement time + threshold from current level ---
 
 /** End of week (Friday) or next weekday for settlement. */
@@ -562,6 +600,7 @@ export const AUTO_MARKET_SOURCES = [
   'news',
   'perigon',
   'newsapi_ai',
+  'newsdata_io',
 ]
 
 /**
@@ -584,6 +623,7 @@ export async function getEventsFromSource(env, source, opts = {}) {
     if (source === 'gnews' || source === 'news') return await eventsFromGNews(env, category, limit)
     if (source === 'perigon') return await eventsFromPerigon(env, q, limit)
     if (source === 'newsapi_ai') return await eventsFromNewsApiAi(env, q, limit)
+    if (source === 'newsdata_io' || source === 'newsdata') return await eventsFromNewsDataIo(env, q, limit)
   } catch (err) {
     console.warn('[data-sources] getEventsFromSource', source, err?.message)
     return []

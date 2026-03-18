@@ -32,5 +32,6 @@ The **Pages** project needs API keys in its env for the data sources you use:
 - **stocks:** `ALPHA_VANTAGE_API_KEY` (free: 25 req/day)
 - **crypto:** CoinGecko works without a key (rate limited); or `COINGECKO_API_KEY`
 - **weather:** `OPENWEATHER_API_KEY` or `WEATHERAPI_API_KEY` (free tiers)
+- **news:** `GNEWS_API_KEY`, `PERIGON_API_KEY`, `NEWSAPI_AI_KEY`, or `NEWSDATA_API_KEY` (NewsData.io)
 
 Without keys, some sources will fail; **sports** with The Odds API key is the most common for free. See `docs/PREDICTION_MARKETS.md`.

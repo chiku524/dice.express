@@ -48,6 +48,7 @@ const API_SOURCE_TO_DISPLAY = {
   gnews: 'global_events',
   perigon: 'global_events',
   newsapi_ai: 'global_events',
+  newsdata_io: 'global_events',
 }
 
 /** Map API source to display category (for Category filter; legacy markets may have category = API source). */
@@ -62,6 +63,7 @@ const API_SOURCE_TO_CATEGORY = {
   gnews: 'News',
   perigon: 'News',
   newsapi_ai: 'News',
+  newsdata_io: 'News',
 }
 
 /** Map API source to short label for card tag (e.g. "The Odds API", "User-Created"). */
@@ -76,12 +78,35 @@ const API_SOURCE_TO_LABEL = {
   gnews: 'GNews',
   perigon: 'Perigon',
   newsapi_ai: 'NewsAPI',
+  newsdata_io: 'NewsData.io',
 }
 
 /** Normalize payload.source for filtering (so both new display source and legacy API source work). */
 export function sourceForFilter(payloadSource) {
   if (!payloadSource) return 'user'
   return API_SOURCE_TO_DISPLAY[payloadSource] ?? payloadSource
+}
+
+/** Keyword hints for inferring category when source/category are missing or legacy. */
+const CATEGORY_KEYWORDS = {
+  Sports: [/\b(win|vs\.?|game|match|championship|playoff|score|team|league|nba|nfl|mlb|soccer|football|basketball)\b/i, /\b(odds|spread|over\/under)\b/i],
+  Weather: [/\b(rain|snow|temp|temperature|weather|forecast|°C|°F|degrees|celsius|fahrenheit|sunny|storm)\b/i],
+  Finance: [/\b(stock|share|S&P|NASDAQ|NYSE|earnings|dividend|trading|above \$|below \$|price target)\b/i],
+  Crypto: [/\b(bitcoin|btc|ethereum|eth|crypto|cryptocurrency|coin|token|blockchain)\b/i],
+  News: [/\b(headline|top news|breaking|article|coverage)\b/i],
+  Politics: [/\b(election|vote|president|congress|senate|bill|policy)\b/i],
+  Science: [/\b(study|research|experiment|discovery|NASA|space)\b/i],
+  Entertainment: [/\b(movie|film|oscar|grammy|celebrity|box office)\b/i],
+}
+
+/** Infer category from title + description when no explicit category. Returns null if no match. */
+function inferCategoryFromText(title, description) {
+  const text = [title, description].filter(Boolean).join(' ')
+  if (!text) return null
+  for (const [category, patterns] of Object.entries(CATEGORY_KEYWORDS)) {
+    if (patterns.some(p => p.test(text))) return category
+  }
+  return null
 }
 
 /** Category to use for filter (payload.category may be display category or legacy API source). */
@@ -91,6 +116,8 @@ export function categoryForFilter(payload) {
   if (API_SOURCE_TO_CATEGORY[cat]) return API_SOURCE_TO_CATEGORY[cat]
   if (cat && MARKET_CATEGORIES.some(c => c.value === cat)) return cat
   if (src && API_SOURCE_TO_CATEGORY[src]) return API_SOURCE_TO_CATEGORY[src]
+  const inferred = inferCategoryFromText(payload?.title, payload?.description)
+  if (inferred) return inferred
   return cat || 'Other'
 }
 
@@ -109,6 +136,19 @@ export function getApiSourceLabel(payload) {
 export function getSourceLabel(value) {
   const s = MARKET_SOURCES.find(x => x.value === value)
   return s ? s.label : value
+}
+
+/** Format resolution deadline (ISO or YYYY-MM-DD) for display. Optional short format for cards. */
+export function formatResolutionDeadline(deadline, short = false) {
+  if (!deadline) return ''
+  try {
+    const d = new Date(deadline)
+    if (Number.isNaN(d.getTime())) return deadline
+    if (short) return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })
+    return d.toLocaleDateString(undefined, { dateStyle: 'medium' }) + (d.getHours() || d.getMinutes() ? ' ' + d.toLocaleTimeString(undefined, { timeStyle: 'short' }) : '')
+  } catch {
+    return String(deadline)
+  }
 }
 
 /** Binary-style variants (all use contract MarketType Binary under the hood) */

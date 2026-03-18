@@ -66,6 +66,7 @@ To attract users with interesting markets, the platform resolves outcomes using 
 | **GNews** | News search | Free tier | Alternative to NewsAPI |
 | **Guardian** | News (open API) | Free | UK/international |
 | **Perigon** | Topic search | Free tier | `PERIGON_API_KEY` |
+| **NewsData.io** | Latest news by query | Free tier | Integrated; env: `NEWSDATA_API_KEY` |
 
 Election results: prefer **official election APIs** (e.g. government or FEC) where available.
 
@@ -93,7 +94,7 @@ There is **no UI** and **no public API** for users to create markets. The route 
 ## How creation works
 
 1. Cron Worker runs and sends **POST** to **/api/auto-markets**:
-   - **Default:** `{ "action": "seed_all", "perSourceLimit": 5 }` — tries all integrated sources (sports, stocks, stocks_trend, crypto, crypto_trend, weather, weatherapi, news, perigon, newsapi_ai). Sources without an API key are skipped.
+   - **Default:** `{ "action": "seed_all", "perSourceLimit": 5 }` — tries all integrated sources (sports, stocks, stocks_trend, crypto, crypto_trend, weather, weatherapi, news, perigon, newsapi_ai, newsdata_io). Sources without an API key are skipped.
    - **Single source:** If **AUTO_MARKETS_SOURCE** is set (e.g. `sports`), body is `{ "action": "seed", "source": "sports", "limit": 5 }`.
 2. API loads **events** from the chosen source(s). For each event it uses a stable **market ID**. It **only creates a market if that ID doesn't already exist**. New events → new markets; existing → skipped.
 3. For each *new* event the API creates a **market** and **liquidity pool**, stores them in D1 and backs up to R2.
@@ -113,10 +114,11 @@ There is **no UI** and **no public API** for users to create markets. The route 
 | **news** / **gnews** | GNews | `GNEWS_API_KEY` | Headline/topic markets. |
 | **perigon** | Perigon | `PERIGON_API_KEY` | Topic search. |
 | **newsapi_ai** | NewsAPI.ai | `NEWSAPI_AI_KEY` | Topic search. |
+| **newsdata_io** | NewsData.io | `NEWSDATA_API_KEY` | Latest news by query (English). |
 
 Sources without a key are skipped when using **seed_all**. Set **AUTO_MARKETS_SOURCE** to a single source (e.g. `sports`) to seed only that category.
 
-**Why do I only see Sports markets?** Markets are only created for sources that have an API key configured on the **Pages** project (Cloudflare env). If only `THE_ODDS_API_KEY` is set, only sports markets will be created. To get Finance/Crypto, Weather, or News markets, add the corresponding keys (e.g. `ALPHA_VANTAGE_API_KEY`, `COINGECKO_API_KEY`, `OPENWEATHER_API_KEY`, `WEATHERAPI_API_KEY`, `GNEWS_API_KEY`, `PERIGON_API_KEY`, `NEWSAPI_AI_KEY`) in Cloudflare Pages → Settings → Environment variables, then run the cron again or trigger a manual seed.
+**Why do I only see Sports markets?** Markets are only created for sources that have an API key configured on the **Pages** project (Cloudflare env). If only `THE_ODDS_API_KEY` is set, only sports markets will be created. To get Finance/Crypto, Weather, or News markets, add the corresponding keys (e.g. `ALPHA_VANTAGE_API_KEY`, `COINGECKO_API_KEY`, `OPENWEATHER_API_KEY`, `WEATHERAPI_API_KEY`, `GNEWS_API_KEY`, `PERIGON_API_KEY`, `NEWSAPI_AI_KEY`, `NEWSDATA_API_KEY`) in Cloudflare Pages → Settings → Environment variables, then run the cron again or trigger a manual seed.
 
 ## Auto-markets API (endpoints & params)
 
@@ -127,7 +129,7 @@ Sources without a key are skipped when using **seed_all**. Set **AUTO_MARKETS_SO
 
 **Parameters:** `action` (events / seed / seed_all), `source`, `sources` (array), `limit`, `perSourceLimit`, `sport` (for sports), `category` (for news), `q` (Perigon/NewsAPI.ai query).
 
-**Environment variables:** Set in Cloudflare Pages/Workers. Examples: `THE_ODDS_API_KEY`, `ALPHA_VANTAGE_API_KEY`, `OPENWEATHER_API_KEY`, `WEATHERAPI_API_KEY`, `GNEWS_API_KEY`, `PERIGON_API_KEY`, `NEWSAPI_AI_KEY`, optional `COINGECKO_API_KEY`, `RAPIDAPI_KEY`.
+**Environment variables:** Set in Cloudflare Pages/Workers. Examples: `THE_ODDS_API_KEY`, `ALPHA_VANTAGE_API_KEY`, `OPENWEATHER_API_KEY`, `WEATHERAPI_API_KEY`, `GNEWS_API_KEY`, `PERIGON_API_KEY`, `NEWSAPI_AI_KEY`, `NEWSDATA_API_KEY`, optional `COINGECKO_API_KEY`, `RAPIDAPI_KEY`.
 
 ## Viewing markets on the webapp
 

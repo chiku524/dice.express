@@ -7,7 +7,7 @@ import { fetchMarkets, fetchPool, executeTrade } from '../services/marketsApi'
 import { fetchOpenOrders, placeOrder } from '../services/ordersApi'
 import MarketResolution from './MarketResolution'
 import { formatPips, PLATFORM_CURRENCY_SYMBOL } from '../constants/currency'
-import { PREDICTION_STYLES, getCategoryDisplay, getApiSourceLabel } from '../constants/marketConfig'
+import { PREDICTION_STYLES, getCategoryDisplay, getApiSourceLabel, formatResolutionDeadline } from '../constants/marketConfig'
 import { getQuote, isTradeWithinLimit, yesProbability } from '../utils/ammQuote'
 import { getSEOForPath } from '../constants/seo'
 import './MarketDetail.css'
@@ -235,6 +235,21 @@ export default function MarketDetail() {
             {marketData.status}
           </span>
           <p className="market-detail-desc">{marketData.description}</p>
+
+          {(marketData.resolutionCriteria || marketData.resolutionDeadline) && (
+            <div className="market-detail-resolution">
+              <h3 className="market-detail-resolution-title">How it resolves</h3>
+              {marketData.resolutionDeadline && (
+                <p className="market-detail-resolution-deadline">
+                  <span className="market-detail-resolution-label">Resolves by</span>{' '}
+                  {formatResolutionDeadline(marketData.resolutionDeadline)}
+                </p>
+              )}
+              {marketData.resolutionCriteria && (
+                <p className="market-detail-resolution-criteria">{marketData.resolutionCriteria}</p>
+              )}
+            </div>
+          )}
 
           {marketData.marketType === 'Binary' && pool && (
             <div className="market-detail-odds">
