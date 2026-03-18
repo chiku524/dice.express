@@ -192,12 +192,12 @@ export function isNewsMarket(payload) {
   return !!(oc && (oc.title || oc.q))
 }
 
-/** Display title for news markets: full article title + date in the question. Returns null if not news or no full title. */
+/** Display title for news markets: full article title + date in the question. Uses same calendar date as "Resolves by". */
 export function getNewsMarketDisplayTitle(payload) {
   const fullTitle = getFullArticleTitle(payload)
   if (!fullTitle) return null
   const dateStr = payload?.resolutionDeadline || payload?.oracleConfig?.dateStr
-  const date = dateStr ? (dateStr.length === 10 ? dateStr : dateStr.slice(0, 10)) : null
+  const date = dateStr ? (typeof dateStr === 'string' && dateStr.length >= 10 ? dateStr.slice(0, 10) : null) : null
   const dateLabel = date || 'the resolution date'
   return `Will "${fullTitle}" be in top news on ${dateLabel}?`
 }
@@ -255,12 +255,29 @@ export function getSourceLabel(value) {
   return s ? s.label : value
 }
 
-/** Format resolution deadline (ISO or YYYY-MM-DD) for display. Optional short format for cards. */
+/** Whether the deadline is date-only (YYYY-MM-DD) so we show calendar day without timezone shift. */
+function isDateOnlyDeadline(deadline) {
+  if (typeof deadline !== 'string') return false
+  if (/^\d{4}-\d{2}-\d{2}$/.test(deadline.trim())) return true
+  if (/^\d{4}-\d{2}-\d{2}T00:00:00/.test(deadline.trim())) return true
+  return false
+}
+
+/** Format resolution deadline (ISO or YYYY-MM-DD) for display. Date-only values show calendar day only (no time) to match title. */
 export function formatResolutionDeadline(deadline, short = false) {
   if (!deadline) return ''
   try {
     const d = new Date(deadline)
     if (Number.isNaN(d.getTime())) return deadline
+    const dateOnly = isDateOnlyDeadline(deadline)
+    if (dateOnly) {
+      const y = d.getUTCFullYear()
+      const m = d.getUTCMonth()
+      const day = d.getUTCDate()
+      const dateOnlyObj = new Date(Date.UTC(y, m, day))
+      if (short) return dateOnlyObj.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' })
+      return dateOnlyObj.toLocaleDateString(undefined, { dateStyle: 'medium', timeZone: 'UTC' })
+    }
     if (short) return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })
     return d.toLocaleDateString(undefined, { dateStyle: 'medium' }) + (d.getHours() || d.getMinutes() ? ' ' + d.toLocaleTimeString(undefined, { timeStyle: 'short' }) : '')
   } catch {
