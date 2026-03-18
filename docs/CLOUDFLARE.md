@@ -38,7 +38,7 @@ If the zone is on Cloudflare, DNS is usually updated automatically. Otherwise ad
 1. From the repo root: `npm run pages:deploy` (builds frontend and deploys to project **dice-express**).
 2. Open **https://dice-express.pages.dev**. Subsequent deploys: run `npm run pages:deploy` again or use GitHub Actions.
 
-**If you see `504 Gateway Timeout` or "upstream request timeout"** when running `wrangler pages deploy`: the Cloudflare API often times out on `GET /accounts/.../pages/projects/...` from CI. The workflow retries up to 5 times with 90s delay. If it still fails, **use Git-based deploys** so Cloudflare builds on their side and the API is not called from the runner: **Workers & Pages → Create project (or use existing) → Connect to Git → select this repo**. Set build command `npm run build:frontend` and output directory `frontend/dist`. Root directory: repo root. Then disable or remove the Direct Upload workflow so pushes trigger the Git-based build instead.
+**If you see `504 Gateway Timeout` or "upstream request timeout"**: This is **Cloudflare’s API** timing out when wrangler calls `GET /accounts/.../pages/projects/dice-express`. It is not caused by your config or env vars. **Your project and all env secrets/vars are unchanged** — nothing is lost. The CI workflow uses longer timeouts (`CF_HTTP_TIMEOUT`, `CF_BULK_TIMEOUT`) and 5 retries with 90s delay. If CI still fails, **run the deploy from your own machine** (often succeeds when CI fails due to different network path): `npm run pages:deploy`. Same project, same env vars. If you prefer to avoid Direct Upload entirely, you can create a new Pages project with **Connect to Git** and point it at this repo (you would then need to re-add env vars to that new project).
 
 ---
 

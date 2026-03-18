@@ -2,6 +2,10 @@
 # Cloudflare project name: dice-express → https://dice-express.pages.dev
 # Requires GitHub secrets: CLOUDFLARE_ACCOUNT_ID, CLOUDFLARE_API_TOKEN
 # Docs: https://developers.cloudflare.com/pages/how-to/use-direct-upload-with-continuous-integration/
+#
+# Why 504 happens: Cloudflare's API (GET /accounts/.../pages/projects/dice-express) sometimes
+# times out from CI. Your project and all env secrets/vars are unchanged; the timeout is on
+# Cloudflare's side. We use longer client timeouts + retries to work around it.
 
 name: Deploy to Cloudflare Pages
 
@@ -45,14 +49,16 @@ jobs:
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          # Give Cloudflare API more time to respond (504 = their gateway timeout; avoid our client timing out first)
+          CF_HTTP_TIMEOUT: "300"
+          CF_CONNECT_TIMEOUT: "60"
+          CF_BULK_TIMEOUT: "600"
         run: |
-          # Cloudflare API often returns 504 on GET /pages/projects; retry with backoff.
-          # Alternative: use Git-based deploy (connect repo in dashboard) so Cloudflare builds on push.
           for i in 1 2 3 4 5; do
             echo "Deploy attempt $i of 5..."
             npx wrangler@latest pages deploy frontend/dist --project-name=dice-express && exit 0
             echo "Deploy failed (often 504). Waiting 90s before retry..."
             sleep 90
           done
-          echo "::error::All 5 deploy attempts failed (504 is a Cloudflare API timeout). Use Git-based deploy: Workers & Pages → Create project → Connect to Git → pick this repo."
+          echo "::error::All 5 deploy attempts failed. Your dice-express project and env vars are unchanged. Try running 'npm run pages:deploy' from your machine (often works when CI times out), or see docs/CLOUDFLARE.md."
           exit 1
