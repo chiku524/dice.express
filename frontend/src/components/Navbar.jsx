@@ -3,6 +3,7 @@ import { Link, useLocation } from 'react-router-dom'
 import { useWallet } from '../contexts/WalletContext'
 import { getVirtualBalance } from '../services/balance'
 import { BRAND_NAME, BRAND_TAGLINE } from '../constants/brand'
+import { MARKET_SOURCES } from '../constants/marketConfig'
 import './Navbar.css'
 
 export default function Navbar({ setShowWalletModal }) {
@@ -76,18 +77,15 @@ export default function Navbar({ setShowWalletModal }) {
             </button>
             {showDiscoverMenu && (
               <div className="nav-dropdown-menu">
-                <Link to="/" className={isActive('/') ? 'active' : ''}>
-                  All Markets
-                </Link>
-                <Link to="/discover/global-events" className={location.pathname === '/discover/global-events' ? 'active' : ''}>
-                  Global Events
-                </Link>
-                <Link to="/discover/industry" className={location.pathname === '/discover/industry' ? 'active' : ''}>
-                  Industry Topics
-                </Link>
-                <Link to="/discover/virtual-realities" className={location.pathname === '/discover/virtual-realities' ? 'active' : ''}>
-                  Virtual Realities
-                </Link>
+                {MARKET_SOURCES.filter(s => s.value === 'all' || (s.value !== 'user')).map((source) => (
+                  <Link
+                    key={source.value}
+                    to={source.value === 'all' ? '/' : `/discover/${source.value}`}
+                    className={source.value === 'all' ? (isActive('/') ? 'active' : '') : (location.pathname === `/discover/${source.value}` ? 'active' : '')}
+                  >
+                    {source.label}
+                  </Link>
+                ))}
               </div>
             )}
           </div>

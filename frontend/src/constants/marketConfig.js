@@ -15,11 +15,11 @@ export const MARKET_CATEGORIES = [
   { value: 'Other', label: 'Other' },
 ]
 
-/** Market sources: automated (global events, industry, VR) vs user-created */
+/** Market sources: automated (global events, industry, VR) vs user-created. Labels match what each category contains. */
 export const MARKET_SOURCES = [
   { value: 'all', label: 'All Markets' },
-  { value: 'global_events', label: 'Global Events' },
-  { value: 'industry', label: 'Industry Topics' },
+  { value: 'global_events', label: 'Sports, Weather & News' },
+  { value: 'industry', label: 'Finance & Crypto' },
   { value: 'virtual_realities', label: 'Virtual Realities' },
   { value: 'user', label: 'User-Created' },
 ]

@@ -116,6 +116,8 @@ There is **no UI** and **no public API** for users to create markets. The route 
 
 Sources without a key are skipped when using **seed_all**. Set **AUTO_MARKETS_SOURCE** to a single source (e.g. `sports`) to seed only that category.
 
+**Why do I only see Sports markets?** Markets are only created for sources that have an API key configured on the **Pages** project (Cloudflare env). If only `THE_ODDS_API_KEY` is set, only sports markets will be created. To get Finance/Crypto, Weather, or News markets, add the corresponding keys (e.g. `ALPHA_VANTAGE_API_KEY`, `COINGECKO_API_KEY`, `OPENWEATHER_API_KEY`, `WEATHERAPI_API_KEY`, `GNEWS_API_KEY`, `PERIGON_API_KEY`, `NEWSAPI_AI_KEY`) in Cloudflare Pages → Settings → Environment variables, then run the cron again or trigger a manual seed.
+
 ## Auto-markets API (endpoints & params)
 
 | Method | URL | Purpose |
