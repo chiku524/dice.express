@@ -310,8 +310,8 @@ export default function MarketsList({ source: sourceFromRoute }) {
         <p>{pageSubtitle}</p>
       </div>
       
-      {/* Filters Section */}
-      {markets.length > 0 && (
+      {/* Filters Section — always show when loaded so discover pages (e.g. Sports, Virtual Realities) show filters even if category is empty */}
+      {(!loading && !error) && (
         <div className="card mb-xl filters-card">
           <button
             type="button"
@@ -621,25 +621,38 @@ export default function MarketsList({ source: sourceFromRoute }) {
         </div>
       ) : (
         <>
-          {filteredAndSortedMarkets.length === 0 && activeFilterCount > 0 ? (
+          {filteredAndSortedMarkets.length === 0 ? (
             <div className="card empty-state">
               <div className="empty-state-content">
                 <h3>No markets found</h3>
-                <p>No markets match your current filters. Try adjusting your search criteria.</p>
-                <button
-                  className="btn-primary mt-md"
-                  onClick={() => {
-                    setSearchQuery('')
-                    setSelectedCategory('trending')
-                    setSelectedTopic('all')
-                    setSelectedType('all')
-                    setSelectedStatus('all')
-                    setSelectedSource('all')
-                    setSortBy('volume')
-                  }}
-                >
-                  Clear All Filters
-                </button>
+                <p>
+                  {sourceFromRoute && sourceFromRoute !== 'active'
+                    ? `No markets in "${getSourceLabel(sourceFromRoute)}" yet. Markets are added automatically — check back soon or browse All Markets.`
+                    : activeFilterCount > 0
+                      ? 'No markets match your current filters. Try adjusting your search criteria.'
+                      : 'No markets available yet. Markets are added automatically — check back soon or try clearing filters.'}
+                </p>
+                <Link to="/">
+                  <button className="btn-primary mt-md" style={{ marginRight: 'var(--spacing-sm)' }}>
+                    All Markets
+                  </button>
+                </Link>
+                {activeFilterCount > 0 && (
+                  <button
+                    className="btn-secondary mt-md"
+                    onClick={() => {
+                      setSearchQuery('')
+                      setSelectedCategory('trending')
+                      setSelectedTopic('all')
+                      setSelectedType('all')
+                      setSelectedStatus('all')
+                      setSelectedSource('all')
+                      setSortBy('volume')
+                    }}
+                  >
+                    Clear All Filters
+                  </button>
+                )}
               </div>
             </div>
           ) : (
