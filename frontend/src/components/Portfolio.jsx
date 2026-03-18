@@ -1,7 +1,9 @@
 import { useState, useEffect, useRef } from 'react'
 import { Link } from 'react-router-dom'
+import { encodeFunctionData } from 'viem'
 import { useWallet } from '../contexts/WalletContext'
 import { useAccountModal } from '../contexts/AccountModalContext'
+import { useWeb3Wallet } from '../contexts/Web3WalletContext'
 import { ContractStorage } from '../utils/contractStorage'
 import { SkeletonList } from './SkeletonLoader'
 import UserHubNav from './UserHubNav'
@@ -9,26 +11,36 @@ import { formatPips, PLATFORM_CURRENCY_SYMBOL } from '../constants/currency'
 import './Portfolio.css'
 import { PIPS_PACKAGES } from '../constants/stripeProducts'
 
+const USDC_ABI = [{ type: 'function', name: 'transfer', inputs: [{ name: 'to', type: 'address' }, { name: 'value', type: 'uint256' }], outputs: [{ type: 'bool' }] }]
+const USDC_ETHEREUM = '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48'
+const CHAIN_ID_ETHEREUM = 1
+const CHAIN_ID_POLYGON = 137
+
 export default function Portfolio() {
   const { wallet } = useWallet()
   const openAccountModal = useAccountModal()
+  const { address: web3Address, chainId: web3ChainId, client: web3Client, connect: web3Connect, disconnect: web3Disconnect, isConnected: web3Connected, error: web3Error } = useWeb3Wallet()
   const [positions, setPositions] = useState([])
+  const [walletDepositAmount, setWalletDepositAmount] = useState('')
+  const [walletDepositToken, setWalletDepositToken] = useState('usdc')
+  const [walletDepositLoading, setWalletDepositLoading] = useState(false)
+  const [walletDepositError, setWalletDepositError] = useState(null)
+  const [walletDepositSuccess, setWalletDepositSuccess] = useState(false)
   const [activityLog, setActivityLog] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
-  const [depositAmount, setDepositAmount] = useState('')
-  const [depositLoading, setDepositLoading] = useState(false)
-  const [depositError, setDepositError] = useState(null)
-  const [depositSuccess, setDepositSuccess] = useState(false)
   const [stripeAmount, setStripeAmount] = useState('')
   const [stripeLoading, setStripeLoading] = useState(false)
   const [stripeError, setStripeError] = useState(null)
   const [withdrawAmount, setWithdrawAmount] = useState('')
   const [withdrawAddress, setWithdrawAddress] = useState('')
   const [withdrawNetwork, setWithdrawNetwork] = useState('ethereum')
+  const [withdrawToken, setWithdrawToken] = useState('usdc')
   const [withdrawLoading, setWithdrawLoading] = useState(false)
   const [withdrawError, setWithdrawError] = useState(null)
   const [withdrawSuccess, setWithdrawSuccess] = useState(false)
+  const [withdrawTxHash, setWithdrawTxHash] = useState(null)
+  const [withdrawTxNetwork, setWithdrawTxNetwork] = useState(null)
   const [withdrawalRequests, setWithdrawalRequests] = useState([])
   const [depositRecords, setDepositRecords] = useState([])
   const [depositAddresses, setDepositAddresses] = useState(null)
@@ -374,49 +386,6 @@ export default function Portfolio() {
     }
   }
 
-  const handleAddCredits = async () => {
-    if (!wallet) {
-      setDepositError('Please sign in first')
-      return
-    }
-
-    if (!depositAmount || parseFloat(depositAmount) <= 0) {
-      setDepositError('Please enter a valid amount')
-      return
-    }
-
-    setDepositLoading(true)
-    setDepositError(null)
-    setDepositSuccess(false)
-
-    try {
-      const response = await fetch('/api/add-credits', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          userParty: wallet.party,
-          accountId: wallet.accountId,
-          amount: depositAmount,
-        }),
-      })
-
-      const result = await response.json()
-
-      if (!response.ok) {
-        throw new Error(result.message || result.error || 'Add credits failed')
-      }
-
-      setDepositSuccess(true)
-      setDepositAmount('')
-      await fetchUserBalance()
-    } catch (err) {
-      setDepositError(err.message)
-    } finally {
-      setDepositLoading(false)
-      setTimeout(() => setDepositSuccess(false), 5000)
-    }
-  }
-
   const startStripeCheckout = async (body) => {
     const base = window.location.origin
     const res = await fetch('/api/stripe-create-checkout-session', {
@@ -480,9 +449,12 @@ export default function Portfolio() {
       setWithdrawError('Enter destination address')
       return
     }
+    const token = withdrawToken === 'native_eth' || withdrawToken === 'native_matic' ? 'native' : 'usdc'
+    const networkId = withdrawToken === 'native_matic' ? 'polygon' : withdrawNetwork
     setWithdrawLoading(true)
     setWithdrawError(null)
     setWithdrawSuccess(false)
+    setWithdrawTxHash(null)
     try {
       const res = await fetch('/api/withdraw-request', {
         method: 'POST',
@@ -490,14 +462,19 @@ export default function Portfolio() {
         body: JSON.stringify({
           userParty: wallet.party,
           accountId: wallet.accountId,
-          amount: amount,
+          amount,
           destinationAddress: withdrawAddress.trim(),
-          networkId: withdrawNetwork,
+          networkId,
+          token,
         }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Withdrawal request failed')
       setWithdrawSuccess(true)
+      if (data.txHash) {
+        setWithdrawTxHash(data.txHash)
+        setWithdrawTxNetwork(data.networkId || 'ethereum')
+      }
       setWithdrawAmount('')
       setWithdrawAddress('')
       await fetchUserBalance()
@@ -506,7 +483,105 @@ export default function Portfolio() {
       setWithdrawError(err.message)
     } finally {
       setWithdrawLoading(false)
-      setTimeout(() => setWithdrawSuccess(false), 5000)
+      setTimeout(() => {
+        setWithdrawSuccess(false)
+        setWithdrawTxHash(null)
+        setWithdrawTxNetwork(null)
+      }, 10000)
+    }
+  }
+
+  const handleWalletDeposit = async () => {
+    if (!wallet?.party || !web3Address || !depositAddresses?.evm?.address) {
+      setWalletDepositError('Connect your Web3 wallet and ensure platform address is loaded.')
+      return
+    }
+    const amount = parseFloat(walletDepositAmount)
+    const isNative = walletDepositToken === 'native_eth' || walletDepositToken === 'native_matic'
+    const minAmount = isNative ? 0.0001 : 0.01
+    if (!walletDepositAmount || isNaN(amount) || amount < minAmount) {
+      setWalletDepositError(isNative ? 'Enter a valid amount.' : 'Enter a valid amount (min 0.01 PP).')
+      return
+    }
+    const ethereum = typeof window !== 'undefined' && window.ethereum
+    if (!ethereum) {
+      setWalletDepositError('No Web3 wallet found.')
+      return
+    }
+    setWalletDepositLoading(true)
+    setWalletDepositError(null)
+    setWalletDepositSuccess(false)
+    try {
+      const targetChainId = walletDepositToken === 'native_matic' ? CHAIN_ID_POLYGON : CHAIN_ID_ETHEREUM
+      if (Number(web3ChainId) !== targetChainId) {
+        const hexChain = '0x' + targetChainId.toString(16)
+        await ethereum.request({
+          method: 'wallet_switchEthereumChain',
+          params: [{ chainId: hexChain }],
+        })
+      }
+      const platformAddress = depositAddresses.evm.address
+      let txHash
+      if (isNative) {
+        const valueWei = BigInt(Math.floor(amount * 1e18))
+        txHash = await ethereum.request({
+          method: 'eth_sendTransaction',
+          params: [{
+            from: web3Address,
+            to: platformAddress,
+            value: '0x' + valueWei.toString(16),
+            data: '0x',
+          }],
+        })
+      } else {
+        const usdcContract = USDC_ETHEREUM
+        const amountRaw = BigInt(Math.floor(amount * 1e6))
+        const data = encodeFunctionData({
+          abi: USDC_ABI,
+          functionName: 'transfer',
+          args: [platformAddress, amountRaw],
+        })
+        txHash = await ethereum.request({
+          method: 'eth_sendTransaction',
+          params: [{
+            from: web3Address,
+            to: usdcContract,
+            data,
+            value: '0x0',
+          }],
+        })
+      }
+      if (!txHash) throw new Error('No transaction hash returned')
+      const message = `deposit:${wallet.party}:${txHash}`
+      const signature = await ethereum.request({
+        method: 'personal_sign',
+        params: [message, web3Address],
+      })
+      const networkId = walletDepositToken === 'native_matic' ? 'polygon' : 'ethereum'
+      const res = await fetch('/api/deposit-with-tx', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userParty: wallet.party,
+          txHash,
+          fromAddress: web3Address,
+          amountGuap: String(amount),
+          signature,
+          depositType: isNative ? 'native' : 'usdc',
+          networkId,
+        }),
+      })
+      const result = await res.json()
+      if (!res.ok) throw new Error(result.error || result.message || 'Deposit failed')
+      setWalletDepositSuccess(true)
+      setWalletDepositAmount('')
+      await fetchUserBalance()
+      await fetchDepositRecords()
+    } catch (err) {
+      setWalletDepositError(err?.message || 'Deposit failed')
+    } finally {
+      setWalletDepositLoading(false)
+      setTimeout(() => setWalletDepositSuccess(false), 5000)
     }
   }
 
@@ -554,49 +629,76 @@ export default function Portfolio() {
           {balanceLoading ? 'Loading...' : formatPips(userBalance)}
         </p>
         <p className="balance-hint">
-          Deposit via crypto or card to get Pips; use it to trade. Withdraw earnings (fee applies).
+          Deposit via wallet, card, or crypto to get Pips; use it to trade. Withdraw earnings (fee applies).
         </p>
       </div>
-      
-      {/* Add Pips (top-up for testing; production uses Deposit) */}
+
+      {/* Deposit from connected wallet — first */}
       <div className="card mb-xl">
-        <h2 className="mb-md">Add Pips</h2>
+        <h2 className="mb-md">Deposit from wallet</h2>
         <p className="text-secondary mb-md" style={{ fontSize: 'var(--font-size-sm)' }}>
-          Add Pips to your balance to trade. In production you’ll deposit via crypto or card to receive Pips.
+          Connect your Web3 wallet and send USDC or native tokens (ETH, MATIC). Your Pips are credited after the transaction confirms and you sign the verification message.
         </p>
-        <div className="form-group" style={{ maxWidth: '280px' }}>
-          <label>Amount</label>
-          <input
-            type="number"
-            value={depositAmount}
-            onChange={(e) => setDepositAmount(e.target.value)}
-            placeholder="e.g. 100"
-            min="0"
-            step="1"
-            disabled={depositLoading}
-          />
-        </div>
-        {depositError && (
-          <div className="error mt-sm" style={{ fontSize: 'var(--font-size-sm)' }}>
-            {depositError}
+        {!web3Connected ? (
+          <div>
+            <button type="button" className="btn-primary" onClick={web3Connect}>
+              Connect wallet
+            </button>
+            {web3Error && <p className="error mt-sm" style={{ fontSize: 'var(--font-size-sm)' }}>{web3Error}</p>}
+          </div>
+        ) : (
+          <div>
+            <p className="text-muted mb-sm" style={{ fontSize: 'var(--font-size-sm)' }}>
+              Connected: <code>{web3Address.slice(0, 6)}…{web3Address.slice(-4)}</code>
+              {(walletDepositToken === 'native_matic' ? Number(web3ChainId) !== CHAIN_ID_POLYGON : Number(web3ChainId) !== CHAIN_ID_ETHEREUM) && (
+                <span style={{ marginLeft: 'var(--spacing-sm)', color: 'var(--color-warning, #eab308)' }}>
+                  Switch to {walletDepositToken === 'native_matic' ? 'Polygon' : 'Ethereum'} for this token.
+                </span>
+              )}
+            </p>
+            <div className="form-group" style={{ maxWidth: '280px' }}>
+              <label>Token</label>
+              <select value={walletDepositToken} onChange={(e) => setWalletDepositToken(e.target.value)} disabled={walletDepositLoading}>
+                <option value="usdc">USDC (Ethereum)</option>
+                <option value="native_eth">ETH (Ethereum native)</option>
+                <option value="native_matic">MATIC (Polygon native)</option>
+              </select>
+            </div>
+            <div className="form-group" style={{ maxWidth: '280px' }}>
+              <label>
+                {walletDepositToken === 'usdc' ? 'Amount (PP, in USDC)' : walletDepositToken === 'native_eth' ? 'Amount (ETH)' : 'Amount (MATIC)'}
+              </label>
+              <input
+                type="number"
+                value={walletDepositAmount}
+                onChange={(e) => setWalletDepositAmount(e.target.value)}
+                placeholder={walletDepositToken === 'usdc' ? 'e.g. 10' : 'e.g. 0.1'}
+                min={walletDepositToken === 'usdc' ? '0.01' : '0.0001'}
+                step={walletDepositToken === 'usdc' ? '0.01' : '0.0001'}
+                disabled={walletDepositLoading}
+              />
+            </div>
+            {walletDepositError && <p className="error mt-sm" style={{ fontSize: 'var(--font-size-sm)' }}>{walletDepositError}</p>}
+            {walletDepositSuccess && <p className="success-message mt-sm">Deposit credited. Your balance has been updated.</p>}
+            <button
+              type="button"
+              className="btn-primary"
+              onClick={handleWalletDeposit}
+              disabled={
+                walletDepositLoading ||
+                !walletDepositAmount ||
+                parseFloat(walletDepositAmount) < (walletDepositToken === 'usdc' ? 0.01 : 0.0001) ||
+                (walletDepositToken === 'native_matic' ? Number(web3ChainId) !== CHAIN_ID_POLYGON : Number(web3ChainId) !== CHAIN_ID_ETHEREUM)
+              }
+              style={{ marginTop: 'var(--spacing-sm)' }}
+            >
+              {walletDepositLoading ? 'Sending & verifying…' : walletDepositToken === 'usdc' ? 'Send USDC' : walletDepositToken === 'native_eth' ? 'Send ETH' : 'Send MATIC'}
+            </button>
+            <button type="button" className="btn-secondary" onClick={web3Disconnect} style={{ marginTop: 'var(--spacing-sm)', marginLeft: 'var(--spacing-sm)' }}>
+              Disconnect wallet
+            </button>
           </div>
         )}
-        {depositSuccess && (
-          <div className="success-message mt-sm">
-            Pips added. Your balance has been updated.
-          </div>
-        )}
-        <button
-          className="btn-primary"
-          onClick={handleAddCredits}
-          disabled={depositLoading || !depositAmount}
-          style={{ marginTop: 'var(--spacing-sm)' }}
-        >
-          {depositLoading ? 'Adding...' : 'Add Pips'}
-        </button>
-        <p className="text-muted mt-md" style={{ fontSize: 'var(--font-size-xs)' }}>
-          Withdraw your Pips anytime; a withdrawal fee applies.
-        </p>
       </div>
 
       {stripeReturnMessage === 'success' && (
@@ -655,7 +757,7 @@ export default function Portfolio() {
         </button>
       </div>
 
-      {/* Deposit with crypto */}
+      {/* Deposit with crypto (platform addresses) */}
       <div className="card mb-xl">
         <h2 className="mb-md">Deposit with crypto</h2>
         <p className="text-secondary mb-md" style={{ fontSize: 'var(--font-size-sm)' }}>
@@ -697,22 +799,41 @@ export default function Portfolio() {
 
       {/* Withdraw */}
       <div className="card mb-xl">
-        <h2 className="mb-md">Withdraw Pips</h2>
+        <h2 className="mb-md">Withdraw</h2>
         <p className="text-secondary mb-md" style={{ fontSize: 'var(--font-size-sm)' }}>
-          Request a withdrawal to your crypto address. A 2% fee (min 1 PP) applies. Funds are sent from the platform wallet.
+          Withdraw USDC or native tokens (ETH, MATIC) to your EVM address. USDC: 2% fee (min 1 PP). Native: 1 PP fee. Sent immediately from the platform wallet.
         </p>
+        <div className="form-group" style={{ maxWidth: '280px' }}>
+          <label>Token</label>
+          <select value={withdrawToken} onChange={(e) => setWithdrawToken(e.target.value)} disabled={withdrawLoading}>
+            <option value="usdc">USDC (stablecoin)</option>
+            <option value="native_eth">ETH (Ethereum native)</option>
+            <option value="native_matic">MATIC (Polygon native)</option>
+          </select>
+        </div>
         <div className="form-group" style={{ maxWidth: '320px' }}>
-          <label>Amount (PP)</label>
+          <label>
+            {withdrawToken === 'usdc' ? 'Amount (PP)' : withdrawToken === 'native_eth' ? 'Amount (ETH)' : 'Amount (MATIC)'}
+          </label>
           <input
             type="number"
             value={withdrawAmount}
             onChange={(e) => setWithdrawAmount(e.target.value)}
-            placeholder="0"
+            placeholder={withdrawToken === 'usdc' ? '0' : '0.00'}
             min="0"
-            step="0.01"
+            step={withdrawToken === 'usdc' ? '0.01' : '0.0001'}
             disabled={withdrawLoading}
           />
         </div>
+        {withdrawToken === 'usdc' && (
+          <div className="form-group" style={{ maxWidth: '200px' }}>
+            <label>Network</label>
+            <select value={withdrawNetwork} onChange={(e) => setWithdrawNetwork(e.target.value)} disabled={withdrawLoading}>
+              <option value="ethereum">Ethereum</option>
+              <option value="polygon">Polygon</option>
+            </select>
+          </div>
+        )}
         <div className="form-group" style={{ maxWidth: '320px' }}>
           <label>Destination address</label>
           <input
@@ -723,22 +844,23 @@ export default function Portfolio() {
             disabled={withdrawLoading}
           />
         </div>
-        <div className="form-group" style={{ maxWidth: '200px' }}>
-          <label>Network</label>
-          <select value={withdrawNetwork} onChange={(e) => setWithdrawNetwork(e.target.value)} disabled={withdrawLoading}>
-            <option value="ethereum">Ethereum</option>
-            <option value="polygon">Polygon</option>
-          </select>
-        </div>
         {withdrawError && <div className="error mt-sm" style={{ fontSize: 'var(--font-size-sm)' }}>{withdrawError}</div>}
-        {withdrawSuccess && <div className="success-message mt-sm">Withdrawal requested. You will receive funds after processing.</div>}
+        {withdrawSuccess && (
+          <div className="success-message mt-sm">
+            {withdrawTxHash ? (
+              <>Withdrawal sent. <a href={withdrawTxNetwork === 'polygon' ? `https://polygonscan.com/tx/${withdrawTxHash}` : `https://etherscan.io/tx/${withdrawTxHash}`} target="_blank" rel="noopener noreferrer" style={{ color: 'inherit', textDecoration: 'underline' }}>View transaction</a></>
+            ) : (
+              'Withdrawal queued; it will be processed shortly.'
+            )}
+          </div>
+        )}
         <button
           className="btn-primary"
           onClick={handleWithdraw}
           disabled={withdrawLoading || !withdrawAmount || parseFloat(withdrawAmount) <= 0 || !withdrawAddress?.trim()}
           style={{ marginTop: 'var(--spacing-sm)' }}
         >
-          {withdrawLoading ? 'Requesting…' : 'Request withdrawal'}
+          {withdrawLoading ? 'Sending…' : 'Withdraw'}
         </button>
         {withdrawalRequests.length > 0 && (
           <div className="mt-xl">

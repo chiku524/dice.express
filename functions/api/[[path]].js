@@ -9,8 +9,10 @@ import { hashPassword, verifyPassword } from '../lib/auth.mjs'
 import * as dataSources from '../lib/data-sources.mjs'
 import * as resolveMarkets from '../lib/resolve-markets.mjs'
 import { addPips, pipsToCents, centsToPipsStr, cryptoAmountToPipsStr } from '../lib/pips-precision.mjs'
-import { verifyErc20Deposit } from '../lib/verify-deposit-rpc.mjs'
+import { verifyErc20Deposit, verifyNativeDeposit } from '../lib/verify-deposit-rpc.mjs'
 import { getAlchemyRpcUrl } from '../lib/alchemy-networks.mjs'
+import { createWalletClient, createPublicClient, http, privateKeyToAccount, encodeFunctionData, parseAbi, verifyMessage } from 'viem'
+import { mainnet, polygon } from 'viem/chains'
 
 const CORS = {
   'Access-Control-Allow-Origin': '*',
@@ -20,6 +22,66 @@ const CORS = {
 
 const TEMPLATE_VIRTUAL_MARKET = 'VirtualMarket'
 const R2_BUCKET_NAME = 'dice-express-r2'
+
+const USDC_ABI = parseAbi(['function transfer(address to, uint256 value) returns (bool)'])
+const USDC_BY_NETWORK = {
+  ethereum: '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48',
+  polygon: '0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174',
+}
+const CHAINS_BY_NETWORK = { ethereum: mainnet, polygon }
+
+/** Send one withdrawal (USDC or native) from platform wallet. Returns { ok: true, txHash } or { ok: false, error }. */
+async function sendOneWithdrawal(env, db, w) {
+  const privateKeyHex = env.PLATFORM_WALLET_PRIVATE_KEY
+  if (!privateKeyHex || typeof privateKeyHex !== 'string' || !privateKeyHex.startsWith('0x')) {
+    return { ok: false, error: 'PLATFORM_WALLET_PRIVATE_KEY not set' }
+  }
+  const rpcUrl = env.DEPOSIT_VERIFICATION_RPC_URL || (env.ALCHEMY_API_KEY ? getAlchemyRpcUrl(env.ALCHEMY_API_KEY, (w.networkId || 'ethereum').toString().toLowerCase()) : null)
+  if (!rpcUrl) return { ok: false, error: 'RPC not configured' }
+  let account
+  try {
+    account = privateKeyToAccount(privateKeyHex)
+  } catch (e) {
+    return { ok: false, error: e?.message || 'Invalid private key' }
+  }
+  const netId = (w.networkId || 'ethereum').toString().toLowerCase()
+  const chain = CHAINS_BY_NETWORK[netId] || mainnet
+  const transport = http(rpcUrl)
+  const walletClient = createWalletClient({ account, chain, transport })
+  const token = w.token === 'native' ? 'native' : 'usdc'
+  try {
+    if (token === 'native') {
+      const amountWei = BigInt(Math.floor(Number(w.netGuap) * 1e18))
+      if (amountWei <= 0n) return { ok: false, error: 'Invalid native amount' }
+      const hash = await walletClient.sendTransaction({
+        account,
+        to: w.destination,
+        value: amountWei,
+        data: '0x',
+      })
+      await storage.updateWithdrawalRequestWithTx(db, w.requestId, hash, 'sent')
+      return { ok: true, txHash: hash }
+    }
+    const usdcAddress = USDC_BY_NETWORK[netId] || USDC_BY_NETWORK.ethereum
+    const amountRaw = BigInt(Math.floor(Number(w.netGuap) * 1e6))
+    if (amountRaw <= 0n) return { ok: false, error: 'Invalid USDC amount' }
+    const data = encodeFunctionData({
+      abi: USDC_ABI,
+      functionName: 'transfer',
+      args: [w.destination, amountRaw],
+    })
+    const hash = await walletClient.sendTransaction({
+      account,
+      to: usdcAddress,
+      data,
+      gas: 100000n,
+    })
+    await storage.updateWithdrawalRequestWithTx(db, w.requestId, hash, 'sent')
+    return { ok: true, txHash: hash }
+  } catch (e) {
+    return { ok: false, error: e?.message || 'Send failed' }
+  }
+}
 
 /** Map automated API source to webapp display source and category (Discover + Category filters). */
 const AUTO_SOURCE_DISPLAY = {
@@ -402,6 +464,91 @@ async function handleWithD1(db, kv, r2, request, path, method, env = {}) {
     })
   }
 
+  // POST /api/deposit-with-tx — credit Pips after user deposits from connected wallet (EVM). No DEPOSIT_CRYPTO_SECRET.
+  // Body: { userParty, txHash, fromAddress, amountGuap, signature, depositType?: 'usdc'|'native', networkId?: 'ethereum'|'polygon' }.
+  // For depositType 'native', amountGuap is in native token units (e.g. 0.5 ETH); we verify tx.value >= amountWei and credit amountGuap as PP.
+  if (path === 'deposit-with-tx' && method === 'POST') {
+    const platformWallet = env.PLATFORM_WALLET_ADDRESS || null
+    if (!platformWallet) {
+      return jsonResponse({ error: 'Deposit from wallet is not configured (PLATFORM_WALLET_ADDRESS required)' }, 503)
+    }
+    const { userParty, txHash, fromAddress, amountGuap, signature, depositType, networkId } = body
+    const party = (userParty || '').trim()
+    const txHashNorm = (txHash || '').trim()
+    const fromNorm = (fromAddress || '').trim().toLowerCase()
+    if (!party || !txHashNorm || !fromNorm || amountGuap == null || !signature) {
+      return jsonResponse({ error: 'userParty, txHash, fromAddress, amountGuap, and signature are required' }, 400)
+    }
+    const isNative = depositType === 'native'
+    const netId = (networkId || 'ethereum').toString().toLowerCase()
+    const rpcUrl = env.DEPOSIT_VERIFICATION_RPC_URL || (env.ALCHEMY_API_KEY ? getAlchemyRpcUrl(env.ALCHEMY_API_KEY, netId) : null)
+    if (!rpcUrl) {
+      return jsonResponse({ error: 'RPC not configured for this network' }, 503)
+    }
+    const amountNum = parseFloat(amountGuap)
+    if (!Number.isFinite(amountNum) || amountNum <= 0) {
+      return jsonResponse({ error: 'amountGuap must be a positive number' }, 400)
+    }
+    const message = `deposit:${party}:${txHashNorm}`
+    let recoveredAddress
+    try {
+      recoveredAddress = await verifyMessage({ message, signature })
+    } catch (e) {
+      return jsonResponse({ error: 'Invalid signature', message: e?.message || 'Signature verification failed' }, 400)
+    }
+    if (recoveredAddress.toLowerCase() !== fromNorm) {
+      return jsonResponse({ error: 'Signature does not match fromAddress' }, 400)
+    }
+    const minConfirmations = Math.max(0, parseInt(env.DEPOSIT_VERIFICATION_MIN_CONFIRMATIONS || '1', 10) || 1)
+    if (isNative) {
+      const expectedAmountWei = BigInt(Math.floor(amountNum * 1e18))
+      const verification = await verifyNativeDeposit(rpcUrl, txHashNorm, {
+        platformWallet: platformWallet.trim(),
+        expectedAmountWei: expectedAmountWei.toString(),
+        minConfirmations,
+      })
+      if (!verification.ok) {
+        return jsonResponse({ error: 'Transaction verification failed', message: verification.reason }, 400)
+      }
+    } else {
+      const amountPipsStrUsdc = addPips('0', amountGuap)
+      if (pipsToCents(amountPipsStrUsdc) <= 0) return jsonResponse({ error: 'amountGuap must be positive' }, 400)
+      const cents = pipsToCents(amountPipsStrUsdc)
+      const cryptoDecimals = 6
+      const expectedAmountRaw = String(Math.floor(cents * Math.pow(10, cryptoDecimals - 2)))
+      const tokenContract = env.DEPOSIT_VERIFICATION_USDC_CONTRACT || null
+      const verification = await verifyErc20Deposit(rpcUrl, txHashNorm, {
+        platformWallet: platformWallet.trim(),
+        expectedAmountRaw,
+        tokenContractAddress: tokenContract || undefined,
+        minConfirmations,
+      })
+      if (!verification.ok) {
+        return jsonResponse({ error: 'Transaction verification failed', message: verification.reason }, 400)
+      }
+    }
+    const existing = await storage.getDepositRecordByReferenceId(db, txHashNorm)
+    if (existing) {
+      const currentRaw = await storage.getBalanceRaw(db, party)
+      return jsonResponse({ success: true, alreadyCredited: true, balance: currentRaw }, 200)
+    }
+    const amountPipsStr = isNative ? String(amountNum) : addPips('0', amountGuap)
+    const currentRaw = await storage.getBalanceRaw(db, party)
+    const newBalStr = addPips(currentRaw, amountPipsStr)
+    await storage.setBalance(db, party, newBalStr)
+    await storage.insertDepositRecord(db, {
+      party,
+      amountGuap: amountNum,
+      source: 'crypto',
+      referenceId: txHashNorm,
+    })
+    return jsonResponse({
+      success: true,
+      balance: newBalStr,
+      added: amountPipsStr,
+    })
+  }
+
   // GET /api/deposit-records — list deposit history for a party (transparency/audit)
   if (path === 'deposit-records' && method === 'GET') {
     const userParty = query.userParty || query.accountId
@@ -411,15 +558,17 @@ async function handleWithD1(db, kv, r2, request, path, method, env = {}) {
     return jsonResponse({ success: true, records: list })
   }
 
-  // POST /api/withdraw-request — debit Pips, create withdrawal request (platform wallet sends crypto separately).
-  // Validates destination address (EVM 0x + 40 hex); optional caps via WITHDRAW_MAX_PP, WITHDRAW_MAX_PENDING.
+  // POST /api/withdraw-request — debit (if needed), create withdrawal, and send immediately from platform wallet.
+  // Body: userParty, amount, destinationAddress, networkId ('ethereum'|'polygon'), token ('usdc'|'native').
+  // For token 'usdc': amount in PP, fee in PP. For token 'native': amount in native units (e.g. 0.5 ETH), flat 1 PP fee from balance.
   if (path === 'withdraw-request' && method === 'POST') {
     const feeRate = parseFloat(env.WITHDRAWAL_FEE_RATE || '0.02')
     const feeMin = parseFloat(env.WITHDRAWAL_FEE_MIN || '1')
     const withdrawMaxPp = parseFloat(env.WITHDRAW_MAX_PP || '0') || 0
     const withdrawMaxPending = Math.max(0, parseInt(env.WITHDRAW_MAX_PENDING || '0', 10) || 0)
-    const { userParty, accountId, amount, destinationAddress, networkId } = body
+    const { userParty, accountId, amount, destinationAddress, networkId, token: tokenParam } = body
     const party = userParty || accountId
+    const token = tokenParam === 'native' ? 'native' : 'usdc'
     if (!party || amount === undefined || !destinationAddress) {
       return jsonResponse({ error: 'userParty/accountId, amount, and destinationAddress required' }, 400)
     }
@@ -427,10 +576,38 @@ async function handleWithD1(db, kv, r2, request, path, method, env = {}) {
     if (!/^0x[a-fA-F0-9]{40}$/.test(dest)) {
       return jsonResponse({ error: 'Invalid destination address', message: 'Use a valid EVM address (0x + 40 hex characters)' }, 400)
     }
-    const amountCents = pipsToCents(amount)
-    if (amountCents <= 0) return jsonResponse({ error: 'amount must be positive' }, 400)
-    if (withdrawMaxPp > 0 && parseFloat(centsToPipsStr(amountCents)) > withdrawMaxPp) {
-      return jsonResponse({ error: 'Amount exceeds maximum per withdrawal', max: String(withdrawMaxPp) }, 400)
+    const netId = (networkId || 'ethereum').toString().toLowerCase()
+    if (!['ethereum', 'polygon'].includes(netId)) {
+      return jsonResponse({ error: 'Unsupported network', message: 'Use ethereum or polygon' }, 400)
+    }
+    let amountGuap, feeGuap, netGuap, amountCents, feeCents, netCents, deductCents
+    if (token === 'native') {
+      const nativeAmount = parseFloat(amount)
+      if (!Number.isFinite(nativeAmount) || nativeAmount <= 0) {
+        return jsonResponse({ error: 'amount must be a positive number (native token units, e.g. 0.5 for 0.5 ETH)' }, 400)
+      }
+      amountGuap = nativeAmount
+      feeGuap = 0
+      netGuap = nativeAmount
+      const flatFeeCents = pipsToCents(String(feeMin))
+      deductCents = flatFeeCents
+      amountCents = 0
+      feeCents = flatFeeCents
+      netCents = 0
+    } else {
+      amountCents = pipsToCents(amount)
+      if (amountCents <= 0) return jsonResponse({ error: 'amount must be positive' }, 400)
+      if (withdrawMaxPp > 0 && parseFloat(centsToPipsStr(amountCents)) > withdrawMaxPp) {
+        return jsonResponse({ error: 'Amount exceeds maximum per withdrawal', max: String(withdrawMaxPp) }, 400)
+      }
+      const feeMinCents = pipsToCents(String(feeMin))
+      feeCents = Math.max(Math.floor(amountCents * feeRate), feeMinCents)
+      netCents = amountCents - feeCents
+      if (netCents <= 0) return jsonResponse({ error: 'Amount too small after fee' }, 400)
+      deductCents = amountCents
+      amountGuap = parseFloat(centsToPipsStr(amountCents))
+      feeGuap = parseFloat(centsToPipsStr(feeCents))
+      netGuap = parseFloat(centsToPipsStr(netCents))
     }
     if (withdrawMaxPending > 0) {
       const pending = await storage.countPendingWithdrawalsByParty(db, party)
@@ -438,41 +615,57 @@ async function handleWithD1(db, kv, r2, request, path, method, env = {}) {
         return jsonResponse({ error: 'Too many pending withdrawals', message: `Max ${withdrawMaxPending} pending. Wait for one to complete.` }, 429)
       }
     }
-    const feeMinCents = pipsToCents(String(feeMin))
-    const feeCents = Math.max(Math.floor(amountCents * feeRate), feeMinCents)
-    const netCents = amountCents - feeCents
-    if (netCents <= 0) return jsonResponse({ error: 'Amount too small after fee' }, 400)
     const currentRaw = await storage.getBalanceRaw(db, party)
     const currentCents = pipsToCents(currentRaw)
-    if (currentCents < amountCents) {
+    if (deductCents > 0 && currentCents < deductCents) {
       return jsonResponse({
         error: 'Insufficient balance',
         current: currentRaw,
-        required: centsToPipsStr(amountCents),
+        required: centsToPipsStr(deductCents),
       }, 400)
     }
-    const newBalStr = centsToPipsStr(currentCents - amountCents)
+    const newBalStr = deductCents > 0 ? centsToPipsStr(currentCents - deductCents) : currentRaw
+    if (deductCents > 0) await storage.setBalance(db, party, newBalStr)
     const requestId = `wd-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`
-    await storage.setBalance(db, party, newBalStr)
     await storage.insertWithdrawalRequest(db, {
       requestId,
       party,
-      amountGuap: parseFloat(centsToPipsStr(amountCents)),
-      feeGuap: parseFloat(centsToPipsStr(feeCents)),
-      netGuap: parseFloat(centsToPipsStr(netCents)),
+      amountGuap,
+      feeGuap,
+      netGuap,
       destination: dest,
-      networkId: networkId || 'ethereum',
+      networkId: netId,
+      token,
     })
+    const w = { requestId, party, amountGuap, feeGuap, netGuap, destination: dest, networkId: netId, token }
+    const sendResult = await sendOneWithdrawal(env, db, w)
+    if (sendResult.ok) {
+      return jsonResponse({
+        success: true,
+        requestId,
+        txHash: sendResult.txHash,
+        amount: token === 'usdc' ? centsToPipsStr(amountCents) : String(amountGuap),
+        fee: token === 'usdc' ? centsToPipsStr(feeCents) : centsToPipsStr(feeCents),
+        net: token === 'usdc' ? centsToPipsStr(netCents) : String(netGuap),
+        destination: dest,
+        networkId: netId,
+        token,
+        message: 'Withdrawal sent. Transaction: ' + sendResult.txHash,
+      })
+    }
     return jsonResponse({
       success: true,
       requestId,
-      amount: centsToPipsStr(amountCents),
-      fee: centsToPipsStr(feeCents),
-      net: centsToPipsStr(netCents),
+      txHash: null,
+      queued: true,
+      amount: token === 'usdc' ? centsToPipsStr(amountCents) : String(amountGuap),
+      fee: token === 'usdc' ? centsToPipsStr(feeCents) : '0',
+      net: token === 'usdc' ? centsToPipsStr(netCents) : String(netGuap),
       destination: dest,
-      networkId: networkId || 'ethereum',
-      message: 'Withdrawal queued. Funds will be sent from the platform wallet.',
-    })
+      networkId: netId,
+      token,
+      message: 'Withdrawal queued; send failed and will be retried: ' + (sendResult.error || 'unknown'),
+    }, 200)
   }
 
   // GET /api/withdrawal-requests — list withdrawal requests for a user
@@ -481,6 +674,35 @@ async function handleWithD1(db, kv, r2, request, path, method, env = {}) {
     if (!userParty) return jsonResponse({ error: 'userParty or accountId required' }, 400)
     const list = await storage.getWithdrawalRequestsByParty(db, userParty)
     return jsonResponse({ success: true, requests: list })
+  }
+
+  // POST /api/process-withdrawals — send pending withdrawals from platform wallet (uses PLATFORM_WALLET_PRIVATE_KEY).
+  // Requires PROCESS_WITHDRAWALS_SECRET header X-Process-Withdrawals-Secret. Cron or admin only.
+  if (path === 'process-withdrawals' && method === 'POST') {
+    const secret = env.PROCESS_WITHDRAWALS_SECRET
+    if (secret) {
+      const provided = request.headers.get('X-Process-Withdrawals-Secret') || body?.processWithdrawalsSecret || ''
+      if (provided !== secret) {
+        return jsonResponse({ error: 'Unauthorized', message: 'Invalid or missing X-Process-Withdrawals-Secret' }, 401)
+      }
+    }
+    const pending = await storage.getPendingWithdrawalRequests(db, 5)
+    const processed = []
+    const errors = []
+    for (const w of pending) {
+      const result = await sendOneWithdrawal(env, db, w)
+      if (result.ok) {
+        processed.push({ requestId: w.requestId, txHash: result.txHash, destination: w.destination, netGuap: w.netGuap, token: w.token || 'usdc' })
+      } else {
+        errors.push({ requestId: w.requestId, error: result.error })
+      }
+    }
+    return jsonResponse({
+      success: true,
+      processed: processed.length,
+      results: processed,
+      errors: errors.length ? errors : undefined,
+    })
   }
 
   // POST /api/add-credits — virtual top-up (Pips added to balance; no blockchain)

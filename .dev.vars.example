@@ -1,0 +1,36 @@
+# Copy to .dev.vars for local development (wrangler pages dev).
+# Never commit .dev.vars. Set these in Cloudflare Dashboard for production.
+
+# ----- Deposits & withdrawals -----
+# Required for backend/watcher to credit crypto deposits. Use a long random string.
+# DEPOSIT_CRYPTO_SECRET=your-secret-here
+
+# For on-chain verification of deposits (recommended). Enables POST /api/deposit-with-tx and verification in deposit-crypto.
+# Get a key at https://dashboard.alchemy.com/ (free tier).
+# ALCHEMY_API_KEY=your-alchemy-key
+
+# Or set RPC URL directly (Ethereum mainnet) instead of ALCHEMY_API_KEY:
+# DEPOSIT_VERIFICATION_RPC_URL=https://eth-mainnet.g.alchemy.com/v2/YOUR_KEY
+
+# Optional: USDC contract address so only USDC transfers are accepted (Ethereum mainnet: 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48)
+# DEPOSIT_VERIFICATION_USDC_CONTRACT=0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48
+
+# Platform wallets are in wrangler.toml [vars]:
+# PLATFORM_WALLET_ADDRESS (EVM), PLATFORM_WALLET_SOL (Solana)
+
+# ----- Withdrawals (sending from platform wallet) -----
+# Private key for the platform wallet (0x...). Required for POST /api/process-withdrawals to send USDC to users.
+# Store as a Secret in Cloudflare Dashboard. Must match PLATFORM_WALLET_ADDRESS.
+# PLATFORM_WALLET_PRIVATE_KEY=0x...
+
+# Optional: require this header when calling POST /api/process-withdrawals (cron or admin). If set, request must include:
+#   X-Process-Withdrawals-Secret: <value>
+# PROCESS_WITHDRAWALS_SECRET=your-cron-secret
+
+# Withdrawal fee (default 0.02 = 2%), min fee in PP (default 1)
+# WITHDRAWAL_FEE_RATE=0.02
+# WITHDRAWAL_FEE_MIN=1
+
+# ----- Stripe (card deposits) -----
+# STRIPE_SECRET_KEY=sk_test_...
+# STRIPE_WEBHOOK_SECRET=whsec_...

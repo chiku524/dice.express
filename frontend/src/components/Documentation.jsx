@@ -125,7 +125,7 @@ function GettingStartedContent() {
       <h2>Quick Start</h2>
       <ol>
         <li><strong>Create account:</strong> Click &quot;Create account&quot;, enter email, password, and display name. Choose how you&apos;ll add funds (card, crypto, or later).</li>
-        <li><strong>Add Pips:</strong> In Portfolio, use &quot;Deposit with card&quot; (pick $5, $10, $25, $50, or $100) or enter a custom amount. Or deposit crypto; we credit Pips 1:1.</li>
+        <li><strong>Deposit:</strong> In Portfolio, use &quot;Deposit with card&quot; (Stripe: pick $5, $10, $25, $50, or $100, or enter a custom amount) or &quot;Deposit with crypto&quot; (send to platform wallet; we credit Pips when the deposit is processed).</li>
         <li><strong>Discover markets:</strong> Browse All Markets or categories (Global Events, Industry, etc.). Markets are automated — no user-created markets.</li>
         <li><strong>Trade:</strong> Open a market and use the trade panel to buy Yes or No with Pips. View positions and balance in Portfolio.</li>
       </ol>
@@ -323,7 +323,7 @@ function PortfolioContent() {
       <h2>Balance tab</h2>
       <ul>
         <li><strong>Balance (PP):</strong> Your current Pips balance.</li>
-        <li><strong>Add Pips:</strong> Testing-only top-up (internal API).</li>
+        <li><strong>Add Pips (API):</strong> Testing-only top-up via <code>POST /api/add-credits</code>; not shown in the Portfolio UI.</li>
         <li><strong>Deposit with card:</strong> Quick-add packages ($5, $10, $25, $50, $100) or enter a custom amount. Redirects to Stripe Checkout; Pips are credited after payment.</li>
         <li><strong>Deposit with crypto:</strong> Instructions and your account ID for memo. We credit Pips when the platform wallet receives funds.</li>
         <li><strong>Withdraw Pips:</strong> Enter amount, destination address, and network. A fee applies; requests appear in &quot;Your withdrawal requests&quot;.</li>

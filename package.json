@@ -2,6 +2,9 @@
   "name": "dice-express",
   "version": "1.0.0",
   "description": "dice.express — prediction markets with virtual Credits on Cloudflare",
+  "dependencies": {
+    "viem": "^2.21.0"
+  },
   "scripts": {
     "start": "npm run start:frontend",
     "start:frontend": "cd frontend && npm run dev",

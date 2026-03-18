@@ -1,10 +1,8 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import { useWallet } from '../contexts/WalletContext'
 import { useAccountModal } from '../contexts/AccountModalContext'
 import { getVirtualBalance, transferPips } from '../services/balance'
-import { ContractStorage } from '../utils/contractStorage'
-import { formatPips, PLATFORM_CURRENCY_SYMBOL } from '../constants/currency'
 import { BRAND_TAGLINE } from '../constants/brand'
 import UserHubNav from './UserHubNav'
 import './Dashboard.css'
@@ -22,10 +20,6 @@ function formatMemberSince(isoString) {
 export default function Dashboard() {
   const { wallet } = useWallet()
   const openAccountModal = useAccountModal()
-  const [balanceFormatted, setBalanceFormatted] = useState(null)
-  const [balanceRaw, setBalanceRaw] = useState('0')
-  const [positionsCount, setPositionsCount] = useState(0)
-  const [loading, setLoading] = useState(true)
   const [tipToParty, setTipToParty] = useState('')
   const [tipAmount, setTipAmount] = useState('')
   const [tipStatus, setTipStatus] = useState(null)
@@ -33,48 +27,9 @@ export default function Dashboard() {
   const [copiedId, setCopiedId] = useState(false)
   const isMountedRef = useRef(true)
 
-  useEffect(() => {
-    isMountedRef.current = true
-    if (!wallet?.party) {
-      setLoading(false)
-      return
-    }
-    let cancelled = false
-
-    const load = async () => {
-      try {
-        const [balResult, contracts] = await Promise.all([
-          getVirtualBalance(wallet.party),
-          ContractStorage.getContractsByType('Position', null, null),
-        ])
-        if (!isMountedRef.current || cancelled) return
-        setBalanceFormatted(balResult.formatted)
-        setBalanceRaw(balResult.balance ?? '0')
-        const userPositions = (contracts || []).filter(
-          (p) => (p.party || p.payload?.owner) === wallet.party
-        )
-        setPositionsCount(userPositions.length)
-      } catch (err) {
-        if (isMountedRef.current && !cancelled) {
-          setBalanceFormatted(formatPips('0'))
-          setBalanceRaw('0')
-          setPositionsCount(0)
-        }
-      } finally {
-        if (isMountedRef.current && !cancelled) setLoading(false)
-      }
-    }
-    load()
-    return () => { cancelled = true }
-  }, [wallet?.party])
-
   const refreshBalance = async () => {
     if (!wallet?.party) return
-    const result = await getVirtualBalance(wallet.party)
-    if (isMountedRef.current) {
-      setBalanceFormatted(result.formatted)
-      setBalanceRaw(result.balance ?? '0')
-    }
+    await getVirtualBalance(wallet.party)
   }
 
   const handleCopyAccountId = () => {
@@ -174,26 +129,6 @@ export default function Dashboard() {
       </div>
 
       <div className="dashboard-cards">
-        <div className="card dashboard-card">
-          <h2 className="dashboard-card-title">Balance</h2>
-          <p className="dashboard-card-value">
-            {loading ? '…' : (balanceFormatted ?? formatPips(balanceRaw))}
-          </p>
-          <p className="dashboard-card-hint">{PLATFORM_CURRENCY_SYMBOL} — your balance</p>
-          <Link to="/portfolio" className="btn-primary dashboard-card-action">
-            View portfolio & add Pips
-          </Link>
-        </div>
-
-        <div className="card dashboard-card">
-          <h2 className="dashboard-card-title">Positions</h2>
-          <p className="dashboard-card-value">{loading ? '…' : positionsCount}</p>
-          <p className="dashboard-card-hint">Active positions</p>
-          <Link to="/portfolio" className="btn-secondary dashboard-card-action">
-            My positions
-          </Link>
-        </div>
-
         <div className="card dashboard-card dashboard-tip-card">
           <h2 className="dashboard-card-title">Tip Pips</h2>
           <p className="dashboard-card-hint">Send Pips to another user by their display name</p>

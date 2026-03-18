@@ -108,3 +108,11 @@ See **`CRYPTO_DEPOSITS.md`** for the full verification steps and recommended flo
 **Pips is 1:1 with USD.** 1 PP = $1 USD. Deposits and withdrawals use this rate.
 
 **Stripe products (optional):** You can create fixed products in Stripe for $5, $10, $25, $50, and $100 Pips. Name, description, amount, and image assets are in **`frontend/public/stripe-products/`** — see `STRIPE_PRODUCTS.md` in that folder. The current checkout uses a custom amount (user enters PP); you can add “Quick add” buttons that use these product Price IDs if you create the products in Stripe.
+
+---
+
+## 7. Deposit with crypto — how it works
+
+- **UI:** Portfolio Balance tab shows platform wallet address(es) and the user account ID for memo. Users send USDC to that address.
+- **Crediting:** A backend process must call POST /api/deposit-crypto when the platform wallet receives funds (manual or automated watcher). API can verify tx on-chain when DEPOSIT_VERIFICATION_RPC_URL and PLATFORM_WALLET_ADDRESS are set.
+- **Deposit from connected wallet:** Implemented. User connects MetaMask (or other Web3 wallet) in Portfolio → “Deposit from wallet”, enters amount, sends USDC on Ethereum mainnet to the platform wallet; then signs a message to authorize crediting; frontend calls `POST /api/deposit-with-tx` with `txHash`, `fromAddress`, `amountGuap`, `signature`. Backend verifies the signature and the tx on-chain, then credits the user. Requires `PLATFORM_WALLET_ADDRESS` and RPC (`ALCHEMY_API_KEY` or `DEPOSIT_VERIFICATION_RPC_URL`) to be set.

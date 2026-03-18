@@ -285,11 +285,12 @@ export async function insertDepositRecord(db, { party, amountGuap, source, refer
 }
 
 /** @param {D1Database} db */
-export async function insertWithdrawalRequest(db, { requestId, party, amountGuap, feeGuap, netGuap, destination, networkId }) {
+export async function insertWithdrawalRequest(db, { requestId, party, amountGuap, feeGuap, netGuap, destination, networkId, token }) {
   const now = new Date().toISOString()
+  const tok = token === 'native' ? 'native' : 'usdc'
   await db.prepare(
-    `INSERT INTO ${WITHDRAWAL_REQUESTS_TABLE} (request_id, party, amount_guap, fee_guap, net_guap, destination, network_id, status, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, 'pending', ?, ?)`
-  ).bind(requestId, party, amountGuap, feeGuap, netGuap, destination, networkId || 'ethereum', now, now).run()
+    `INSERT INTO ${WITHDRAWAL_REQUESTS_TABLE} (request_id, party, amount_guap, fee_guap, net_guap, destination, network_id, token, status, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?, ?)`
+  ).bind(requestId, party, amountGuap, feeGuap, netGuap, destination, networkId || 'ethereum', tok, now, now).run()
 }
 
 /** Count pending withdrawals for a party (for rate limiting). @param {D1Database} db */
@@ -313,10 +314,39 @@ export async function getWithdrawalRequestsByParty(db, party, limit = 50) {
     netGuap: r.net_guap,
     destination: r.destination,
     networkId: r.network_id,
+    token: r.token || 'usdc',
     status: r.status,
     txHash: r.tx_hash,
     createdAt: r.created_at,
   }))
+}
+
+/** Get pending withdrawal requests (oldest first) for processing. @param {D1Database} db */
+export async function getPendingWithdrawalRequests(db, limit = 10) {
+  const { results } = await db.prepare(
+    `SELECT * FROM ${WITHDRAWAL_REQUESTS_TABLE} WHERE status = 'pending' ORDER BY created_at ASC LIMIT ?`
+  ).bind(limit).all()
+  return (results || []).map((r) => ({
+    requestId: r.request_id,
+    party: r.party,
+    amountGuap: r.amount_guap,
+    feeGuap: r.fee_guap,
+    netGuap: r.net_guap,
+    destination: r.destination,
+    networkId: r.network_id,
+    token: r.token || 'usdc',
+    status: r.status,
+    txHash: r.tx_hash,
+    createdAt: r.created_at,
+  }))
+}
+
+/** Update withdrawal request with tx hash and status. @param {D1Database} db */
+export async function updateWithdrawalRequestWithTx(db, requestId, txHash, status = 'sent') {
+  const now = new Date().toISOString()
+  await db.prepare(
+    `UPDATE ${WITHDRAWAL_REQUESTS_TABLE} SET tx_hash = ?, status = ?, updated_at = ? WHERE request_id = ?`
+  ).bind(txHash, status, now, requestId).run()
 }
 
 /** @param {D1Database} db */

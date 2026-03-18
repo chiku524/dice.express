@@ -30,6 +30,7 @@ import PageSEO from './components/PageSEO'
 import { ToastContainer } from './components/Toast'
 import { ToastProvider, useToastContext } from './contexts/ToastContext'
 import { AccountModalProvider } from './contexts/AccountModalContext'
+import { Web3WalletProvider } from './contexts/Web3WalletContext'
 import ProtectedRoute from './components/ProtectedRoute'
 // Import theme.css FIRST to ensure variables are available
 import './styles/theme.css'
@@ -117,7 +118,9 @@ function App() {
       <Router>
         <ToastProvider>
           <WalletProvider>
-            <AppContent />
+            <Web3WalletProvider>
+              <AppContent />
+            </Web3WalletProvider>
           </WalletProvider>
         </ToastProvider>
       </Router>
