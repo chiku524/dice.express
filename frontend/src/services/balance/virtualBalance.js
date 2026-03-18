@@ -37,4 +37,26 @@ export async function getVirtualBalance(userParty) {
   }
 }
 
+const TRANSFER_API = '/api/transfer-pips'
+
+/**
+ * Transfer Pips from one user to another (tip).
+ * @param {string} fromParty - Sender party (display name)
+ * @param {string} toParty - Recipient party (display name)
+ * @param {string|number} amount - Amount in Pips
+ * @returns {Promise<{ success: boolean, amount?: string, senderNewBalance?: string, error?: string }>}
+ */
+export async function transferPips(fromParty, toParty, amount) {
+  const res = await fetch(TRANSFER_API, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ fromParty, toParty, amount: String(amount) }),
+  })
+  const data = await res.json()
+  if (!res.ok) {
+    throw new Error(data.error || data.message || 'Transfer failed')
+  }
+  return data
+}
+
 export { formatGuap, PLATFORM_CURRENCY_SYMBOL }

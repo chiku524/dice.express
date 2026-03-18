@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom'
+import { BrowserRouter as Router, Routes, Route, useLocation, Navigate } from 'react-router-dom'
 import { WalletProvider, useWallet } from './contexts/WalletContext'
 import { Suspense } from 'react'
 import LoadingSpinner from './components/LoadingSpinner'
@@ -18,7 +18,6 @@ const Dashboard = lazyWithRetry(() => import('./components/Dashboard'))
 const Profile = lazyWithRetry(() => import('./components/Profile'))
 const SignIn = lazyWithRetry(() => import('./components/SignIn'))
 const Register = lazyWithRetry(() => import('./components/Register'))
-const Account = lazyWithRetry(() => import('./components/Account'))
 const PrivacyPolicy = lazyWithRetry(() => import('./components/PrivacyPolicy'))
 const TermsOfService = lazyWithRetry(() => import('./components/TermsOfService'))
 import { analytics } from './utils/analytics'
@@ -85,7 +84,7 @@ function AppContent() {
                   <Route path="/market/:marketId" element={<MarketDetail />} />
                   <Route path="/sign-in" element={<SignIn />} />
                   <Route path="/register" element={<Register />} />
-                  <Route path="/account" element={<Account />} />
+                  <Route path="/account" element={<Navigate to="/dashboard" replace />} />
                   <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
                   <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
                   <Route path="/create" element={<AutomatedMarketsInfo />} />

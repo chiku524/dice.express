@@ -1,1 +1,1 @@
-export { getVirtualBalance, formatGuap, PLATFORM_CURRENCY_SYMBOL } from './virtualBalance'
+export { getVirtualBalance, transferPips, formatGuap, PLATFORM_CURRENCY_SYMBOL } from './virtualBalance'

@@ -879,6 +879,42 @@ async function handleWithD1(db, kv, r2, request, path, method, env = {}) {
     })
   }
 
+  // POST /api/transfer-pips — tip another user (transfer Pips from one party to another)
+  if (path === 'transfer-pips' && method === 'POST') {
+    const { fromParty, toParty, amount } = body
+    if (!fromParty || !toParty || amount === undefined) {
+      return jsonResponse({ error: 'fromParty, toParty, and amount are required' }, 400)
+    }
+    const from = String(fromParty).trim()
+    const to = String(toParty).trim()
+    if (from === to) return jsonResponse({ error: 'Cannot tip yourself' }, 400)
+    const amountPipsStr = addPips('0', amount)
+    const amountCents = pipsToCents(amountPipsStr)
+    if (amountCents <= 0) return jsonResponse({ error: 'Amount must be positive' }, 400)
+    const senderRaw = await storage.getBalanceRaw(db, from)
+    const senderCents = pipsToCents(senderRaw)
+    if (senderCents < amountCents) {
+      return jsonResponse({
+        error: 'Insufficient balance',
+        currentBalance: senderRaw,
+        required: amountPipsStr,
+      }, 400)
+    }
+    const senderNewStr = centsToPipsStr(senderCents - amountCents)
+    const recipientRaw = await storage.getBalanceRaw(db, to)
+    const recipientNewStr = addPips(recipientRaw, amountPipsStr)
+    await storage.setBalance(db, from, senderNewStr)
+    await storage.setBalance(db, to, recipientNewStr)
+    return jsonResponse({
+      success: true,
+      fromParty: from,
+      toParty: to,
+      amount: amountPipsStr,
+      senderNewBalance: senderNewStr,
+      recipientNewBalance: recipientNewStr,
+    })
+  }
+
   // GET/POST /api/auto-markets — list events from APIs or seed markets from them
   if (path === 'auto-markets') {
     const action = query.action || (method === 'POST' ? (body.action || 'seed') : 'events')

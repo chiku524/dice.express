@@ -161,8 +161,8 @@ function WalletAuthenticationContent() {
         Use &quot;Sign in&quot; and enter your <strong>email and password</strong> to restore your session. You&apos;ll land on Dashboard (or the page you were trying to open).
       </p>
 
-      <h2>Account page</h2>
-      <p>When signed in, use &quot;Account&quot; in the nav to view your display name, account ID, and links to Dashboard, Profile, and Portfolio.</p>
+      <h2>Dashboard</h2>
+      <p>When signed in, go to <strong>Dashboard</strong> to view your display name, account ID, balance, positions, and links to Profile and Portfolio. You can also tip other users Pips from the Dashboard.</p>
 
       <h2>Security notes</h2>
       <ul>

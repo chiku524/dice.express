@@ -9,11 +9,9 @@ export default function Navbar({ setShowWalletModal }) {
   const { wallet, disconnectWallet } = useWallet()
   const location = useLocation()
   const [showDiscoverMenu, setShowDiscoverMenu] = useState(false)
-  const [showAccountMenu, setShowAccountMenu] = useState(false)
   const [showResourcesMenu, setShowResourcesMenu] = useState(false)
   const [balanceFormatted, setBalanceFormatted] = useState(null)
   const discoverMenuRef = useRef(null)
-  const accountMenuRef = useRef(null)
   const resourcesMenuRef = useRef(null)
 
   // Fetch virtual balance when wallet is connected
@@ -35,9 +33,6 @@ export default function Navbar({ setShowWalletModal }) {
       if (discoverMenuRef.current && !discoverMenuRef.current.contains(event.target)) {
         setShowDiscoverMenu(false)
       }
-      if (accountMenuRef.current && !accountMenuRef.current.contains(event.target)) {
-        setShowAccountMenu(false)
-      }
       if (resourcesMenuRef.current && !resourcesMenuRef.current.contains(event.target)) {
         setShowResourcesMenu(false)
       }
@@ -50,13 +45,11 @@ export default function Navbar({ setShowWalletModal }) {
   // Close dropdowns when route changes
   useEffect(() => {
     setShowDiscoverMenu(false)
-    setShowAccountMenu(false)
     setShowResourcesMenu(false)
   }, [location.pathname])
 
   const isActive = (path) => location.pathname === path
   const isDiscoverActive = () => isActive('/') || location.pathname.startsWith('/discover') || location.pathname.startsWith('/market')
-  const isAccountActive = () => ['/dashboard', '/portfolio', '/profile', '/account'].some(isActive)
 
   return (
     <header className="app-header">
@@ -100,38 +93,19 @@ export default function Navbar({ setShowWalletModal }) {
             )}
           </div>
 
-          {/* Account: dashboard, portfolio, profile (when logged in) */}
+          {/* Dashboard, Portfolio, Profile when logged in */}
           {wallet && (
-            <div className="nav-dropdown nav-dropdown-account" ref={accountMenuRef}>
-              <button
-                className={`nav-dropdown-toggle ${isAccountActive() ? 'active' : ''}`}
-                onClick={() => {
-                  setShowAccountMenu(!showAccountMenu)
-                  setShowDiscoverMenu(false)
-                  setShowResourcesMenu(false)
-                }}
-              >
-                Account
-                <span className="dropdown-arrow">▼</span>
-              </button>
-              {showAccountMenu && (
-                <div className="nav-dropdown-menu">
-                  <Link to="/dashboard" className={isActive('/dashboard') ? 'active' : ''}>
-                    Dashboard
-                  </Link>
-                  <Link to="/portfolio" className={isActive('/portfolio') ? 'active' : ''}>
-                    Portfolio
-                  </Link>
-                  <Link to="/profile" className={isActive('/profile') ? 'active' : ''}>
-                    Profile
-                  </Link>
-                  <div className="nav-dropdown-divider" />
-                  <Link to="/account" className={isActive('/account') ? 'active' : ''}>
-                    Account summary
-                  </Link>
-                </div>
-              )}
-            </div>
+            <>
+              <Link to="/dashboard" className={`nav-link ${isActive('/dashboard') ? 'active' : ''}`}>
+                Dashboard
+              </Link>
+              <Link to="/portfolio" className={`nav-link ${isActive('/portfolio') ? 'active' : ''}`}>
+                Portfolio
+              </Link>
+              <Link to="/profile" className={`nav-link ${isActive('/profile') ? 'active' : ''}`}>
+                Profile
+              </Link>
+            </>
           )}
 
           {/* Resources */}
@@ -170,7 +144,6 @@ export default function Navbar({ setShowWalletModal }) {
               <Link to="/dashboard" className="nav-user-name" title={wallet.party}>
                 {wallet.party.length > 16 ? wallet.party.substring(0, 16) + '…' : wallet.party}
               </Link>
-              <Link to="/account" className="nav-account-link">Account</Link>
               <button type="button" className="nav-disconnect-btn" onClick={disconnectWallet}>Disconnect</button>
             </div>
           ) : (
