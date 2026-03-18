@@ -38,6 +38,8 @@ If the zone is on Cloudflare, DNS is usually updated automatically. Otherwise ad
 1. From the repo root: `npm run pages:deploy` (builds frontend and deploys to project **dice-express**).
 2. Open **https://dice-express.pages.dev**. Subsequent deploys: run `npm run pages:deploy` again or use GitHub Actions.
 
+**If you see `504 Gateway Timeout` or "upstream request timeout"** when running `wrangler pages deploy`: the Cloudflare API sometimes times out under load. Retry the deploy once or twice; or use **Git-based deploys** (connect the repo in the dashboard so Cloudflare builds on push) to avoid CLI timeouts. You can also try `npx wrangler@latest pages deploy frontend/dist --project-name=dice-express` in case a newer wrangler version is more resilient.
+
 ---
 
 ## What's in the repo

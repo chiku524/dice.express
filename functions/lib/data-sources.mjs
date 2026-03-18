@@ -272,7 +272,7 @@ export async function eventsFromOdds(env, sportKey = 'basketball_nba', limit = 2
     const description = `${title} Event start: ${eventStart}.`
     const resolutionCriteria = `Home team (${e.home_team}) wins the match. Resolved using The Odds API scores after the event (commence: ${e.commence_time || 'TBD'}).`
     const oneLiner = `Home team (${e.home_team}) wins; otherwise No.`
-    const resolutionDeadline = resolutionAfterCommence(e.commence_time, 4)
+    const resolutionDeadline = resolutionAfterCommence(e.commence_time, 3)
     return {
       id: e.id,
       source: 'the_odds_api',
@@ -367,14 +367,20 @@ function resolutionEndOfDayUTC(dateStr) {
   return `${dateStr.slice(0, 10)}T23:59:59.000Z`
 }
 
-/** Precise resolution time: US market close 4pm ET ≈ 21:00 UTC (for stocks). */
+/** Precise resolution time: US equity market close 4pm Eastern. EDT = 20:00 UTC, EST = 21:00 UTC. */
 function resolutionUSMarketCloseUTC(dateStr) {
   if (!dateStr || dateStr.length < 10) return null
-  return `${dateStr.slice(0, 10)}T21:00:00.000Z`
+  const y = dateStr.slice(0, 4)
+  const m = dateStr.slice(5, 7)
+  const d = dateStr.slice(8, 10)
+  const month = parseInt(m, 10)
+  const isDST = month >= 3 && month <= 10
+  const utcHour = isDST ? 20 : 21
+  return `${y}-${m}-${d}T${String(utcHour).padStart(2, '0')}:00:00.000Z`
 }
 
-/** Resolution time: commenceTime + hours (for sports; game typically over by then). */
-function resolutionAfterCommence(commenceTimeIso, hours = 4) {
+/** Resolution time: commenceTime + hours (for sports; when the game is final and result is known). NBA/NHL ~2.5h, use 3h. */
+function resolutionAfterCommence(commenceTimeIso, hours = 3) {
   if (!commenceTimeIso) return null
   const d = new Date(commenceTimeIso)
   if (Number.isNaN(d.getTime())) return null

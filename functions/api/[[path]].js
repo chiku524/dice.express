@@ -1200,7 +1200,7 @@ async function handleWithD1(db, kv, r2, request, path, method, env = {}) {
         if (!resolutionDeadline && ev.commenceTime) {
           const d = new Date(ev.commenceTime)
           if (!Number.isNaN(d.getTime())) {
-            d.setUTCHours(d.getUTCHours() + 4)
+            d.setUTCHours(d.getUTCHours() + 3)
             resolutionDeadline = d.toISOString()
           } else {
             resolutionDeadline = String(ev.commenceTime).slice(0, 10)
