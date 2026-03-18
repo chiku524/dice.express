@@ -68,82 +68,61 @@
   border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
-.market-detail-article {
-  margin-bottom: var(--spacing-md);
-  padding: var(--spacing-sm) 0;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-}
-
-.market-detail-article-label {
-  display: block;
-  font-size: var(--font-size-xs);
-  font-weight: var(--font-weight-semibold);
-  color: var(--color-teal);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  margin-bottom: var(--spacing-xs);
-}
-
-.market-detail-article-title {
-  margin: 0;
-  font-size: var(--font-size-base);
-  color: var(--color-text-primary);
-  line-height: 1.45;
-  font-weight: var(--font-weight-medium);
-}
-
 .market-detail-title {
   margin: 0 0 var(--spacing-xs);
   font-size: var(--font-size-2xl);
   font-weight: var(--font-weight-bold);
   color: var(--color-text-primary);
-  line-height: 1.3;
+  line-height: 1.35;
+}
+
+.market-detail-meta {
+  margin: 0 0 var(--spacing-sm);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+}
+
+.market-detail-meta-sep {
+  color: var(--color-text-muted);
+  font-weight: normal;
 }
 
 .market-detail-info .status {
   display: inline-block;
-  margin-bottom: var(--spacing-md);
+  margin-bottom: var(--spacing-lg);
 }
 
-.market-detail-oneliner {
-  display: flex;
-  align-items: flex-start;
-  gap: var(--spacing-sm);
-  margin-bottom: var(--spacing-md);
-  padding: var(--spacing-md);
-  background: linear-gradient(135deg, rgba(20, 184, 166, 0.12) 0%, rgba(20, 184, 166, 0.04) 100%);
-  border: 1px solid rgba(20, 184, 166, 0.25);
-  border-radius: 10px;
+/* About this market: what you're buying + description in one block */
+.market-detail-about {
+  margin-bottom: var(--spacing-xl);
+  padding-bottom: var(--spacing-xl);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
 
-.market-detail-oneliner-icon {
-  font-size: 1.25rem;
-  line-height: 1;
-  flex-shrink: 0;
-}
-
-.market-detail-oneliner-text {
-  margin: 0;
+.market-detail-about .market-detail-oneliner-text {
+  margin: 0 0 var(--spacing-sm);
   font-size: var(--font-size-sm);
   color: var(--color-text-primary);
   line-height: 1.45;
 }
 
-.market-detail-oneliner-text strong {
+.market-detail-about .market-detail-oneliner-text strong {
   color: var(--color-teal);
 }
 
-.market-detail-desc {
-  margin: 0 0 var(--spacing-md);
+.market-detail-about .market-detail-desc {
+  margin: 0;
+  font-size: var(--font-size-sm);
   color: var(--color-text-secondary);
+  line-height: 1.5;
 }
 
 .market-detail-resolution {
   margin-bottom: var(--spacing-md);
-  padding: var(--spacing-md);
-  background: rgba(20, 184, 166, 0.08);
-  border: 1px solid rgba(20, 184, 166, 0.2);
-  border-radius: 8px;
+  padding: var(--spacing-lg);
+  background: rgba(20, 184, 166, 0.06);
+  border: 1px solid rgba(20, 184, 166, 0.18);
+  border-radius: 10px;
 }
 
 .market-detail-resolution-title {

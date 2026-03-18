@@ -7,7 +7,7 @@ import { fetchMarkets, fetchPool, executeTrade } from '../services/marketsApi'
 import { fetchOpenOrders, placeOrder } from '../services/ordersApi'
 import MarketResolution from './MarketResolution'
 import { formatPips, PLATFORM_CURRENCY_SYMBOL } from '../constants/currency'
-import { PREDICTION_STYLES, getCategoryDisplay, getApiSourceLabel, formatResolutionDeadline, getCategoryEmoji, getMarketOneLiner, getResolutionOutcomeSummaries, getDisplayDescription, getFullArticleTitle, getResolutionSummary } from '../constants/marketConfig'
+import { PREDICTION_STYLES, getCategoryDisplay, getApiSourceLabel, formatResolutionDeadline, getCategoryEmoji, getMarketOneLiner, getResolutionOutcomeSummaries, getDisplayDescription, getResolutionSummary, getNewsMarketDisplayTitle, getNewsMarketMeta } from '../constants/marketConfig'
 import { getQuote, isTradeWithinLimit, yesProbability } from '../utils/ammQuote'
 import { getSEOForPath } from '../constants/seo'
 import './MarketDetail.css'
@@ -206,15 +206,17 @@ export default function MarketDetail() {
 
   const marketData = market.payload
   const title = marketData.title || 'Market'
-  const breadcrumbTitle = title.length > 50 ? title.slice(0, 47) + '…' : title
+  const newsDisplayTitle = getNewsMarketDisplayTitle(marketData)
+  const displayTitle = newsDisplayTitle || title
+  const breadcrumbTitle = displayTitle.length > 50 ? displayTitle.slice(0, 47) + '…' : displayTitle
   const categoryLabel = getCategoryDisplay(marketData)
   const categoryEmoji = getCategoryEmoji(categoryLabel)
   const apiLabel = getApiSourceLabel(marketData)
   const oneLiner = getMarketOneLiner(marketData)
   const outcomeSummaries = getResolutionOutcomeSummaries(marketData)
   const displayDescription = getDisplayDescription(marketData)
-  const fullArticleTitle = getFullArticleTitle(marketData)
   const resolutionSummary = getResolutionSummary(marketData)
+  const newsMeta = getNewsMarketMeta(marketData)
   const marketTypeLabel = marketData.marketType === 'Binary'
     ? (PREDICTION_STYLES.find(s => s.value === marketData.styleLabel)?.label || 'Binary')
     : 'Multi-Outcome'
@@ -225,7 +227,7 @@ export default function MarketDetail() {
       <nav className="market-detail-breadcrumb" aria-label="Breadcrumb">
         <Link to="/">Markets</Link>
         <span className="market-detail-breadcrumb-sep" aria-hidden>→</span>
-        <span title={title}>{breadcrumbTitle}</span>
+        <span title={displayTitle}>{breadcrumbTitle}</span>
       </nav>
 
       <div className="market-detail-layout">
@@ -237,27 +239,25 @@ export default function MarketDetail() {
             <span className="market-detail-tag market-detail-tag-type">{marketTypeLabel}</span>
           </div>
 
-          {fullArticleTitle && (
-            <div className="market-detail-article">
-              <span className="market-detail-article-label">📰 Article</span>
-              <p className="market-detail-article-title">{fullArticleTitle}</p>
-            </div>
+          <h1 className="market-detail-title">{displayTitle}</h1>
+          {newsMeta && (newsMeta.topic || newsMeta.sourceLabel) && (
+            <p className="market-detail-meta">
+              {newsMeta.topic && <span>Topic: {newsMeta.topic}</span>}
+              {newsMeta.topic && newsMeta.sourceLabel && <span className="market-detail-meta-sep"> · </span>}
+              {newsMeta.sourceLabel && <span>Source: {newsMeta.sourceLabel}</span>}
+            </p>
           )}
-
-          <h1 className="market-detail-title">{marketData.title}</h1>
           <span className={`status status-${marketData.status?.toLowerCase() || 'active'}`}>
             {marketData.status}
           </span>
 
-          <div className="market-detail-oneliner" aria-label="What you're buying">
-            <span className="market-detail-oneliner-icon" aria-hidden>🎯</span>
+          <section className="market-detail-about" aria-label="About this market">
             <p className="market-detail-oneliner-text"><strong>What you're buying:</strong> {oneLiner}</p>
-          </div>
-
-          {displayDescription && <p className="market-detail-desc">{displayDescription}</p>}
+            {displayDescription && <p className="market-detail-desc">{displayDescription}</p>}
+          </section>
 
           {(marketData.resolutionCriteria || marketData.resolutionDeadline || outcomeSummaries.yes || resolutionSummary) && (
-            <div className="market-detail-resolution">
+            <section className="market-detail-resolution" aria-label="How it resolves">
               <h3 className="market-detail-resolution-title">📋 How it resolves</h3>
               {marketData.resolutionDeadline && (
                 <p className="market-detail-resolution-deadline">
@@ -283,7 +283,7 @@ export default function MarketDetail() {
                   <p className="market-detail-resolution-criteria">{marketData.resolutionCriteria}</p>
                 </details>
               )}
-            </div>
+            </section>
           )}
 
           {marketData.marketType === 'Binary' && pool && (

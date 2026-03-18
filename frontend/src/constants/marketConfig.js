@@ -186,6 +186,31 @@ export function getFullArticleTitle(payload) {
   return title && typeof title === 'string' ? title.trim() : null
 }
 
+/** Whether this payload looks like a news/top-headline market (has oracleConfig with title or q). */
+export function isNewsMarket(payload) {
+  const oc = payload?.oracleConfig
+  return !!(oc && (oc.title || oc.q))
+}
+
+/** Display title for news markets: full article title + date in the question. Returns null if not news or no full title. */
+export function getNewsMarketDisplayTitle(payload) {
+  const fullTitle = getFullArticleTitle(payload)
+  if (!fullTitle) return null
+  const dateStr = payload?.resolutionDeadline || payload?.oracleConfig?.dateStr
+  const date = dateStr ? (dateStr.length === 10 ? dateStr : dateStr.slice(0, 10)) : null
+  const dateLabel = date || 'the resolution date'
+  return `Will "${fullTitle}" be in top news on ${dateLabel}?`
+}
+
+/** Topic and source for news market meta line (e.g. "Topic: technology · Source: NewsData.io"). */
+export function getNewsMarketMeta(payload) {
+  if (!isNewsMarket(payload)) return null
+  const topic = payload?.oracleConfig?.q || payload?.oracleConfig?.category
+  const sourceLabel = getApiSourceLabel(payload)
+  if (!sourceLabel || sourceLabel === 'User-Created') return { topic, sourceLabel: null }
+  return { topic, sourceLabel }
+}
+
 /** Short resolution summary (source + topic/category) for "How it resolves" without repeating full criteria. */
 export function getResolutionSummary(payload) {
   const oc = payload?.oracleConfig
