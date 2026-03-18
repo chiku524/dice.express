@@ -1193,7 +1193,20 @@ async function handleWithD1(db, kv, r2, request, path, method, env = {}) {
           continue // already have this event as a market, skip
         }
         const { source: displaySource, category: displayCategory } = getDisplaySourceAndCategory(ev.source)
-        const resolutionDeadline = ev.endDate || ev.date || (ev.commenceTime ? ev.commenceTime.slice(0, 10) : null)
+        let resolutionDeadline = ev.resolutionDeadline || null
+        if (!resolutionDeadline && ev.endDate && String(ev.endDate).length >= 10) {
+          resolutionDeadline = `${String(ev.endDate).slice(0, 10)}T23:59:59.000Z`
+        }
+        if (!resolutionDeadline && ev.commenceTime) {
+          const d = new Date(ev.commenceTime)
+          if (!Number.isNaN(d.getTime())) {
+            d.setUTCHours(d.getUTCHours() + 4)
+            resolutionDeadline = d.toISOString()
+          } else {
+            resolutionDeadline = String(ev.commenceTime).slice(0, 10)
+          }
+        }
+        if (!resolutionDeadline) resolutionDeadline = ev.endDate || ev.date || (ev.commenceTime ? String(ev.commenceTime).slice(0, 10) : null)
         const payload = {
           marketId: id,
           title: ev.title,

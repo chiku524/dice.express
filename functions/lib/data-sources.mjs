@@ -272,6 +272,7 @@ export async function eventsFromOdds(env, sportKey = 'basketball_nba', limit = 2
     const description = `${title} Event start: ${eventStart}.`
     const resolutionCriteria = `Home team (${e.home_team}) wins the match. Resolved using The Odds API scores after the event (commence: ${e.commence_time || 'TBD'}).`
     const oneLiner = `Home team (${e.home_team}) wins; otherwise No.`
+    const resolutionDeadline = resolutionAfterCommence(e.commence_time, 4)
     return {
       id: e.id,
       source: 'the_odds_api',
@@ -281,6 +282,7 @@ export async function eventsFromOdds(env, sportKey = 'basketball_nba', limit = 2
       resolutionCriteria,
       oneLiner,
       endDate: e.commence_time ? e.commence_time.slice(0, 10) : null,
+      resolutionDeadline: resolutionDeadline || (e.commence_time ? e.commence_time.slice(0, 10) : null),
       commenceTime: e.commence_time,
       homeTeam: e.home_team,
       awayTeam: e.away_team,
@@ -312,6 +314,7 @@ export async function eventsFromAlphaVantage(env, symbols = ALPHA_VANTAGE_SYMBOL
         symbol,
         threshold,
         endDate: dateStr,
+        resolutionDeadline: resolutionUSMarketCloseUTC(dateStr),
         oracleSource: 'alpha_vantage',
         oracleConfig: { symbol, threshold, endDate: dateStr },
       })
@@ -348,6 +351,7 @@ export async function eventsFromCoinGecko(env, coins = COINGECKO_COINS.slice(0, 
       coinId: id,
       threshold,
       endDate: dateStr,
+      resolutionDeadline: resolutionEndOfDayUTC(dateStr),
       oracleSource: 'coingecko',
       oracleConfig: { coinId: id, symbol: sym, threshold, endDate: dateStr },
     })
@@ -356,6 +360,27 @@ export async function eventsFromCoinGecko(env, coins = COINGECKO_COINS.slice(0, 
 }
 
 export const WEATHER_CITIES = ['London', 'New York', 'Los Angeles', 'Chicago', 'Tokyo']
+
+/** Precise resolution time: end of calendar day UTC (for news, weather, crypto date-based). */
+function resolutionEndOfDayUTC(dateStr) {
+  if (!dateStr || dateStr.length < 10) return null
+  return `${dateStr.slice(0, 10)}T23:59:59.000Z`
+}
+
+/** Precise resolution time: US market close 4pm ET ≈ 21:00 UTC (for stocks). */
+function resolutionUSMarketCloseUTC(dateStr) {
+  if (!dateStr || dateStr.length < 10) return null
+  return `${dateStr.slice(0, 10)}T21:00:00.000Z`
+}
+
+/** Resolution time: commenceTime + hours (for sports; game typically over by then). */
+function resolutionAfterCommence(commenceTimeIso, hours = 4) {
+  if (!commenceTimeIso) return null
+  const d = new Date(commenceTimeIso)
+  if (Number.isNaN(d.getTime())) return null
+  d.setUTCHours(d.getUTCHours() + hours)
+  return d.toISOString()
+}
 
 export async function eventsFromOpenWeather(env, cities = WEATHER_CITIES.slice(0, 3)) {
   const events = []
@@ -377,6 +402,7 @@ export async function eventsFromOpenWeather(env, cities = WEATHER_CITIES.slice(0
         resolutionCriteria: `Rain or significant precipitation in ${city} on ${dateStr}. Data source: OpenWeatherMap.`,
         oneLiner: `Rain in ${city} on ${dateStr}; otherwise No.`,
         endDate: dateStr,
+        resolutionDeadline: resolutionEndOfDayUTC(dateStr),
         city,
         date: dateStr,
         oracleSource: 'openweathermap',
@@ -408,6 +434,7 @@ export async function eventsFromWeatherApi(env, cities = WEATHER_CITIES.slice(0,
         resolutionCriteria: `Rain in ${city} on ${dateStr}. Data source: WeatherAPI.com.`,
         oneLiner: `Rain in ${city} on ${dateStr}; otherwise No.`,
         endDate: dateStr,
+        resolutionDeadline: resolutionEndOfDayUTC(dateStr),
         city,
         date: dateStr,
         oracleSource: 'weatherapi',
@@ -443,6 +470,7 @@ export async function eventsFromGNews(env, category = 'general', limit = 5) {
       resolutionCriteria: `Article or topic matching this headline is among GNews top headlines on ${dateStr}. Data source: GNews.`,
       oneLiner: `This headline appears in GNews top headlines on ${dateStr}; otherwise No.`,
       endDate: dateStr,
+      resolutionDeadline: resolutionEndOfDayUTC(dateStr),
       oracleSource: 'gnews',
       oracleConfig: { title: a.title, url: a.url, publishedAt: a.publishedAt, dateStr },
     }
@@ -466,6 +494,7 @@ export async function eventsFromPerigon(env, q = 'technology', limit = 5) {
       resolutionCriteria: `Article matching this topic appears in Perigon top news on ${dateStr}. Data source: Perigon.`,
       oneLiner: `Matching article in Perigon top news on ${dateStr}; otherwise No.`,
       endDate: dateStr,
+      resolutionDeadline: resolutionEndOfDayUTC(dateStr),
       oracleSource: 'perigon',
       oracleConfig: { title: a.title || a.headline, url: a.url, dateStr },
     }
@@ -489,6 +518,7 @@ export async function eventsFromNewsApiAi(env, q = 'technology', limit = 5) {
       resolutionCriteria: `Article matching this topic appears in NewsAPI.ai top news on ${dateStr}. Data source: NewsAPI.ai (Event Registry).`,
       oneLiner: `Matching article in NewsAPI.ai top news on ${dateStr}; otherwise No.`,
       endDate: dateStr,
+      resolutionDeadline: resolutionEndOfDayUTC(dateStr),
       oracleSource: 'newsapi_ai',
       oracleConfig: { title: a.title, url: a.url, uri: a.uri, dateTime: a.dateTime, dateStr },
     }
@@ -512,6 +542,7 @@ export async function eventsFromNewsDataIo(env, q = 'technology', limit = 5) {
       resolutionCriteria: `Article matching this topic appears in NewsData.io latest news on ${dateStr}. Data source: NewsData.io.`,
       oneLiner: `Matching article in NewsData.io latest news on ${dateStr}; otherwise No.`,
       endDate: dateStr,
+      resolutionDeadline: resolutionEndOfDayUTC(dateStr),
       oracleSource: 'newsdata_io',
       oracleConfig: { title: a.title, link: a.link, article_id: a.article_id, pubDate: a.pubDate, dateStr },
     }
@@ -562,6 +593,7 @@ export async function eventsFromStocksTrend(env, symbols = ALPHA_VANTAGE_SYMBOLS
         symbol,
         threshold,
         endDate: dateStr,
+        resolutionDeadline: resolutionUSMarketCloseUTC(dateStr),
         commenceTime: settle.toISOString(),
         oracleSource: 'alpha_vantage',
         oracleConfig: { symbol, threshold, endDate: dateStr },
@@ -603,6 +635,7 @@ export async function eventsFromCryptoTrend(env, coins = COINGECKO_COINS.slice(0
       coinId: id,
       threshold,
       endDate: dateOnly,
+      resolutionDeadline: settle.toISOString(),
       commenceTime: settle.toISOString(),
       oracleSource: 'coingecko',
       oracleConfig: { coinId: id, symbol: sym, threshold, endDate: dateOnly, settlementHours },

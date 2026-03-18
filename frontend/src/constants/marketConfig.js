@@ -279,7 +279,8 @@ export function formatResolutionDeadline(deadline, short = false) {
       return dateOnlyObj.toLocaleDateString(undefined, { dateStyle: 'medium', timeZone: 'UTC' })
     }
     if (short) return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })
-    return d.toLocaleDateString(undefined, { dateStyle: 'medium' }) + (d.getHours() || d.getMinutes() ? ' ' + d.toLocaleTimeString(undefined, { timeStyle: 'short' }) : '')
+    const hasTime = /T\d{2}:\d{2}/.test(String(deadline).trim()) && !isDateOnlyDeadline(deadline)
+    return d.toLocaleDateString(undefined, { dateStyle: 'medium' }) + (hasTime ? ' ' + d.toLocaleTimeString(undefined, { timeStyle: 'short' }) : '')
   } catch {
     return String(deadline)
   }
