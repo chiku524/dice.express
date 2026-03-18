@@ -1,40 +1,45 @@
-import { useState, useRef, useCallback } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import './Documentation.css'
 
-export default function Documentation() {
-  const [activeSection, setActiveSection] = useState('getting-started')
-  const tocNavRef = useRef(null)
+const SECTIONS = [
+  { id: 'getting-started', title: 'Getting Started' },
+  { id: 'wallet-authentication', title: 'Wallet & Authentication' },
+  { id: 'market-creation', title: 'Market Creation' },
+  { id: 'amm-fees', title: 'AMM & Fees' },
+  { id: 'position-creation', title: 'Position Creation' },
+  { id: 'deposit-withdraw', title: 'Deposit & Withdraw' },
+  { id: 'portfolio', title: 'Portfolio' },
+  { id: 'admin-dashboard', title: 'Admin Dashboard' },
+  { id: 'blockchain', title: 'Blockchain Integration' },
+  { id: 'apis-oracles', title: 'APIs & Oracles' },
+  { id: 'architecture', title: 'Architecture' },
+  { id: 'security', title: 'Security' },
+  { id: 'api-reference', title: 'API Reference' },
+]
 
-  /* Mouse wheel scrolls TOC horizontally (wheel down = scroll right); only capture when TOC can scroll */
-  const handleTocWheel = useCallback((e) => {
-    const el = tocNavRef.current
-    if (!el) return
-    const maxScroll = el.scrollWidth - el.clientWidth
-    if (maxScroll <= 2) return /* no overflow, let event bubble */
-    const canScrollRight = el.scrollLeft < maxScroll - 2
-    const canScrollLeft = el.scrollLeft > 2
-    const scrollingDown = e.deltaY > 0
-    const scrollingUp = e.deltaY < 0
-    if ((scrollingDown && !canScrollRight) || (scrollingUp && !canScrollLeft)) return
-    e.preventDefault()
-    el.scrollLeft += e.deltaY
+function getSectionFromHash() {
+  const hash = typeof window !== 'undefined' ? window.location.hash.slice(1) : ''
+  return SECTIONS.some((s) => s.id === hash) ? hash : 'getting-started'
+}
+
+export default function Documentation() {
+  const [activeSection, setActiveSection] = useState(() => getSectionFromHash())
+  const [sidebarOpen, setSidebarOpen] = useState(false)
+
+  const setSection = useCallback((id) => {
+    setActiveSection(id)
+    setSidebarOpen(false)
+    if (typeof window !== 'undefined') {
+      window.history.replaceState(null, '', `#${id}`)
+    }
   }, [])
 
-  const sections = [
-    { id: 'getting-started', title: 'Getting Started' },
-    { id: 'wallet-authentication', title: 'Wallet & Authentication' },
-    { id: 'market-creation', title: 'Market Creation' },
-    { id: 'amm-fees', title: 'AMM & Fees' },
-    { id: 'position-creation', title: 'Position Creation' },
-    { id: 'deposit-withdraw', title: 'Deposit & Withdraw' },
-    { id: 'portfolio', title: 'Portfolio' },
-    { id: 'admin-dashboard', title: 'Admin Dashboard' },
-    { id: 'blockchain', title: 'Blockchain Integration' },
-    { id: 'apis-oracles', title: 'APIs & Oracles' },
-    { id: 'architecture', title: 'Architecture' },
-    { id: 'security', title: 'Security' },
-    { id: 'api-reference', title: 'API Reference' }
-  ]
+  useEffect(() => {
+    setActiveSection(getSectionFromHash())
+    const onHashChange = () => setActiveSection(getSectionFromHash())
+    window.addEventListener('hashchange', onHashChange)
+    return () => window.removeEventListener('hashchange', onHashChange)
+  }, [])
 
   const renderContent = () => {
     switch (activeSection) {
@@ -70,21 +75,27 @@ export default function Documentation() {
   }
 
   return (
-    <div className="documentation-container">
-      {/* TOC bar: single row below navbar, above content — block layout so it never collapses */}
-      <header className="documentation-toc-bar" aria-label="Documentation sections">
-        <nav
-          ref={tocNavRef}
-          className="documentation-nav"
-          onWheel={handleTocWheel}
-        >
-          <ul>
-            {sections.map((section) => (
+    <div className="docs-page">
+      <button
+        type="button"
+        className="docs-sidebar-toggle"
+        onClick={() => setSidebarOpen((o) => !o)}
+        aria-expanded={sidebarOpen}
+        aria-label="Toggle documentation menu"
+      >
+        <span className="docs-sidebar-toggle-icon">{sidebarOpen ? '✕' : '☰'}</span>
+        <span className="docs-sidebar-toggle-label">Sections</span>
+      </button>
+      <aside className={`docs-sidebar ${sidebarOpen ? 'docs-sidebar-open' : ''}`} aria-label="Table of contents">
+        <nav className="docs-toc">
+          <h2 className="docs-toc-title">Contents</h2>
+          <ul className="docs-toc-list">
+            {SECTIONS.map((section) => (
               <li key={section.id}>
                 <button
                   type="button"
-                  className={activeSection === section.id ? 'active' : ''}
-                  onClick={() => setActiveSection(section.id)}
+                  className={`docs-toc-link ${activeSection === section.id ? 'active' : ''}`}
+                  onClick={() => setSection(section.id)}
                 >
                   {section.title}
                 </button>
@@ -92,15 +103,18 @@ export default function Documentation() {
             ))}
           </ul>
         </nav>
-      </header>
+      </aside>
       <div
-        className="documentation-content"
-        role="region"
-        aria-label="Documentation content"
-        tabIndex={0}
-      >
-        {renderContent()}
-      </div>
+        className="docs-overlay"
+        role="presentation"
+        aria-hidden={!sidebarOpen}
+        onClick={() => setSidebarOpen(false)}
+      />
+      <main className="docs-main" role="region" aria-label="Documentation content">
+        <div className="docs-content-inner">
+          {renderContent()}
+        </div>
+      </main>
     </div>
   )
 }

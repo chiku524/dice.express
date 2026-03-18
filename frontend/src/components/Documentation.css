@@ -1,230 +1,211 @@
-/* Docs page: only the content div scrolls; body and container do not. */
-body:has(.documentation-container) {
-  overflow: hidden !important;
-  height: 100vh !important;
-}
+/* Docs page: sidebar TOC + single-section content. All content in one page; only active section is shown. */
 
-/* Fixed heights: navbar 64px, TOC 56px. Content starts after 144px (120 + 24px buffer). */
-.documentation-container {
-  --docs-navbar-height: 64px;
-  --docs-toc-height: 56px;
-  --docs-header-total: 144px; /* 64+56 + 24px buffer */
-  --docs-footer-height: 80px;
-}
-
-/* Docs layout: reserve top space with padding so content cannot overlap TOC (no margin collapse). */
-.documentation-container {
-  display: block;
-  width: 100%;
-  height: 100vh;
+.docs-page {
+  --docs-sidebar-width: 280px;
+  --docs-sidebar-bg: rgba(15, 22, 35, 0.97);
+  --docs-sidebar-border: rgba(139, 92, 246, 0.25);
+  --docs-main-bg: var(--color-surface, rgba(20, 28, 40, 0.6));
+  --docs-accent: #8b5cf6;
+  --docs-accent-hover: #a78bfa;
+  display: flex;
   min-height: 100vh;
-  padding-top: var(--docs-header-total);
-  box-sizing: border-box;
-  background: transparent;
+  width: 100%;
+  background: var(--docs-main-bg);
   color: var(--color-text-primary, #fff);
   position: relative;
-  z-index: 1;
 }
 
-/* TOC bar: fixed directly under navbar so it’s always visible and never covered */
-.documentation-toc-bar {
-  position: fixed !important;
-  top: 64px !important;
-  left: 0 !important;
-  right: 0 !important;
-  width: 100% !important;
-  height: 56px !important;
-  min-height: 56px !important;
-  max-height: 56px !important;
-  display: block !important;
-  background: #0f1623 !important;
-  border-bottom: 2px solid rgba(139, 92, 246, 0.5) !important;
-  padding: 0 !important;
-  margin: 0 !important;
-  overflow: hidden;
-  box-sizing: border-box;
-  z-index: 100;
-  visibility: visible !important;
-}
-
-/* Nav: horizontal row of section buttons; wheel scrolls horizontally; scrollbar hidden */
-.documentation-toc-bar .documentation-nav {
-  display: flex !important;
-  width: 100%;
-  min-width: 0;
-  height: 100%;
-  overflow-x: auto;
-  overflow-y: hidden;
-  padding: 0 0.75rem;
-  align-items: stretch;
-  scrollbar-width: none;
-  -ms-overflow-style: none;
-  box-sizing: border-box;
-}
-
-.documentation-toc-bar::-webkit-scrollbar,
-.documentation-nav::-webkit-scrollbar {
+/* Mobile: hamburger to open sidebar */
+.docs-sidebar-toggle {
   display: none;
-}
-
-.documentation-nav ul {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-  display: flex;
-  flex-wrap: nowrap;
-  gap: 0;
-  align-items: center;
-  height: 100%;
-}
-
-.documentation-nav li {
-  margin: 0;
-  padding: 0;
-  flex-shrink: 0;
-}
-
-.documentation-nav button {
-  white-space: nowrap;
-  padding: 0 1rem;
-  min-height: 2.5rem;
-  height: 100%;
-  flex-shrink: 0;
-  background: transparent !important;
-  border: none;
-  border-bottom: 3px solid transparent;
-  border-radius: 0;
-  color: rgba(255, 255, 255, 0.95) !important;
+  position: fixed;
+  top: 72px;
+  left: 1rem;
+  z-index: 102;
+  padding: 0.5rem 0.75rem;
+  background: var(--docs-sidebar-bg);
+  border: 1px solid var(--docs-sidebar-border);
+  border-radius: 8px;
+  color: #fff;
   font-size: 0.9rem;
   font-weight: 500;
   cursor: pointer;
-  transition: color 0.2s, background 0.2s, border-color 0.2s;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  align-items: center;
+  gap: 0.5rem;
 }
 
-.documentation-nav button:hover {
-  background: rgba(139, 92, 246, 0.15) !important;
-  color: #fff !important;
+.docs-sidebar-toggle:hover {
+  background: rgba(139, 92, 246, 0.2);
+  border-color: var(--docs-accent);
 }
 
-.documentation-nav button.active {
-  color: #a78bfa !important;
+.docs-sidebar-toggle-icon {
+  font-size: 1.1rem;
+  line-height: 1;
+}
+
+/* Sidebar: TOC */
+.docs-sidebar {
+  width: var(--docs-sidebar-width);
+  flex-shrink: 0;
+  background: var(--docs-sidebar-bg);
+  border-right: 1px solid var(--docs-sidebar-border);
+  padding: 1.5rem 0;
+  position: sticky;
+  top: 64px;
+  height: calc(100vh - 64px);
+  overflow-y: auto;
+  z-index: 101;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.docs-toc-title {
+  font-size: 0.75rem;
   font-weight: 600;
-  border-bottom-color: #8b5cf6;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: rgba(255, 255, 255, 0.5);
+  margin: 0 1.25rem 1rem;
+  padding: 0;
 }
 
-.documentation-nav button.active::before {
-  display: none;
+.docs-toc-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
 }
 
-/* Section content: no margin (container padding reserves space). Height so it scrolls; never under TOC. */
-.documentation-content {
+.docs-toc-list li {
+  margin: 0;
+  padding: 0;
+}
+
+.docs-toc-link {
+  display: block;
   width: 100%;
-  margin: 0 !important;
-  height: calc(100vh - var(--docs-header-total) - var(--docs-footer-height)) !important;
-  min-height: 240px;
-  padding: 2rem 2.5rem 4rem;
-  overflow-y: auto !important;
-  overflow-x: hidden;
-  -webkit-overflow-scrolling: touch;
-  touch-action: pan-y;
-  overscroll-behavior-y: contain;
-  background: var(--color-surface, rgba(20, 28, 40, 0.6));
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  scrollbar-width: thin;
-  scrollbar-color: rgba(139, 92, 246, 0.3) transparent;
-  -ms-overflow-style: -ms-autohiding-scrollbar;
-  box-sizing: border-box;
-  position: relative;
-  z-index: 1;
-}
-
-/* Custom scrollbar styling for Chrome, Safari, Opera */
-.documentation-content::-webkit-scrollbar {
-  width: 8px;
-}
-
-.documentation-content::-webkit-scrollbar-track {
+  padding: 0.5rem 1.25rem;
+  text-align: left;
   background: transparent;
+  border: none;
+  border-left: 3px solid transparent;
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
 }
 
-.documentation-content::-webkit-scrollbar-thumb {
-  background: rgba(100, 108, 255, 0.3);
-  border-radius: 4px;
-  transition: background var(--transition-base, 0.2s ease);
+.docs-toc-link:hover {
+  background: rgba(139, 92, 246, 0.12);
+  color: #fff;
 }
 
-.documentation-content::-webkit-scrollbar-thumb:hover {
-  background: rgba(100, 108, 255, 0.5);
+.docs-toc-link.active {
+  background: rgba(139, 92, 246, 0.18);
+  color: var(--docs-accent-hover);
+  border-left-color: var(--docs-accent);
+  font-weight: 600;
 }
 
+/* Overlay when sidebar is open on mobile */
+.docs-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 100;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+}
+
+.docs-overlay[aria-hidden="false"] {
+  display: block;
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* Main content area */
+.docs-main {
+  flex: 1;
+  min-width: 0;
+  padding: 2rem 2.5rem 4rem;
+  overflow-y: auto;
+  min-height: calc(100vh - 64px);
+}
+
+.docs-content-inner {
+  max-width: 720px;
+  margin: 0 auto;
+}
+
+/* Section content typography */
 .doc-section {
-  max-width: none;
   width: 100%;
   line-height: 1.7;
 }
 
 .doc-section h1 {
-  font-size: var(--font-size-3xl, 2.5rem);
-  margin: 0 0 var(--spacing-xl, 2rem) 0;
-  color: var(--color-text-primary, rgba(255, 255, 255, 0.95));
-  font-weight: var(--font-weight-bold, 700);
-  border-bottom: 3px solid var(--color-primary-border, rgba(100, 108, 255, 0.4));
-  padding-bottom: var(--spacing-md, 1rem);
-  letter-spacing: -0.5px;
+  font-size: var(--font-size-3xl, 2rem);
+  margin: 0 0 1.5rem 0;
+  color: var(--color-text-primary, rgba(255, 255, 255, 0.98));
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  padding-bottom: 1rem;
+  border-bottom: 2px solid var(--docs-sidebar-border);
 }
 
 .doc-section h2 {
-  font-size: var(--font-size-2xl, 1.75rem);
-  margin: var(--spacing-2xl, 2.5rem) 0 var(--spacing-md, 1rem) 0;
-  color: var(--color-text-primary, rgba(255, 255, 255, 0.92));
-  font-weight: var(--font-weight-semibold, 600);
-  letter-spacing: -0.3px;
+  font-size: 1.35rem;
+  margin: 2rem 0 0.75rem 0;
+  color: rgba(255, 255, 255, 0.95);
+  font-weight: 600;
+  letter-spacing: -0.01em;
 }
 
 .doc-section h3 {
-  font-size: var(--font-size-xl, 1.35rem);
-  margin: var(--spacing-xl, 2rem) 0 var(--spacing-md, 0.75rem) 0;
-  color: var(--color-text-primary, rgba(255, 255, 255, 0.9));
-  font-weight: var(--font-weight-semibold, 600);
+  font-size: 1.15rem;
+  margin: 1.5rem 0 0.5rem 0;
+  color: rgba(255, 255, 255, 0.92);
+  font-weight: 600;
 }
 
 .doc-section p {
-  margin: 1rem 0;
-  color: rgba(255, 255, 255, 0.8);
+  margin: 0.75rem 0;
+  color: rgba(255, 255, 255, 0.82);
   font-size: 1rem;
 }
 
 .doc-section ul,
 .doc-section ol {
-  margin: 1rem 0;
-  padding-left: 2rem;
-  color: rgba(255, 255, 255, 0.8);
+  margin: 0.75rem 0;
+  padding-left: 1.5rem;
+  color: rgba(255, 255, 255, 0.82);
 }
 
 .doc-section li {
-  margin: 0.5rem 0;
+  margin: 0.35rem 0;
   line-height: 1.6;
 }
 
 .doc-section code {
-  background: var(--color-background, rgba(0, 0, 0, 0.4));
-  padding: var(--spacing-xs, 0.2rem) var(--spacing-sm, 0.5rem);
-  border-radius: var(--radius-sm, 4px);
-  font-family: var(--font-family-mono, 'Courier New', monospace);
-  font-size: 0.9em;
-  color: var(--color-primary, #646cff);
-  border: 1px solid var(--color-primary-border, rgba(100, 108, 255, 0.2));
+  background: rgba(0, 0, 0, 0.4);
+  padding: 0.2rem 0.45rem;
+  border-radius: 4px;
+  font-family: var(--font-family-mono, ui-monospace, monospace);
+  font-size: 0.88em;
+  color: var(--docs-accent-hover);
+  border: 1px solid rgba(139, 92, 246, 0.25);
 }
 
 .doc-section pre {
-  background: rgba(0, 0, 0, 0.6);
-  padding: 1.5rem;
-  border-radius: var(--radius-md, 8px);
+  background: rgba(0, 0, 0, 0.5);
+  padding: 1.25rem 1.5rem;
+  border-radius: 8px;
   overflow-x: auto;
-  border: 1px solid var(--color-border, rgba(100, 108, 255, 0.25));
-  margin: 1.5rem 0;
-  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.3);
+  border: 1px solid var(--docs-sidebar-border);
+  margin: 1.25rem 0;
 }
 
 .doc-section pre code {
@@ -232,8 +213,8 @@ body:has(.documentation-container) {
   padding: 0;
   border: none;
   color: rgba(255, 255, 255, 0.9);
-  font-size: 0.9rem;
-  line-height: 1.6;
+  font-size: 0.875rem;
+  line-height: 1.55;
 }
 
 .doc-section strong {
@@ -242,76 +223,89 @@ body:has(.documentation-container) {
 }
 
 .doc-section a {
-  color: var(--color-primary, #646cff);
+  color: var(--docs-accent);
   text-decoration: none;
-  transition: color var(--transition-base, 0.2s);
-  font-weight: var(--font-weight-medium, 500);
+  transition: color 0.15s;
+  font-weight: 500;
 }
 
 .doc-section a:hover {
-  color: var(--color-primary-hover, #535bf2);
+  color: var(--docs-accent-hover);
   text-decoration: underline;
 }
 
-/* Large viewports: same positioning (content-start derived from navbar + toc) */
-@media (min-width: 969px) {
-  .documentation-container {
-    --docs-navbar-height: 64px;
-    --docs-toc-height: 56px;
-  }
+.doc-section table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1rem 0;
+  font-size: 0.9rem;
 }
 
-@media (max-width: 968px) {
-  .documentation-container {
-    --docs-header-total: 140px; /* 64 + 52 + 24px buffer */
+.doc-section th,
+.doc-section td {
+  padding: 0.6rem 0.75rem;
+  text-align: left;
+  border-bottom: 1px solid var(--docs-sidebar-border);
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.doc-section th {
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.95);
+}
+
+/* Mobile: show toggle, sidebar slides in */
+@media (max-width: 768px) {
+  .docs-sidebar-toggle {
+    display: flex;
   }
 
-  .documentation-toc-bar {
-    height: 52px !important;
-    min-height: 52px !important;
-    max-height: 52px !important;
+  .docs-sidebar {
+    position: fixed;
+    top: 64px;
+    left: 0;
+    bottom: 0;
+    height: calc(100vh - 64px);
+    transform: translateX(-100%);
+    box-shadow: none;
   }
 
-  .documentation-content {
-    padding: 1.5rem 1.25rem 4rem;
+  .docs-sidebar.docs-sidebar-open {
+    transform: translateX(0);
+    box-shadow: 4px 0 24px rgba(0, 0, 0, 0.4);
+  }
+
+  .docs-main {
+    padding: 1.25rem 1rem 3rem;
+    padding-top: 3.5rem;
+  }
+
+  .docs-content-inner {
+    max-width: none;
   }
 
   .doc-section h1 {
-    font-size: 2rem;
+    font-size: 1.65rem;
   }
 
   .doc-section h2 {
-    font-size: 1.5rem;
+    font-size: 1.2rem;
   }
 
   .doc-section h3 {
-    font-size: 1.25rem;
+    font-size: 1.05rem;
   }
 }
 
-@media (max-width: 640px) {
-  .documentation-container {
-    --docs-header-total: 136px; /* 64 + 48 + 24px buffer */
-    --docs-footer-height: 72px;
-  }
-
-  .documentation-toc-bar {
-    height: 48px !important;
-    min-height: 48px !important;
-    max-height: 48px !important;
-  }
-
-  .documentation-content {
-    padding: 1.25rem 1rem 3rem;
-  }
-
-  .documentation-nav button {
-    padding: 0 0.75rem;
+@media (max-width: 480px) {
+  .docs-sidebar-toggle {
+    top: 68px;
+    left: 0.75rem;
+    padding: 0.4rem 0.6rem;
     font-size: 0.85rem;
-    min-height: 2.25rem;
   }
 
-  .doc-section h1 {
-    font-size: 1.75rem;
+  .docs-main {
+    padding-top: 3.25rem;
   }
 }
