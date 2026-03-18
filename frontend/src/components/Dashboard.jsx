@@ -6,6 +6,7 @@ import { getVirtualBalance, transferPips } from '../services/balance'
 import { ContractStorage } from '../utils/contractStorage'
 import { formatPips, PLATFORM_CURRENCY_SYMBOL } from '../constants/currency'
 import { BRAND_TAGLINE } from '../constants/brand'
+import UserHubNav from './UserHubNav'
 import './Dashboard.css'
 
 function formatMemberSince(isoString) {
@@ -131,9 +132,7 @@ export default function Dashboard() {
 
   return (
     <div className="dashboard-page">
-      <nav className="breadcrumb mb-md" aria-label="Breadcrumb" style={{ fontSize: 'var(--font-size-sm)', color: 'var(--color-text-secondary)' }}>
-        <span>Dashboard</span>
-      </nav>
+      <UserHubNav />
       <header className="dashboard-header">
         <h1>Dashboard</h1>
         <p className="dashboard-welcome">

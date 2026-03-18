@@ -1,0 +1,50 @@
+/* Shared nav for Dashboard, Portfolio, Profile — shown when user is in "account" area */
+
+.user-hub-nav {
+  margin-bottom: var(--spacing-xl);
+}
+
+.user-hub-nav-inner {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 4px;
+  background: rgba(15, 23, 42, 0.5);
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.user-hub-tab {
+  display: inline-block;
+  padding: 10px 20px;
+  border-radius: 10px;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-secondary);
+  text-decoration: none;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+.user-hub-tab:hover {
+  color: var(--color-text-primary);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.user-hub-tab.active {
+  background: rgba(20, 184, 166, 0.15);
+  color: #2dd4bf;
+  border: 1px solid rgba(20, 184, 166, 0.3);
+}
+
+.user-hub-tab.active:hover {
+  background: rgba(20, 184, 166, 0.2);
+  color: #5eead4;
+}
+
+@media (max-width: 480px) {
+  .user-hub-tab {
+    padding: 8px 14px;
+    font-size: var(--font-size-xs);
+  }
+}

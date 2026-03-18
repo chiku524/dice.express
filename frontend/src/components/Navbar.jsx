@@ -68,7 +68,6 @@ export default function Navbar({ setShowWalletModal }) {
               className={`nav-dropdown-toggle ${isDiscoverActive() ? 'active' : ''}`}
               onClick={() => {
                 setShowDiscoverMenu(!showDiscoverMenu)
-                setShowAccountMenu(false)
                 setShowResourcesMenu(false)
               }}
             >
@@ -93,21 +92,6 @@ export default function Navbar({ setShowWalletModal }) {
             )}
           </div>
 
-          {/* Dashboard, Portfolio, Profile when logged in */}
-          {wallet && (
-            <>
-              <Link to="/dashboard" className={`nav-link ${isActive('/dashboard') ? 'active' : ''}`}>
-                Dashboard
-              </Link>
-              <Link to="/portfolio" className={`nav-link ${isActive('/portfolio') ? 'active' : ''}`}>
-                Portfolio
-              </Link>
-              <Link to="/profile" className={`nav-link ${isActive('/profile') ? 'active' : ''}`}>
-                Profile
-              </Link>
-            </>
-          )}
-
           {/* Resources */}
           <div className="nav-dropdown nav-dropdown-resources" ref={resourcesMenuRef}>
             <button
@@ -115,7 +99,6 @@ export default function Navbar({ setShowWalletModal }) {
               onClick={() => {
                 setShowResourcesMenu(!showResourcesMenu)
                 setShowDiscoverMenu(false)
-                setShowAccountMenu(false)
               }}
             >
               Resources

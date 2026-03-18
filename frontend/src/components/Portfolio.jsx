@@ -4,7 +4,9 @@ import { useWallet } from '../contexts/WalletContext'
 import { useAccountModal } from '../contexts/AccountModalContext'
 import { ContractStorage } from '../utils/contractStorage'
 import { SkeletonList } from './SkeletonLoader'
+import UserHubNav from './UserHubNav'
 import { formatPips, PLATFORM_CURRENCY_SYMBOL } from '../constants/currency'
+import './Portfolio.css'
 import { PIPS_PACKAGES } from '../constants/stripeProducts'
 
 export default function Portfolio() {
@@ -308,8 +310,12 @@ export default function Portfolio() {
 
   if (loading) {
     return (
-      <div>
-        <h1>My Portfolio</h1>
+      <div className="portfolio-page">
+        <UserHubNav />
+        <header className="portfolio-header">
+          <h1>Portfolio</h1>
+          <p className="portfolio-header-desc">Balance, positions, deposit & withdraw.</p>
+        </header>
         <SkeletonList count={3} />
       </div>
     )
@@ -317,7 +323,11 @@ export default function Portfolio() {
 
   if (error) {
     return (
-      <div>
+      <div className="portfolio-page">
+        <UserHubNav />
+        <header className="portfolio-header">
+          <h1>Portfolio</h1>
+        </header>
         <div className="error">
           <strong>Error loading portfolio:</strong> {error}
           <br />
@@ -325,12 +335,15 @@ export default function Portfolio() {
             Please check your connection and try again.
           </small>
         </div>
-        <button 
-          className="btn-primary mt-md" 
-          onClick={() => window.location.reload()}
-        >
-          Retry
-        </button>
+        <div style={{ display: 'flex', gap: 'var(--spacing-md)', marginTop: 'var(--spacing-lg)', flexWrap: 'wrap' }}>
+          <button
+            className="btn-primary"
+            onClick={() => window.location.reload()}
+          >
+            Retry
+          </button>
+          <Link to="/dashboard" className="btn-secondary">Back to Dashboard</Link>
+        </div>
       </div>
     )
   }
@@ -506,18 +519,12 @@ export default function Portfolio() {
   const tabLabels = { balance: 'Balance', positions: 'Positions', activity: 'Activity' }
 
   return (
-    <div>
-      <nav className="breadcrumb mb-md" aria-label="Breadcrumb" style={{ fontSize: 'var(--font-size-sm)', color: 'var(--color-text-secondary)' }}>
-        <Link to="/dashboard" style={{ color: 'inherit', textDecoration: 'none' }}>Dashboard</Link>
-        <span style={{ margin: '0 var(--spacing-sm)' }} aria-hidden>→</span>
-        <span>Portfolio</span>
-        <span style={{ margin: '0 var(--spacing-sm)' }} aria-hidden>→</span>
-        <span>{tabLabels[activeTab] || activeTab}</span>
-      </nav>
-      <div className="page-header">
-        <h1>My Portfolio</h1>
-        <p>Balance, positions, and activity</p>
-      </div>
+    <div className="portfolio-page">
+      <UserHubNav />
+      <header className="portfolio-header">
+        <h1>Portfolio</h1>
+        <p className="portfolio-header-desc">Balance, positions, deposit & withdraw.</p>
+      </header>
 
       <div className="portfolio-tabs mb-xl" role="tablist" aria-label="Portfolio sections">
         {tabs.map((tab) => (

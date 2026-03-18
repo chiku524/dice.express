@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { useWallet } from '../contexts/WalletContext'
 import { useAccountModal } from '../contexts/AccountModalContext'
 import { useToastContext } from '../contexts/ToastContext'
+import UserHubNav from './UserHubNav'
 import './Profile.css'
 
 function formatMemberSince(isoString) {
@@ -65,14 +66,10 @@ export default function Profile() {
 
   return (
     <div className="profile-page">
-      <nav className="breadcrumb mb-md" aria-label="Breadcrumb" style={{ fontSize: 'var(--font-size-sm)', color: 'var(--color-text-secondary)' }}>
-        <Link to="/dashboard" style={{ color: 'inherit', textDecoration: 'none' }}>Dashboard</Link>
-        <span style={{ margin: '0 var(--spacing-sm)' }} aria-hidden>→</span>
-        <span>Profile</span>
-      </nav>
+      <UserHubNav />
       <header className="profile-header">
         <h1>Profile</h1>
-        <p className="text-secondary">Your account details and display name.</p>
+        <p className="profile-header-desc">Your account details and display name.</p>
       </header>
 
       <div className="card profile-card">
@@ -130,7 +127,7 @@ export default function Profile() {
       <div className="card profile-card">
         <h2 className="profile-section-title">Account actions</h2>
         <div className="profile-actions">
-          <Link to="/dashboard" className="btn-primary">Dashboard</Link>
+          <Link to="/dashboard" className="btn-primary">Back to Dashboard</Link>
           <Link to="/portfolio" className="btn-secondary">Portfolio</Link>
           <button
             type="button"
