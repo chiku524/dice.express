@@ -3,7 +3,7 @@ import { Link, useLocation } from 'react-router-dom'
 import { useWallet } from '../contexts/WalletContext'
 import { getVirtualBalance } from '../services/balance'
 import { BRAND_NAME, BRAND_TAGLINE } from '../constants/brand'
-import { MARKET_SOURCES } from '../constants/marketConfig'
+import { MARKET_SOURCES, getDiscoverPathForSource } from '../constants/marketConfig'
 import './Navbar.css'
 
 export default function Navbar({ setShowWalletModal }) {
@@ -77,15 +77,18 @@ export default function Navbar({ setShowWalletModal }) {
             </button>
             {showDiscoverMenu && (
               <div className="nav-dropdown-menu">
-                {MARKET_SOURCES.filter(s => s.value === 'all' || (s.value !== 'user')).map((source) => (
-                  <Link
-                    key={source.value}
-                    to={source.value === 'all' ? '/' : `/discover/${source.value}`}
-                    className={source.value === 'all' ? (isActive('/') ? 'active' : '') : (location.pathname === `/discover/${source.value}` ? 'active' : '')}
-                  >
-                    {source.label}
-                  </Link>
-                ))}
+                {MARKET_SOURCES.filter(s => s.value === 'all' || (s.value !== 'user')).map((source) => {
+                  const path = getDiscoverPathForSource(source.value)
+                  return (
+                    <Link
+                      key={source.value}
+                      to={path}
+                      className={isActive(path) ? 'active' : ''}
+                    >
+                      {source.label}
+                    </Link>
+                  )
+                })}
               </div>
             )}
           </div>

@@ -25,6 +25,17 @@ export const MARKET_SOURCES = [
   { value: 'user', label: 'User-Created' },
 ]
 
+/** URL path segment for Discover routes (must match App.jsx Route paths). Use for Navbar links. */
+export function getDiscoverPathForSource(sourceValue) {
+  if (sourceValue === 'all') return '/'
+  if (sourceValue === 'global_events') return '/discover/global-events'
+  if (sourceValue === 'virtual_realities') return '/discover/virtual-realities'
+  if (sourceValue === 'industry') return '/discover/industry'
+  if (sourceValue === 'active') return '/discover/active'
+  if (sourceValue === 'user') return '/discover/user'
+  return `/discover/${sourceValue}`
+}
+
 /** Map API source (from automated markets) to display source for Discover filter. */
 const API_SOURCE_TO_DISPLAY = {
   the_odds_api: 'global_events',

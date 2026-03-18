@@ -515,7 +515,7 @@ function APIsAndOraclesContent() {
       <h2>Implementation Roadmap</h2>
       <ol>
         <li><strong>Phase 1:</strong> ✅ Financial (Alpha Vantage, CoinGecko), Sports (The Odds API), Weather (OpenWeatherMap, WeatherAPI), News (GNews, Perigon, NewsAPI.ai)</li>
-        <li><strong>Phase 2 (Future):</strong> Political/election APIs, multi-oracle selection per market</li>
+        <li><strong>Phase 2 (Future):</strong> Political/election APIs (official results provider + resolution branch + event builder); multi-oracle selection (already supported via <code>oracleSource</code> + <code>oracleConfig</code> — add new oracle types as needed). See <code>docs/ORACLE_PHASE2.md</code> for implementation steps.</li>
       </ol>
 
       <h2>Oracle Requirements</h2>
