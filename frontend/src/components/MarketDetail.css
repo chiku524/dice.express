@@ -81,6 +81,34 @@
   margin-bottom: var(--spacing-md);
 }
 
+.market-detail-oneliner {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--spacing-sm);
+  margin-bottom: var(--spacing-md);
+  padding: var(--spacing-md);
+  background: linear-gradient(135deg, rgba(20, 184, 166, 0.12) 0%, rgba(20, 184, 166, 0.04) 100%);
+  border: 1px solid rgba(20, 184, 166, 0.25);
+  border-radius: 10px;
+}
+
+.market-detail-oneliner-icon {
+  font-size: 1.25rem;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.market-detail-oneliner-text {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-primary);
+  line-height: 1.45;
+}
+
+.market-detail-oneliner-text strong {
+  color: var(--color-teal);
+}
+
 .market-detail-desc {
   margin: 0 0 var(--spacing-md);
   color: var(--color-text-secondary);
@@ -114,17 +142,35 @@
   font-weight: var(--font-weight-medium);
 }
 
+.market-detail-resolution-outcomes {
+  margin: 0 0 var(--spacing-xs);
+  padding-left: 1.25rem;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-primary);
+  line-height: 1.5;
+}
+
+.market-detail-resolution-outcomes li {
+  margin-bottom: var(--spacing-xs);
+}
+
+.market-detail-outcome-yes {
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-success, #22c55e);
+  margin-right: 0.25em;
+}
+
+.market-detail-outcome-no {
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-muted);
+  margin-right: 0.25em;
+}
+
 .market-detail-resolution-criteria {
   margin: 0;
   font-size: var(--font-size-sm);
   color: var(--color-text-secondary);
-  line-height: 1.45;
-  font-size: var(--font-size-sm);
   line-height: 1.5;
-  display: -webkit-box;
-  -webkit-line-clamp: 4;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
 }
 
 .market-detail-odds {

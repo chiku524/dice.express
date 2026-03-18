@@ -4,7 +4,7 @@ import { useWallet } from '../contexts/WalletContext'
 import { SkeletonMarketGrid } from './SkeletonLoader'
 import { fetchMarkets } from '../services/marketsApi'
 import { useDebounce } from '../utils/useDebounce'
-import { MARKET_CATEGORIES, PREDICTION_STYLES, MARKET_SOURCES, getSourceLabel, sourceForFilter, categoryForFilter, getCategoryDisplay, getApiSourceLabel, formatResolutionDeadline } from '../constants/marketConfig'
+import { MARKET_CATEGORIES, PREDICTION_STYLES, MARKET_SOURCES, getSourceLabel, sourceForFilter, categoryForFilter, getCategoryDisplay, getApiSourceLabel, getCategoryEmoji, getMarketOneLiner, formatResolutionDeadline, DISCOVER_SOURCE_TO_CATEGORY } from '../constants/marketConfig'
 import { formatPips } from '../constants/currency'
 
 export default function MarketsList({ source: sourceFromRoute }) {
@@ -182,12 +182,15 @@ export default function MarketsList({ source: sourceFromRoute }) {
       )
     }
     
-    // Apply source filter (global_events, industry, virtual_realities, user, active; normalize API source for legacy markets)
+    // Apply source filter (sports, global_events, industry, tech_ai, politics, etc.; category-based sources filter by category)
     const effectiveSource = sourceFromRoute || selectedSource
     if (effectiveSource === 'active') {
       filtered = filtered.filter(market => (market.payload?.totalVolume || 0) > 0)
+    } else if (DISCOVER_SOURCE_TO_CATEGORY[effectiveSource]) {
+      const category = DISCOVER_SOURCE_TO_CATEGORY[effectiveSource]
+      filtered = filtered.filter(market => categoryForFilter(market.payload) === category)
     } else if (effectiveSource !== 'all') {
-      filtered = filtered.filter(market => sourceForFilter(market.payload?.source) === effectiveSource)
+      filtered = filtered.filter(market => sourceForFilter(market.payload) === effectiveSource)
     }
 
     // Apply category filter (trending = no category filter, just sort by volume later)
@@ -658,7 +661,10 @@ export default function MarketsList({ source: sourceFromRoute }) {
           ) : (
             <>
               <div className="market-grid">
-                {paginatedMarkets.map((market) => (
+                {paginatedMarkets.map((market) => {
+                  const oneLiner = getMarketOneLiner(market.payload)
+                  const categoryLabel = getCategoryDisplay(market.payload)
+                  return (
                   <Link
                     key={market.contractId}
                     to={`/market/${market.payload.marketId}`}
@@ -668,7 +674,7 @@ export default function MarketsList({ source: sourceFromRoute }) {
                       <div>
                         <div className="market-card-tags">
                           <span className="market-card-tag market-card-tag-category">
-                            {getCategoryDisplay(market.payload)}
+                            {getCategoryEmoji(categoryLabel)} {categoryLabel}
                           </span>
                           <span className="market-card-tag market-card-tag-api">
                             {getApiSourceLabel(market.payload)}
@@ -679,12 +685,15 @@ export default function MarketsList({ source: sourceFromRoute }) {
                           {market.payload.status}
                         </span>
                       </div>
+                      <p className="market-card-oneliner" title={oneLiner}>
+                        🎯 {oneLiner.length > 72 ? oneLiner.slice(0, 72).trim() + '…' : oneLiner}
+                      </p>
                       <p className="mt-md market-card-desc">
                         {market.payload.description ? (market.payload.description.length > 120 ? market.payload.description.substring(0, 120).trim() + '…' : market.payload.description) : ''}
                       </p>
                       {market.payload.resolutionDeadline && (
                         <p className="market-card-resolves" style={{ fontSize: 'var(--font-size-xs)', color: 'var(--color-teal)', marginTop: 'var(--spacing-xs)' }}>
-                          Resolves by {formatResolutionDeadline(market.payload.resolutionDeadline, true)}
+                          ⏱️ Resolves by {formatResolutionDeadline(market.payload.resolutionDeadline, true)}
                         </p>
                       )}
                       <div className="mt-md" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 'auto' }}>
@@ -697,7 +706,8 @@ export default function MarketsList({ source: sourceFromRoute }) {
                       </div>
                     </div>
                   </Link>
-                ))}
+                  )
+                })}
               </div>
               {totalPages > 1 && (
                 <nav className="pagination" aria-label="Markets pagination">

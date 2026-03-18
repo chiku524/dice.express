@@ -86,7 +86,7 @@ async function sendOneWithdrawal(env, db, w) {
 
 /** Map automated API source to webapp display source and category (Discover + Category filters). */
 const AUTO_SOURCE_DISPLAY = {
-  the_odds_api: { source: 'global_events', category: 'Sports' },
+  the_odds_api: { source: 'sports', category: 'Sports' },
   alpha_vantage: { source: 'industry', category: 'Finance' },
   alpha_vantage_trend: { source: 'industry', category: 'Finance' },
   coingecko: { source: 'industry', category: 'Crypto' },
@@ -1203,6 +1203,7 @@ async function handleWithD1(db, kv, r2, request, path, method, env = {}) {
           settlementTrigger: { tag: 'Manual' },
           resolutionCriteria: ev.resolutionCriteria || ev.title,
           resolutionDeadline: resolutionDeadline || null,
+          oneLiner: ev.oneLiner || null,
           status: 'Active',
           totalVolume: 0,
           yesVolume: 0,

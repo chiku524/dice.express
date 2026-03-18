@@ -560,6 +560,13 @@
   margin-bottom: 1rem;
 }
 
+.market-card-oneliner {
+  font-size: var(--font-size-xs);
+  color: var(--color-teal);
+  margin: 0 0 var(--spacing-xs);
+  line-height: 1.35;
+}
+
 .pagination {
   margin-top: var(--spacing-xl);
   margin-bottom: var(--spacing-xl);

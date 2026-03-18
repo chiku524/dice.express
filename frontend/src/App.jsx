@@ -79,8 +79,13 @@ function AppContent() {
                 <Routes>
                   <Route path="/" element={<MarketsList />} />
                   <Route path="/discover/active" element={<MarketsList source="active" />} />
+                  <Route path="/discover/sports" element={<MarketsList source="sports" />} />
                   <Route path="/discover/global-events" element={<MarketsList source="global_events" />} />
                   <Route path="/discover/industry" element={<MarketsList source="industry" />} />
+                  <Route path="/discover/tech-ai" element={<MarketsList source="tech_ai" />} />
+                  <Route path="/discover/politics" element={<MarketsList source="politics" />} />
+                  <Route path="/discover/entertainment" element={<MarketsList source="entertainment" />} />
+                  <Route path="/discover/science" element={<MarketsList source="science" />} />
                   <Route path="/discover/virtual-realities" element={<MarketsList source="virtual_realities" />} />
                   <Route path="/discover/user" element={<MarketsList source="user" />} />
                   <Route path="/market/:marketId" element={<MarketDetail />} />

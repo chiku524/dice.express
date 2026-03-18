@@ -16,15 +16,40 @@ export const SEO_PAGES = {
     description: 'Browse prediction markets that have trading volume. Trade with Pips, deposit via card or crypto, withdraw earnings.',
     keywords: 'prediction markets, active markets, volume, trade outcomes, Pips',
   },
+  '/discover/sports': {
+    title: `Sports — Prediction Markets | ${BASE_TITLE}`,
+    description: 'Browse and trade prediction markets on sports. NBA, NFL, soccer and more. Deposit Pips via card or crypto, trade peer-to-peer.',
+    keywords: 'sports prediction markets, NBA, NFL, sports betting, trade outcomes, Pips',
+  },
   '/discover/global-events': {
-    title: `Global Events — Prediction Markets | ${BASE_TITLE}`,
-    description: 'Browse and trade prediction markets on global events. Sports, weather, news, and more. Deposit Pips via card or crypto, trade peer-to-peer.',
-    keywords: 'global events, prediction markets, event trading, sports, weather',
+    title: `Weather & News — Prediction Markets | ${BASE_TITLE}`,
+    description: 'Browse and trade prediction markets on weather and news. Weather forecasts, headlines, and global events. Deposit Pips via card or crypto, trade peer-to-peer.',
+    keywords: 'weather prediction markets, news prediction markets, global events, event trading',
   },
   '/discover/industry': {
     title: `Industry & Markets — Prediction Markets | ${BASE_TITLE}`,
     description: 'Prediction markets on industry and financial outcomes. Trade on stocks, crypto, and market events with Pips. Deposit, trade, withdraw.',
     keywords: 'industry predictions, market outcomes, stocks, crypto, financial predictions',
+  },
+  '/discover/tech-ai': {
+    title: `Tech & AI — Prediction Markets | ${BASE_TITLE}`,
+    description: 'Prediction markets on technology and AI. Trade on software, startups, AI news, and tech outcomes with Pips. Deposit, trade, withdraw.',
+    keywords: 'tech prediction markets, AI predictions, software, startups, technology outcomes',
+  },
+  '/discover/politics': {
+    title: `Politics — Prediction Markets | ${BASE_TITLE}`,
+    description: 'Prediction markets on elections, policy, and political outcomes. Trade with Pips. Deposit via card or crypto, peer-to-peer.',
+    keywords: 'political prediction markets, election predictions, policy outcomes',
+  },
+  '/discover/entertainment': {
+    title: `Entertainment — Prediction Markets | ${BASE_TITLE}`,
+    description: 'Prediction markets on movies, awards, celebrities, and entertainment. Trade with Pips. Deposit, trade, withdraw.',
+    keywords: 'entertainment prediction markets, Oscars, box office, celebrity outcomes',
+  },
+  '/discover/science': {
+    title: `Science — Prediction Markets | ${BASE_TITLE}`,
+    description: 'Prediction markets on science, research, and discovery. Trade on space, studies, and scientific outcomes with Pips.',
+    keywords: 'science prediction markets, research outcomes, space, discovery',
   },
   '/discover/virtual-realities': {
     title: `Virtual Realities — Prediction Markets | ${BASE_TITLE}`,

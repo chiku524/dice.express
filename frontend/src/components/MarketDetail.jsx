@@ -7,7 +7,7 @@ import { fetchMarkets, fetchPool, executeTrade } from '../services/marketsApi'
 import { fetchOpenOrders, placeOrder } from '../services/ordersApi'
 import MarketResolution from './MarketResolution'
 import { formatPips, PLATFORM_CURRENCY_SYMBOL } from '../constants/currency'
-import { PREDICTION_STYLES, getCategoryDisplay, getApiSourceLabel, formatResolutionDeadline } from '../constants/marketConfig'
+import { PREDICTION_STYLES, getCategoryDisplay, getApiSourceLabel, formatResolutionDeadline, getCategoryEmoji, getMarketOneLiner, getResolutionOutcomeSummaries } from '../constants/marketConfig'
 import { getQuote, isTradeWithinLimit, yesProbability } from '../utils/ammQuote'
 import { getSEOForPath } from '../constants/seo'
 import './MarketDetail.css'
@@ -208,7 +208,10 @@ export default function MarketDetail() {
   const title = marketData.title || 'Market'
   const breadcrumbTitle = title.length > 50 ? title.slice(0, 47) + '…' : title
   const categoryLabel = getCategoryDisplay(marketData)
+  const categoryEmoji = getCategoryEmoji(categoryLabel)
   const apiLabel = getApiSourceLabel(marketData)
+  const oneLiner = getMarketOneLiner(marketData)
+  const outcomeSummaries = getResolutionOutcomeSummaries(marketData)
   const marketTypeLabel = marketData.marketType === 'Binary'
     ? (PREDICTION_STYLES.find(s => s.value === marketData.styleLabel)?.label || 'Binary')
     : 'Multi-Outcome'
@@ -226,7 +229,7 @@ export default function MarketDetail() {
         {/* Top: market details only */}
         <div className="market-detail-info card">
           <div className="market-detail-tags">
-            <span className="market-detail-tag market-detail-tag-category">{categoryLabel}</span>
+            <span className="market-detail-tag market-detail-tag-category">{categoryEmoji} {categoryLabel}</span>
             <span className="market-detail-tag market-detail-tag-api">{apiLabel}</span>
             <span className="market-detail-tag market-detail-tag-type">{marketTypeLabel}</span>
           </div>
@@ -234,19 +237,31 @@ export default function MarketDetail() {
           <span className={`status status-${marketData.status?.toLowerCase() || 'active'}`}>
             {marketData.status}
           </span>
+
+          <div className="market-detail-oneliner" aria-label="What you're buying">
+            <span className="market-detail-oneliner-icon" aria-hidden>🎯</span>
+            <p className="market-detail-oneliner-text"><strong>What you're buying:</strong> {oneLiner}</p>
+          </div>
+
           <p className="market-detail-desc">{marketData.description}</p>
 
-          {(marketData.resolutionCriteria || marketData.resolutionDeadline) && (
+          {(marketData.resolutionCriteria || marketData.resolutionDeadline || outcomeSummaries.yes) && (
             <div className="market-detail-resolution">
-              <h3 className="market-detail-resolution-title">How it resolves</h3>
+              <h3 className="market-detail-resolution-title">📋 How it resolves</h3>
               {marketData.resolutionDeadline && (
                 <p className="market-detail-resolution-deadline">
-                  <span className="market-detail-resolution-label">Resolves by</span>{' '}
+                  <span className="market-detail-resolution-label">⏱️ Resolves by</span>{' '}
                   {formatResolutionDeadline(marketData.resolutionDeadline)}
                 </p>
               )}
+              {marketData.marketType === 'Binary' && outcomeSummaries.yes && outcomeSummaries.no && (
+                <ul className="market-detail-resolution-outcomes" aria-label="Outcome definitions">
+                  <li><span className="market-detail-outcome-yes" aria-hidden>✅ Yes</span> {outcomeSummaries.yes}</li>
+                  <li><span className="market-detail-outcome-no" aria-hidden>❌ No</span> {outcomeSummaries.no}</li>
+                </ul>
+              )}
               {marketData.resolutionCriteria && (
-                <p className="market-detail-resolution-criteria">{marketData.resolutionCriteria}</p>
+                <p className="market-detail-resolution-criteria"><strong>Precise rule:</strong> {marketData.resolutionCriteria}</p>
               )}
             </div>
           )}

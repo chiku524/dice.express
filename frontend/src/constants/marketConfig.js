@@ -12,15 +12,21 @@ export const MARKET_CATEGORIES = [
   { value: 'News', label: 'News' },
   { value: 'Entertainment', label: 'Entertainment' },
   { value: 'Science', label: 'Science' },
+  { value: 'Tech & AI', label: 'Tech & AI' },
   { value: 'Other', label: 'Other' },
 ]
 
-/** Market sources: automated (global events, industry, VR) vs user-created. Labels match what each category contains. */
+/** Market sources: automated (sports, global events, industry, VR) + category-based (tech_ai, politics, etc.) vs user-created. */
 export const MARKET_SOURCES = [
   { value: 'all', label: 'All Markets' },
   { value: 'active', label: 'With volume' },
-  { value: 'global_events', label: 'Sports, Weather & News' },
+  { value: 'sports', label: 'Sports' },
+  { value: 'global_events', label: 'Weather & News' },
   { value: 'industry', label: 'Finance & Crypto' },
+  { value: 'tech_ai', label: 'Tech & AI' },
+  { value: 'politics', label: 'Politics' },
+  { value: 'entertainment', label: 'Entertainment' },
+  { value: 'science', label: 'Science' },
   { value: 'virtual_realities', label: 'Virtual Realities' },
   { value: 'user', label: 'User-Created' },
 ]
@@ -28,17 +34,30 @@ export const MARKET_SOURCES = [
 /** URL path segment for Discover routes (must match App.jsx Route paths). Use for Navbar links. */
 export function getDiscoverPathForSource(sourceValue) {
   if (sourceValue === 'all') return '/'
+  if (sourceValue === 'sports') return '/discover/sports'
   if (sourceValue === 'global_events') return '/discover/global-events'
-  if (sourceValue === 'virtual_realities') return '/discover/virtual-realities'
   if (sourceValue === 'industry') return '/discover/industry'
+  if (sourceValue === 'tech_ai') return '/discover/tech-ai'
+  if (sourceValue === 'politics') return '/discover/politics'
+  if (sourceValue === 'entertainment') return '/discover/entertainment'
+  if (sourceValue === 'science') return '/discover/science'
+  if (sourceValue === 'virtual_realities') return '/discover/virtual-realities'
   if (sourceValue === 'active') return '/discover/active'
   if (sourceValue === 'user') return '/discover/user'
   return `/discover/${sourceValue}`
 }
 
+/** Discover options that filter by category instead of API source. Maps source value → category value. */
+export const DISCOVER_SOURCE_TO_CATEGORY = {
+  tech_ai: 'Tech & AI',
+  politics: 'Politics',
+  entertainment: 'Entertainment',
+  science: 'Science',
+}
+
 /** Map API source (from automated markets) to display source for Discover filter. */
 const API_SOURCE_TO_DISPLAY = {
-  the_odds_api: 'global_events',
+  the_odds_api: 'sports',
   alpha_vantage: 'industry',
   alpha_vantage_trend: 'industry',
   coingecko: 'industry',
@@ -81,13 +100,17 @@ const API_SOURCE_TO_LABEL = {
   newsdata_io: 'NewsData.io',
 }
 
-/** Normalize payload.source for filtering (so both new display source and legacy API source work). */
-export function sourceForFilter(payloadSource) {
+/** Normalize payload.source for filtering (so both new display source and legacy API source work). Accepts full payload to support legacy sports (source global_events + category Sports → sports). */
+export function sourceForFilter(payloadOrSource) {
+  if (payloadOrSource == null) return 'user'
+  const payloadSource = typeof payloadOrSource === 'object' ? payloadOrSource?.source : payloadOrSource
   if (!payloadSource) return 'user'
+  // Legacy: markets created before sports/global_events split had source 'global_events' and category 'Sports'
+  if (typeof payloadOrSource === 'object' && payloadSource === 'global_events' && payloadOrSource?.category === 'Sports') return 'sports'
   return API_SOURCE_TO_DISPLAY[payloadSource] ?? payloadSource
 }
 
-/** Keyword hints for inferring category when source/category are missing or legacy. */
+/** Keyword hints for inferring category when source/category are missing or legacy. Order matters: first match wins. */
 const CATEGORY_KEYWORDS = {
   Sports: [/\b(win|vs\.?|game|match|championship|playoff|score|team|league|nba|nfl|mlb|soccer|football|basketball)\b/i, /\b(odds|spread|over\/under)\b/i],
   Weather: [/\b(rain|snow|temp|temperature|weather|forecast|°C|°F|degrees|celsius|fahrenheit|sunny|storm)\b/i],
@@ -95,6 +118,7 @@ const CATEGORY_KEYWORDS = {
   Crypto: [/\b(bitcoin|btc|ethereum|eth|crypto|cryptocurrency|coin|token|blockchain)\b/i],
   News: [/\b(headline|top news|breaking|article|coverage)\b/i],
   Politics: [/\b(election|vote|president|congress|senate|bill|policy)\b/i],
+  'Tech & AI': [/\b(tech|AI|artificial intelligence|software|startup|coding|algorithm|machine learning|ML|openai|chatgpt|llm|GPT|neural)\b/i],
   Science: [/\b(study|research|experiment|discovery|NASA|space)\b/i],
   Entertainment: [/\b(movie|film|oscar|grammy|celebrity|box office)\b/i],
 }
@@ -124,6 +148,45 @@ export function categoryForFilter(payload) {
 /** Display category for card tag (consistent with filter). */
 export function getCategoryDisplay(payload) {
   return categoryForFilter(payload)
+}
+
+/** Emoji for each category (for tags and detail UX). */
+export const CATEGORY_EMOJI = {
+  Sports: '⚽',
+  Weather: '🌤️',
+  Finance: '📈',
+  Crypto: '🪙',
+  News: '📰',
+  Politics: '🏛️',
+  Entertainment: '🎬',
+  Science: '🔬',
+  'Tech & AI': '🤖',
+  Other: '📌',
+}
+
+export function getCategoryEmoji(category) {
+  if (!category) return CATEGORY_EMOJI.Other
+  return CATEGORY_EMOJI[category] || CATEGORY_EMOJI.Other
+}
+
+/** Short "what you're buying" line for display (from payload.oneLiner or derived from title). */
+export function getMarketOneLiner(payload) {
+  if (payload?.oneLiner && payload.oneLiner.trim()) return payload.oneLiner.trim()
+  const t = payload?.title?.trim()
+  if (!t) return 'Outcome of this market.'
+  if (t.endsWith('?')) return t
+  return t.includes('?') ? t : `${t}?`
+}
+
+/** Extract Yes/No outcome summaries from description for resolution section (e.g. "Yes = home wins"). */
+export function getResolutionOutcomeSummaries(payload) {
+  const desc = payload?.description || ''
+  const yesMatch = desc.match(/\bYes\s*=\s*([^.;]+?)(?:\.|;|\s+No\s*=|\s*Resolved|$)/i)
+  const noMatch = desc.match(/\bNo\s*=\s*([^.;]+?)(?:\.|;|\s+Data\s|$)/i)
+  return {
+    yes: yesMatch ? yesMatch[1].trim() : (payload?.marketType === 'Binary' ? 'The condition happens or is true.' : null),
+    no: noMatch ? noMatch[1].trim() : (payload?.marketType === 'Binary' ? "The condition doesn't happen or is false." : null),
+  }
 }
 
 /** API/source label for card tag (e.g. "The Odds API", "User-Created"). */
