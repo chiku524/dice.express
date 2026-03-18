@@ -13,7 +13,8 @@ compatibility_date = "2025-02-01"
 crons = ["0 * * * *"]
 
 # Env vars (non-secret): set in Dashboard or here. SITE_URL can be a secret.
+# Leave AUTO_MARKETS_SOURCE unset to seed all sources (sports, stocks, crypto, weather, news). Set to e.g. "sports" to seed only that source.
 [vars]
 SITE_URL = "https://dice-express.pages.dev"
-AUTO_MARKETS_SOURCE = "sports"
-AUTO_MARKETS_LIMIT = "10"
+# AUTO_MARKETS_SOURCE = "sports"
+AUTO_MARKETS_LIMIT = "4"

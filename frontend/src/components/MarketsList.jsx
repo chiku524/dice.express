@@ -182,9 +182,11 @@ export default function MarketsList({ source: sourceFromRoute }) {
       )
     }
     
-    // Apply source filter (global_events, industry, virtual_realities, user; normalize API source for legacy markets)
+    // Apply source filter (global_events, industry, virtual_realities, user, active; normalize API source for legacy markets)
     const effectiveSource = sourceFromRoute || selectedSource
-    if (effectiveSource !== 'all') {
+    if (effectiveSource === 'active') {
+      filtered = filtered.filter(market => (market.payload?.totalVolume || 0) > 0)
+    } else if (effectiveSource !== 'all') {
       filtered = filtered.filter(market => sourceForFilter(market.payload?.source) === effectiveSource)
     }
 
@@ -219,11 +221,16 @@ export default function MarketsList({ source: sourceFromRoute }) {
       filtered = filtered.filter(market => market.payload.status === selectedStatus)
     }
     
-    // Apply sorting (trending = always by volume)
+    // Apply sorting (trending = always by volume). When sorting by volume: markets with volume > 0 first, then by volume desc.
     const effectiveSort = selectedCategory === 'trending' ? 'volume' : sortBy
     filtered.sort((a, b) => {
       if (effectiveSort === 'volume') {
-        return (b.payload.totalVolume || 0) - (a.payload.totalVolume || 0)
+        const aVol = a.payload.totalVolume || 0
+        const bVol = b.payload.totalVolume || 0
+        const aHas = aVol > 0 ? 1 : 0
+        const bHas = bVol > 0 ? 1 : 0
+        if (bHas !== aHas) return bHas - aHas
+        return bVol - aVol
       } else if (effectiveSort === 'newest') {
         return b.contractId.localeCompare(a.contractId)
       } else if (effectiveSort === 'oldest') {

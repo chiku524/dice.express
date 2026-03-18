@@ -11,6 +11,11 @@ export const SEO_PAGES = {
     description: 'Trade on prediction markets: sports, crypto, stocks, weather & more. Deposit with card or crypto, get Pips, trade peer-to-peer, withdraw earnings. No bookmaker — you vs other traders.',
     keywords: 'prediction markets, trade outcomes, sports predictions, crypto markets, event trading, Pips, dice.express',
   },
+  '/discover/active': {
+    title: `Markets with volume — Prediction Markets | ${BASE_TITLE}`,
+    description: 'Browse prediction markets that have trading volume. Trade with Pips, deposit via card or crypto, withdraw earnings.',
+    keywords: 'prediction markets, active markets, volume, trade outcomes, Pips',
+  },
   '/discover/global-events': {
     title: `Global Events — Prediction Markets | ${BASE_TITLE}`,
     description: 'Browse and trade prediction markets on global events. Sports, weather, news, and more. Deposit Pips via card or crypto, trade peer-to-peer.',

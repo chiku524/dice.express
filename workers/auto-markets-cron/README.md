@@ -16,8 +16,8 @@ Set in Cloudflare Dashboard → Workers & Pages → dice-express-auto-markets-cr
 | Variable | Required | Description |
 |----------|----------|-------------|
 | **SITE_URL** | Yes | Your site base URL (e.g. `https://dice-express.pages.dev` or your custom domain). No trailing slash. |
-| **AUTO_MARKETS_SOURCE** | No | Default `sports`. Can be: `sports`, `stocks`, `crypto`, `weather`, `openweather`, `weatherapi`, `news`, `gnews`, `perigon`, `newsapi_ai`. |
-| **AUTO_MARKETS_LIMIT** | No | Max markets to create per run (default `10`, max 50). |
+| **AUTO_MARKETS_SOURCE** | No | If unset, **seed_all** runs (all sources with API keys). Set to e.g. `sports` to seed only that source. Options: `sports`, `stocks`, `crypto`, `weather`, `openweather`, `weatherapi`, `news`, `gnews`, `perigon`, `newsapi_ai`. |
+| **AUTO_MARKETS_LIMIT** | No | Max markets per source per run when using seed_all (default `4` in wrangler.toml, max 20). Kept low to stay within free-tier rate limits (e.g. Alpha Vantage 25 req/day). |
 | **AUTO_MARKETS_CRON_SECRET** | No | If set, the Worker sends it as `X-Cron-Secret`; you can later protect `/api/auto-markets` with this header. |
 
 ## Cron schedule

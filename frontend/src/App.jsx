@@ -78,6 +78,7 @@ function AppContent() {
               <Suspense fallback={<LoadingSpinner message="Loading..." />}>
                 <Routes>
                   <Route path="/" element={<MarketsList />} />
+                  <Route path="/discover/active" element={<MarketsList source="active" />} />
                   <Route path="/discover/global-events" element={<MarketsList source="global_events" />} />
                   <Route path="/discover/industry" element={<MarketsList source="industry" />} />
                   <Route path="/discover/virtual-realities" element={<MarketsList source="virtual_realities" />} />
