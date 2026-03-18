@@ -269,7 +269,7 @@ export async function eventsFromOdds(env, sportKey = 'basketball_nba', limit = 2
   const list = (events || []).slice(0, limit).map((e) => {
     const eventStart = formatEventStart(e.commence_time)
     const title = `Will ${e.home_team} win vs ${e.away_team}?`
-    const description = `Binary market. ${title} Event start: ${eventStart}. Resolves after the game based on official result from The Odds API. Yes = home team (${e.home_team}) wins; No = away team (${e.away_team}) wins or tie.`
+    const description = `${title} Event start: ${eventStart}.`
     const resolutionCriteria = `Home team (${e.home_team}) wins the match. Resolved using The Odds API scores after the event (commence: ${e.commence_time || 'TBD'}).`
     const oneLiner = `Home team (${e.home_team}) wins; otherwise No.`
     return {
@@ -306,7 +306,7 @@ export async function eventsFromAlphaVantage(env, symbols = ALPHA_VANTAGE_SYMBOL
         id: `av-${symbol}-${dateStr}`,
         source: 'alpha_vantage',
         title,
-        description: `Binary market. ${title} Current price approximately $${q.price}. Settlement date: ${dateStr}. Resolved using Alpha Vantage closing price. Yes = close at or above $${threshold}; No = below.`,
+        description: `${title} Current price about $${q.price}.`,
         resolutionCriteria: `Closing price of ${symbol} on or before ${dateStr} is at or above $${threshold}. Data source: Alpha Vantage.`,
         oneLiner: `${symbol} closes at or above $${threshold} by ${dateStr}; otherwise No.`,
         symbol,
@@ -341,7 +341,7 @@ export async function eventsFromCoinGecko(env, coins = COINGECKO_COINS.slice(0, 
       id: `cg-${id}-${dateStr}`,
       source: 'coingecko',
       title,
-      description: `Binary market. ${title} Current price approximately $${price}. Settlement date: ${dateStr}. Resolved using CoinGecko price. Yes = price at or above $${threshold}; No = below.`,
+      description: `${title} Current price about $${price}.`,
       resolutionCriteria: `${sym} price at or above $${threshold} on or before ${dateStr}. Data source: CoinGecko.`,
       oneLiner: `${sym} at or above $${threshold} by ${dateStr}; otherwise No.`,
       symbol: sym,
@@ -373,7 +373,7 @@ export async function eventsFromOpenWeather(env, cities = WEATHER_CITIES.slice(0
         id: `ow-${city.replace(/\s+/g, '-')}-${dateStr}`,
         source: 'openweathermap',
         title,
-        description: `Binary market. ${title} Settlement date: ${dateStr}. Resolved using OpenWeatherMap forecast for ${city}. Yes = rain or significant precipitation; No = no rain.`,
+        description: `${title} Forecast for ${city} on ${dateStr}.`,
         resolutionCriteria: `Rain or significant precipitation in ${city} on ${dateStr}. Data source: OpenWeatherMap.`,
         oneLiner: `Rain in ${city} on ${dateStr}; otherwise No.`,
         endDate: dateStr,
@@ -404,7 +404,7 @@ export async function eventsFromWeatherApi(env, cities = WEATHER_CITIES.slice(0,
         id: `wa-${city.replace(/\s+/g, '-')}-${dateStr}`,
         source: 'weatherapi',
         title,
-        description: `Binary market. ${title} Settlement date: ${dateStr}. Resolved using WeatherAPI.com forecast for ${city}. Yes = rain; No = no rain.`,
+        description: `${title} Forecast for ${city} on ${dateStr}.`,
         resolutionCriteria: `Rain in ${city} on ${dateStr}. Data source: WeatherAPI.com.`,
         oneLiner: `Rain in ${city} on ${dateStr}; otherwise No.`,
         endDate: dateStr,
@@ -420,20 +420,21 @@ export async function eventsFromWeatherApi(env, cities = WEATHER_CITIES.slice(0,
   return events
 }
 
-/** Sanitize headline to English ASCII for title (strip control chars, limit length). */
-function sanitizeHeadline(text, maxLen = 80) {
+/** Sanitize headline to English ASCII (strip control chars, optional max length). */
+function sanitizeHeadline(text, maxLen = null) {
   if (!text || typeof text !== 'string') return 'This headline'
-  const cleaned = text.replace(/[\x00-\x1f]/g, '').trim().slice(0, maxLen)
-  return cleaned || 'This headline'
+  const cleaned = text.replace(/[\x00-\x1f]/g, '').trim()
+  return maxLen != null ? cleaned.slice(0, maxLen) : cleaned
 }
 
 export async function eventsFromGNews(env, category = 'general', limit = 5) {
   const articles = await fetchGNewsHeadlines(env, category, 'en', limit)
   const dateStr = new Date().toISOString().slice(0, 10)
   const events = articles.slice(0, limit).map((a, i) => {
-    const headline = sanitizeHeadline(a.title, 60)
-    const title = `Will "${headline}${headline.length >= 60 ? '...' : ''}" be a top headline on ${dateStr}?`
-    const description = `Binary market. ${title} Resolves based on GNews top headlines for ${dateStr}. Yes = this article or matching topic is among top headlines; No = otherwise. Data source: GNews (English).`
+    const fullHeadline = sanitizeHeadline(a.title)
+    const titleHeadline = fullHeadline.length > 100 ? fullHeadline.slice(0, 97) + '…' : fullHeadline
+    const title = `Will "${titleHeadline}" be a top headline on ${dateStr}?`
+    const description = `Will this headline be among GNews top headlines on ${dateStr}? "${fullHeadline}" (GNews ${category}).`
     return {
       id: `gnews-${category}-${Date.now()}-${i}`,
       source: 'gnews',
@@ -453,9 +454,10 @@ export async function eventsFromPerigon(env, q = 'technology', limit = 5) {
   const articles = await fetchPerigonSearch(env, q, limit)
   const dateStr = new Date().toISOString().slice(0, 10)
   const events = (articles || []).slice(0, limit).map((a, i) => {
-    const headline = sanitizeHeadline(a.title || a.headline, 60)
-    const title = `Will "${headline}${headline.length >= 60 ? '...' : ''}" be in top news on ${dateStr}?`
-    const description = `Binary market. ${title} Resolves based on Perigon news search for topic "${q}". Yes = matching article in top results; No = otherwise. Data source: Perigon.`
+    const fullHeadline = sanitizeHeadline(a.title || a.headline)
+    const titleHeadline = fullHeadline.length > 100 ? fullHeadline.slice(0, 97) + '…' : fullHeadline
+    const title = `Will "${titleHeadline}" be in top news on ${dateStr}?`
+    const description = `Will this article be in Perigon top news on ${dateStr}? "${fullHeadline}" Topic: ${q}.`
     return {
       id: `perigon-${Date.now()}-${i}`,
       source: 'perigon',
@@ -475,9 +477,10 @@ export async function eventsFromNewsApiAi(env, q = 'technology', limit = 5) {
   const articles = await fetchNewsApiAiSearch(env, q, limit)
   const dateStr = new Date().toISOString().slice(0, 10)
   const events = (articles || []).slice(0, limit).map((a, i) => {
-    const headline = sanitizeHeadline(a.title, 60)
-    const title = `Will "${headline}${headline.length >= 60 ? '...' : ''}" be in top news on ${dateStr}?`
-    const description = `Binary market. ${title} Resolves based on NewsAPI.ai (Event Registry) for topic "${q}". Yes = matching article in top news; No = otherwise. Data source: NewsAPI.ai.`
+    const fullHeadline = sanitizeHeadline(a.title)
+    const titleHeadline = fullHeadline.length > 100 ? fullHeadline.slice(0, 97) + '…' : fullHeadline
+    const title = `Will "${titleHeadline}" be in top news on ${dateStr}?`
+    const description = `Will this article be in NewsAPI.ai top news on ${dateStr}? "${fullHeadline}" Topic: ${q}.`
     return {
       id: `newsapi_ai-${Date.now()}-${i}`,
       source: 'newsapi_ai',
@@ -497,9 +500,10 @@ export async function eventsFromNewsDataIo(env, q = 'technology', limit = 5) {
   const articles = await fetchNewsDataIoLatest(env, q, 'en', limit)
   const dateStr = new Date().toISOString().slice(0, 10)
   const events = (articles || []).slice(0, limit).map((a, i) => {
-    const headline = sanitizeHeadline(a.title, 60)
-    const title = `Will "${headline}${headline.length >= 60 ? '...' : ''}" be in top news on ${dateStr}?`
-    const description = `Binary market. ${title} Resolves based on NewsData.io latest news for topic "${q}". Yes = matching article in top results; No = otherwise. Data source: NewsData.io (English).`
+    const fullHeadline = sanitizeHeadline(a.title)
+    const titleHeadline = fullHeadline.length > 100 ? fullHeadline.slice(0, 97) + '…' : fullHeadline
+    const title = `Will "${titleHeadline}" be in top news on ${dateStr}?`
+    const description = `Will this article be in NewsData.io latest news on ${dateStr}? "${fullHeadline}" Topic: ${q}.`
     return {
       id: `newsdata_io-${Date.now()}-${i}`,
       source: 'newsdata_io',
@@ -552,7 +556,7 @@ export async function eventsFromStocksTrend(env, symbols = ALPHA_VANTAGE_SYMBOLS
         id: `av-trend-${symbol}-${dateStr}`,
         source: 'alpha_vantage_trend',
         title,
-        description: `Binary market. ${title} Current price approximately $${q.price}. Settlement (end of trading): ${dateStr}. Resolved using Alpha Vantage closing price. Yes = at or above $${threshold}; No = below.`,
+        description: `${title} Current price about $${q.price}. Settlement: ${dateStr}.`,
         resolutionCriteria: `Closing price of ${symbol} on or before ${dateStr} is at or above $${threshold}. Data source: Alpha Vantage.`,
         oneLiner: `${symbol} closes at or above $${threshold} by ${dateStr}; otherwise No.`,
         symbol,
@@ -592,7 +596,7 @@ export async function eventsFromCryptoTrend(env, coins = COINGECKO_COINS.slice(0
       id: `cg-trend-${id}-${dateOnly}-${settlementHours}h`,
       source: 'coingecko_trend',
       title,
-      description: `Binary market. ${title} Current price approximately $${price}. Settlement: ${dateStr} UTC. Resolved using CoinGecko price. Yes = price at or above $${threshold}; No = below.`,
+      description: `${title} Current price about $${price}. Settlement: ${dateStr} UTC.`,
       resolutionCriteria: `${sym} price at or above $${threshold} on or before ${dateStr} UTC. Data source: CoinGecko.`,
       oneLiner: `${sym} at or above $${threshold} within ${settlementHours}h; otherwise No.`,
       symbol: sym,
