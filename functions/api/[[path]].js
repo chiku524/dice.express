@@ -1192,6 +1192,7 @@ async function handleWithD1(db, kv, r2, request, path, method, env = {}) {
           continue // already have this event as a market, skip
         }
         const { source: displaySource, category: displayCategory } = getDisplaySourceAndCategory(ev.source)
+        const resolutionDeadline = ev.endDate || ev.date || (ev.commenceTime ? ev.commenceTime.slice(0, 10) : null)
         const payload = {
           marketId: id,
           title: ev.title,
@@ -1200,6 +1201,7 @@ async function handleWithD1(db, kv, r2, request, path, method, env = {}) {
           outcomes: ['Yes', 'No'],
           settlementTrigger: { tag: 'Manual' },
           resolutionCriteria: ev.resolutionCriteria || ev.title,
+          resolutionDeadline: resolutionDeadline || null,
           status: 'Active',
           totalVolume: 0,
           yesVolume: 0,

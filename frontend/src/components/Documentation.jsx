@@ -139,8 +139,8 @@ function GettingStartedContent() {
       <h2>Quick Start</h2>
       <ol>
         <li><strong>Create account:</strong> Click &quot;Create account&quot;, enter email, password, and display name. Choose how you&apos;ll add funds (card, crypto, or later).</li>
-        <li><strong>Deposit:</strong> In Portfolio, use &quot;Deposit with card&quot; (Stripe: pick $5, $10, $25, $50, or $100, or enter a custom amount) or &quot;Deposit with crypto&quot; (send to platform wallet; we credit Pips when the deposit is processed).</li>
-        <li><strong>Discover markets:</strong> Browse All Markets or categories (Global Events, Industry, etc.). Markets are automated — no user-created markets.</li>
+        <li><strong>Deposit:</strong> In Portfolio → Balance, use <strong>Deposit from wallet</strong> (connect Web3 wallet, send USDC or native ETH/MATIC), <strong>Deposit with card</strong> (Stripe: $5–$100 or custom), or <strong>Deposit with crypto</strong> (send to platform address; we credit Pips when processed).</li>
+        <li><strong>Discover markets:</strong> Browse All Markets, With volume, Sports/Weather &amp; News, Finance &amp; Crypto, or Virtual Realities. Markets are created automatically — no user-created markets.</li>
         <li><strong>Trade:</strong> Open a market and use the trade panel to buy Yes or No with Pips. View positions and balance in Portfolio.</li>
       </ol>
 
@@ -199,8 +199,8 @@ function MarketCreationContent() {
 
       <h2>How to trade</h2>
       <ol>
-        <li>Go to <strong>Discover</strong> → All Markets or a category (Global Events, Industry, Virtual Realities)</li>
-        <li>Open a market to see details, resolution time, and current Yes/No odds</li>
+        <li>Go to <strong>Discover</strong> → All Markets, With volume (markets that have trading activity), Sports/Weather &amp; News, Finance &amp; Crypto, or Virtual Realities</li>
+        <li>Open a market to see full details, resolution criteria, settlement date, and current Yes/No odds</li>
         <li>Use the <strong>Trade</strong> panel to buy Yes or No with Pips (AMM sets the price)</li>
         <li>View positions and balance in <strong>Portfolio</strong></li>
       </ol>
@@ -237,7 +237,7 @@ function AMMFeesContent() {
       <h2>Trading with Pips</h2>
       <ul>
         <li>All trading uses <strong>Pips (PP)</strong> — 1 PP = $1 USD.</li>
-        <li>Add Pips via Portfolio: <strong>Deposit with card</strong> (Stripe: $5, $10, $25, $50, $100 or custom) or <strong>deposit crypto</strong> (we credit Pips 1:1).</li>
+        <li>Add Pips via Portfolio → Balance: <strong>Deposit from wallet</strong> (USDC, ETH, or MATIC), <strong>Deposit with card</strong> (Stripe), or <strong>Deposit with crypto</strong> (send to platform address).</li>
         <li>Buying Yes/No spends Pips; settling or selling returns Pips to your balance.</li>
       </ul>
 
@@ -309,11 +309,14 @@ function DepositWithdrawContent() {
       </ul>
       <p>Stripe products ($5–$100) can be configured in Stripe Dashboard; optional env vars <code>VITE_STRIPE_PRICE_5</code> etc. let the app use those product Price IDs so Checkout shows the correct name and image.</p>
 
+      <h2>Deposit from wallet</h2>
+      <p>In Portfolio → Balance, connect your Web3 wallet (e.g. MetaMask), choose token (USDC on Ethereum, native ETH, or native MATIC on Polygon), enter amount, and send. After the transaction confirms, sign the verification message; Pips are credited automatically. Use the same platform EVM address for both USDC and native transfers.</p>
+
       <h2>Deposit with crypto</h2>
-      <p>Send supported crypto (e.g. USDC) to the platform wallet; include your account ID in the memo when possible. After confirmation, we credit Pips (1:1 for stablecoins). Deposit address and networks are provided by support or in-app.</p>
+      <p>Send supported crypto (USDC, or native ETH/MATIC) to the platform wallet; include your account ID in the memo when possible. After confirmation, we credit Pips (1:1 for stablecoins; native amounts credited as PP per deployment rules). Deposit addresses are shown in Portfolio → Deposit with crypto.</p>
 
       <h2>Withdrawals</h2>
-      <p>In Portfolio, request a withdrawal by entering amount, destination address, and network. A fee (e.g. 2%, min 1 PP) applies. Funds are sent from the platform wallet; status appears under &quot;Your withdrawal requests&quot;.</p>
+      <p>In Portfolio, request a withdrawal by entering amount, destination address, network (Ethereum or Polygon), and token (USDC or native). A fee (e.g. 2%, min 1 PP) applies. Funds are sent from the platform wallet; status appears under &quot;Your withdrawal requests&quot;.</p>
 
       <h2>APIs (reference)</h2>
       <ul>
@@ -337,10 +340,10 @@ function PortfolioContent() {
       <h2>Balance tab</h2>
       <ul>
         <li><strong>Balance (PP):</strong> Your current Pips balance.</li>
-        <li><strong>Add Pips (API):</strong> Testing-only top-up via <code>POST /api/add-credits</code>; not shown in the Portfolio UI.</li>
+        <li><strong>Deposit from wallet:</strong> Connect a Web3 wallet and send USDC (Ethereum), native ETH, or native MATIC (Polygon). Pips are credited after confirmation and verification signature.</li>
         <li><strong>Deposit with card:</strong> Quick-add packages ($5, $10, $25, $50, $100) or enter a custom amount. Redirects to Stripe Checkout; Pips are credited after payment.</li>
-        <li><strong>Deposit with crypto:</strong> Instructions and your account ID for memo. We credit Pips when the platform wallet receives funds.</li>
-        <li><strong>Withdraw Pips:</strong> Enter amount, destination address, and network. A fee applies; requests appear in &quot;Your withdrawal requests&quot;.</li>
+        <li><strong>Deposit with crypto:</strong> Platform addresses and your account ID for memo. Send USDC or native ETH/MATIC; we credit Pips when the platform wallet receives funds.</li>
+        <li><strong>Withdraw Pips:</strong> Enter amount, destination address, network (Ethereum or Polygon), and token (USDC or native). A fee applies; requests appear in &quot;Your withdrawal requests&quot;.</li>
       </ul>
 
       <h2>Positions tab</h2>
@@ -433,19 +436,10 @@ function APIsAndOraclesContent() {
 
       <h2>Potential Future APIs & Oracles</h2>
 
-      <h3>Sports Data APIs ⚠️</h3>
-      <p><strong>Status:</strong> Not Implemented</p>
-      <p><strong>Purpose:</strong> Sports event results for market resolution</p>
-      <p><strong>Recommended Providers:</strong></p>
-      <ul>
-        <li><strong>The Odds API</strong> - Sports odds and results (~$10-50/month)</li>
-        <li><strong>SportsDataIO</strong> - Comprehensive sports data (~$50-200/month)</li>
-        <li><strong>API-Football</strong> - Football/soccer specific</li>
-        <li><strong>RapidAPI Sports</strong> - Multiple sports coverage</li>
-      </ul>
-      <p><strong>Use Cases:</strong> "Will Team A win the game on [date]?" markets</p>
-      <p><strong>Trust Level:</strong> High for official results, Medium for odds</p>
-      <p><strong>Priority:</strong> High (popular market type)</p>
+      <h3>The Odds API (Sports) ✅</h3>
+      <p><strong>Status:</strong> Implemented and Active</p>
+      <p><strong>Purpose:</strong> Sports event odds and results for market creation and resolution</p>
+      <p><strong>Usage:</strong> Automated markets such as &quot;Will [Home Team] win vs [Away Team]?&quot; Resolved via The Odds API scores after the game. Set <code>THE_ODDS_API_KEY</code> in Cloudflare env.</p>
 
       <h3>Political/Election APIs ⚠️</h3>
       <p><strong>Status:</strong> Not Implemented</p>
@@ -460,31 +454,13 @@ function APIsAndOraclesContent() {
       <p><strong>Trust Level:</strong> Very High for official results, Medium for polling</p>
       <p><strong>Priority:</strong> Medium</p>
 
-      <h3>Weather APIs ⚠️</h3>
-      <p><strong>Status:</strong> Not Implemented</p>
-      <p><strong>Purpose:</strong> Weather data for climate-based markets</p>
-      <p><strong>Recommended Providers:</strong></p>
-      <ul>
-        <li><strong>OpenWeatherMap</strong> - Weather data (free tier available)</li>
-        <li><strong>WeatherAPI</strong> - Comprehensive weather (~$5-20/month)</li>
-        <li><strong>NOAA API</strong> - Official US weather data (free)</li>
-      </ul>
-      <p><strong>Use Cases:</strong> "Will it rain in [location] on [date]?" markets</p>
-      <p><strong>Trust Level:</strong> High (official weather services)</p>
-      <p><strong>Priority:</strong> Low-Medium</p>
+      <h3>OpenWeatherMap &amp; WeatherAPI.com (Weather) ✅</h3>
+      <p><strong>Status:</strong> Implemented and Active</p>
+      <p><strong>Purpose:</strong> Weather forecasts for binary markets (e.g. &quot;Will it rain in [city] on [date]?&quot;). Set <code>OPENWEATHER_API_KEY</code> or <code>WEATHERAPI_API_KEY</code> in Cloudflare env.</p>
 
-      <h3>News/General Knowledge APIs ⚠️</h3>
-      <p><strong>Status:</strong> Not Implemented</p>
-      <p><strong>Purpose:</strong> News events and factual information</p>
-      <p><strong>Recommended Providers:</strong></p>
-      <ul>
-        <li><strong>NewsAPI</strong> - News aggregation (free tier available)</li>
-        <li><strong>Wikipedia API</strong> - Factual information (free)</li>
-        <li><strong>Fact-checking APIs</strong> - Verification services</li>
-      </ul>
-      <p><strong>Use Cases:</strong> General knowledge and event-based markets</p>
-      <p><strong>Trust Level:</strong> Medium-High depending on source</p>
-      <p><strong>Priority:</strong> Low</p>
+      <h3>GNews, Perigon, NewsAPI.ai (News) ✅</h3>
+      <p><strong>Status:</strong> Implemented and Active</p>
+      <p><strong>Purpose:</strong> News headlines and topic search for headline/topic-based markets. Set <code>GNEWS_API_KEY</code>, <code>PERIGON_API_KEY</code>, or <code>NEWSAPI_AI_KEY</code> in Cloudflare env.</p>
 
       <h2>Oracle Selection by Market Type</h2>
       <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: '1rem' }}>
@@ -511,9 +487,9 @@ function APIsAndOraclesContent() {
           </tr>
           <tr style={{ borderBottom: '1px solid var(--color-border)' }}>
             <td style={{ padding: '0.75rem' }}>Sports Results</td>
-            <td style={{ padding: '0.75rem' }}>The Odds API / SportsDataIO</td>
+            <td style={{ padding: '0.75rem' }}>The Odds API</td>
             <td style={{ padding: '0.75rem' }}>High</td>
-            <td style={{ padding: '0.75rem', color: 'var(--color-warning)' }}>⚠️ Not Implemented</td>
+            <td style={{ padding: '0.75rem', color: 'var(--color-success)' }}>✅ Implemented</td>
           </tr>
           <tr style={{ borderBottom: '1px solid var(--color-border)' }}>
             <td style={{ padding: '0.75rem' }}>Elections</td>
@@ -523,26 +499,23 @@ function APIsAndOraclesContent() {
           </tr>
           <tr style={{ borderBottom: '1px solid var(--color-border)' }}>
             <td style={{ padding: '0.75rem' }}>Weather</td>
-            <td style={{ padding: '0.75rem' }}>OpenWeatherMap / NOAA</td>
+            <td style={{ padding: '0.75rem' }}>OpenWeatherMap / WeatherAPI.com</td>
             <td style={{ padding: '0.75rem' }}>High</td>
-            <td style={{ padding: '0.75rem', color: 'var(--color-warning)' }}>⚠️ Not Implemented</td>
+            <td style={{ padding: '0.75rem', color: 'var(--color-success)' }}>✅ Implemented</td>
           </tr>
           <tr style={{ borderBottom: '1px solid var(--color-border)' }}>
-            <td style={{ padding: '0.75rem' }}>News Events</td>
-            <td style={{ padding: '0.75rem' }}>NewsAPI</td>
+            <td style={{ padding: '0.75rem' }}>News / Headlines</td>
+            <td style={{ padding: '0.75rem' }}>GNews / Perigon / NewsAPI.ai</td>
             <td style={{ padding: '0.75rem' }}>Medium-High</td>
-            <td style={{ padding: '0.75rem', color: 'var(--color-warning)' }}>⚠️ Not Implemented</td>
+            <td style={{ padding: '0.75rem', color: 'var(--color-success)' }}>✅ Implemented</td>
           </tr>
         </tbody>
       </table>
 
       <h2>Implementation Roadmap</h2>
       <ol>
-        <li><strong>Phase 1 (Current):</strong> ✅ Financial markets via RedStone Oracle</li>
-        <li><strong>Phase 2 (Next):</strong> ⚠️ Sports markets - Integrate The Odds API or SportsDataIO</li>
-        <li><strong>Phase 3:</strong> ⚠️ Political markets - Integrate election/news APIs</li>
-        <li><strong>Phase 4:</strong> ⚠️ Weather markets - Integrate weather APIs</li>
-        <li><strong>Phase 5:</strong> ⚠️ Multi-oracle support - Allow market creators to choose oracle</li>
+        <li><strong>Phase 1:</strong> ✅ Financial (Alpha Vantage, CoinGecko), Sports (The Odds API), Weather (OpenWeatherMap, WeatherAPI), News (GNews, Perigon, NewsAPI.ai)</li>
+        <li><strong>Phase 2 (Future):</strong> Political/election APIs, multi-oracle selection per market</li>
       </ol>
 
       <h2>Oracle Requirements</h2>
@@ -697,7 +670,7 @@ function APIReferenceContent() {
       <p><code>GET /api/markets</code>, <code>GET /api/pools</code>, <code>POST /api/trade</code> — markets, pool state, and placing trades. Positions and resolution use the same API surface.</p>
 
       <h2>Deposits &amp; withdrawals</h2>
-      <p><code>GET /api/deposit-records?userParty=...</code> — list deposit history (crypto/card). <code>POST /api/deposit-crypto</code> — credit Pips (requires <code>X-Deposit-Crypto-Secret</code> when <code>DEPOSIT_CRYPTO_SECRET</code> is set; idempotent by <code>txHash</code>). <code>POST /api/withdraw-request</code> — submit withdrawal (EVM address required). <code>GET /api/withdrawal-requests?userParty=...</code> — list requests.</p>
+      <p><code>GET /api/deposit-records?userParty=...</code> — list deposit history. <code>POST /api/deposit-with-tx</code> — credit Pips after wallet deposit (body: <code>{`{ userParty, txHash, fromAddress, amountGuap, signature, depositType: 'usdc'|'native', networkId: 'ethereum'|'polygon' }`}</code>). <code>POST /api/withdraw-request</code> — submit withdrawal (body: <code>{`{ userParty, amount, destinationAddress, networkId, token: 'usdc'|'native' }`}</code>). <code>GET /api/withdrawal-requests?userParty=...</code> — list requests.</p>
 
       <h2>Oracles &amp; Health</h2>
       <p><code>GET /api/oracle?symbol=</code> — RedStone price data. <code>GET /api/health</code> — health check.</p>

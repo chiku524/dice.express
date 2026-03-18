@@ -236,21 +236,37 @@ export async function fetchMassive(env, path = '/', query = {}) {
 
 // --- Event builders for auto-markets (normalize API responses into "events" we can turn into markets) ---
 
+function formatEventStart(isoString) {
+  if (!isoString) return 'TBD'
+  try {
+    const d = new Date(isoString)
+    return d.toLocaleString('en-US', { dateStyle: 'full', timeStyle: 'short' })
+  } catch {
+    return isoString
+  }
+}
+
 export async function eventsFromOdds(env, sportKey = 'basketball_nba', limit = 20) {
   const events = await fetchOddsEvents(env, sportKey, 'us', 'decimal')
-  const list = (events || []).slice(0, limit).map((e) => ({
-    id: e.id,
-    source: 'the_odds_api',
-    sportKey: e.sport_key,
-    title: `${e.home_team} vs ${e.away_team}`,
-    description: `Will ${e.home_team} win vs ${e.away_team}?`,
-    resolutionCriteria: `Home team (${e.home_team}) wins. Resolved via The Odds API result.`,
-    commenceTime: e.commence_time,
-    homeTeam: e.home_team,
-    awayTeam: e.away_team,
-    oracleSource: 'the_odds_api',
-    oracleConfig: { eventId: e.id, sportKey: e.sport_key, homeTeam: e.home_team, awayTeam: e.away_team, commenceTime: e.commence_time },
-  }))
+  const list = (events || []).slice(0, limit).map((e) => {
+    const eventStart = formatEventStart(e.commence_time)
+    const title = `Will ${e.home_team} win vs ${e.away_team}?`
+    const description = `Binary market. ${title} Event start: ${eventStart}. Resolves after the game based on official result from The Odds API. Yes = home team (${e.home_team}) wins; No = away team (${e.away_team}) wins or tie.`
+    const resolutionCriteria = `Home team (${e.home_team}) wins the match. Resolved using The Odds API scores after the event (commence: ${e.commence_time || 'TBD'}).`
+    return {
+      id: e.id,
+      source: 'the_odds_api',
+      sportKey: e.sport_key,
+      title,
+      description,
+      resolutionCriteria,
+      commenceTime: e.commence_time,
+      homeTeam: e.home_team,
+      awayTeam: e.away_team,
+      oracleSource: 'the_odds_api',
+      oracleConfig: { eventId: e.id, sportKey: e.sport_key, homeTeam: e.home_team, awayTeam: e.away_team, commenceTime: e.commence_time },
+    }
+  })
   return list
 }
 
@@ -264,12 +280,13 @@ export async function eventsFromAlphaVantage(env, symbols = ALPHA_VANTAGE_SYMBOL
       const q = await fetchAlphaVantageQuote(env, symbol)
       if (!q || q.price == null) continue
       const threshold = Math.round(q.price * 1.05) // 5% above current
+      const title = `Will ${symbol} close above $${threshold} by ${dateStr}?`
       events.push({
         id: `av-${symbol}-${dateStr}`,
         source: 'alpha_vantage',
-        title: `Will ${symbol} close above $${threshold} by ${dateStr}?`,
-        description: `Stock price market: ${symbol}. Current ~$${q.price}.`,
-        resolutionCriteria: `Closing price of ${symbol} on or before ${dateStr} is above $${threshold}. Source: Alpha Vantage.`,
+        title,
+        description: `Binary market. ${title} Current price approximately $${q.price}. Settlement date: ${dateStr}. Resolved using Alpha Vantage closing price. Yes = close at or above $${threshold}; No = below.`,
+        resolutionCriteria: `Closing price of ${symbol} on or before ${dateStr} is above $${threshold}. Data source: Alpha Vantage.`,
         symbol,
         threshold,
         endDate: dateStr,
@@ -297,12 +314,13 @@ export async function eventsFromCoinGecko(env, coins = COINGECKO_COINS.slice(0, 
     const price = prices[id]?.usd
     if (price == null) continue
     const threshold = Math.round(price * 1.1) // 10% above
+    const title = `Will ${sym} be above $${threshold} by ${dateStr}?`
     events.push({
       id: `cg-${id}-${dateStr}`,
       source: 'coingecko',
-      title: `Will ${sym} be above $${threshold} by ${dateStr}?`,
-      description: `Crypto price market: ${sym}. Current ~$${price}.`,
-      resolutionCriteria: `${sym} price above $${threshold} on or before ${dateStr}. Source: CoinGecko.`,
+      title,
+      description: `Binary market. ${title} Current price approximately $${price}. Settlement date: ${dateStr}. Resolved using CoinGecko price. Yes = price at or above $${threshold}; No = below.`,
+      resolutionCriteria: `${sym} price above $${threshold} on or before ${dateStr}. Data source: CoinGecko.`,
       symbol: sym,
       coinId: id,
       threshold,
@@ -327,12 +345,13 @@ export async function eventsFromOpenWeather(env, cities = WEATHER_CITIES.slice(0
       const list = forecast?.list || []
       const dayList = list.filter((x) => x.dt_txt && x.dt_txt.startsWith(dateStr))
       const hasRain = dayList.some((x) => (x.weather && x.weather[0] && x.weather[0].main === 'Rain') || (x.pop && x.pop > 0.5))
+      const title = `Will it rain in ${city} on ${dateStr}?`
       events.push({
         id: `ow-${city.replace(/\s+/g, '-')}-${dateStr}`,
         source: 'openweathermap',
-        title: `Will it rain in ${city} on ${dateStr}?`,
-        description: `Weather market for ${city}.`,
-        resolutionCriteria: `Rain (or precipitation) recorded in ${city} on ${dateStr}. Source: OpenWeatherMap.`,
+        title,
+        description: `Binary market. ${title} Settlement date: ${dateStr}. Resolved using OpenWeatherMap forecast for ${city}. Yes = rain or significant precipitation; No = no rain.`,
+        resolutionCriteria: `Rain or significant precipitation recorded in ${city} on ${dateStr}. Data source: OpenWeatherMap.`,
         city,
         date: dateStr,
         oracleSource: 'openweathermap',
@@ -355,12 +374,13 @@ export async function eventsFromWeatherApi(env, cities = WEATHER_CITIES.slice(0,
       const forecast = await fetchWeatherApiForecast(env, city, 3)
       const forecastDay = forecast?.forecast?.forecastday?.find((d) => d.date === dateStr)
       const willRain = forecastDay?.day?.daily_will_it_rain === 1
+      const title = `Will it rain in ${city} on ${dateStr}?`
       events.push({
         id: `wa-${city.replace(/\s+/g, '-')}-${dateStr}`,
         source: 'weatherapi',
-        title: `Will it rain in ${city} on ${dateStr}?`,
-        description: `Weather market for ${city}.`,
-        resolutionCriteria: `Rain in ${city} on ${dateStr}. Source: WeatherAPI.com.`,
+        title,
+        description: `Binary market. ${title} Settlement date: ${dateStr}. Resolved using WeatherAPI.com forecast for ${city}. Yes = rain; No = no rain.`,
+        resolutionCriteria: `Rain in ${city} on ${dateStr}. Data source: WeatherAPI.com.`,
         city,
         date: dateStr,
         oracleSource: 'weatherapi',
@@ -373,45 +393,70 @@ export async function eventsFromWeatherApi(env, cities = WEATHER_CITIES.slice(0,
   return events
 }
 
+/** Sanitize headline to English ASCII for title (strip control chars, limit length). */
+function sanitizeHeadline(text, maxLen = 80) {
+  if (!text || typeof text !== 'string') return 'This headline'
+  const cleaned = text.replace(/[\x00-\x1f]/g, '').trim().slice(0, maxLen)
+  return cleaned || 'This headline'
+}
+
 export async function eventsFromGNews(env, category = 'general', limit = 5) {
   const articles = await fetchGNewsHeadlines(env, category, 'en', limit)
-  const events = articles.slice(0, limit).map((a, i) => ({
-    id: `gnews-${category}-${Date.now()}-${i}`,
-    source: 'gnews',
-    title: `Will "${(a.title || '').slice(0, 50)}..." be a top headline on ${new Date().toISOString().slice(0, 10)}?`,
-    description: a.description ? a.description.slice(0, 200) : a.title || '',
-    resolutionCriteria: `Article matching this headline/topic is among top headlines. Source: GNews.`,
-    oracleSource: 'gnews',
-    oracleConfig: { title: a.title, url: a.url, publishedAt: a.publishedAt },
-  }))
+  const dateStr = new Date().toISOString().slice(0, 10)
+  const events = articles.slice(0, limit).map((a, i) => {
+    const headline = sanitizeHeadline(a.title, 60)
+    const title = `Will "${headline}${headline.length >= 60 ? '...' : ''}" be a top headline on ${dateStr}?`
+    const description = `Binary market. ${title} Resolves based on GNews top headlines for ${dateStr}. Yes = this article or matching topic is among top headlines; No = otherwise. Data source: GNews (English).`
+    return {
+      id: `gnews-${category}-${Date.now()}-${i}`,
+      source: 'gnews',
+      title,
+      description,
+      resolutionCriteria: `Article or topic matching this headline is among GNews top headlines on ${dateStr}. Data source: GNews.`,
+      oracleSource: 'gnews',
+      oracleConfig: { title: a.title, url: a.url, publishedAt: a.publishedAt, dateStr },
+    }
+  })
   return events
 }
 
 export async function eventsFromPerigon(env, q = 'technology', limit = 5) {
   const articles = await fetchPerigonSearch(env, q, limit)
-  const events = (articles || []).slice(0, limit).map((a, i) => ({
-    id: `perigon-${Date.now()}-${i}`,
-    source: 'perigon',
-    title: `Will "${(a.title || a.headline || '').slice(0, 50)}..." be in top news?`,
-    description: (a.description || a.summary || a.title || '').slice(0, 200),
-    resolutionCriteria: `Article matching this topic appears in news. Source: Perigon.`,
-    oracleSource: 'perigon',
-    oracleConfig: { title: a.title || a.headline, url: a.url },
-  }))
+  const dateStr = new Date().toISOString().slice(0, 10)
+  const events = (articles || []).slice(0, limit).map((a, i) => {
+    const headline = sanitizeHeadline(a.title || a.headline, 60)
+    const title = `Will "${headline}${headline.length >= 60 ? '...' : ''}" be in top news on ${dateStr}?`
+    const description = `Binary market. ${title} Resolves based on Perigon news search for topic "${q}". Yes = matching article in top results; No = otherwise. Data source: Perigon.`
+    return {
+      id: `perigon-${Date.now()}-${i}`,
+      source: 'perigon',
+      title,
+      description,
+      resolutionCriteria: `Article matching this topic appears in Perigon top news on ${dateStr}. Data source: Perigon.`,
+      oracleSource: 'perigon',
+      oracleConfig: { title: a.title || a.headline, url: a.url, dateStr },
+    }
+  })
   return events
 }
 
 export async function eventsFromNewsApiAi(env, q = 'technology', limit = 5) {
   const articles = await fetchNewsApiAiSearch(env, q, limit)
-  const events = (articles || []).slice(0, limit).map((a, i) => ({
-    id: `newsapi_ai-${Date.now()}-${i}`,
-    source: 'newsapi_ai',
-    title: `Will "${(a.title || '').slice(0, 50)}..." be in top news?`,
-    description: (a.body || a.title || '').slice(0, 200),
-    resolutionCriteria: `Article matching this topic appears in news. Source: NewsAPI.ai (Event Registry).`,
-    oracleSource: 'newsapi_ai',
-    oracleConfig: { title: a.title, url: a.url, uri: a.uri, dateTime: a.dateTime },
-  }))
+  const dateStr = new Date().toISOString().slice(0, 10)
+  const events = (articles || []).slice(0, limit).map((a, i) => {
+    const headline = sanitizeHeadline(a.title, 60)
+    const title = `Will "${headline}${headline.length >= 60 ? '...' : ''}" be in top news on ${dateStr}?`
+    const description = `Binary market. ${title} Resolves based on NewsAPI.ai (Event Registry) for topic "${q}". Yes = matching article in top news; No = otherwise. Data source: NewsAPI.ai.`
+    return {
+      id: `newsapi_ai-${Date.now()}-${i}`,
+      source: 'newsapi_ai',
+      title,
+      description,
+      resolutionCriteria: `Article matching this topic appears in NewsAPI.ai top news on ${dateStr}. Data source: NewsAPI.ai (Event Registry).`,
+      oracleSource: 'newsapi_ai',
+      oracleConfig: { title: a.title, url: a.url, uri: a.uri, dateTime: a.dateTime, dateStr },
+    }
+  })
   return events
 }
 
@@ -447,12 +492,13 @@ export async function eventsFromStocksTrend(env, symbols = ALPHA_VANTAGE_SYMBOLS
       const q = await fetchAlphaVantageQuote(env, symbol)
       if (!q || q.price == null) continue
       const threshold = Math.round(q.price * (1 + pctUp) * 100) / 100
+      const title = `Will ${symbol} close above $${threshold} by ${dateStr}?`
       events.push({
         id: `av-trend-${symbol}-${dateStr}`,
         source: 'alpha_vantage_trend',
-        title: `Will ${symbol} close above $${threshold} by ${dateStr}?`,
-        description: `Trend-based: ${symbol} currently ~$${q.price}. Settlement: ${dateStr}.`,
-        resolutionCriteria: `Closing price of ${symbol} on or before ${dateStr} is above $${threshold}. Source: Alpha Vantage.`,
+        title,
+        description: `Binary market. ${title} Current price approximately $${q.price}. Settlement (end of trading): ${dateStr}. Resolved using Alpha Vantage closing price. Yes = at or above $${threshold}; No = below.`,
+        resolutionCriteria: `Closing price of ${symbol} on or before ${dateStr} is above $${threshold}. Data source: Alpha Vantage.`,
         symbol,
         threshold,
         endDate: dateStr,
@@ -485,12 +531,13 @@ export async function eventsFromCryptoTrend(env, coins = COINGECKO_COINS.slice(0
     const price = prices[id]?.usd
     if (price == null) continue
     const threshold = Math.round(price * (1 + pctUp) * 100) / 100
+    const title = `Will ${sym} be above $${threshold} in ${settlementHours} hours?`
     events.push({
       id: `cg-trend-${id}-${dateOnly}-${settlementHours}h`,
       source: 'coingecko_trend',
-      title: `Will ${sym} be above $${threshold} in ${settlementHours}h?`,
-      description: `Trend-based: ${sym} ~$${price}. Settlement: ${dateStr} UTC.`,
-      resolutionCriteria: `${sym} price above $${threshold} on or before ${dateStr} UTC. Source: CoinGecko.`,
+      title,
+      description: `Binary market. ${title} Current price approximately $${price}. Settlement: ${dateStr} UTC. Resolved using CoinGecko price. Yes = price at or above $${threshold}; No = below.`,
+      resolutionCriteria: `${sym} price above $${threshold} on or before ${dateStr} UTC. Data source: CoinGecko.`,
       symbol: sym,
       coinId: id,
       threshold,
