@@ -169,6 +169,35 @@ export function getCategoryEmoji(category) {
   return CATEGORY_EMOJI[category] || CATEGORY_EMOJI.Other
 }
 
+/** Strip redundant "Binary market." prefix and resolution tail from description (handled in How it resolves). */
+export function getDisplayDescription(payload) {
+  let raw = payload?.description?.trim() || ''
+  raw = raw.replace(/^Binary\s+market\.?\s*/i, '').trim() || raw
+  // Remove resolution tail so it's not duplicated (Resolves based on... / Yes = ... / Resolved using...)
+  raw = raw.replace(/\s+Resolves\s+based on[\s\S]*$/i, '').trim()
+  raw = raw.replace(/\s+Yes\s*=[\s\S]*$/i, '').trim()
+  raw = raw.replace(/\s+Resolved\s+using[\s\S]*$/i, '').trim()
+  return raw || payload?.description?.trim() || ''
+}
+
+/** Full article/headline title when stored in oracleConfig (news markets). */
+export function getFullArticleTitle(payload) {
+  const title = payload?.oracleConfig?.title
+  return title && typeof title === 'string' ? title.trim() : null
+}
+
+/** Short resolution summary (source + topic/category) for "How it resolves" without repeating full criteria. */
+export function getResolutionSummary(payload) {
+  const oc = payload?.oracleConfig
+  const sourceLabel = getApiSourceLabel(payload)
+  if (!sourceLabel || sourceLabel === 'User-Created') return null
+  const parts = []
+  if (oc?.q) parts.push(`topic: "${oc.q}"`)
+  if (oc?.category) parts.push(`category: ${oc.category}`)
+  if (parts.length) return `Resolved via ${sourceLabel} (${parts.join(', ')}).`
+  return `Resolved via ${sourceLabel}.`
+}
+
 /** Short "what you're buying" line for display (from payload.oneLiner or derived from title). */
 export function getMarketOneLiner(payload) {
   if (payload?.oneLiner && payload.oneLiner.trim()) return payload.oneLiner.trim()
