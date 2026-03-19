@@ -1,0 +1,123 @@
+.splash-screen {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-background, #000);
+  overflow: hidden;
+}
+
+.splash-screen__bg {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    ellipse 90% 80% at 50% 40%,
+    rgba(139, 92, 246, 0.18) 0%,
+    rgba(20, 184, 166, 0.06) 50%,
+    transparent 70%
+  );
+  pointer-events: none;
+}
+
+.splash-screen__content {
+  position: relative;
+  text-align: center;
+  padding: 1.5rem;
+}
+
+.splash-screen__logo-wrap {
+  margin-bottom: 1rem;
+  opacity: 0;
+  transform: scale(0.85);
+  transition: opacity 0.5s ease, transform 0.5s ease;
+}
+
+.splash-screen--enter .splash-screen__logo-wrap,
+.splash-screen--exit .splash-screen__logo-wrap {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.splash-screen--enter .splash-screen__logo-wrap {
+  transition-delay: 0.1s;
+}
+
+.splash-screen__logo {
+  display: block;
+  width: 80px;
+  height: 80px;
+  margin: 0 auto;
+  filter: drop-shadow(0 0 12px rgba(139, 92, 246, 0.4));
+}
+
+.splash-screen__title {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  letter-spacing: 0.02em;
+  margin: 0 0 0.35rem;
+  opacity: 0;
+  transform: translateY(8px);
+  transition: opacity 0.4s ease 0.2s, transform 0.4s ease 0.2s;
+}
+
+.splash-screen--enter .splash-screen__title,
+.splash-screen--exit .splash-screen__title {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.splash-screen__tagline {
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+  margin: 0 0 1.5rem;
+  opacity: 0;
+  transition: opacity 0.4s ease 0.35s;
+}
+
+.splash-screen--enter .splash-screen__tagline,
+.splash-screen--exit .splash-screen__tagline {
+  opacity: 1;
+}
+
+.splash-screen__loader {
+  width: 40px;
+  height: 3px;
+  margin: 0 auto;
+  background: var(--color-border-light);
+  border-radius: 2px;
+  overflow: hidden;
+  opacity: 0;
+  transition: opacity 0.3s ease 0.5s;
+}
+
+.splash-screen--enter .splash-screen__loader,
+.splash-screen--exit .splash-screen__loader {
+  opacity: 0.8;
+}
+
+.splash-screen__loader::after {
+  content: '';
+  display: block;
+  width: 40%;
+  height: 100%;
+  background: var(--color-primary);
+  border-radius: 2px;
+  animation: splash-progress 2s ease-in-out forwards;
+}
+
+.splash-screen--exit .splash-screen__loader::after {
+  animation-duration: 0.4s;
+  animation-fill-mode: forwards;
+  width: 100%;
+}
+
+@keyframes splash-progress {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(150%);
+  }
+}

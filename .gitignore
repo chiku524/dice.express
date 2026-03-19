@@ -15,6 +15,9 @@ frontend/dist/
 frontend/build/
 frontend/.vite/
 
+# Tauri desktop build
+src-tauri/target/
+
 # Cloudflare / Wrangler
 .wrangler/
 

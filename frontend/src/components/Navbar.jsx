@@ -96,7 +96,7 @@ export default function Navbar({ setShowWalletModal }) {
           {/* Resources */}
           <div className="nav-dropdown nav-dropdown-resources" ref={resourcesMenuRef}>
             <button
-              className={`nav-dropdown-toggle ${isActive('/history') || isActive('/docs') || isActive('/documentation') ? 'active' : ''}`}
+              className={`nav-dropdown-toggle ${isActive('/history') || isActive('/docs') || isActive('/documentation') || isActive('/download') ? 'active' : ''}`}
               onClick={() => {
                 setShowResourcesMenu(!showResourcesMenu)
                 setShowDiscoverMenu(false)
@@ -107,6 +107,9 @@ export default function Navbar({ setShowWalletModal }) {
             </button>
             {showResourcesMenu && (
               <div className="nav-dropdown-menu">
+                <Link to="/download" className={isActive('/download') ? 'active' : ''}>
+                  Download desktop
+                </Link>
                 <Link to="/docs" className={isActive('/docs') || isActive('/documentation') ? 'active' : ''}>
                   Documentation
                 </Link>

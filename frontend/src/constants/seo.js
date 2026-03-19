@@ -96,6 +96,11 @@ export const SEO_PAGES = {
     description: 'View your prediction market contract and transaction history. Trades, positions, and settlements.',
     keywords: 'history, contracts, transactions, prediction markets',
   },
+  '/download': {
+    title: `Download desktop app | ${BASE_TITLE}`,
+    description: 'Download the dice.express desktop app for Windows and macOS. Direct download links for the native app.',
+    keywords: 'download, desktop app, dice.express, Windows, macOS, prediction markets',
+  },
   '/docs': {
     title: `API & Documentation | ${BASE_TITLE}`,
     description: 'dice.express API and platform documentation. Integrate with prediction markets, Pips balance, deposits, withdrawals, and trading.',

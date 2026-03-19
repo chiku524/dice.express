@@ -18,6 +18,8 @@ const Dashboard = lazyWithRetry(() => import('./components/Dashboard'))
 const Profile = lazyWithRetry(() => import('./components/Profile'))
 const SignIn = lazyWithRetry(() => import('./components/SignIn'))
 const Register = lazyWithRetry(() => import('./components/Register'))
+const SplashScreen = lazyWithRetry(() => import('./components/SplashScreen'))
+const Download = lazyWithRetry(() => import('./components/Download'))
 const PrivacyPolicy = lazyWithRetry(() => import('./components/PrivacyPolicy'))
 const TermsOfService = lazyWithRetry(() => import('./components/TermsOfService'))
 import { analytics } from './utils/analytics'
@@ -89,6 +91,7 @@ function AppContent() {
                   <Route path="/discover/virtual-realities" element={<MarketsList source="virtual_realities" />} />
                   <Route path="/discover/user" element={<MarketsList source="user" />} />
                   <Route path="/market/:marketId" element={<MarketDetail />} />
+                  <Route path="/splashscreen" element={<SplashScreen />} />
                   <Route path="/sign-in" element={<SignIn />} />
                   <Route path="/register" element={<Register />} />
                   <Route path="/account" element={<Navigate to="/dashboard" replace />} />
@@ -98,6 +101,7 @@ function AppContent() {
                   <Route path="/portfolio" element={<ProtectedRoute><Portfolio /></ProtectedRoute>} />
                   <Route path="/admin" element={<AdminDashboard />} />
                   <Route path="/history" element={<ContractHistory />} />
+                  <Route path="/download" element={<Download />} />
                   <Route path="/docs" element={<Documentation />} />
                   <Route path="/documentation" element={<Documentation />} />
                   <Route path="/privacy" element={<PrivacyPolicy />} />
