@@ -142,7 +142,7 @@ jobs:
             exit 1
           fi
           mkdir -p release-assets
-          find artifacts - type f \( -name '*.exe' -o -name '*.msi' -o -name '*.dmg' -o -name '*.AppImage' -o -name '*.deb' \) -exec cp {} release-assets/ \;
+          find artifacts -type f \( -name '*.exe' -o -name '*.msi' -o -name '*.dmg' -o -name '*.AppImage' -o -name '*.deb' \) -exec cp {} release-assets/ \;
           TAG="${{ steps.tag.outputs.tag }}"
           if gh release view "$TAG" --repo ${{ github.repository }} 2>/dev/null; then
             gh release upload "$TAG" release-assets/* --repo ${{ github.repository }} --clobber
