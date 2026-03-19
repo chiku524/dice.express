@@ -7,6 +7,7 @@ import * as storage from '../lib/cf-storage.mjs'
 import { getQuote, isTradeWithinLimit, applyTrade, createPoolState } from '../lib/amm.mjs'
 import { hashPassword, verifyPassword } from '../lib/auth.mjs'
 import * as dataSources from '../lib/data-sources.mjs'
+import { enrichNewsEvent } from '../lib/custom-news-markets.mjs'
 import * as resolveMarkets from '../lib/resolve-markets.mjs'
 import { addPips, pipsToCents, centsToPipsStr, cryptoAmountToPipsStr } from '../lib/pips-precision.mjs'
 import { verifyErc20Deposit, verifyNativeDeposit } from '../lib/verify-deposit-rpc.mjs'
@@ -1207,49 +1208,50 @@ async function handleWithD1(db, kv, r2, request, path, method, env = {}) {
 
       const created = []
       for (const ev of events) {
-        const id = ev.id ? `market-${ev.id}` : `market-${ev.source}-${Date.now()}-${created.length}`
+        const evUse = enrichNewsEvent(ev)
+        const id = evUse.id ? `market-${evUse.id}` : `market-${evUse.source}-${Date.now()}-${created.length}`
         // Event-driven: only create if we don't already have a market for this event (avoids duplicates when cron runs frequently)
         const existing = await storage.getContractById(db, id)
         if (existing && (existing.templateId === TEMPLATE_VIRTUAL_MARKET || (existing.templateId && existing.templateId.includes('Market')))) {
           continue // already have this event as a market, skip
         }
-        const { source: displaySource, category: displayCategory } = getDisplaySourceAndCategory(ev.source)
-        const topicCategory = categoryFromNewsTopic(ev.oracleConfig?.q || ev.oracleConfig?.category)
+        const { source: displaySource, category: displayCategory } = getDisplaySourceAndCategory(evUse.source)
+        const topicCategory = categoryFromNewsTopic(evUse.oracleConfig?.q || evUse.oracleConfig?.category)
         const finalCategory = topicCategory || displayCategory
-        let resolutionDeadline = ev.resolutionDeadline || null
-        if (!resolutionDeadline && ev.endDate && String(ev.endDate).length >= 10) {
-          resolutionDeadline = `${String(ev.endDate).slice(0, 10)}T23:59:59.000Z`
+        let resolutionDeadline = evUse.resolutionDeadline || null
+        if (!resolutionDeadline && evUse.endDate && String(evUse.endDate).length >= 10) {
+          resolutionDeadline = `${String(evUse.endDate).slice(0, 10)}T23:59:59.000Z`
         }
-        if (!resolutionDeadline && ev.commenceTime) {
-          const d = new Date(ev.commenceTime)
+        if (!resolutionDeadline && evUse.commenceTime) {
+          const d = new Date(evUse.commenceTime)
           if (!Number.isNaN(d.getTime())) {
             d.setUTCHours(d.getUTCHours() + 3)
             resolutionDeadline = d.toISOString()
           } else {
-            resolutionDeadline = String(ev.commenceTime).slice(0, 10)
+            resolutionDeadline = String(evUse.commenceTime).slice(0, 10)
           }
         }
-        if (!resolutionDeadline) resolutionDeadline = ev.endDate || ev.date || (ev.commenceTime ? String(ev.commenceTime).slice(0, 10) : null)
+        if (!resolutionDeadline) resolutionDeadline = evUse.endDate || evUse.date || (evUse.commenceTime ? String(evUse.commenceTime).slice(0, 10) : null)
         const payload = {
           marketId: id,
-          title: ev.title,
-          description: ev.description || ev.title,
+          title: evUse.title,
+          description: evUse.description || evUse.title,
           marketType: 'Binary',
           outcomes: ['Yes', 'No'],
           settlementTrigger: { tag: 'Manual' },
-          resolutionCriteria: ev.resolutionCriteria || ev.title,
+          resolutionCriteria: evUse.resolutionCriteria || evUse.title,
           resolutionDeadline: resolutionDeadline || null,
-          oneLiner: ev.oneLiner || null,
+          oneLiner: evUse.oneLiner || null,
           status: 'Active',
           totalVolume: 0,
           yesVolume: 0,
           noVolume: 0,
           outcomeVolumes: {},
           category: finalCategory,
-          styleLabel: ev.source,
+          styleLabel: evUse.source,
           source: displaySource,
-          oracleSource: ev.oracleSource || ev.source,
-          oracleConfig: ev.oracleConfig || {},
+          oracleSource: evUse.oracleSource || evUse.source,
+          oracleConfig: { ...(evUse.oracleConfig || {}), ...(evUse.customType && { customType: evUse.customType }) },
           createdAt: new Date().toISOString(),
         }
         await storage.upsertContract(db, {
@@ -1271,7 +1273,7 @@ async function handleWithD1(db, kv, r2, request, path, method, env = {}) {
           status: 'Active',
         })
         await backupToR2(r2, undefined, poolState.poolId, poolState)
-        created.push({ marketId: id, title: ev.title, source: ev.source })
+        created.push({ marketId: id, title: evUse.title, source: evUse.source })
       }
       // Markets list cache will refresh on next GET (TTL)
       const res = { success: true, source: bySource ? 'multiple' : source, created, count: created.length, skipped: events.length - created.length }
