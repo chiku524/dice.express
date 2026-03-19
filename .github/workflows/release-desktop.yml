@@ -65,6 +65,9 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Install frontend dependencies
+        run: cd frontend && npm ci
+
       - name: Build Tauri app
         env:
           CI: false
