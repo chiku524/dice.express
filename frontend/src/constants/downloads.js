@@ -20,8 +20,8 @@ export const DESKTOP_DOWNLOADS = {
     icon: '🪟',
     primary: {
       label: 'Download for Windows (x64)',
-      href: directDownloadUrl(`dice.express_${v}_x64-setup.nsis.exe`),
-      filename: `dice.express_${v}_x64-setup.nsis.exe`,
+      href: directDownloadUrl(`dice.express_${v}_x64-setup.exe`),
+      filename: `dice.express_${v}_x64-setup.exe`,
     },
   },
   macIntel: {
