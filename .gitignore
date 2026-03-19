@@ -27,6 +27,9 @@ src-tauri/target/
 .env.*.local
 .dev.vars
 
+# Windows reserved device name (artifact)
+nul
+
 # IDE
 .vscode/
 .idea/
