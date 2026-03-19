@@ -90,6 +90,23 @@
   color: var(--color-text-primary);
 }
 
+.download-item-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.download-btn--secondary {
+  background: var(--color-surface);
+  color: var(--color-text-primary);
+  border: 1px solid var(--color-border-light);
+}
+
+.download-btn--secondary:hover {
+  background: var(--color-surface-hover);
+}
+
 .download-btn {
   display: inline-block;
   padding: 0.5rem 1rem;

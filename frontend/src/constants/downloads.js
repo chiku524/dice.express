@@ -42,4 +42,18 @@ export const DESKTOP_DOWNLOADS = {
       filename: `dice.express_${v}_aarch64.dmg`,
     },
   },
+  linux: {
+    label: 'Linux',
+    icon: '🐧',
+    primary: {
+      label: 'Download for Linux (AppImage, x64)',
+      href: directDownloadUrl(`dice.express_${v}_amd64.AppImage`),
+      filename: `dice.express_${v}_amd64.AppImage`,
+    },
+    secondary: {
+      label: 'Debian / Ubuntu (.deb)',
+      href: directDownloadUrl(`dice.express_${v}_amd64.deb`),
+      filename: `dice.express_${v}_amd64.deb`,
+    },
+  },
 }

@@ -6,6 +6,7 @@ export default function Download() {
     DESKTOP_DOWNLOADS.windows,
     DESKTOP_DOWNLOADS.macIntel,
     DESKTOP_DOWNLOADS.macApple,
+    DESKTOP_DOWNLOADS.linux,
   ]
 
   return (
@@ -28,14 +29,26 @@ export default function Download() {
               <span className="download-item-icon" aria-hidden>{item.icon}</span>
               <div className="download-item-content">
                 <span className="download-item-label">{item.label}</span>
-                <a
-                  href={item.primary.href}
-                  className="download-btn"
-                  download={item.primary.filename}
-                  rel="noopener noreferrer"
-                >
-                  {item.primary.label}
-                </a>
+                <div className="download-item-buttons">
+                  <a
+                    href={item.primary.href}
+                    className="download-btn"
+                    download={item.primary.filename}
+                    rel="noopener noreferrer"
+                  >
+                    {item.primary.label}
+                  </a>
+                  {item.secondary && (
+                    <a
+                      href={item.secondary.href}
+                      className="download-btn download-btn--secondary"
+                      download={item.secondary.filename}
+                      rel="noopener noreferrer"
+                    >
+                      {item.secondary.label}
+                    </a>
+                  )}
+                </div>
               </div>
             </li>
           ))}
