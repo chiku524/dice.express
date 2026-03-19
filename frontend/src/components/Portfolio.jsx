@@ -7,6 +7,7 @@ import { useWeb3Wallet } from '../contexts/Web3WalletContext'
 import { ContractStorage } from '../utils/contractStorage'
 import { SkeletonList } from './SkeletonLoader'
 import UserHubNav from './UserHubNav'
+import ErrorState from './ErrorState'
 import { formatPips, PLATFORM_CURRENCY_SYMBOL } from '../constants/currency'
 import './Portfolio.css'
 import { PIPS_PACKAGES } from '../constants/stripeProducts'
@@ -50,6 +51,7 @@ export default function Portfolio() {
   const [activeTab, setActiveTab] = useState('balance') // 'balance' | 'positions' | 'activity'
   const [stripeReturnMessage, setStripeReturnMessage] = useState(null) // 'success' | 'cancel' | null
   const [stripePackages, setStripePackages] = useState(PIPS_PACKAGES) // from API (wrangler vars) or fallback to build-time
+  const [retryCount, setRetryCount] = useState(0)
   const isMountedRef = useRef(true)
   const depositCardRef = useRef(null)
 
@@ -209,7 +211,7 @@ export default function Portfolio() {
       isMountedRef.current = false
       clearTimeout(loadingTimeout)
     }
-  }, [wallet])
+  }, [wallet, retryCount])
 
   // Handle return from Stripe Checkout (success or cancel)
   useEffect(() => {
@@ -340,21 +342,15 @@ export default function Portfolio() {
         <header className="portfolio-header">
           <h1>Portfolio</h1>
         </header>
-        <div className="error">
-          <strong>Error loading portfolio:</strong> {error}
-          <br />
-          <small className="mt-sm" style={{ display: 'block' }}>
-            Please check your connection and try again.
-          </small>
-        </div>
-        <div style={{ display: 'flex', gap: 'var(--spacing-md)', marginTop: 'var(--spacing-lg)', flexWrap: 'wrap' }}>
-          <button
-            className="btn-primary"
-            onClick={() => window.location.reload()}
-          >
-            Retry
-          </button>
-          <Link to="/dashboard" className="btn-secondary">Back to Dashboard</Link>
+        <div className="card">
+          <ErrorState
+            title="Error loading portfolio"
+            message={error}
+            onRetry={() => { setError(null); setLoading(true); setRetryCount((c) => c + 1) }}
+            retryLabel="Try again"
+            secondaryLabel="Back to Dashboard"
+            secondaryTo="/dashboard"
+          />
         </div>
       </div>
     )
@@ -565,7 +561,7 @@ export default function Portfolio() {
           userParty: wallet.party,
           txHash,
           fromAddress: web3Address,
-          amountGuap: String(amount),
+          amountPips: String(amount),
           signature,
           depositType: isNative ? 'native' : 'usdc',
           networkId,
@@ -596,9 +592,14 @@ export default function Portfolio() {
   return (
     <div className="portfolio-page">
       <UserHubNav />
+      <nav className="portfolio-breadcrumb" aria-label="Breadcrumb">
+        <Link to="/">Markets</Link>
+        <span className="portfolio-breadcrumb-sep" aria-hidden>→</span>
+        <span>Portfolio</span>
+      </nav>
       <header className="portfolio-header">
         <h1>Portfolio</h1>
-        <p className="portfolio-header-desc">Balance, positions, deposit & withdraw.</p>
+        <p className="portfolio-header-desc">Balance, positions, add credits & withdraw.</p>
       </header>
 
       <div className="portfolio-tabs mb-xl" role="tablist" aria-label="Portfolio sections">
@@ -629,7 +630,7 @@ export default function Portfolio() {
           {balanceLoading ? 'Loading...' : formatPips(userBalance)}
         </p>
         <p className="balance-hint">
-          Deposit via wallet, card, or crypto to get Pips; use it to trade. Withdraw earnings (fee applies).
+          Add credits (deposit via wallet, card, or crypto); withdraw earnings when ready (fee applies).
         </p>
       </div>
 
@@ -642,7 +643,7 @@ export default function Portfolio() {
         {!web3Connected ? (
           <div>
             <button type="button" className="btn-primary" onClick={web3Connect}>
-              Connect wallet
+              Connect Web3 wallet
             </button>
             {web3Error && <p className="error mt-sm" style={{ fontSize: 'var(--font-size-sm)' }}>{web3Error}</p>}
           </div>
@@ -695,7 +696,7 @@ export default function Portfolio() {
               {walletDepositLoading ? 'Sending & verifying…' : walletDepositToken === 'usdc' ? 'Send USDC' : walletDepositToken === 'native_eth' ? 'Send ETH' : 'Send MATIC'}
             </button>
             <button type="button" className="btn-secondary" onClick={web3Disconnect} style={{ marginTop: 'var(--spacing-sm)', marginLeft: 'var(--spacing-sm)' }}>
-              Disconnect wallet
+              Disconnect Web3 wallet
             </button>
           </div>
         )}
@@ -789,7 +790,7 @@ export default function Portfolio() {
             <ul style={{ listStyle: 'none', padding: 0, margin: 0, fontSize: 'var(--font-size-sm)' }}>
               {depositRecords.slice(0, 10).map((r) => (
                 <li key={r.id} className="mb-xs">
-                  {formatPips(r.amountGuap)} · {r.source} {r.referenceId ? `· ${String(r.referenceId).slice(0, 12)}…` : ''} · {formatDate(r.createdAt)}
+                  {formatPips(r.amountPips ?? r.amountGuap)} · {r.source} {r.referenceId ? `· ${String(r.referenceId).slice(0, 12)}…` : ''} · {formatDate(r.createdAt)}
                 </li>
               ))}
             </ul>
@@ -868,7 +869,7 @@ export default function Portfolio() {
             <ul style={{ listStyle: 'none', padding: 0, margin: 0, fontSize: 'var(--font-size-sm)' }}>
               {withdrawalRequests.slice(0, 10).map((r) => (
                 <li key={r.requestId} className="mb-xs">
-                  {formatPips(r.netGuap ?? r.netPips)} → {r.destination.slice(0, 10)}… ({r.status})
+                  {formatPips(r.netPips ?? r.netGuap)} → {r.destination.slice(0, 10)}… ({r.status})
                 </li>
               ))}
             </ul>
@@ -896,7 +897,11 @@ export default function Portfolio() {
               <div key={position.contractId} className="card mb-md">
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start' }}>
                   <div style={{ flex: 1 }}>
-                    <h3>{marketTitles[position.payload?.marketId] || position.payload?.marketId || 'Unknown Market'}</h3>
+                    <h3>
+                      <Link to={`/market/${position.payload?.marketId}`} style={{ color: 'inherit', textDecoration: 'none' }}>
+                        {marketTitles[position.payload?.marketId] || position.payload?.marketId || 'Unknown Market'}
+                      </Link>
+                    </h3>
                     {marketTitles[position.payload?.marketId] && (
                       <p className="text-muted" style={{ fontSize: 'var(--font-size-xs)', marginTop: 'var(--spacing-xs)', marginBottom: 'var(--spacing-sm)' }}>
                         Market ID: {position.payload?.marketId}

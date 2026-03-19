@@ -135,12 +135,9 @@ jobs:
 
       - name: Create Release and upload assets
         env:
-          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+          # Use default GITHUB_TOKEN (has contents: write from job permissions). No PAT required.
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          if [ -z "$GH_TOKEN" ]; then
-            echo "::error::GH_TOKEN secret is not set. Add it in repo Settings → Secrets and variables → Actions (name: GH_TOKEN, value: your GitHub PAT)."
-            exit 1
-          fi
           mkdir -p release-assets
           find artifacts -type f \( -name '*.exe' -o -name '*.msi' -o -name '*.dmg' -o -name '*.AppImage' -o -name '*.deb' \) -exec cp {} release-assets/ \;
           TAG="${{ steps.tag.outputs.tag }}"

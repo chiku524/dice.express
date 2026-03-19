@@ -1,6 +1,12 @@
 # Desktop app release (Tauri)
 
-The desktop app is built for **Windows**, **macOS** (Intel + Apple Silicon), and **Linux** via GitHub Actions. Direct download links on the [Download](/download) page point to the release assets.
+The desktop app is built for **Windows**, **macOS** (Intel + Apple Silicon), and **Linux** via GitHub Actions.
+
+## Desktop app experience
+
+- **Intro flow**: A splash window shows a short logo animation, then the main window opens at a launch screen that checks for updates (with progress), then redirects to **home** if the user has an account in storage, or **sign-in** otherwise.
+- **Auto-update**: On first load the app checks for updates; if one is available it is downloaded with a progress bar, then the app installs and relaunches. To enable updates you must configure the updater in `tauri.conf.json` (see **Updater** below).
+- **App-like UI**: When running inside Tauri, the UI uses a tighter layout and compact footer; the navbar logo area can act as a window drag region if you switch to a custom title bar. Direct download links on the [Download](/download) page point to the release assets.
 
 ## Required: GitHub PAT secret
 
@@ -37,6 +43,17 @@ gh secret set GH_TOKEN
   The workflow runs and builds for all platforms, then creates the release `v1.0.1` with the installers attached.
 
 After the run finishes, the [Download](/download) page links will work for the new version (update `DESKTOP_APP_VERSION` in `frontend/src/constants/downloads.js` when you bump the version).
+
+## Updater (optional)
+
+The app includes the Tauri updater plugin. To ship updates:
+
+1. Generate keys: `npm run tauri signer generate -- -w ~/.tauri/dice-express.key`
+2. In `src-tauri/tauri.conf.json`, under `plugins.updater`, set `pubkey` to the **contents** of the generated `.pub` file, and set `endpoints` to an array of URLs (e.g. `["https://github.com/owner/repo/releases/latest/download/latest.json"]`).
+3. When building installers, set `TAURI_SIGNING_PRIVATE_KEY` (path or content of the private key) so Tauri can sign update artifacts.
+4. Enable artifact creation: in `tauri.conf.json` under `bundle`, add `"createUpdaterArtifacts": true`.
+
+If `pubkey` or `endpoints` are left empty, the launch screen still runs but skips the update check and goes straight to the app.
 
 ## Artifacts produced
 

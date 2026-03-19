@@ -259,7 +259,7 @@ export async function getDepositRecordByReferenceId(db, referenceId) {
   const row = await db.prepare(
     `SELECT id, party, amount_guap, source, reference_id, created_at FROM ${DEPOSIT_RECORDS_TABLE} WHERE reference_id = ? LIMIT 1`
   ).bind(String(referenceId).trim()).first()
-  return row ? { id: row.id, party: row.party, amountGuap: row.amount_guap, source: row.source, referenceId: row.reference_id, createdAt: row.created_at } : null
+  return row ? { id: row.id, party: row.party, amountPips: row.amount_guap, source: row.source, referenceId: row.reference_id, createdAt: row.created_at } : null
 }
 
 /** List deposit records for a party (audit/transparency). @param {D1Database} db */
@@ -270,7 +270,7 @@ export async function getDepositRecordsByParty(db, party, limit = 50) {
   return (results || []).map((r) => ({
     id: r.id,
     party: r.party,
-    amountGuap: r.amount_guap,
+    amountPips: r.amount_guap,
     source: r.source,
     referenceId: r.reference_id,
     createdAt: r.created_at,
@@ -278,19 +278,19 @@ export async function getDepositRecordsByParty(db, party, limit = 50) {
 }
 
 /** @param {D1Database} db */
-export async function insertDepositRecord(db, { party, amountGuap, source, referenceId }) {
+export async function insertDepositRecord(db, { party, amountPips, source, referenceId }) {
   await db.prepare(
     `INSERT INTO ${DEPOSIT_RECORDS_TABLE} (party, amount_guap, source, reference_id) VALUES (?, ?, ?, ?)`
-  ).bind(party, amountGuap, source, referenceId || null).run()
+  ).bind(party, amountPips, source, referenceId || null).run()
 }
 
 /** @param {D1Database} db */
-export async function insertWithdrawalRequest(db, { requestId, party, amountGuap, feeGuap, netGuap, destination, networkId, token }) {
+export async function insertWithdrawalRequest(db, { requestId, party, amountPips, feePips, netPips, destination, networkId, token }) {
   const now = new Date().toISOString()
   const tok = token === 'native' ? 'native' : 'usdc'
   await db.prepare(
     `INSERT INTO ${WITHDRAWAL_REQUESTS_TABLE} (request_id, party, amount_guap, fee_guap, net_guap, destination, network_id, token, status, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?, ?)`
-  ).bind(requestId, party, amountGuap, feeGuap, netGuap, destination, networkId || 'ethereum', tok, now, now).run()
+  ).bind(requestId, party, amountPips, feePips, netPips, destination, networkId || 'ethereum', tok, now, now).run()
 }
 
 /** Count pending withdrawals for a party (for rate limiting). @param {D1Database} db */
@@ -309,9 +309,9 @@ export async function getWithdrawalRequestsByParty(db, party, limit = 50) {
   return (results || []).map((r) => ({
     requestId: r.request_id,
     party: r.party,
-    amountGuap: r.amount_guap,
-    feeGuap: r.fee_guap,
-    netGuap: r.net_guap,
+    amountPips: r.amount_guap,
+    feePips: r.fee_guap,
+    netPips: r.net_guap,
     destination: r.destination,
     networkId: r.network_id,
     token: r.token || 'usdc',
@@ -329,9 +329,9 @@ export async function getPendingWithdrawalRequests(db, limit = 10) {
   return (results || []).map((r) => ({
     requestId: r.request_id,
     party: r.party,
-    amountGuap: r.amount_guap,
-    feeGuap: r.fee_guap,
-    netGuap: r.net_guap,
+    amountPips: r.amount_guap,
+    feePips: r.fee_guap,
+    netPips: r.net_guap,
     destination: r.destination,
     networkId: r.network_id,
     token: r.token || 'usdc',

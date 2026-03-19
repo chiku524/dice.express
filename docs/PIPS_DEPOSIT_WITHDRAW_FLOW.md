@@ -9,7 +9,7 @@ Pips is the platform currency. Users deposit (crypto or card) to receive Pips, t
 1. **Deposit** — User chooses crypto or card (Stripe).
    - **Crypto**: User sends USDC/ETH/etc. to a platform address (or via partner); platform credits their Pips balance at a defined rate (e.g. 1 USDC = 1 Pips).
    - **Card (Stripe)**: User enters amount and pays with card; platform credits Pips after payment succeeds.
-2. **Trade** — All activity on the platform uses Pips (AMM or P2P). No need to mention “virtual” in normal UX.
+2. **Trade** — All activity on the platform uses Pips (AMM or P2P). No need to mention "virtual" in normal UX.
 3. **Withdraw** — User requests withdrawal of Pips.
    - Platform debits balance and sends crypto (or fiat via Stripe) to the user.
    - A **withdrawal fee** is applied (e.g. 2% or fixed minimum). Fee is documented at withdrawal time.
@@ -21,11 +21,11 @@ Pips is the platform currency. Users deposit (crypto or card) to receive Pips, t
 | Step | Status | Notes |
 |------|--------|--------|
 | Balance in Pips (D1) | Done | `user_balances` stores balance per party. |
-| Add Pips (testing) | Done | `POST /api/add-credits` for top-up; UI: “Add Pips” in Portfolio. |
+| Add Pips (testing) | Done | `POST /api/add-credits` for top-up; UI: "Add Pips" in Portfolio. |
 | Deposit (Stripe) | Done | Checkout session + webhook credits Pips. Set STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET. |
 | Deposit (crypto) | Done | POST /api/deposit-crypto when platform wallet receives funds. Precise 2-decimal Pips; optional raw crypto amount + decimals for 1:1 conversion. |
 | Withdraw (crypto) | Done | POST /api/withdraw-request; platform wallet sends (manual or automation). |
-| Withdraw (Stripe) | Planned | Payout to user’s linked account; fee applied. |
+| Withdraw (Stripe) | Planned | Payout to user's linked account; fee applied. |
 | Withdrawal fee | Done | WITHDRAWAL_FEE_RATE (0.02), WITHDRAWAL_FEE_MIN (1). |
 
 ---
@@ -38,12 +38,12 @@ Pips is the platform currency. Users deposit (crypto or card) to receive Pips, t
 
 ---
 
-## 4. UX copy (no “virtual” emphasis)
+## 4. UX copy (no "virtual" emphasis)
 
-- Balance: “Your balance (PP)” or “Pips balance”.
-- Deposit: “Deposit” → “Get Pips” (crypto or card).
-- Withdraw: “Withdraw Pips” with clear text: “A withdrawal fee of X% applies.”
-- Add Pips (testing): “Add Pips” for internal/test top-up; in production this can be hidden or gated.
+- Balance: "Your balance (PP)" or "Pips balance".
+- Deposit: "Deposit" → "Get Pips" (crypto or card).
+- Withdraw: "Withdraw Pips" with clear text: "A withdrawal fee of X% applies."
+- Add Pips (testing): "Add Pips" for internal/test top-up; in production this can be hidden or gated.
 
 This keeps the flow clear: **deposit (crypto/Stripe) → receive Pips → trade → withdraw earnings (withdrawal fee)**.
 
@@ -63,7 +63,7 @@ Set in Cloudflare Pages/Workers env or `wrangler.toml` (secrets via `wrangler se
 | `WITHDRAW_MAX_PP` | Optional; max Pips per single withdrawal (e.g. `10000`). |
 | `WITHDRAW_MAX_PENDING` | Optional; max pending withdrawals per user (e.g. `5`). Returns 429 when exceeded. |
 | `DEPOSIT_VERIFICATION_RPC_URL` | Optional; when set, the API verifies each deposit tx on-chain before crediting (see **CRYPTO_DEPOSITS.md**). Use Alchemy/Infura free tier URL. |
-| `PLATFORM_WALLET_ADDRESS` | Required for verification; your platform’s deposit wallet (EVM). |
+| `PLATFORM_WALLET_ADDRESS` | Required for verification; your platform's deposit wallet (EVM). |
 | `DEPOSIT_VERIFICATION_USDC_CONTRACT` | Optional; USDC contract address so only that token is accepted. |
 | `DEPOSIT_VERIFICATION_MIN_CONFIRMATIONS` | Optional; default `1`. Minimum block confirmations before crediting. |
 
@@ -107,7 +107,7 @@ See **`CRYPTO_DEPOSITS.md`** for the full verification steps and recommended flo
 
 **Pips is 1:1 with USD.** 1 PP = $1 USD. Deposits and withdrawals use this rate.
 
-**Stripe products (optional):** You can create fixed products in Stripe for $5, $10, $25, $50, and $100 Pips. Name, description, amount, and image assets are in **`frontend/public/stripe-products/`** — see `STRIPE_PRODUCTS.md` in that folder. The current checkout uses a custom amount (user enters PP); you can add “Quick add” buttons that use these product Price IDs if you create the products in Stripe.
+**Stripe products (optional):** You can create fixed products in Stripe for $5, $10, $25, $50, and $100 Pips. Name, description, amount, and image assets are in **`frontend/public/stripe-products/`** — see `STRIPE_PRODUCTS.md` in that folder. The current checkout uses a custom amount (user enters PP); you can add "Quick add" buttons that use these product Price IDs if you create the products in Stripe.
 
 ---
 
@@ -115,4 +115,4 @@ See **`CRYPTO_DEPOSITS.md`** for the full verification steps and recommended flo
 
 - **UI:** Portfolio Balance tab shows platform wallet address(es) and the user account ID for memo. Users send USDC to that address.
 - **Crediting:** A backend process must call POST /api/deposit-crypto when the platform wallet receives funds (manual or automated watcher). API can verify tx on-chain when DEPOSIT_VERIFICATION_RPC_URL and PLATFORM_WALLET_ADDRESS are set.
-- **Deposit from connected wallet:** Implemented. User connects MetaMask (or other Web3 wallet) in Portfolio → “Deposit from wallet”, enters amount, sends USDC on Ethereum mainnet to the platform wallet; then signs a message to authorize crediting; frontend calls `POST /api/deposit-with-tx` with `txHash`, `fromAddress`, `amountGuap`, `signature`. Backend verifies the signature and the tx on-chain, then credits the user. Requires `PLATFORM_WALLET_ADDRESS` and RPC (`ALCHEMY_API_KEY` or `DEPOSIT_VERIFICATION_RPC_URL`) to be set.
+- **Deposit from connected wallet:** Implemented. User connects MetaMask (or other Web3 wallet) in Portfolio → "Deposit from wallet", enters amount, sends USDC on Ethereum mainnet to the platform wallet; then signs a message to authorize crediting; frontend calls `POST /api/deposit-with-tx` with `txHash`, `fromAddress`, `amountPips`, `signature`. Backend verifies the signature and the tx on-chain, then credits the user. Requires `PLATFORM_WALLET_ADDRESS` and RPC (`ALCHEMY_API_KEY` or `DEPOSIT_VERIFICATION_RPC_URL`) to be set.

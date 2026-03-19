@@ -77,7 +77,7 @@ export default function WalletModal({ isOpen, onClose }) {
               {wallet.createdAt && (
                 <p className="wallet-hint">Member since {formatMemberSince(wallet.createdAt)}</p>
               )}
-              <p className="wallet-hint">Your dashboard, profile, and balance are tied to this account.</p>
+              <p className="wallet-hint">Your activity and balance are stored under this ID. No password required.</p>
               <div className="wallet-modal-actions">
                 <Link to="/dashboard" className="btn-primary wallet-modal-btn" onClick={onClose}>Dashboard</Link>
                 <Link to="/profile" className="btn-secondary wallet-modal-btn" onClick={onClose}>Profile</Link>

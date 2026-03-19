@@ -1,0 +1,95 @@
+.desktop-launch {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-background, #000);
+  overflow: hidden;
+}
+
+.desktop-launch__bg {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    ellipse 90% 80% at 50% 40%,
+    rgba(139, 92, 246, 0.15) 0%,
+    rgba(20, 184, 166, 0.06) 50%,
+    transparent 70%
+  );
+  pointer-events: none;
+}
+
+.desktop-launch__content {
+  position: relative;
+  text-align: center;
+  padding: 1.5rem;
+}
+
+.desktop-launch__logo-wrap {
+  margin-bottom: 1rem;
+  animation: desktopLaunchLogoIn 0.4s ease-out forwards;
+}
+
+.desktop-launch__logo {
+  display: block;
+  width: 72px;
+  height: 72px;
+  margin: 0 auto;
+  filter: drop-shadow(0 0 12px rgba(139, 92, 246, 0.4));
+}
+
+.desktop-launch__title {
+  font-size: 1.35rem;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  letter-spacing: 0.02em;
+  margin: 0 0 0.5rem;
+  animation: desktopLaunchFadeUp 0.4s ease-out 0.1s both;
+}
+
+.desktop-launch__step {
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+  margin: 0 0 1rem;
+  animation: desktopLaunchFadeUp 0.4s ease-out 0.2s both;
+}
+
+.desktop-launch__progress-wrap {
+  width: 200px;
+  height: 4px;
+  margin: 0 auto;
+  background: var(--color-border-light);
+  border-radius: 2px;
+  overflow: hidden;
+  animation: desktopLaunchFadeUp 0.4s ease-out 0.3s both;
+}
+
+.desktop-launch__progress-bar {
+  height: 100%;
+  background: linear-gradient(90deg, var(--color-primary), var(--color-teal));
+  border-radius: 2px;
+  transition: width 0.25s ease;
+}
+
+@keyframes desktopLaunchLogoIn {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes desktopLaunchFadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

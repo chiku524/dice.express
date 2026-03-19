@@ -6,6 +6,7 @@ import { useAccountModal } from '../contexts/AccountModalContext'
 import { fetchMarkets, fetchPool, executeTrade } from '../services/marketsApi'
 import { fetchOpenOrders, placeOrder } from '../services/ordersApi'
 import MarketResolution from './MarketResolution'
+import ErrorState from './ErrorState'
 import { formatPips, PLATFORM_CURRENCY_SYMBOL } from '../constants/currency'
 import { PREDICTION_STYLES, getCategoryDisplay, getApiSourceLabel, formatResolutionDeadline, getCategoryEmoji, getMarketOneLiner, getResolutionOutcomeSummaries, getDisplayDescription, getResolutionSummary, getNewsMarketDisplayTitle, getNewsMarketMeta } from '../constants/marketConfig'
 import { getQuote, isTradeWithinLimit, yesProbability } from '../utils/ammQuote'
@@ -21,6 +22,7 @@ export default function MarketDetail() {
   const [market, setMarket] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+  const [retryCount, setRetryCount] = useState(0)
   const [pool, setPool] = useState(null)
   const [tradeSide, setTradeSide] = useState('Yes')
   const [tradeAmount, setTradeAmount] = useState('')
@@ -59,7 +61,7 @@ export default function MarketDetail() {
       }
     }
     loadMarket()
-  }, [marketId])
+  }, [marketId, retryCount])
 
   useEffect(() => {
     if (!market?.payload?.marketId || market.payload.marketType !== 'Binary') return
@@ -184,22 +186,15 @@ export default function MarketDetail() {
 
   if (error || !market) {
     return (
-      <div>
-        <div className="error">
-          <strong>Error:</strong> {error || 'Market not found'}
-          <br />
-          <small className="mt-sm" style={{ display: 'block' }}>
-            The market may not exist or there was a connection error.
-          </small>
-        </div>
-        <div className="mt-md" style={{ display: 'flex', gap: 'var(--spacing-md)' }}>
-          <button className="btn-secondary" onClick={() => navigate('/')}>
-            Back to Markets
-          </button>
-          <button className="btn-primary" onClick={() => window.location.reload()}>
-            Retry
-          </button>
-        </div>
+      <div className="card">
+        <ErrorState
+          title={error || 'Market not found'}
+          message="The market may not exist or there was a connection error."
+          onRetry={() => { setError(null); setLoading(true); setRetryCount((c) => c + 1) }}
+          retryLabel="Try again"
+          secondaryLabel="Back to Markets"
+          secondaryTo="/"
+        />
       </div>
     )
   }

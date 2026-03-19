@@ -27,6 +27,7 @@ export default function Footer() {
           <div className="footer-section footer-about">
             <span className="footer-heading">About</span>
             <p>Trade on outcomes. Your choice, your chance.</p>
+            <p className="footer-credits-note">All activity uses virtual Credits (Pips). No blockchain required to trade.</p>
           </div>
         </div>
         <div className="footer-bottom">

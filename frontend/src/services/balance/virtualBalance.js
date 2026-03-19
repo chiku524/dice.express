@@ -1,7 +1,7 @@
 /**
  * Balance (Pips) service.
  */
-import { formatGuap, PLATFORM_CURRENCY_SYMBOL } from '../../constants/currency'
+import { formatPips, PLATFORM_CURRENCY_SYMBOL } from '../../constants/currency'
 
 const BALANCE_API = '/api/get-user-balance'
 
@@ -12,7 +12,7 @@ const BALANCE_API = '/api/get-user-balance'
  */
 export async function getVirtualBalance(userParty) {
   if (!userParty) {
-    return { balance: '0', formatted: formatGuap(0), raw: 0 }
+    return { balance: '0', formatted: formatPips(0), raw: 0 }
   }
   try {
     const response = await fetch(BALANCE_API, {
@@ -22,18 +22,18 @@ export async function getVirtualBalance(userParty) {
     })
     if (!response.ok) {
       console.warn('[virtualBalance] Failed to fetch balance:', response.status)
-      return { balance: '0', formatted: formatGuap(0), raw: 0 }
+      return { balance: '0', formatted: formatPips(0), raw: 0 }
     }
     const data = await response.json()
     const raw = parseFloat(data.balance || '0') || 0
     return {
       balance: String(raw),
-      formatted: formatGuap(raw),
+      formatted: formatPips(raw),
       raw,
     }
   } catch (err) {
     console.warn('[virtualBalance] Error:', err)
-    return { balance: '0', formatted: formatGuap(0), raw: 0 }
+    return { balance: '0', formatted: formatPips(0), raw: 0 }
   }
 }
 
@@ -59,4 +59,4 @@ export async function transferPips(fromParty, toParty, amount) {
   return data
 }
 
-export { formatGuap, PLATFORM_CURRENCY_SYMBOL }
+export { formatPips, PLATFORM_CURRENCY_SYMBOL }

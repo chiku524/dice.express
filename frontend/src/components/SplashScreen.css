@@ -43,6 +43,23 @@
   transition-delay: 0.1s;
 }
 
+/* Intro: subtle scale pulse and glow for desktop app feel */
+.splash-screen--enter .splash-screen__logo {
+  animation: splashLogoPulse 2s ease-in-out 0.2s both;
+}
+
+.splash-screen--exit .splash-screen__logo-wrap {
+  transition-duration: 0.35s;
+  opacity: 0.95;
+  transform: scale(1.02);
+}
+
+@keyframes splashLogoPulse {
+  0% { filter: drop-shadow(0 0 8px rgba(139, 92, 246, 0.3)); }
+  50% { filter: drop-shadow(0 0 16px rgba(139, 92, 246, 0.5)); }
+  100% { filter: drop-shadow(0 0 12px rgba(139, 92, 246, 0.4)); }
+}
+
 .splash-screen__logo {
   display: block;
   width: 80px;

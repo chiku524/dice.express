@@ -18,7 +18,7 @@ Quick reference for what’s done, what’s not, and what controls behavior.
 
 ### Not implemented
 
-- **Stripe payouts** (withdraw to user’s bank/card) — marked “Planned” in GUAP_DEPOSIT_WITHDRAW_FLOW.md.
+- **Stripe payouts** (withdraw to user’s bank/card) — marked “Planned” in PIPS_DEPOSIT_WITHDRAW_FLOW.md.
 
 ### Summary
 

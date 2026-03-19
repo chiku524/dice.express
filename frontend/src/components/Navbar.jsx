@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { useWallet } from '../contexts/WalletContext'
+import { useToastContext } from '../contexts/ToastContext'
 import { getVirtualBalance } from '../services/balance'
 import { BRAND_NAME, BRAND_TAGLINE } from '../constants/brand'
 import { MARKET_SOURCES, getDiscoverPathForSource } from '../constants/marketConfig'
@@ -8,6 +9,7 @@ import './Navbar.css'
 
 export default function Navbar({ setShowWalletModal }) {
   const { wallet, disconnectWallet } = useWallet()
+  const { showToast } = useToastContext()
   const location = useLocation()
   const [showDiscoverMenu, setShowDiscoverMenu] = useState(false)
   const [showResourcesMenu, setShowResourcesMenu] = useState(false)
@@ -52,10 +54,19 @@ export default function Navbar({ setShowWalletModal }) {
   const isActive = (path) => location.pathname === path
   const isDiscoverActive = () => isActive('/') || location.pathname.startsWith('/discover') || location.pathname.startsWith('/market')
 
+  const isDesktopApp = typeof window !== 'undefined' && window.__TAURI__
+
+  const copyDisplayName = () => {
+    if (!wallet?.party) return
+    navigator.clipboard?.writeText(wallet.party).then(() => {
+      showToast('Display name copied', 'success')
+    }).catch(() => {})
+  }
+
   return (
     <header className="app-header">
       <div className="container">
-        <Link to="/" className="logo">
+        <Link to="/" className="logo" {...(isDesktopApp ? { 'data-tauri-drag-region': true } : {})}>
           <img src="/logo.svg" alt="" className="logo-img" width="36" height="36" />
           <span className="logo-text">
             <span className="logo-name">{BRAND_NAME}</span>
@@ -124,13 +135,24 @@ export default function Navbar({ setShowWalletModal }) {
           {wallet ? (
             <div className="wallet-info">
               {balanceFormatted != null && (
-                <Link to="/portfolio" className="nav-balance" title="Your Pips balance — View in Portfolio">
+                <Link to="/portfolio" className="nav-balance" title="Pips (Credits) — View in Portfolio">
                   {balanceFormatted}
                 </Link>
               )}
-              <Link to="/dashboard" className="nav-user-name" title={wallet.party}>
-                {wallet.party.length > 16 ? wallet.party.substring(0, 16) + '…' : wallet.party}
-              </Link>
+              <span className="nav-user-name-wrap">
+                <Link to="/dashboard" className="nav-user-name" title={`${wallet.party} — Click copy to copy`}>
+                  {wallet.party.length > 16 ? wallet.party.substring(0, 16) + '…' : wallet.party}
+                </Link>
+                <button
+                  type="button"
+                  className="nav-copy-btn"
+                  onClick={copyDisplayName}
+                  aria-label="Copy display name"
+                  title="Copy display name"
+                >
+                  📋
+                </button>
+              </span>
               <button type="button" className="nav-disconnect-btn" onClick={disconnectWallet}>Disconnect</button>
             </div>
           ) : (

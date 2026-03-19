@@ -53,7 +53,7 @@ async function sendOneWithdrawal(env, db, w) {
   const token = w.token === 'native' ? 'native' : 'usdc'
   try {
     if (token === 'native') {
-      const amountWei = BigInt(Math.floor(Number(w.netGuap) * 1e18))
+      const amountWei = BigInt(Math.floor(Number(w.netPips) * 1e18))
       if (amountWei <= 0n) return { ok: false, error: 'Invalid native amount' }
       const hash = await walletClient.sendTransaction({
         account,
@@ -65,7 +65,7 @@ async function sendOneWithdrawal(env, db, w) {
       return { ok: true, txHash: hash }
     }
     const usdcAddress = USDC_BY_NETWORK[netId] || USDC_BY_NETWORK.ethereum
-    const amountRaw = BigInt(Math.floor(Number(w.netGuap) * 1e6))
+    const amountRaw = BigInt(Math.floor(Number(w.netPips) * 1e6))
     if (amountRaw <= 0n) return { ok: false, error: 'Invalid USDC amount' }
     const data = encodeFunctionData({
       abi: USDC_ABI,
@@ -272,7 +272,7 @@ async function handleStripeWebhook(db, r2, rawBody, headers, env) {
     await storage.setBalance(db, userParty, newBalStr)
     await storage.insertDepositRecord(db, {
       party: userParty,
-      amountGuap: parseFloat(amountPipsStr),
+      amountPips: parseFloat(amountPipsStr),
       source: 'stripe',
       referenceId: session.id,
     })
@@ -352,9 +352,9 @@ async function handleWithD1(db, kv, r2, request, path, method, env = {}) {
         'line_items[0][quantity]': '1',
       })
     } else {
-      const amountGuap = parseFloat(amount)
-      if (!amountGuap || amountGuap < 1) return jsonResponse({ error: 'amount (min 1), priceId, or productId required' }, 400)
-      const amountCents = Math.round(amountGuap * 100)
+      const amountPipsNum = parseFloat(amount)
+      if (!amountPipsNum || amountPipsNum < 1) return jsonResponse({ error: 'amount (min 1), priceId, or productId required' }, 400)
+      const amountCents = Math.round(amountPipsNum * 100)
       params = new URLSearchParams({
         ...baseParams,
         'line_items[0][price_data][currency]': 'usd',
@@ -456,7 +456,7 @@ async function handleWithD1(db, kv, r2, request, path, method, env = {}) {
       await storage.setBalance(db, party, newBalStr)
       await storage.insertDepositRecord(db, {
         party,
-        amountGuap: parseFloat(amountPipsStr),
+        amountPips: parseFloat(amountPipsStr),
         source: 'crypto',
         referenceId,
       })
@@ -489,19 +489,20 @@ async function handleWithD1(db, kv, r2, request, path, method, env = {}) {
   }
 
   // POST /api/deposit-with-tx — credit Pips after user deposits from connected wallet (EVM). No DEPOSIT_CRYPTO_SECRET.
-  // Body: { userParty, txHash, fromAddress, amountGuap, signature, depositType?: 'usdc'|'native', networkId?: 'ethereum'|'polygon' }.
-  // For depositType 'native', amountGuap is in native token units (e.g. 0.5 ETH); we verify tx.value >= amountWei and credit amountGuap as PP.
+  // Body: { userParty, txHash, fromAddress, amountPips, signature, depositType?: 'usdc'|'native', networkId?: 'ethereum'|'polygon' }.
+  // For depositType 'native', amountPips is in native token units (e.g. 0.5 ETH); we verify tx.value >= amountWei and credit amountPips as PP.
   if (path === 'deposit-with-tx' && method === 'POST') {
     const platformWallet = env.PLATFORM_WALLET_ADDRESS || null
     if (!platformWallet) {
       return jsonResponse({ error: 'Deposit from wallet is not configured (PLATFORM_WALLET_ADDRESS required)' }, 503)
     }
-    const { userParty, txHash, fromAddress, amountGuap, signature, depositType, networkId } = body
+    const amountRaw = body.amountPips ?? body.amountGuap
+    const { userParty, txHash, fromAddress, signature, depositType, networkId } = body
     const party = (userParty || '').trim()
     const txHashNorm = (txHash || '').trim()
     const fromNorm = (fromAddress || '').trim().toLowerCase()
-    if (!party || !txHashNorm || !fromNorm || amountGuap == null || !signature) {
-      return jsonResponse({ error: 'userParty, txHash, fromAddress, amountGuap, and signature are required' }, 400)
+    if (!party || !txHashNorm || !fromNorm || amountRaw == null || !signature) {
+      return jsonResponse({ error: 'userParty, txHash, fromAddress, amountPips, and signature are required' }, 400)
     }
     const isNative = depositType === 'native'
     const netId = (networkId || 'ethereum').toString().toLowerCase()
@@ -509,9 +510,9 @@ async function handleWithD1(db, kv, r2, request, path, method, env = {}) {
     if (!rpcUrl) {
       return jsonResponse({ error: 'RPC not configured for this network' }, 503)
     }
-    const amountNum = parseFloat(amountGuap)
+    const amountNum = parseFloat(amountRaw)
     if (!Number.isFinite(amountNum) || amountNum <= 0) {
-      return jsonResponse({ error: 'amountGuap must be a positive number' }, 400)
+      return jsonResponse({ error: 'amountPips must be a positive number' }, 400)
     }
     const message = `deposit:${party}:${txHashNorm}`
     let recoveredAddress
@@ -535,8 +536,8 @@ async function handleWithD1(db, kv, r2, request, path, method, env = {}) {
         return jsonResponse({ error: 'Transaction verification failed', message: verification.reason }, 400)
       }
     } else {
-      const amountPipsStrUsdc = addPips('0', amountGuap)
-      if (pipsToCents(amountPipsStrUsdc) <= 0) return jsonResponse({ error: 'amountGuap must be positive' }, 400)
+      const amountPipsStrUsdc = addPips('0', amountRaw)
+      if (pipsToCents(amountPipsStrUsdc) <= 0) return jsonResponse({ error: 'amountPips must be positive' }, 400)
       const cents = pipsToCents(amountPipsStrUsdc)
       const cryptoDecimals = 6
       const expectedAmountRaw = String(Math.floor(cents * Math.pow(10, cryptoDecimals - 2)))
@@ -556,13 +557,13 @@ async function handleWithD1(db, kv, r2, request, path, method, env = {}) {
       const currentRaw = await storage.getBalanceRaw(db, party)
       return jsonResponse({ success: true, alreadyCredited: true, balance: currentRaw }, 200)
     }
-    const amountPipsStr = isNative ? String(amountNum) : addPips('0', amountGuap)
+    const amountPipsStr = isNative ? String(amountNum) : addPips('0', amountRaw)
     const currentRaw = await storage.getBalanceRaw(db, party)
     const newBalStr = addPips(currentRaw, amountPipsStr)
     await storage.setBalance(db, party, newBalStr)
     await storage.insertDepositRecord(db, {
       party,
-      amountGuap: amountNum,
+      amountPips: amountNum,
       source: 'crypto',
       referenceId: txHashNorm,
     })
@@ -604,15 +605,15 @@ async function handleWithD1(db, kv, r2, request, path, method, env = {}) {
     if (!['ethereum', 'polygon'].includes(netId)) {
       return jsonResponse({ error: 'Unsupported network', message: 'Use ethereum or polygon' }, 400)
     }
-    let amountGuap, feeGuap, netGuap, amountCents, feeCents, netCents, deductCents
+    let amountPips, feePips, netPips, amountCents, feeCents, netCents, deductCents
     if (token === 'native') {
       const nativeAmount = parseFloat(amount)
       if (!Number.isFinite(nativeAmount) || nativeAmount <= 0) {
         return jsonResponse({ error: 'amount must be a positive number (native token units, e.g. 0.5 for 0.5 ETH)' }, 400)
       }
-      amountGuap = nativeAmount
-      feeGuap = 0
-      netGuap = nativeAmount
+      amountPips = nativeAmount
+      feePips = 0
+      netPips = nativeAmount
       const flatFeeCents = pipsToCents(String(feeMin))
       deductCents = flatFeeCents
       amountCents = 0
@@ -629,9 +630,9 @@ async function handleWithD1(db, kv, r2, request, path, method, env = {}) {
       netCents = amountCents - feeCents
       if (netCents <= 0) return jsonResponse({ error: 'Amount too small after fee' }, 400)
       deductCents = amountCents
-      amountGuap = parseFloat(centsToPipsStr(amountCents))
-      feeGuap = parseFloat(centsToPipsStr(feeCents))
-      netGuap = parseFloat(centsToPipsStr(netCents))
+      amountPips = parseFloat(centsToPipsStr(amountCents))
+      feePips = parseFloat(centsToPipsStr(feeCents))
+      netPips = parseFloat(centsToPipsStr(netCents))
     }
     if (withdrawMaxPending > 0) {
       const pending = await storage.countPendingWithdrawalsByParty(db, party)
@@ -654,23 +655,23 @@ async function handleWithD1(db, kv, r2, request, path, method, env = {}) {
     await storage.insertWithdrawalRequest(db, {
       requestId,
       party,
-      amountGuap,
-      feeGuap,
-      netGuap,
+      amountPips,
+      feePips,
+      netPips,
       destination: dest,
       networkId: netId,
       token,
     })
-    const w = { requestId, party, amountGuap, feeGuap, netGuap, destination: dest, networkId: netId, token }
+    const w = { requestId, party, amountPips, feePips, netPips, destination: dest, networkId: netId, token }
     const sendResult = await sendOneWithdrawal(env, db, w)
     if (sendResult.ok) {
       return jsonResponse({
         success: true,
         requestId,
         txHash: sendResult.txHash,
-        amount: token === 'usdc' ? centsToPipsStr(amountCents) : String(amountGuap),
+        amount: token === 'usdc' ? centsToPipsStr(amountCents) : String(amountPips),
         fee: token === 'usdc' ? centsToPipsStr(feeCents) : centsToPipsStr(feeCents),
-        net: token === 'usdc' ? centsToPipsStr(netCents) : String(netGuap),
+        net: token === 'usdc' ? centsToPipsStr(netCents) : String(netPips),
         destination: dest,
         networkId: netId,
         token,
@@ -682,9 +683,9 @@ async function handleWithD1(db, kv, r2, request, path, method, env = {}) {
       requestId,
       txHash: null,
       queued: true,
-      amount: token === 'usdc' ? centsToPipsStr(amountCents) : String(amountGuap),
+      amount: token === 'usdc' ? centsToPipsStr(amountCents) : String(amountPips),
       fee: token === 'usdc' ? centsToPipsStr(feeCents) : '0',
-      net: token === 'usdc' ? centsToPipsStr(netCents) : String(netGuap),
+      net: token === 'usdc' ? centsToPipsStr(netCents) : String(netPips),
       destination: dest,
       networkId: netId,
       token,
@@ -716,7 +717,7 @@ async function handleWithD1(db, kv, r2, request, path, method, env = {}) {
     for (const w of pending) {
       const result = await sendOneWithdrawal(env, db, w)
       if (result.ok) {
-        processed.push({ requestId: w.requestId, txHash: result.txHash, destination: w.destination, netGuap: w.netGuap, token: w.token || 'usdc' })
+        processed.push({ requestId: w.requestId, txHash: result.txHash, destination: w.destination, netPips: w.netPips, token: w.token || 'usdc' })
       } else {
         errors.push({ requestId: w.requestId, error: result.error })
       }

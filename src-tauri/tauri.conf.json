@@ -1,6 +1,6 @@
 {
   "productName": "dice.express",
-  "version": "1.0.0",
+  "version": "1.0.2",
   "identifier": "express.dice.app",
   "build": {
     "beforeDevCommand": "npm run start:frontend",
@@ -14,7 +14,7 @@
       {
         "label": "main",
         "title": "dice.express",
-        "url": "/sign-in",
+        "url": "/launch",
         "width": 1000,
         "height": 700,
         "minWidth": 800,
@@ -61,5 +61,10 @@
     },
     "category": "Finance"
   },
-  "plugins": {}
+  "plugins": {
+    "updater": {
+      "pubkey": "",
+      "endpoints": []
+    }
+  }
 }

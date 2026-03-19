@@ -2,5 +2,8 @@
   "identifier": "default",
   "description": "Default capability for splash and main windows",
   "windows": ["main", "splashscreen"],
-  "permissions": []
+  "permissions": [
+    "updater:default",
+    "process:default"
+  ]
 }

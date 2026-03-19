@@ -13,7 +13,7 @@ export const PLATFORM_CURRENCY_SYMBOL = PLATFORM_CURRENCY.symbol
 export const PLATFORM_CURRENCY_DECIMALS = PLATFORM_CURRENCY.decimals
 
 /** Format amount for display (e.g. "1,234.56 PP") */
-export function formatGuap(amount) {
+export function formatPips(amount) {
   if (amount == null || Number.isNaN(Number(amount))) return '—'
   const n = Number(amount)
   return n.toLocaleString(undefined, {
@@ -22,10 +22,8 @@ export function formatGuap(amount) {
   }) + ' ' + PLATFORM_CURRENCY_SYMBOL
 }
 
-/** Alias for display (Pips branding) */
-export function formatPips(amount) {
-  return formatGuap(amount)
-}
+/** @deprecated Use formatPips */
+export const formatGuap = formatPips
 
-/** @deprecated Use formatGuap or formatPips */
-export const formatCredits = formatGuap
+/** @deprecated Use formatPips */
+export const formatCredits = formatPips

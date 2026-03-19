@@ -71,7 +71,7 @@ Set in Cloudflare (e.g. `wrangler secret put` or Pages env):
 3. **Test (no real funds):** Use testnet (e.g. Sepolia) and send test USDC to your platform wallet, then call the API with that `txHash`, `cryptoAmount`, `cryptoDecimals`, `userParty`, `networkId`, and `X-Deposit-Crypto-Secret`. Or mainnet with a small amount and 1+ confirmation.
 4. **If verification fails:** Check response body for `message` (e.g. "Transaction not found", "No Transfer to platform wallet found"). Ensure tx is confirmed, recipient is exactly `PLATFORM_WALLET_ADDRESS`, and `networkId` matches the chain.
 
-For full flow (deposit + withdraw), see **GUAP_DEPOSIT_WITHDRAW_FLOW.md**.
+For full flow (deposit + withdraw), see **PIPS_DEPOSIT_WITHDRAW_FLOW.md**.
 
 ---
 

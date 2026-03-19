@@ -24,7 +24,7 @@
 
 ## Deployment & Ops
 
-- **[GUAP_DEPOSIT_WITHDRAW_FLOW.md](./GUAP_DEPOSIT_WITHDRAW_FLOW.md)** – Pips deposit (crypto/Stripe) and withdraw flow
+- **[PIPS_DEPOSIT_WITHDRAW_FLOW.md](./PIPS_DEPOSIT_WITHDRAW_FLOW.md)** – Pips deposit (crypto/Stripe) and withdraw flow
 - **[CRYPTO_DEPOSITS.md](./CRYPTO_DEPOSITS.md)** – Crypto deposit verification (on-chain), watcher, Cloudflare secrets
 - **[STRIPE.md](./STRIPE.md)** – Stripe integration (env, webhook) and business verification copy
 - **[NEXT_STEPS_AND_PROD_READINESS.md](./NEXT_STEPS_AND_PROD_READINESS.md)** – What’s done, what’s not, suggested next steps

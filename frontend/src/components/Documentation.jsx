@@ -670,7 +670,7 @@ function APIReferenceContent() {
       <p><code>GET /api/markets</code>, <code>GET /api/pools</code>, <code>POST /api/trade</code> — markets, pool state, and placing trades. Positions and resolution use the same API surface.</p>
 
       <h2>Deposits &amp; withdrawals</h2>
-      <p><code>GET /api/deposit-records?userParty=...</code> — list deposit history. <code>POST /api/deposit-with-tx</code> — credit Pips after wallet deposit (body: <code>{`{ userParty, txHash, fromAddress, amountGuap, signature, depositType: 'usdc'|'native', networkId: 'ethereum'|'polygon' }`}</code>). <code>POST /api/withdraw-request</code> — submit withdrawal (body: <code>{`{ userParty, amount, destinationAddress, networkId, token: 'usdc'|'native' }`}</code>). <code>GET /api/withdrawal-requests?userParty=...</code> — list requests.</p>
+      <p><code>GET /api/deposit-records?userParty=...</code> — list deposit history. <code>POST /api/deposit-with-tx</code> — credit Pips after wallet deposit (body: <code>{`{ userParty, txHash, fromAddress, amountPips, signature, depositType: 'usdc'|'native', networkId: 'ethereum'|'polygon' }`}</code>). <code>POST /api/withdraw-request</code> — submit withdrawal (body: <code>{`{ userParty, amount, destinationAddress, networkId, token: 'usdc'|'native' }`}</code>). <code>GET /api/withdrawal-requests?userParty=...</code> — list requests.</p>
 
       <h2>Oracles &amp; Health</h2>
       <p><code>GET /api/oracle?symbol=</code> — RedStone price data. <code>GET /api/health</code> — health check.</p>

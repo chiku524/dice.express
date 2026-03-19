@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import { useWallet } from '../contexts/WalletContext'
 import { SkeletonMarketGrid } from './SkeletonLoader'
+import ErrorState from './ErrorState'
 import { fetchMarkets } from '../services/marketsApi'
 import { useDebounce } from '../utils/useDebounce'
 import { MARKET_CATEGORIES, PREDICTION_STYLES, MARKET_SOURCES, getSourceLabel, sourceForFilter, categoryForFilter, getCategoryDisplay, getApiSourceLabel, getCategoryEmoji, getMarketOneLiner, formatResolutionDeadline, DISCOVER_SOURCE_TO_CATEGORY } from '../constants/marketConfig'
@@ -23,7 +24,7 @@ export default function MarketsList({ source: sourceFromRoute }) {
   const [selectedType, setSelectedType] = useState('all')
   const [selectedStatus, setSelectedStatus] = useState('all')
   const [selectedSource, setSelectedSource] = useState(sourceFromRoute || 'all')
-  const [sortBy, setSortBy] = useState('volume') // 'volume', 'newest', 'oldest'
+  const [sortBy, setSortBy] = useState('volume') // 'volume', 'newest', 'oldest', 'ending_soon'
   const [currentPage, setCurrentPage] = useState(1)
   const [filtersExpanded, setFiltersExpanded] = useState(false)
   const [retryCount, setRetryCount] = useState(0)
@@ -238,6 +239,10 @@ export default function MarketsList({ source: sourceFromRoute }) {
         return b.contractId.localeCompare(a.contractId)
       } else if (effectiveSort === 'oldest') {
         return a.contractId.localeCompare(b.contractId)
+      } else if (effectiveSort === 'ending_soon') {
+        const aDeadline = a.payload?.resolutionDeadline ? new Date(a.payload.resolutionDeadline).getTime() : Infinity
+        const bDeadline = b.payload?.resolutionDeadline ? new Date(b.payload.resolutionDeadline).getTime() : Infinity
+        return aDeadline - bDeadline
       }
       const statusOrder = { Active: 0, Resolving: 1, PendingApproval: 2, Settled: 3 }
       const statusDiff = (statusOrder[a.payload.status] || 99) - (statusOrder[b.payload.status] || 99)
@@ -265,7 +270,7 @@ export default function MarketsList({ source: sourceFromRoute }) {
   const pageTitle = sourceFromRoute ? getSourceLabel(sourceFromRoute) : 'Prediction Markets'
   const pageSubtitle = sourceFromRoute
     ? `Markets from ${getSourceLabel(sourceFromRoute).toLowerCase()}. Trade with AMM-backed liquidity.`
-    : 'Discover and trade on prediction markets. Trade with Pips. Deposit via crypto or card to get started.'
+    : 'Trade with virtual Credits (Pips). No crypto required to browse.'
 
   if (loading) {
     return (
@@ -285,23 +290,13 @@ export default function MarketsList({ source: sourceFromRoute }) {
 
   if (error) {
     return (
-      <div>
-        <div className="card">
-          <div className="error">
-            <strong>Error loading markets</strong>
-            <p className="mt-sm mb-0">{error}</p>
-            <small className="mt-sm" style={{ display: 'block', opacity: 0.9 }}>
-              Check your connection or set <code>VITE_API_ORIGIN</code> in <code>.env</code> to your deployed API URL when running locally.
-            </small>
-          </div>
-          <button
-            type="button"
-            className="btn-primary mt-md"
-            onClick={handleRetry}
-          >
-            Try again
-          </button>
-        </div>
+      <div className="card">
+        <ErrorState
+          title="Error loading markets"
+          message={`${error} Check your connection or set VITE_API_ORIGIN in .env when running locally.`}
+          onRetry={handleRetry}
+          retryLabel="Try again"
+        />
       </div>
     )
   }
@@ -458,6 +453,7 @@ export default function MarketsList({ source: sourceFromRoute }) {
                 <option value="volume">Volume (High to Low)</option>
                 <option value="newest">Newest First</option>
                 <option value="oldest">Oldest First</option>
+                <option value="ending_soon">Ending Soon</option>
               </select>
             </div>
             

@@ -120,4 +120,4 @@ See **`CRYPTO_DEPOSITS.md`** for crypto-specific secrets.
 6. **Automated markets:** Deploy the cron Worker (`cd workers/auto-markets-cron && npx wrangler deploy`), set **SITE_URL** (and optional **THE_ODDS_API_KEY** on the Pages project for sports). Markets will seed on the cron schedule at no extra cost (free-tier APIs).
 7. Call **POST /api/resolve-markets** periodically (cron or manual) to resolve due markets.
 
-For more detail on deposit/withdraw and security, see **`GUAP_DEPOSIT_WITHDRAW_FLOW.md`**, **`CRYPTO_DEPOSITS.md`**, and **`NEXT_STEPS_AND_PROD_READINESS.md`**.
+For more detail on deposit/withdraw and security, see **`PIPS_DEPOSIT_WITHDRAW_FLOW.md`**, **`CRYPTO_DEPOSITS.md`**, and **`NEXT_STEPS_AND_PROD_READINESS.md`**.

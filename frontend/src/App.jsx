@@ -19,6 +19,7 @@ const Profile = lazyWithRetry(() => import('./components/Profile'))
 const SignIn = lazyWithRetry(() => import('./components/SignIn'))
 const Register = lazyWithRetry(() => import('./components/Register'))
 const SplashScreen = lazyWithRetry(() => import('./components/SplashScreen'))
+const DesktopLaunch = lazyWithRetry(() => import('./components/DesktopLaunch'))
 const Download = lazyWithRetry(() => import('./components/Download'))
 const PrivacyPolicy = lazyWithRetry(() => import('./components/PrivacyPolicy'))
 const TermsOfService = lazyWithRetry(() => import('./components/TermsOfService'))
@@ -36,7 +37,15 @@ import { Web3WalletProvider } from './contexts/Web3WalletContext'
 import ProtectedRoute from './components/ProtectedRoute'
 // Import theme.css FIRST to ensure variables are available
 import './styles/theme.css'
+import './styles/desktop-app.css'
 import './App.css'
+
+// Mark body when running inside Tauri desktop app (for layout and styling)
+if (typeof document !== 'undefined' && typeof window !== 'undefined' && window.__TAURI__) {
+  document.documentElement.classList.add('desktop-app')
+} else if (typeof document !== 'undefined') {
+  document.documentElement.classList.remove('desktop-app')
+}
 
 // Component to track page views
 // Memoized to prevent unnecessary re-renders
@@ -92,6 +101,7 @@ function AppContent() {
                   <Route path="/discover/user" element={<MarketsList source="user" />} />
                   <Route path="/market/:marketId" element={<MarketDetail />} />
                   <Route path="/splashscreen" element={<SplashScreen />} />
+                  <Route path="/launch" element={<DesktopLaunch />} />
                   <Route path="/sign-in" element={<SignIn />} />
                   <Route path="/register" element={<Register />} />
                   <Route path="/account" element={<Navigate to="/dashboard" replace />} />

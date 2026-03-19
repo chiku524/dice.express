@@ -1,0 +1,37 @@
+.error-state {
+  text-align: center;
+  padding: var(--spacing-2xl, 2rem);
+  background: var(--color-error-bg, rgba(239, 68, 68, 0.1));
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  border-radius: var(--radius-lg, 8px);
+}
+
+.error-state-icon {
+  font-size: 2rem;
+  margin-bottom: var(--spacing-md, 1rem);
+}
+
+.error-state-title {
+  margin: 0 0 var(--spacing-sm, 0.5rem);
+  font-size: var(--font-size-lg, 1.125rem);
+  font-weight: var(--font-weight-semibold, 600);
+  color: var(--color-text-primary);
+}
+
+.error-state-message {
+  margin: 0 0 var(--spacing-lg, 1.5rem);
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm, 0.875rem);
+  line-height: 1.5;
+}
+
+.error-state-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-md, 1rem);
+  justify-content: center;
+}
+
+.error-state-btn {
+  margin: 0;
+}

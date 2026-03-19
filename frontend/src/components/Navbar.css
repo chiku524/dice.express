@@ -229,6 +229,12 @@
   color: var(--color-aqua);
 }
 
+.nav-user-name-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+
 .wallet-info .nav-user-name {
   color: var(--color-text-primary);
   text-decoration: none;
@@ -242,6 +248,27 @@
 .wallet-info .nav-user-name:hover {
   color: var(--color-teal);
   background: rgba(255, 255, 255, 0.06);
+}
+
+.wallet-info .nav-copy-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  opacity: 0.75;
+  transition: opacity 0.2s ease, background 0.2s ease;
+}
+
+.wallet-info .nav-copy-btn:hover {
+  opacity: 1;
+  background: rgba(255, 255, 255, 0.08);
 }
 
 .wallet-info .nav-account-link {
