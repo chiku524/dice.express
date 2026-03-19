@@ -10,7 +10,6 @@ import UserHubNav from './UserHubNav'
 import ErrorState from './ErrorState'
 import { formatPips, PLATFORM_CURRENCY_SYMBOL } from '../constants/currency'
 import './Portfolio.css'
-import { PIPS_PACKAGES } from '../constants/stripeProducts'
 
 const USDC_ABI = [{ type: 'function', name: 'transfer', inputs: [{ name: 'to', type: 'address' }, { name: 'value', type: 'uint256' }], outputs: [{ type: 'bool' }] }]
 const USDC_ETHEREUM = '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48'
@@ -30,9 +29,6 @@ export default function Portfolio() {
   const [activityLog, setActivityLog] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
-  const [stripeAmount, setStripeAmount] = useState('')
-  const [stripeLoading, setStripeLoading] = useState(false)
-  const [stripeError, setStripeError] = useState(null)
   const [withdrawAmount, setWithdrawAmount] = useState('')
   const [withdrawAddress, setWithdrawAddress] = useState('')
   const [withdrawNetwork, setWithdrawNetwork] = useState('ethereum')
@@ -49,8 +45,6 @@ export default function Portfolio() {
   const [balanceLoading, setBalanceLoading] = useState(true)
   const [marketTitles, setMarketTitles] = useState({}) // Map of marketId -> title
   const [activeTab, setActiveTab] = useState('balance') // 'balance' | 'positions' | 'activity'
-  const [stripeReturnMessage, setStripeReturnMessage] = useState(null) // 'success' | 'cancel' | null
-  const [stripePackages, setStripePackages] = useState(PIPS_PACKAGES) // from API (wrangler vars) or fallback to build-time
   const [retryCount, setRetryCount] = useState(0)
   const isMountedRef = useRef(true)
   const depositCardRef = useRef(null)
@@ -213,45 +207,11 @@ export default function Portfolio() {
     }
   }, [wallet, retryCount])
 
-  // Handle return from Stripe Checkout (success or cancel)
+  // Scroll to deposit section when landing with ?deposit=1 (e.g. after registration)
   useEffect(() => {
     if (!wallet) return
     const params = new URLSearchParams(window.location.search)
-    const stripe = params.get('stripe')
-    if (stripe === 'success') {
-      setStripeReturnMessage('success')
-      window.history.replaceState({}, '', window.location.pathname)
-      const refetchBalance = async () => {
-        try {
-          const res = await fetch('/api/get-user-balance', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ userParty: wallet.party }),
-          })
-          if (res.ok) {
-            const data = await res.json()
-            setUserBalance(String(data.balance ?? '0'))
-          }
-        } catch {}
-      }
-      refetchBalance()
-      setTimeout(refetchBalance, 2500)
-      const t = setTimeout(() => setStripeReturnMessage(null), 8000)
-      return () => clearTimeout(t)
-    }
-    if (stripe === 'cancel') {
-      setStripeReturnMessage('cancel')
-      window.history.replaceState({}, '', window.location.pathname)
-      const t = setTimeout(() => setStripeReturnMessage(null), 5000)
-      return () => clearTimeout(t)
-    }
-  }, [wallet])
-
-  // Scroll to deposit card when landing with ?deposit=card (e.g. after registration)
-  useEffect(() => {
-    if (!wallet) return
-    const params = new URLSearchParams(window.location.search)
-    if (params.get('deposit') === 'card') {
+    if (params.get('deposit') === '1' || params.get('deposit') === 'card') {
       setActiveTab('balance')
       window.history.replaceState({}, '', window.location.pathname)
       requestAnimationFrame(() => {
@@ -259,18 +219,6 @@ export default function Portfolio() {
       })
     }
   }, [wallet])
-
-  // Fetch Stripe package config from API (wrangler [vars]); fallback to PIPS_PACKAGES (build-time)
-  useEffect(() => {
-    let cancelled = false
-    fetch('/api/stripe-packages')
-      .then((res) => res.ok ? res.json() : null)
-      .then((data) => {
-        if (!cancelled && data?.packages?.length) setStripePackages(data.packages)
-      })
-      .catch(() => {})
-    return () => { cancelled = true }
-  }, [])
 
   // Fetch withdrawal requests and deposit records when on balance tab (must run before any early return so hook count is stable)
   const fetchWithdrawalRequests = async () => {
@@ -379,58 +327,6 @@ export default function Portfolio() {
       return date.toLocaleString()
     } catch {
       return dateString
-    }
-  }
-
-  const startStripeCheckout = async (body) => {
-    const base = window.location.origin
-    const res = await fetch('/api/stripe-create-checkout-session', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        ...body,
-        userParty: wallet.party,
-        successUrl: `${base}/portfolio?stripe=success`,
-        cancelUrl: `${base}/portfolio?stripe=cancel`,
-      }),
-    })
-    const data = await res.json()
-    if (!res.ok) throw new Error(data.error || data.hint || 'Could not start checkout')
-    if (data.url) window.location.href = data.url
-    else setStripeError('No checkout URL returned')
-  }
-
-  const handleStripeDeposit = async () => {
-    if (!wallet) return
-    const amount = parseFloat(stripeAmount)
-    if (!stripeAmount || isNaN(amount) || amount < 1) {
-      setStripeError('Enter at least 1 PP (charged in USD)')
-      return
-    }
-    setStripeLoading(true)
-    setStripeError(null)
-    try {
-      await startStripeCheckout({ amount })
-    } catch (err) {
-      setStripeError(err.message)
-    } finally {
-      setStripeLoading(false)
-    }
-  }
-
-  const handleStripePackage = async (pkg) => {
-    if (!wallet) return
-    setStripeLoading(true)
-    setStripeError(null)
-    try {
-      const body = (pkg.productId && pkg.productId.startsWith('prod_'))
-        ? { productId: pkg.productId }
-        : { amount: pkg.amount }
-      await startStripeCheckout(body)
-    } catch (err) {
-      setStripeError(err.message)
-    } finally {
-      setStripeLoading(false)
     }
   }
 
@@ -630,7 +526,7 @@ export default function Portfolio() {
           {balanceLoading ? 'Loading...' : formatPips(userBalance)}
         </p>
         <p className="balance-hint">
-          Add credits (deposit via wallet, card, or crypto); withdraw earnings when ready (fee applies).
+          Add credits (deposit via wallet or crypto); withdraw earnings when ready (fee applies).
         </p>
       </div>
 
@@ -702,64 +598,8 @@ export default function Portfolio() {
         )}
       </div>
 
-      {stripeReturnMessage === 'success' && (
-        <div className="card mb-md" style={{ background: 'var(--color-teal)', color: 'var(--color-bg)', padding: 'var(--spacing-md)' }}>
-          Payment successful. Your Pips balance will update in a moment (or refresh the page).
-        </div>
-      )}
-      {stripeReturnMessage === 'cancel' && (
-        <div className="card mb-md" style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}>
-          Checkout cancelled. You can try again when ready.
-        </div>
-      )}
-
-      {/* Deposit with card (Stripe) */}
+      {/* Deposit with crypto (platform addresses) — ref for ?deposit= scroll */}
       <div ref={depositCardRef} className="card mb-xl">
-        <h2 className="mb-md">Deposit with card</h2>
-        <p className="text-secondary mb-md" style={{ fontSize: 'var(--font-size-sm)' }}>
-          Pay with card via Stripe. You receive 1 PP per $1 USD. Pick a package below or enter any custom amount (min 1 PP).
-        </p>
-        <div className="stripe-packages mb-md">
-          <span className="text-secondary" style={{ fontSize: 'var(--font-size-sm)', marginRight: 'var(--spacing-sm)' }}>Packages:</span>
-          {stripePackages.map((pkg) => (
-            <button
-              key={pkg.amount}
-              type="button"
-              className="btn-secondary"
-              disabled={stripeLoading}
-              onClick={() => handleStripePackage(pkg)}
-              style={{ marginRight: 'var(--spacing-xs)', marginBottom: 'var(--spacing-xs)' }}
-            >
-              {pkg.label}
-            </button>
-          ))}
-        </div>
-        <div className="form-group" style={{ maxWidth: '280px' }}>
-          <label>Custom amount (PP)</label>
-          <input
-            type="number"
-            value={stripeAmount}
-            onChange={(e) => setStripeAmount(e.target.value)}
-            placeholder="e.g. 50"
-            min="1"
-            step="1"
-            disabled={stripeLoading}
-          />
-          <p className="text-muted" style={{ fontSize: 'var(--font-size-xs)', marginTop: 'var(--spacing-xs)' }}>Any amount from 1 PP; charged in USD at 1:1.</p>
-        </div>
-        {stripeError && <div className="error mt-sm" style={{ fontSize: 'var(--font-size-sm)' }}>{stripeError}</div>}
-        <button
-          className="btn-primary"
-          onClick={handleStripeDeposit}
-          disabled={stripeLoading || !stripeAmount || parseFloat(stripeAmount) < 1}
-          style={{ marginTop: 'var(--spacing-sm)' }}
-        >
-          {stripeLoading ? 'Redirecting…' : 'Pay custom amount'}
-        </button>
-      </div>
-
-      {/* Deposit with crypto (platform addresses) */}
-      <div className="card mb-xl">
         <h2 className="mb-md">Deposit with crypto</h2>
         <p className="text-secondary mb-md" style={{ fontSize: 'var(--font-size-sm)' }}>
           Send USDC (or supported asset) to the platform wallet below. Include your account ID in the memo if the network supports it. After confirmation we credit your Pips (1:1 for stablecoins).

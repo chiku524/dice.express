@@ -406,28 +406,6 @@
   margin-left: auto;
 }
 
-.wizard-stripe-packages {
-  margin-top: var(--spacing-sm);
-}
-
-.stripe-package-pills {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--spacing-xs);
-  margin-top: var(--spacing-sm);
-}
-
-.stripe-package-pill {
-  display: inline-block;
-  padding: var(--spacing-xs) var(--spacing-sm);
-  background: var(--color-primary-light);
-  border: 1px solid var(--color-primary-border);
-  border-radius: var(--radius-md);
-  font-size: var(--font-size-sm);
-  font-weight: var(--font-weight-medium);
-  color: var(--color-text-primary);
-}
-
 /* Mobile: single column, form only (brand panel hidden or minimal) */
 @media (max-width: 900px) {
   .auth-page {

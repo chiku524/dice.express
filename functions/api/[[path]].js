@@ -163,11 +163,6 @@ export async function onRequest(context) {
   // Prefer D1-native API when DB is bound
   if (db) {
     try {
-      if (path === 'stripe-webhook' && method === 'POST') {
-        const rawBody = await request.text()
-        const res = await handleStripeWebhook(db, env.R2, rawBody, request.headers, env)
-        if (res) return res
-      }
       const res = await handleWithD1(db, kv, env.R2, request, path, method, env)
       if (res) return res
     } catch (err) {
@@ -220,66 +215,6 @@ async function parseBody(request) {
   }
 }
 
-/** Verify Stripe webhook signature (v1) and return payload or null */
-async function verifyStripeWebhook(rawBody, signatureHeader, secret) {
-  if (!secret || !signatureHeader) return null
-  const parts = signatureHeader.split(',').reduce((acc, p) => {
-    const [k, v] = p.split('=')
-    if (k && v) acc[k.trim()] = v.trim()
-    return acc
-  }, {})
-  const t = parts.t
-  const v1 = parts.v1
-  if (!t || !v1) return null
-  const payload = t + '.' + rawBody
-  const encoder = new TextEncoder()
-  const key = await crypto.subtle.importKey(
-    'raw',
-    encoder.encode(secret),
-    { name: 'HMAC', hash: 'SHA-256' },
-    false,
-    ['sign']
-  )
-  const sig = await crypto.subtle.sign('HMAC', key, encoder.encode(payload))
-  const hex = Array.from(new Uint8Array(sig)).map((b) => b.toString(16).padStart(2, '0')).join('')
-  if (hex !== v1) return null
-  try {
-    return JSON.parse(rawBody)
-  } catch {
-    return null
-  }
-}
-
-/** Handle Stripe webhook: checkout.session.completed → credit Pips (precise 2-decimal) */
-async function handleStripeWebhook(db, r2, rawBody, headers, env) {
-  const sig = headers.get('Stripe-Signature')
-  const secret = env.STRIPE_WEBHOOK_SECRET
-  const event = secret ? await verifyStripeWebhook(rawBody, sig, secret) : JSON.parse(rawBody)
-  if (!event || !event.type) return jsonResponse({ received: true }, 200)
-  if (event.type === 'checkout.session.completed') {
-    const session = event.data?.object
-    const userParty = session?.client_reference_id || session?.metadata?.userParty
-    const amountTotal = session?.amount_total // Stripe: USD cents
-    if (!userParty) {
-      console.warn('[stripe-webhook] No client_reference_id')
-      return jsonResponse({ received: true }, 200)
-    }
-    // 1 USD cent = 1 Pips cent; amountTotal is integer cents
-    const amountPipsStr = amountTotal > 0 ? centsToPipsStr(Math.floor(Number(amountTotal))) : '0.00'
-    if (pipsToCents(amountPipsStr) <= 0) return jsonResponse({ received: true }, 200)
-    const currentRaw = await storage.getBalanceRaw(db, userParty)
-    const newBalStr = addPips(currentRaw, amountPipsStr)
-    await storage.setBalance(db, userParty, newBalStr)
-    await storage.insertDepositRecord(db, {
-      party: userParty,
-      amountPips: parseFloat(amountPipsStr),
-      source: 'stripe',
-      referenceId: session.id,
-    })
-  }
-  return jsonResponse({ received: true }, 200)
-}
-
 async function handleWithD1(db, kv, r2, request, path, method, env = {}) {
   const url = new URL(request.url)
   const query = Object.fromEntries(url.searchParams)
@@ -288,18 +223,6 @@ async function handleWithD1(db, kv, r2, request, path, method, env = {}) {
   // GET /api/health
   if (path === 'health' && method === 'GET') {
     return jsonResponse({ ok: true, provider: 'cloudflare' })
-  }
-
-  // GET /api/stripe-packages — return Pips package config from wrangler [vars] (STRIPE_PRODUCT_5 etc.) for frontend
-  if (path === 'stripe-packages' && method === 'GET') {
-    const packages = [
-      { amount: 5, productId: env.STRIPE_PRODUCT_5 || null, label: '$5' },
-      { amount: 10, productId: env.STRIPE_PRODUCT_10 || null, label: '$10' },
-      { amount: 25, productId: env.STRIPE_PRODUCT_25 || null, label: '$25' },
-      { amount: 50, productId: env.STRIPE_PRODUCT_50 || null, label: '$50' },
-      { amount: 100, productId: env.STRIPE_PRODUCT_100 || null, label: '$100' },
-    ]
-    return jsonResponse({ packages })
   }
 
   // GET /api/oracle?symbol= — proxy to RedStone (e.g. for price oracles)
@@ -317,63 +240,6 @@ async function handleWithD1(db, kv, r2, request, path, method, env = {}) {
     } catch (err) {
       return jsonResponse({ error: 'Oracle request failed', message: err?.message }, 502)
     }
-  }
-
-  // POST /api/stripe-create-checkout-session — create Stripe Checkout; redirect user to pay; webhook credits Pips
-  // Accepts: amount (custom PP), priceId (price_xxx), or productId (prod_xxx) — productId is resolved to default price via Stripe API
-  if (path === 'stripe-create-checkout-session' && method === 'POST') {
-    const stripeKey = env.STRIPE_SECRET_KEY
-    if (!stripeKey) return jsonResponse({ error: 'Stripe not configured', hint: 'Set STRIPE_SECRET_KEY' }, 503)
-    const { amount, priceId, productId, userParty, successUrl, cancelUrl } = body
-    const origin = new URL(request.url).origin
-    const baseParams = {
-      'mode': 'payment',
-      'client_reference_id': String(userParty),
-      'success_url': successUrl || `${origin}/portfolio?stripe=success`,
-      'cancel_url': cancelUrl || `${origin}/portfolio?stripe=cancel`,
-    }
-    if (!userParty) return jsonResponse({ error: 'userParty required' }, 400)
-    let resolvedPriceId = (priceId && typeof priceId === 'string' && priceId.startsWith('price_')) ? priceId : null
-    if (!resolvedPriceId && productId && typeof productId === 'string' && productId.startsWith('prod_')) {
-      const productRes = await fetch(`https://api.stripe.com/v1/products/${encodeURIComponent(productId)}`, {
-        headers: { Authorization: `Bearer ${stripeKey}` },
-      })
-      const product = await productRes.json()
-      if (product.error) return jsonResponse({ error: product.error.message || 'Stripe product error' }, 400)
-      const defaultPrice = product.default_price
-      resolvedPriceId = (defaultPrice && typeof defaultPrice === 'object' && defaultPrice.id) ? defaultPrice.id : (typeof defaultPrice === 'string' ? defaultPrice : null)
-      if (!resolvedPriceId) return jsonResponse({ error: 'Product has no default price; set one in Stripe Dashboard', hint: 'Products → [product] → Pricing' }, 400)
-    }
-    let params
-    if (resolvedPriceId) {
-      params = new URLSearchParams({
-        ...baseParams,
-        'line_items[0][price]': resolvedPriceId,
-        'line_items[0][quantity]': '1',
-      })
-    } else {
-      const amountPipsNum = parseFloat(amount)
-      if (!amountPipsNum || amountPipsNum < 1) return jsonResponse({ error: 'amount (min 1), priceId, or productId required' }, 400)
-      const amountCents = Math.round(amountPipsNum * 100)
-      params = new URLSearchParams({
-        ...baseParams,
-        'line_items[0][price_data][currency]': 'usd',
-        'line_items[0][price_data][unit_amount]': String(amountCents),
-        'line_items[0][price_data][product_data][name]': 'Pips',
-        'line_items[0][quantity]': '1',
-      })
-    }
-    const res = await fetch('https://api.stripe.com/v1/checkout/sessions', {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${stripeKey}`,
-        'Content-Type': 'application/x-www-form-urlencoded',
-      },
-      body: params.toString(),
-    })
-    const data = await res.json()
-    if (data.error) return jsonResponse({ error: data.error.message || 'Stripe error' }, 400)
-    return jsonResponse({ url: data.url, sessionId: data.id })
   }
 
   // POST /api/deposit-crypto — credit Pips after crypto deposit (platform wallet received funds).

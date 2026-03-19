@@ -83,7 +83,7 @@ export const SEO_PAGES = {
   },
   '/portfolio': {
     title: `Portfolio — Balance, Deposit & Withdraw Pips | ${BASE_TITLE}`,
-    description: 'Manage your Pips balance: deposit with card (Stripe) or crypto, withdraw to crypto (fee applies), view positions and withdrawal history.',
+    description: 'Manage your Pips balance: deposit with crypto (wallet or platform address), withdraw to crypto (fee applies), view positions and withdrawal history.',
     keywords: 'portfolio, Pips balance, deposit, withdraw, prediction market funds',
   },
   '/admin': {

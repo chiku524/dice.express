@@ -51,7 +51,7 @@ You said you **do not have funds to take financial risk** for users who deposit.
 
 ### Keep deposits and payouts user-to-user
 
-- User **deposits** (Stripe/crypto) → credited as Pips to their account. You hold those balances; when they **withdraw**, you send money from the same pool of user funds (and fees). You are not “investing” that money; you are custodian.
+- User **deposits** (crypto) → credited as Pips to their account. You hold those balances; when they **withdraw**, you send money from the same pool of user funds (and fees). You are not “investing” that money; you are custodian.
 - For **trading**, if you only allow P2P (no platform liquidity), then at resolution **winners are paid from losers’ stakes**; the platform only takes a fee. So you are not adding your own funds to pay winners.
 
 ### Summary

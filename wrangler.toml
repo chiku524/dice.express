@@ -31,14 +31,6 @@ id = "bf88f3a357f640ccb3173da7e163570d"
 # Set to "0" or remove when you want to enable AMM with platform liquidity. See docs/ALGORITHMS_AND_RISK.md.
 AUTO_MARKETS_ZERO_LIQUIDITY = "1"
 
-# Stripe Product IDs for Pips packages (prod_xxx). Used by GET /api/stripe-packages and checkout when frontend sends productId.
-# These are variables (not secrets); Checkout shows product name/image when packages use these.
-STRIPE_PRODUCT_5 = "prod_U0jlnKLunwKviC"
-STRIPE_PRODUCT_10 = "prod_U0jlwUCiJuz3GS"
-STRIPE_PRODUCT_25 = "prod_U0jl1E0fB1iH6G"
-STRIPE_PRODUCT_50 = "prod_U0jlrgERbm4J1S"
-STRIPE_PRODUCT_100 = "prod_U0jlmbM1gAYqWg"
-
 # Platform deposit wallets (dice.express Coinbase wallet). EVM chains use the same 0x address.
 # Set secrets via Cloudflare Dashboard → Pages/Workers → Settings → Environment variables (see docs/CRYPTO_DEPOSITS.md).
 PLATFORM_WALLET_ADDRESS = "0xf3f20aCeBDDD921bC21c8184490416109dE57ba3"

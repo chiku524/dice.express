@@ -128,7 +128,7 @@ function GettingStartedContent() {
       
       <h2>Overview</h2>
       <p>
-        Trade on prediction markets. Deposit with <strong>card (Stripe)</strong> or <strong>crypto</strong> to get <strong>Pips</strong> (1 PP = $1 USD). Use Pips to buy Yes/No shares; withdraw earnings (fee applies). Markets are created automatically from real-world data; you only trade. All data runs on Cloudflare (D1, KV, R2).
+        Trade on prediction markets. Deposit with <strong>crypto</strong> (wallet or platform address) to get <strong>Pips</strong> (1 PP = $1 USD). Use Pips to buy Yes/No shares; withdraw earnings (fee applies). Markets are created automatically from real-world data; you only trade. All data runs on Cloudflare (D1, KV, R2).
       </p>
 
       <h2>Prerequisites</h2>
@@ -139,7 +139,7 @@ function GettingStartedContent() {
       <h2>Quick Start</h2>
       <ol>
         <li><strong>Create account:</strong> Click &quot;Create account&quot;, enter email, password, and display name. Choose how you&apos;ll add funds (card, crypto, or later).</li>
-        <li><strong>Deposit:</strong> In Portfolio → Balance, use <strong>Deposit from wallet</strong> (connect Web3 wallet, send USDC or native ETH/MATIC), <strong>Deposit with card</strong> (Stripe: $5–$100 or custom), or <strong>Deposit with crypto</strong> (send to platform address; we credit Pips when processed).</li>
+        <li><strong>Deposit:</strong> In Portfolio → Balance, use <strong>Deposit from wallet</strong> (connect Web3 wallet, send USDC or native ETH/MATIC) or <strong>Deposit with crypto</strong> (send to platform address; we credit Pips when processed).</li>
         <li><strong>Discover markets:</strong> Browse All Markets, With volume, Sports/Weather &amp; News, Finance &amp; Crypto, or Virtual Realities. Markets are created automatically — no user-created markets.</li>
         <li><strong>Trade:</strong> Open a market and use the trade panel to buy Yes or No with Pips. View positions and balance in Portfolio.</li>
       </ol>
@@ -166,7 +166,7 @@ function WalletAuthenticationContent() {
       <h3>Registration steps</h3>
       <ol>
         <li><strong>Step 1 — Account:</strong> Enter email, password, confirm password, and display name.</li>
-        <li><strong>Step 2 — Fund your account:</strong> Choose &quot;Card (Stripe)&quot;, &quot;Crypto&quot;, or &quot;Add funds later&quot;. If you choose card, you&apos;ll go to Portfolio after signup to pick a package ($5–$100).</li>
+        <li><strong>Step 2 — Fund your account:</strong> Choose &quot;Crypto&quot; or &quot;Add funds later&quot;. You can deposit from Portfolio after signup.</li>
         <li><strong>Step 3 — Complete:</strong> Review and click &quot;Create account&quot;. You&apos;re then taken to Dashboard (or Portfolio if you chose card, to add Pips).</li>
       </ol>
 
@@ -237,13 +237,12 @@ function AMMFeesContent() {
       <h2>Trading with Pips</h2>
       <ul>
         <li>All trading uses <strong>Pips (PP)</strong> — 1 PP = $1 USD.</li>
-        <li>Add Pips via Portfolio → Balance: <strong>Deposit from wallet</strong> (USDC, ETH, or MATIC), <strong>Deposit with card</strong> (Stripe), or <strong>Deposit with crypto</strong> (send to platform address).</li>
+        <li>Add Pips via Portfolio → Balance: <strong>Deposit from wallet</strong> (USDC, ETH, or MATIC) or <strong>Deposit with crypto</strong> (send to platform address).</li>
         <li>Buying Yes/No spends Pips; settling or selling returns Pips to your balance.</li>
       </ul>
 
       <h2>Fees</h2>
       <ul>
-        <li><strong>Deposit (card):</strong> No extra fee; you pay the package or custom amount in USD.</li>
         <li><strong>Withdrawal:</strong> A fee applies (e.g. 2%, min 1 PP). Shown in Portfolio when you request a withdrawal.</li>
         <li><strong>Trading:</strong> Any trading fee is shown in the trade panel when you place an order.</li>
       </ul>
@@ -262,7 +261,7 @@ function PositionCreationContent() {
       <h1>Positions &amp; Trading</h1>
       
       <p>
-        You open positions by buying Yes or No (or outcome) shares on a market, using your <strong>Pips</strong> balance. Positions are stored in Cloudflare D1. Add Pips from Portfolio (card or crypto) if needed.
+        You open positions by buying Yes or No (or outcome) shares on a market, using your <strong>Pips</strong> balance. Positions are stored in Cloudflare D1. Add Pips from Portfolio (crypto) if needed.
       </p>
 
       <h2>Placing a trade</h2>
@@ -285,7 +284,7 @@ function PositionCreationContent() {
 
       <h2>Important notes</h2>
       <ul>
-        <li>Positions use your Pips balance (deposit via card or crypto in Portfolio)</li>
+        <li>Positions use your Pips balance (deposit via crypto in Portfolio)</li>
         <li>All position data is stored in Cloudflare D1 and linked to your account (party ID)</li>
       </ul>
     </div>
@@ -298,16 +297,8 @@ function DepositWithdrawContent() {
       <h1>Pips: Deposit &amp; Withdraw</h1>
       
       <p>
-        <strong>Pips (PP)</strong> are the in-platform currency (1 PP = $1 USD). You get Pips by depositing with <strong>card (Stripe)</strong> or <strong>crypto</strong>. You trade with Pips and can withdraw earnings; a withdrawal fee applies. Balance is stored in Cloudflare D1.
+        <strong>Pips (PP)</strong> are the in-platform currency (1 PP = $1 USD). You get Pips by depositing with <strong>crypto</strong> (wallet or platform address). You trade with Pips and can withdraw earnings; a withdrawal fee applies. Balance is stored in Cloudflare D1.
       </p>
-
-      <h2>Deposit with card (Stripe)</h2>
-      <p>In <strong>Portfolio</strong> → Deposit with card:</p>
-      <ul>
-        <li><strong>Quick add:</strong> Choose $5, $10, $25, $50, or $100 — you’re sent to Stripe Checkout for that amount. After payment, Pips are credited via webhook.</li>
-        <li><strong>Custom amount:</strong> Enter any amount (PP) and click &quot;Deposit with card&quot; for a one-off Stripe Checkout.</li>
-      </ul>
-      <p>Stripe products ($5–$100) can be configured in Stripe Dashboard; optional env vars <code>VITE_STRIPE_PRICE_5</code> etc. let the app use those product Price IDs so Checkout shows the correct name and image.</p>
 
       <h2>Deposit from wallet</h2>
       <p>In Portfolio → Balance, connect your Web3 wallet (e.g. MetaMask), choose token (USDC on Ethereum, native ETH, or native MATIC on Polygon), enter amount, and send. After the transaction confirms, sign the verification message; Pips are credited automatically. Use the same platform EVM address for both USDC and native transfers.</p>
@@ -320,7 +311,6 @@ function DepositWithdrawContent() {
 
       <h2>APIs (reference)</h2>
       <ul>
-        <li><code>POST /api/stripe-create-checkout-session</code> — create Stripe Checkout (body: <code>{`{ userParty, amount }`}</code> or <code>{`{ userParty, priceId }`}</code>)</li>
         <li><code>POST /api/get-user-balance</code> — get balance (body: <code>{`{ userParty }`}</code>)</li>
         <li><code>POST /api/add-credits</code> — internal/testing: add Pips (body: <code>{`{ userParty, amount }`}</code>)</li>
       </ul>
@@ -341,7 +331,6 @@ function PortfolioContent() {
       <ul>
         <li><strong>Balance (PP):</strong> Your current Pips balance.</li>
         <li><strong>Deposit from wallet:</strong> Connect a Web3 wallet and send USDC (Ethereum), native ETH, or native MATIC (Polygon). Pips are credited after confirmation and verification signature.</li>
-        <li><strong>Deposit with card:</strong> Quick-add packages ($5, $10, $25, $50, $100) or enter a custom amount. Redirects to Stripe Checkout; Pips are credited after payment.</li>
         <li><strong>Deposit with crypto:</strong> Platform addresses and your account ID for memo. Send USDC or native ETH/MATIC; we credit Pips when the platform wallet receives funds.</li>
         <li><strong>Withdraw Pips:</strong> Enter amount, destination address, network (Ethereum or Polygon), and token (USDC or native). A fee applies; requests appear in &quot;Your withdrawal requests&quot;.</li>
       </ul>
@@ -387,7 +376,7 @@ function BlockchainContent() {
       </p>
 
       <h2>Payments</h2>
-      <p><strong>Card:</strong> Stripe Checkout and webhooks; no blockchain. <strong>Crypto:</strong> Deposit/withdraw use the platform wallet; you send/receive crypto and we credit or debit Pips in D1. Supported networks (e.g. Ethereum, Polygon) are configured per deployment.</p>
+      <p><strong>Crypto:</strong> Deposit/withdraw use the platform wallet; you send/receive crypto and we credit or debit Pips in D1. Supported networks (e.g. Ethereum, Polygon) are configured per deployment.</p>
     </div>
   )
 }
@@ -555,7 +544,7 @@ function ArchitectureContent() {
       
       <h2>Overview</h2>
       <p>
-        Trading uses <strong>Pips</strong> stored in <strong>Cloudflare D1</strong>. Deposits: Stripe (card) and crypto (platform wallet). Markets are automated from APIs; resolution runs on oracles and due dates.
+        Trading uses <strong>Pips</strong> stored in <strong>Cloudflare D1</strong>. Deposits: crypto (wallet or platform address). Markets are automated from APIs; resolution runs on oracles and due dates.
       </p>
 
       <h2>Technology stack</h2>
@@ -564,12 +553,12 @@ function ArchitectureContent() {
         <li><strong>API:</strong> Cloudflare Pages Functions (<code>/api/*</code>)</li>
         <li><strong>Database:</strong> Cloudflare D1 (markets, pools, positions, balances)</li>
         <li><strong>Auth:</strong> Email/password register and sign-in; session in localStorage</li>
-        <li><strong>Payments:</strong> Stripe Checkout + webhook; crypto deposit/withdraw via platform wallet</li>
+        <li><strong>Payments:</strong> Crypto deposit/withdraw via platform wallet</li>
       </ul>
 
       <h2>Data flow</h2>
       <ul>
-        <li><strong>Deposit (card):</strong> App → Stripe Checkout → webhook <code>checkout.session.completed</code> → credit Pips in D1</li>
+        <li><strong>Deposit (crypto):</strong> User sends from wallet or to platform address → API verifies and credits Pips in D1</li>
         <li><strong>Trade:</strong> User buys Yes/No → API updates pool and position in D1</li>
         <li><strong>Resolution:</strong> Cron or manual trigger resolves due markets; winning positions credited in D1</li>
         <li><strong>Withdraw:</strong> User submits request → platform sends crypto → status stored in D1</li>
@@ -578,7 +567,6 @@ function ArchitectureContent() {
       <h2>API overview</h2>
       <ul>
         <li><code>/api/register</code>, <code>/api/sign-in</code> — Auth</li>
-        <li><code>/api/stripe-create-checkout-session</code>, <code>/api/stripe-webhook</code> — Stripe</li>
         <li><code>/api/get-user-balance</code>, <code>/api/add-credits</code> — Balance</li>
         <li><code>/api/markets</code>, <code>/api/pools</code>, <code>/api/trade</code> — Markets and AMM</li>
         <li><code>/api/withdrawal-requests</code>, withdraw flow — Withdrawals</li>
@@ -653,12 +641,6 @@ function APIReferenceContent() {
       
       <h2>Account &amp; Auth</h2>
       <p>Registration and sign-in: <code>POST /api/register</code>, <code>POST /api/sign-in</code>. Account data: <code>POST /api/account</code>, <code>GET /api/account?accountId=...</code>.</p>
-
-      <h2>Stripe</h2>
-      <h3>POST /api/stripe-create-checkout-session</h3>
-      <p>Create a Stripe Checkout session. Body: <code>{`{ userParty, amount }`}</code> (custom amount in PP) or <code>{`{ userParty, priceId }`}</code> (Stripe Price ID for $5–$100 products). Optional: <code>successUrl</code>, <code>cancelUrl</code>. Returns <code>{ url, sessionId }</code>.</p>
-      <h3>POST /api/stripe-webhook</h3>
-      <p>Stripe webhook endpoint. Handles <code>checkout.session.completed</code> and credits Pips to <code>client_reference_id</code> (userParty). Requires <code>STRIPE_WEBHOOK_SECRET</code> for signature verification.</p>
 
       <h2>Balance</h2>
       <h3>POST /api/get-user-balance</h3>

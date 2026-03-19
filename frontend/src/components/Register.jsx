@@ -3,7 +3,6 @@ import { Link, useNavigate } from 'react-router-dom'
 import { useWallet } from '../contexts/WalletContext'
 import { register as apiRegister } from '../services/accountApi'
 import { BRAND_NAME } from '../constants/brand'
-import { PIPS_PACKAGES } from '../constants/stripeProducts'
 import './AuthPages.css'
 
 const STEPS = [
@@ -84,10 +83,6 @@ export default function Register() {
           fundChoice: account.fundChoice ?? null,
           createdAt: account.createdAt,
         })
-        if (financeChoice === 'stripe') {
-          navigate('/portfolio?deposit=card', { replace: true })
-          return
-        }
       }
       navigate('/dashboard', { replace: true })
     } catch (err) {
@@ -103,11 +98,11 @@ export default function Register() {
         <div className="auth-brand-content">
           <h2 className="auth-brand-title">Join {BRAND_NAME}</h2>
           <p className="auth-brand-tagline">
-            Create an account in a few steps. Trade on prediction markets with Pips — deposit with card or crypto.
+            Create an account in a few steps. Trade on prediction markets with Pips — deposit with crypto.
           </p>
           <ul className="auth-brand-features">
             <li>One account for all your trading</li>
-            <li>Fund with card (Stripe) or crypto</li>
+            <li>Fund with crypto (wallet or platform address)</li>
             <li>Withdraw earnings from your portfolio</li>
           </ul>
         </div>
@@ -214,17 +209,6 @@ export default function Register() {
               </button>
               <button
                 type="button"
-                className={`wizard-option ${financeChoice === 'stripe' ? 'selected' : ''}`}
-                onClick={() => setFinanceChoice('stripe')}
-              >
-                <span className="wizard-option-icon" aria-hidden>💳</span>
-                <span className="wizard-option-text">
-                  <span className="wizard-option-label">Card (Stripe)</span>
-                  <span className="wizard-option-desc">Pick a package after signup</span>
-                </span>
-              </button>
-              <button
-                type="button"
                 className={`wizard-option ${financeChoice === 'skip' ? 'selected' : ''}`}
                 onClick={() => setFinanceChoice('skip')}
               >
@@ -235,18 +219,6 @@ export default function Register() {
                 </span>
               </button>
             </div>
-            {financeChoice === 'stripe' && (
-              <div className="wizard-stripe-packages">
-                <p className="wizard-panel-desc" style={{ marginTop: 'var(--spacing-sm)' }}>
-                  After you create your account, you&apos;ll go to Portfolio to choose a package: $5, $10, $25, $50, or $100 Pips (1 PP = $1 USD).
-                </p>
-                <div className="stripe-package-pills">
-                  {PIPS_PACKAGES.map((p) => (
-                    <span key={p.amount} className="stripe-package-pill">{p.label}</span>
-                  ))}
-                </div>
-              </div>
-            )}
             <div className="wizard-actions">
               <button type="button" className="auth-secondary" onClick={() => setStep(1)}>Back</button>
               <button type="button" className="auth-submit" onClick={() => setStep(3)}>Next</button>
@@ -262,7 +234,7 @@ export default function Register() {
             <div className="wizard-summary">
               <p><strong>Email:</strong> {email.trim() ? (() => { const s = email.trim(); const i = s.indexOf('@'); return i > 0 ? s.slice(0, 2) + '***' + s.slice(i) : s; })() : '—'}</p>
               <p><strong>Display name:</strong> {displayName.trim() || '—'}</p>
-              <p><strong>Funding:</strong> {financeChoice === 'blockchain' ? 'Crypto (later)' : financeChoice === 'stripe' ? "Card — you'll pick a package on Portfolio" : 'Add later'}</p>
+              <p><strong>Funding:</strong> {financeChoice === 'blockchain' ? 'Crypto (later)' : 'Add later'}</p>
             </div>
             <div className="wizard-actions">
               <button type="button" className="auth-secondary" onClick={() => setStep(2)}>Back</button>

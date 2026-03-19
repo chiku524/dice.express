@@ -1,6 +1,6 @@
 # dice.express — Prediction Markets
 
-A prediction markets platform powered by **Pips**. Users deposit (crypto or card) to get Pips, trade on outcomes, and withdraw earnings (withdrawal fee applies). Markets, P2P orders, AMM, and balances run on **Cloudflare** (D1, KV, R2).
+A prediction markets platform powered by **Pips**. Users deposit (crypto) to get Pips, trade on outcomes, and withdraw earnings (withdrawal fee applies). Markets, P2P orders, AMM, and balances run on **Cloudflare** (D1, KV, R2).
 
 ## Features
 
@@ -66,9 +66,9 @@ npm install
 ## Docs
 
 - `docs/README.md` — Documentation index
-- `docs/GET_APP_UP_AND_RUNNING.md` — Deploy and run in production (D1, Stripe, crypto, cron)
+- `docs/GET_APP_UP_AND_RUNNING.md` — Deploy and run in production (D1, crypto, cron)
 - `docs/ARCHITECTURE.md` — Cloudflare stack
 - `docs/CLOUDFLARE.md` — Deploy to Cloudflare Pages, D1/R2/KV storage
-- `docs/PIPS_DEPOSIT_WITHDRAW_FLOW.md` — Deposit (crypto/Stripe) → Pips → withdraw (fee)
+- `docs/PIPS_DEPOSIT_WITHDRAW_FLOW.md` — Deposit (crypto) → Pips → withdraw (fee)
 - `docs/PREDICTION_MARKETS.md` — Prediction styles, free/cheap APIs, automated market creation
 - `docs/P2P_AND_GROWTH_STRATEGY.md` — P2P-only mode and growth from zero

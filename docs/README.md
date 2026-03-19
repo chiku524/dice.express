@@ -3,7 +3,7 @@
 ## Getting Started
 
 - **[../README.md](../README.md)** – Project overview and setup
-- **[GET_APP_UP_AND_RUNNING.md](./GET_APP_UP_AND_RUNNING.md)** – Deploy and operate in production (D1, Stripe, crypto, cron, resolution)
+- **[GET_APP_UP_AND_RUNNING.md](./GET_APP_UP_AND_RUNNING.md)** – Deploy and operate in production (D1, crypto, cron, resolution)
 
 ## Architecture & Design
 
@@ -24,14 +24,13 @@
 
 ## Deployment & Ops
 
-- **[PIPS_DEPOSIT_WITHDRAW_FLOW.md](./PIPS_DEPOSIT_WITHDRAW_FLOW.md)** – Pips deposit (crypto/Stripe) and withdraw flow
+- **[PIPS_DEPOSIT_WITHDRAW_FLOW.md](./PIPS_DEPOSIT_WITHDRAW_FLOW.md)** – Pips deposit (crypto) and withdraw flow
 - **[CRYPTO_DEPOSITS.md](./CRYPTO_DEPOSITS.md)** – Crypto deposit verification (on-chain), watcher, Cloudflare secrets
-- **[STRIPE.md](./STRIPE.md)** – Stripe integration (env, webhook) and business verification copy
 - **[NEXT_STEPS_AND_PROD_READINESS.md](./NEXT_STEPS_AND_PROD_READINESS.md)** – What’s done, what’s not, suggested next steps
 
 ## Brand & UX
 
-- **[BRAND.md](./BRAND.md)** – Brand, theme colors, favicon/logo, Stripe branding
+- **[BRAND.md](./BRAND.md)** – Brand, theme colors, favicon/logo
 - **[SEO.md](./SEO.md)** – SEO and sitemap
 - **[UX_UI_RECOMMENDATIONS.md](./UX_UI_RECOMMENDATIONS.md)** – UX/UI recommendations
 - **[USER_FLOW_AND_RISK_AUDIT.md](./USER_FLOW_AND_RISK_AUDIT.md)** – User flow and risk audit

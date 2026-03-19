@@ -35,27 +35,16 @@ Checklist to deploy and operate dice.express in production. Do these after **cry
 
 **In Cloudflare Dashboard → your project → Settings → Environment variables:**
 
-- **Vars (non-secret):** Usually inherited from `wrangler.toml`. To avoid platform financial risk, set **`AUTO_MARKETS_ZERO_LIQUIDITY=1`** (or **`INITIAL_POOL_LIQUIDITY=0`**) so new markets get zero liquidity; trading then requires P2P matched orders only. See **docs/ALGORITHMS_AND_RISK.md**. (e.g. Stripe product IDs, `PLATFORM_WALLET_ADDRESS`, `PLATFORM_WALLET_SOL`). No need to re-add `PLATFORM_WALLET_ADDRESS` — it’s in `wrangler.toml`.
+- **Vars (non-secret):** Usually inherited from `wrangler.toml`. To avoid platform financial risk, set **`AUTO_MARKETS_ZERO_LIQUIDITY=1`** (or **`INITIAL_POOL_LIQUIDITY=0`**) so new markets get zero liquidity; trading then requires P2P matched orders only. See **docs/ALGORITHMS_AND_RISK.md**. (e.g. `PLATFORM_WALLET_ADDRESS`, `PLATFORM_WALLET_SOL`). No need to re-add `PLATFORM_WALLET_ADDRESS` — it’s in `wrangler.toml`.
 - **Secrets (encrypted):**
   - **ALCHEMY_API_KEY** — for deposit verification (RPC). Use the exact name (all caps).
   - **DEPOSIT_CRYPTO_SECRET** — used by your deposit watcher when calling `POST /api/deposit-crypto`.
-  - **STRIPE_SECRET_KEY** — for card deposits (Stripe Checkout).
-  - **STRIPE_WEBHOOK_SECRET** — after adding the webhook in Stripe (see below).
 
 See **`CRYPTO_DEPOSITS.md`** for crypto-specific secrets.
 
 ---
 
-## 4. Stripe (card deposits)
-
-- In Stripe Dashboard → Developers → Webhooks: add endpoint `https://<your-domain>/api/stripe-webhook`, event `checkout.session.completed`.
-- Copy the **Signing secret** (starts with `whsec_`) into Cloudflare as **STRIPE_WEBHOOK_SECRET**.
-- Set **STRIPE_SECRET_KEY** (sk_live_… or sk_test_…) in Cloudflare secrets.
-- Test: run a small card deposit from the app and confirm Pips are credited after checkout.
-
----
-
-## 5. Verifying crypto deposit (regulatory / RPC verification)
+## 4. Verifying crypto deposit (regulatory / RPC verification)
 
 - Confirm **ALCHEMY_API_KEY** and **DEPOSIT_CRYPTO_SECRET** are set (secrets). **PLATFORM_WALLET_ADDRESS** is in `wrangler.toml` (no dashboard entry).
 - When a real deposit hits your platform wallet (EVM USDC), your **deposit watcher** (see below) calls `POST /api/deposit-crypto` with `txHash`, `cryptoAmount`, `cryptoDecimals`, `userParty`, `networkId`, and header `X-Deposit-Crypto-Secret`. The API then:
@@ -66,7 +55,7 @@ See **`CRYPTO_DEPOSITS.md`** for crypto-specific secrets.
 
 ---
 
-## 6. Crypto deposit watcher (automated, no manual verification)
+## 5. Crypto deposit watcher (automated, no manual verification)
 
 - Run a small service that watches your **platform wallet** for incoming ERC20 (e.g. USDC) transfers (e.g. Alchemy `eth_getLogs` or Transfers API), then calls:
   - `POST /api/deposit-crypto`  
@@ -76,7 +65,7 @@ See **`CRYPTO_DEPOSITS.md`** for crypto-specific secrets.
 
 ---
 
-## 7. Crypto withdrawals (sending from your wallet)
+## 6. Crypto withdrawals (sending from your wallet)
 
 - Users request withdrawals in the app; the API debits balance and inserts into `withdrawal_requests` (status `pending`).
 - You need a process that: (1) reads `withdrawal_requests` where `status = 'pending'`, (2) sends the requested crypto from your platform wallet to the user’s address, (3) updates the row (e.g. `status = 'completed'`, `tx_hash = '0x...'`). Use `storage.updateWithdrawalStatus(db, requestId, 'completed', txHash)` or direct D1 SQL. This can be a cron job or a script; no built-in sender in the app.
@@ -105,7 +94,6 @@ See **`CRYPTO_DEPOSITS.md`** for crypto-specific secrets.
 ## 10. Optional
 
 - **Add Pips (test):** In production, consider gating or removing the test “Add Pips” flow (`POST /api/add-credits`) or restricting by IP/role.
-- **Stripe products:** Create fixed $5 / $10 / $25 / $50 / $100 products in Stripe and optionally wire “Quick add” buttons (see `frontend/public/stripe-products/` and Stripe product IDs in `wrangler.toml`).
 - **WITHDRAW_MAX_PP / WITHDRAW_MAX_PENDING:** Set in Cloudflare vars to cap withdrawal size and number of pending requests per user.
 
 ---
@@ -114,10 +102,9 @@ See **`CRYPTO_DEPOSITS.md`** for crypto-specific secrets.
 
 1. Deploy to Cloudflare Pages (`npm run pages:deploy`); **attach D1, R2, KV** in Dashboard → Pages → dice-express → Settings → Functions.
 2. Run D1 migrations (see §2; include `0005_deposit_reference_unique.sql`).
-3. Set secrets on the **Pages** project: **ALCHEMY_API_KEY**, **DEPOSIT_CRYPTO_SECRET**, **STRIPE_SECRET_KEY**, **STRIPE_WEBHOOK_SECRET**.
-4. Configure Stripe webhook and test card deposit.
-5. (When you have crypto) Verify crypto deposit and run a deposit watcher; run a withdrawal processor.
-6. **Automated markets:** Deploy the cron Worker (`cd workers/auto-markets-cron && npx wrangler deploy`), set **SITE_URL** (and optional **THE_ODDS_API_KEY** on the Pages project for sports). Markets will seed on the cron schedule at no extra cost (free-tier APIs).
-7. Call **POST /api/resolve-markets** periodically (cron or manual) to resolve due markets.
+3. Set secrets on the **Pages** project: **ALCHEMY_API_KEY**, **DEPOSIT_CRYPTO_SECRET**.
+4. (When you have crypto) Verify crypto deposit and run a deposit watcher; run a withdrawal processor.
+5. **Automated markets:** Deploy the cron Worker (`cd workers/auto-markets-cron && npx wrangler deploy`), set **SITE_URL** (and optional **THE_ODDS_API_KEY** on the Pages project for sports). Markets will seed on the cron schedule at no extra cost (free-tier APIs).
+6. Call **POST /api/resolve-markets** periodically (cron or manual) to resolve due markets.
 
 For more detail on deposit/withdraw and security, see **`PIPS_DEPOSIT_WITHDRAW_FLOW.md`**, **`CRYPTO_DEPOSITS.md`**, and **`NEXT_STEPS_AND_PROD_READINESS.md`**.
