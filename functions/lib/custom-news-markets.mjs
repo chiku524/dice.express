@@ -80,25 +80,51 @@ function extractConflictName(text) {
 }
 
 /**
+ * Only promote to a custom market when the headline is "hot" enough: major
+ * event + high-signal phrasing (year, candidate, named conflict, etc.).
+ * Avoids turning every passing mention into a custom market.
+ */
+function isHotElection(text) {
+  const hasYear = /\b(2024|2028|2032)\b/.test(text)
+  const hasPresidential = /\b(presidential|re-?elect|win\s+the\s+.+election)\b/i.test(text)
+  const hasCandidate = extractElectionEntity(text) != null
+  const hasWinPhrase = /\b(will|did)\s+.+\s+win\s+(the\s+)?(.+?\s+)?election/i.test(text)
+  return (hasYear && (hasPresidential || hasCandidate || hasWinPhrase)) || (hasPresidential && hasCandidate)
+}
+
+function isHotOlympics(text) {
+  const hasYear = /\b(2024|2026|2028|2032)\b/.test(text)
+  const hasOlympic = /\bolympic(s)?\b|gold\s+medal|medal\s+count|(paris|los angeles|la)\s+20(24|28)|summer\s+games|winter\s+games/i.test(text)
+  return hasYear && hasOlympic
+}
+
+function isHotConflict(text) {
+  const conflict = extractConflictName(text)
+  const isNamed = conflict !== 'the conflict'
+  const hasEndSignal = /\b(ceasefire|peace\s+deal|end\s+of\s+(the\s+)?war|when\s+will\s+.+\s+end)\b/i.test(text)
+  return isNamed && (hasEndSignal || /\b(war|invasion|conflict)\b/i.test(text))
+}
+
+/**
  * Enrich a news event into a custom outcome-based market when it looks like
- * election, Olympics, or war/conflict. Returns the same event with overrides
- * (title, description, resolutionCriteria, oneLiner, resolutionDeadline) when
- * a custom interpretation is applied; otherwise returns the event unchanged.
+ * a hot/trending election, Olympics, or war/conflict. Uses stricter criteria
+ * so only high-signal headlines get custom markets; optional per-batch cap
+ * via options.usedCustomTypes (mutated) limits to one custom per type per run.
  *
  * @param {object} ev - Event from data-sources (title, description, source, oracleConfig, ...)
- * @returns {object} - ev with optional overrides
+ * @param {object} [options] - { usedCustomTypes: { election, olympics, conflict } } (mutated when custom applied)
+ * @returns {object} - ev with optional overrides, or unchanged ev
  */
-export function enrichNewsEvent(ev) {
+export function enrichNewsEvent(ev, options = {}) {
   if (!ev || !NEWS_SOURCES.has(ev.source)) return ev
   const rawTitle = ev.title || ''
   const rawDesc = ev.description || ''
   const text = `${rawTitle} ${rawDesc}`.replace(/\s+/g, ' ')
-  const lower = text.toLowerCase()
+  const used = options.usedCustomTypes || {}
 
-  // ---- Elections ----
-  if (/\b(presidential|election|re-?elect|nominee|candidate|ballot|vote|primaries)\b/i.test(text) ||
-      /\b(will|did)\s+.+\s+win\s+(the\s+)?(.+?\s+)?election/i.test(text) ||
-      /\b(2024|2028)\s+election\b/i.test(text)) {
+  // ---- Elections (only hot: year + presidential/candidate, and at most one per batch) ----
+  if (isHotElection(text) && !used.election) {
+    used.election = true
     const year = extractYear(text) || new Date().getFullYear()
     const deadline = ELECTION_DEADLINES[year] || `${year}-12-31T23:59:59.000Z`
     const entity = extractElectionEntity(text)
@@ -119,13 +145,11 @@ export function enrichNewsEvent(ev) {
     }
   }
 
-  // ---- Olympics ----
-  if (/\bolympic(s)?\b/i.test(text) || /\bgold\s+medal\b/i.test(text) || /\bmedal\s+count\b/i.test(text) ||
-      /\b(paris|los angeles|la)\s+20(24|28)\b/i.test(text) || /\bsummer\s+games\b/i.test(text) ||
-      /\bwinter\s+games\b/i.test(text)) {
+  // ---- Olympics (only hot: year + Olympic/medal/games, and at most one per batch) ----
+  if (isHotOlympics(text) && !used.olympics) {
+    used.olympics = true
     const year = extractYear(text) || new Date().getFullYear()
     const deadline = OLYMPICS_DEADLINES[year] || (year <= 2024 ? OLYMPICS_DEADLINES[2024] : `${year}-08-15T23:59:59.000Z`)
-    // Simplify: outcome-based question about the headline topic by end of Olympics
     const shortHeadline = rawTitle.replace(/^Will\s+"(.+)"\s+be\s+.+$/i, '$1').replace(/^Will\s+/i, '').slice(0, 80)
     const title = shortHeadline.includes('Olympic') || shortHeadline.includes('medal')
       ? `Will ${shortHeadline} by end of ${year} Olympics?`
@@ -144,9 +168,9 @@ export function enrichNewsEvent(ev) {
     }
   }
 
-  // ---- War / conflict ----
-  if (/\b(war|ceasefire|peace\s+deal|end\s+of\s+(the\s+)?war|invasion|conflict)\b/i.test(text) ||
-      /\b(ukraine|gaza|russia|israel|hamas|taiwan|syria)\b/i.test(text)) {
+  // ---- War / conflict (only hot: named conflict + war/ceasefire/end signal, at most one per batch) ----
+  if (isHotConflict(text) && !used.conflict) {
+    used.conflict = true
     const conflict = extractConflictName(text)
     const deadline = defaultConflictDeadline()
     const title = `Will the ${conflict} end by ${deadline.slice(0, 7)}?`

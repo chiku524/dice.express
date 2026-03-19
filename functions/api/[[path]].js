@@ -1207,8 +1207,9 @@ async function handleWithD1(db, kv, r2, request, path, method, env = {}) {
       }
 
       const created = []
+      const usedCustomTypes = { election: false, olympics: false, conflict: false }
       for (const ev of events) {
-        const evUse = enrichNewsEvent(ev)
+        const evUse = enrichNewsEvent(ev, { usedCustomTypes })
         const id = evUse.id ? `market-${evUse.id}` : `market-${evUse.source}-${Date.now()}-${created.length}`
         // Event-driven: only create if we don't already have a market for this event (avoids duplicates when cron runs frequently)
         const existing = await storage.getContractById(db, id)
