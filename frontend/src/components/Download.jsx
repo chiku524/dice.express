@@ -1,12 +1,36 @@
+import { useState, useEffect } from 'react'
 import { DESKTOP_APP_VERSION, DESKTOP_DOWNLOADS } from '../constants/downloads'
+import { fetchLatestRelease } from '../utils/latestRelease'
 import './Download.css'
 
+const FALLBACK_ENTRIES = [
+  DESKTOP_DOWNLOADS.windows,
+  DESKTOP_DOWNLOADS.macIntel,
+  DESKTOP_DOWNLOADS.macApple,
+  DESKTOP_DOWNLOADS.linux,
+]
+
 export default function Download() {
+  const [release, setRelease] = useState(null)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    let cancelled = false
+    fetchLatestRelease().then((data) => {
+      if (!cancelled && data) setRelease(data)
+    }).finally(() => {
+      if (!cancelled) setLoading(false)
+    })
+    return () => { cancelled = true }
+  }, [])
+
+  const version = release?.version ?? DESKTOP_APP_VERSION
+  const downloads = release?.downloads ?? DESKTOP_DOWNLOADS
   const entries = [
-    DESKTOP_DOWNLOADS.windows,
-    DESKTOP_DOWNLOADS.macIntel,
-    DESKTOP_DOWNLOADS.macApple,
-    DESKTOP_DOWNLOADS.linux,
+    downloads.windows,
+    downloads.macIntel,
+    downloads.macApple,
+    downloads.linux,
   ]
 
   return (
@@ -17,12 +41,17 @@ export default function Download() {
         <p className="download-lead">
           Desktop app for Windows and macOS. Same prediction markets, native experience — with a quick intro and a focused sign-in.
         </p>
-        <p className="download-version">Version {DESKTOP_APP_VERSION}</p>
+        <p className="download-version">
+          {loading ? 'Loading…' : `Version ${version}`}
+        </p>
       </div>
 
       <section className="download-section" aria-labelledby="downloads-heading">
         <h2 id="downloads-heading" className="download-heading">Direct downloads</h2>
         <p className="download-note">These links download the installer directly (no redirect to GitHub).</p>
+        {loading ? (
+          <p className="download-note">Loading latest release…</p>
+        ) : (
         <ul className="download-list">
           {entries.map((item) => (
             <li key={item.label} className="download-item">
@@ -30,14 +59,16 @@ export default function Download() {
               <div className="download-item-content">
                 <span className="download-item-label">{item.label}</span>
                 <div className="download-item-buttons">
-                  <a
-                    href={item.primary.href}
-                    className="download-btn"
-                    download={item.primary.filename}
-                    rel="noopener noreferrer"
-                  >
-                    {item.primary.label}
-                  </a>
+                  {item.primary && (
+                    <a
+                      href={item.primary.href}
+                      className="download-btn"
+                      download={item.primary.filename}
+                      rel="noopener noreferrer"
+                    >
+                      {item.primary.label}
+                    </a>
+                  )}
                   {item.secondary && (
                     <a
                       href={item.secondary.href}
@@ -53,6 +84,7 @@ export default function Download() {
             </li>
           ))}
         </ul>
+        )}
       </section>
 
       <section className="download-section download-section--info">

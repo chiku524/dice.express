@@ -1,17 +1,20 @@
 /**
- * Desktop app download links — direct GitHub release asset URLs.
- * Update DESKTOP_APP_VERSION when cutting a new release; artifact names must match
- * the output of `npm run tauri:build` (see src-tauri/target/release/bundle/).
+ * Desktop app download links — fallback when GitHub API is unavailable.
+ * The Download page normally fetches the latest release from the API; these
+ * constants are used only if that request fails.
+ * DESKTOP_APP_VERSION: release tag (e.g. v1.0.3). If assets on that release
+ * use a different version in filenames, set ASSET_VERSION to match so fallback links work.
  */
 const GITHUB_RELEASE_BASE = 'https://github.com/chiku524/dice.express/releases/download'
 
 export const DESKTOP_APP_VERSION = '1.0.3'
+const ASSET_VERSION = '1.0.2'
 
 function directDownloadUrl(filename) {
   return `${GITHUB_RELEASE_BASE}/v${DESKTOP_APP_VERSION}/${filename}`
 }
 
-const v = DESKTOP_APP_VERSION
+const v = ASSET_VERSION
 
 /** Direct download links for the desktop app (Tauri). Filenames match tauri build output. */
 export const DESKTOP_DOWNLOADS = {

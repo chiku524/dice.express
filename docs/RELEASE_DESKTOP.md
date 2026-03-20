@@ -32,17 +32,19 @@ gh secret set GH_TOKEN
 ## How to release
 
 - **Option A – Manual run**  
-  **Actions** tab → **Release desktop app** → **Run workflow**. The workflow uses the version from `package.json` and creates/updates a release with that tag (e.g. `v1.0.0`).
+  **Actions** tab → **Release desktop app** → **Run workflow**. The workflow uses the version from `src-tauri/tauri.conf.json` and creates/updates a release with that tag (e.g. `v1.0.0`).
 
 - **Option B – Tag push**  
-  Bump the version in `package.json` and `src-tauri/tauri.conf.json`, commit, then create and push a tag:
+  Bump the version in **both** `package.json` and `src-tauri/tauri.conf.json`, commit, **then** create and push a tag:
   ```bash
   git tag v1.0.1
   git push origin v1.0.1
   ```
   The workflow runs and builds for all platforms, then creates the release `v1.0.1` with the installers attached.
 
-After the run finishes, the [Download](/download) page links will work for the new version (update `DESKTOP_APP_VERSION` in `frontend/src/constants/downloads.js` when you bump the version).
+**Important:** The workflow checks that the tag matches the version in `tauri.conf.json`. If you push a tag (e.g. `v1.0.3`) before bumping `tauri.conf.json` to that version, the build will produce installers with the *old* version in their filenames (e.g. `dice.express_1.0.2_x64-setup.exe`), and the release will have broken direct-download links. The workflow now fails in that case so you fix the version and re-tag.
+
+The [Download](/download) page fetches the latest release from the GitHub API and updates links automatically; you do not need to change the frontend when you cut a new release. A static fallback in `frontend/src/constants/downloads.js` is used only when the API is unavailable.
 
 ## Updater (optional)
 
@@ -65,3 +67,7 @@ If `pubkey` or `endpoints` are left empty, the launch screen still runs but skip
 
 Direct download URL pattern:  
 `https://github.com/chiku524/dice.express/releases/download/v<version>/<filename>`
+
+## Why tag and asset filenames must match
+
+Tauri uses the version in `src-tauri/tauri.conf.json` when naming bundle outputs (e.g. `dice.express_1.0.3_x64-setup.exe`). The release *tag* (e.g. `v1.0.3`) is set when you push the tag or when the workflow runs. If you created the tag from a commit where `tauri.conf.json` still said `1.0.2`, the workflow would build installers named with 1.0.2, upload them to the release `v1.0.3`, and any link pointing at `dice.express_1.0.3_*.exe` would 404. The workflow now validates that the tag version matches `tauri.conf.json` and fails early if not, so you bump the version first and re-tag.

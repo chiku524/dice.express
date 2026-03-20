@@ -40,6 +40,18 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Verify version matches tag
+        if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
+        run: |
+          TAG="${GITHUB_REF#refs/tags/}"
+          TAG_VERSION="${TAG#v}"
+          TAURI_VERSION=$(node -p "require('./src-tauri/tauri.conf.json').version")
+          if [ "$TAG_VERSION" != "$TAURI_VERSION" ]; then
+            echo "::error::Tag $TAG expects version $TAG_VERSION, but src-tauri/tauri.conf.json has version $TAURI_VERSION. Bump version in tauri.conf.json (and package.json) to match the tag, then push the tag."
+            exit 1
+          fi
+          echo "Version match: tag $TAG, tauri.conf.json $TAURI_VERSION"
+
       - name: Install Linux dependencies
         if: matrix.platform == 'ubuntu-22.04'
         run: |
@@ -114,17 +126,16 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Get version
+      - name: Get version and resolve tag
         id: version
-        run: echo "version=$(node -p "require('./package.json').version")" >> $GITHUB_OUTPUT
-
-      - name: Resolve tag
-        id: tag
         run: |
+          # Single source of truth: Tauri bundle filenames use src-tauri/tauri.conf.json version
+          TAURI_VERSION=$(node -p "require('./src-tauri/tauri.conf.json').version")
+          echo "version=$TAURI_VERSION" >> $GITHUB_OUTPUT
           if [ "${{ github.event_name }}" = "push" ] && [[ "${{ github.ref }}" == refs/tags/v* ]]; then
             echo "tag=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
           else
-            echo "tag=v${{ steps.version.outputs.version }}" >> $GITHUB_OUTPUT
+            echo "tag=v$TAURI_VERSION" >> $GITHUB_OUTPUT
           fi
 
       - name: Download all artifacts
