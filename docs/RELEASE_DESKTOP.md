@@ -4,8 +4,8 @@ The desktop app is built for **Windows**, **macOS** (Intel + Apple Silicon), and
 
 ## Desktop app experience
 
-- **Intro flow**: A splash window shows a short logo animation, then the main window opens at a launch screen that checks for updates (with progress), then redirects to **home** if the user has an account in storage, or **sign-in** otherwise.
-- **Auto-update**: On first load the app checks for updates; if one is available it is downloaded with a progress bar, then the app installs and relaunches. To enable updates you must configure the updater in `tauri.conf.json` (see **Updater** below).
+- **Intro flow**: A frameless splash window shows a short logo animation, then checks for updates (with progress in the same window). If an update is available it is downloaded and installed there; only the splash progress is shown (Windows installer runs in quiet/silent mode). When done, the splash closes and the main window opens at **home** if the user has an account in storage, or **sign-in** otherwise.
+- **Auto-update**: On first load the app checks for updates in the frameless splash; if one is available it is downloaded with a progress bar in that window, then the app installs silently and relaunches. To enable updates you must configure the updater in `tauri.conf.json` (see **Updater** below).
 - **App-like UI**: When running inside Tauri, the UI uses a tighter layout and compact footer; the navbar logo area can act as a window drag region if you switch to a custom title bar. Direct download links on the [Download](/download) page point to the release assets.
 
 ## Required: GitHub PAT secret
@@ -55,7 +55,9 @@ The app includes the Tauri updater plugin. To ship updates:
 3. When building installers, set `TAURI_SIGNING_PRIVATE_KEY` (path or content of the private key) so Tauri can sign update artifacts.
 4. Enable artifact creation: in `tauri.conf.json` under `bundle`, add `"createUpdaterArtifacts": true`.
 
-If `pubkey` or `endpoints` are left empty, the launch screen still runs but skips the update check and goes straight to the app.
+If `pubkey` or `endpoints` are left empty, the splash still runs but skips the update check and goes straight to the app.
+
+**Windows silent install**: The updater is configured with `plugins.updater.windows.installMode: "quiet"` so the Windows installer runs silently and only the in-app splash progress is shown. This requires a user-wide (per-user) installation; the installer will not prompt for admin elevation in quiet mode.
 
 ## Artifacts produced
 
