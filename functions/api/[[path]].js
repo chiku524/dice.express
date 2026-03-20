@@ -1052,11 +1052,19 @@ async function handleWithD1(db, kv, r2, request, path, method, env = {}) {
     ]
 
     if (method === 'GET' && action === 'probe') {
+      let lastSeed = null
+      if (kv) {
+        try {
+          const raw = await kv.get('auto_markets:last_seed')
+          if (raw) lastSeed = JSON.parse(raw)
+        } catch (_) {}
+      }
       return jsonResponse({
         success: true,
         action: 'probe',
         keysPresent: dataSources.probeAutoMarketEnv(env),
         seedSources: dataSources.AUTO_MARKET_SOURCES,
+        ...(lastSeed && { lastSeed }),
       })
     }
 
@@ -1170,6 +1178,13 @@ async function handleWithD1(db, kv, r2, request, path, method, env = {}) {
       // Markets list cache will refresh on next GET (TTL)
       const res = { success: true, source: bySource ? 'multiple' : source, created, count: created.length, skipped: events.length - created.length }
       if (bySource) res.bySource = bySource
+      const lastSeedAt = new Date().toISOString()
+      console.log('[auto-markets] seed_all completed', lastSeedAt, 'created:', res.count, 'bySource:', res.bySource ?? '')
+      if (kv) {
+        try {
+          await kv.put('auto_markets:last_seed', JSON.stringify({ at: lastSeedAt, count: res.count, bySource: res.bySource ?? null }))
+        } catch (_) {}
+      }
       return jsonResponse(res)
     }
 
