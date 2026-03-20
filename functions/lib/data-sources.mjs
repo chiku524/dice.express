@@ -650,6 +650,27 @@ export async function eventsFromCryptoTrend(env, coins = COINGECKO_COINS.slice(0
   return events
 }
 
+/**
+ * Which third-party API env vars are set (boolean only — never values). For ops / GET ?action=probe.
+ */
+export function probeAutoMarketEnv(env) {
+  const set = (k) => !!(env[k] && String(env[k]).trim())
+  return {
+    THE_ODDS_API_KEY: set('THE_ODDS_API_KEY'),
+    ALPHA_VANTAGE_API_KEY: set('ALPHA_VANTAGE_API_KEY'),
+    COINGECKO_API_KEY: set('COINGECKO_API_KEY'),
+    OPENWEATHER_API_KEY: set('OPENWEATHER_API_KEY'),
+    WEATHERAPI_API_KEY: set('WEATHERAPI_API_KEY'),
+    GNEWS_API_KEY: set('GNEWS_API_KEY'),
+    PERIGON_API_KEY: set('PERIGON_API_KEY'),
+    NEWSAPI_AI_KEY: set('NEWSAPI_AI_KEY'),
+    NEWSDATA_API_KEY: set('NEWSDATA_API_KEY'),
+    RAPIDAPI_KEY: set('RAPIDAPI_KEY'),
+    MASSIVE_API_KEY: set('MASSIVE_API_KEY'),
+    note: 'CoinGecko can work without COINGECKO_API_KEY (public API; rate-limited). Empty event lists often mean quota, IP block, or no upcoming games.',
+  }
+}
+
 /** Default list of source keys for seed_all. Order: sports, stocks, crypto, weather, news. */
 export const AUTO_MARKET_SOURCES = [
   'sports',

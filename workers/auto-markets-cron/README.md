@@ -35,3 +35,15 @@ The **Pages** project needs API keys in its env for the data sources you use:
 - **news:** `GNEWS_API_KEY`, `PERIGON_API_KEY`, `NEWSAPI_AI_KEY`, or `NEWSDATA_API_KEY` (NewsData.io)
 
 Without keys, some sources will fail; **sports** with The Odds API key is the most common for free. See `docs/PREDICTION_MARKETS.md`.
+
+## Verify automation (no secrets leaked)
+
+After deploy, open (replace with your `SITE_URL`):
+
+`GET https://YOUR_SITE/api/auto-markets?action=probe`
+
+Returns `{ keysPresent: { THE_ODDS_API_KEY: true/false, ... }, seedSources: [...] }` — booleans only, so you can confirm which integrations are configured on **Pages**. Then:
+
+`GET https://YOUR_SITE/api/auto-markets?action=events&source=crypto&limit=2`
+
+If `count` is `0` but `COINGECKO_API_KEY` is false, CoinGecko may still work (public API) unless rate-limited from Cloudflare’s egress IPs.

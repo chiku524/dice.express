@@ -1034,7 +1034,31 @@ async function handleWithD1(db, kv, r2, request, path, method, env = {}) {
     const source = query.source || body?.source || 'sports'
     const limit = Math.min(parseInt(query.limit || body?.limit || '10', 10) || 10, 50)
     const sportKey = query.sport || body?.sport || 'basketball_nba'
-    const supportedSources = ['sports', 'stocks', 'stocks_trend', 'crypto', 'crypto_trend', 'weather', 'openweather', 'weatherapi', 'news', 'gnews', 'perigon', 'newsapi_ai']
+    const supportedSources = [
+      'sports',
+      'stocks',
+      'stocks_trend',
+      'crypto',
+      'crypto_trend',
+      'weather',
+      'openweather',
+      'weatherapi',
+      'news',
+      'gnews',
+      'perigon',
+      'newsapi_ai',
+      'newsdata_io',
+      'newsdata',
+    ]
+
+    if (method === 'GET' && action === 'probe') {
+      return jsonResponse({
+        success: true,
+        action: 'probe',
+        keysPresent: dataSources.probeAutoMarketEnv(env),
+        seedSources: dataSources.AUTO_MARKET_SOURCES,
+      })
+    }
 
     if (method === 'GET' && action === 'events') {
       if (!supportedSources.includes(source)) {
