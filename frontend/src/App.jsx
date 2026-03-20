@@ -7,7 +7,7 @@ import {
   Navigate,
   Outlet,
 } from 'react-router-dom'
-import { WalletProvider } from './contexts/WalletContext'
+import { WalletProvider, useWallet } from './contexts/WalletContext'
 import { Suspense } from 'react'
 import LoadingSpinner from './components/LoadingSpinner'
 import { lazyWithRetry } from './utils/lazyWithRetry'
@@ -71,6 +71,30 @@ function PageViewTracker() {
   }, [location.pathname])
 
   return null
+}
+
+/** Redirects to sign-in when not authenticated; otherwise renders child routes. */
+function RequireAuth() {
+  const { wallet } = useWallet()
+  const location = useLocation()
+  if (!wallet) {
+    return <Navigate to="/sign-in" state={{ from: location }} replace />
+  }
+  return <Outlet />
+}
+
+/** Full-viewport shell for sign-in/register (no Navbar/Footer/sidebar). */
+function AuthLayout({ children }) {
+  return (
+    <>
+      <AnimatedBackground />
+      <div className="app app--auth">
+        <Suspense fallback={<LoadingSpinner message="Loading..." />}>
+          {children}
+        </Suspense>
+      </div>
+    </>
+  )
 }
 
 /** Web: top nav + footer. Tauri: left sidebar, no footer, route transitions. */
@@ -156,28 +180,43 @@ function AppContent() {
           }
         />
         <Route
+          path="/sign-in"
           element={
-            <RootLayout
-              showWalletModal={showWalletModal}
-              setShowWalletModal={setShowWalletModal}
-            />
+            <AuthLayout>
+              <SignIn />
+            </AuthLayout>
           }
-        >
-          <Route path="/" element={<MarketsList />} />
-          <Route path="/discover/active" element={<MarketsList source="active" />} />
-          <Route path="/discover/sports" element={<MarketsList source="sports" />} />
-          <Route path="/discover/global-events" element={<MarketsList source="global_events" />} />
-          <Route path="/discover/industry" element={<MarketsList source="industry" />} />
-          <Route path="/discover/tech-ai" element={<MarketsList source="tech_ai" />} />
-          <Route path="/discover/politics" element={<MarketsList source="politics" />} />
-          <Route path="/discover/entertainment" element={<MarketsList source="entertainment" />} />
-          <Route path="/discover/science" element={<MarketsList source="science" />} />
-          <Route path="/discover/virtual-realities" element={<MarketsList source="virtual_realities" />} />
-          <Route path="/discover/user" element={<MarketsList source="user" />} />
-          <Route path="/market/:marketId" element={<MarketDetail />} />
-          <Route path="/sign-in" element={<SignIn />} />
-          <Route path="/register" element={<Register />} />
-          <Route path="/account" element={<Navigate to="/dashboard" replace />} />
+        />
+        <Route
+          path="/register"
+          element={
+            <AuthLayout>
+              <Register />
+            </AuthLayout>
+          }
+        />
+        <Route element={<RequireAuth />}>
+          <Route
+            element={
+              <RootLayout
+                showWalletModal={showWalletModal}
+                setShowWalletModal={setShowWalletModal}
+              />
+            }
+          >
+            <Route path="/" element={<MarketsList />} />
+            <Route path="/discover/active" element={<MarketsList source="active" />} />
+            <Route path="/discover/sports" element={<MarketsList source="sports" />} />
+            <Route path="/discover/global-events" element={<MarketsList source="global_events" />} />
+            <Route path="/discover/industry" element={<MarketsList source="industry" />} />
+            <Route path="/discover/tech-ai" element={<MarketsList source="tech_ai" />} />
+            <Route path="/discover/politics" element={<MarketsList source="politics" />} />
+            <Route path="/discover/entertainment" element={<MarketsList source="entertainment" />} />
+            <Route path="/discover/science" element={<MarketsList source="science" />} />
+            <Route path="/discover/virtual-realities" element={<MarketsList source="virtual_realities" />} />
+            <Route path="/discover/user" element={<MarketsList source="user" />} />
+            <Route path="/market/:marketId" element={<MarketDetail />} />
+            <Route path="/account" element={<Navigate to="/dashboard" replace />} />
           <Route
             path="/dashboard"
             element={
@@ -212,6 +251,7 @@ function AppContent() {
           <Route path="/terms" element={<TermsOfService />} />
           <Route path="/pitch" element={<PitchDeck />} />
           <Route path="/investors" element={<PitchDeck />} />
+          </Route>
         </Route>
       </Routes>
     </>

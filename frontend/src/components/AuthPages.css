@@ -1,5 +1,11 @@
 /* Auth redesign: Sign in & Register — full-viewport split layout, modern form UI */
 
+/* When inside app--auth shell (no nav), fill viewport; otherwise leave space for nav */
+.app--auth .auth-page {
+  min-height: 100vh;
+  margin-top: 0;
+}
+
 .auth-page {
   min-height: calc(100vh - 60px);
   margin-top: 60px;
@@ -408,6 +414,11 @@
 
 /* Mobile: single column, form only (brand panel hidden or minimal) */
 @media (max-width: 900px) {
+  .app--auth .auth-page {
+    margin-top: 0;
+    min-height: 100vh;
+  }
+
   .auth-page {
     grid-template-columns: 1fr;
     margin-top: 60px;
