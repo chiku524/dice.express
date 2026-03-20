@@ -22,7 +22,9 @@ Set in Cloudflare Dashboard → Workers & Pages → dice-express-auto-markets-cr
 
 ## Cron schedule
 
-Default: **every hour** (`0 * * * *`) so new events (e.g. new games from The Odds API) get markets soon after they appear. Each run (1) fetches events from the API, **creates markets only for events we don’t already have** (event-driven, no duplicates), then (2) calls **POST /api/resolve-markets**. Edit `wrangler.toml` → `[triggers]` → `crons` to change (e.g. `0 */6 * * *` every 6 hours, or `0 8 * * *` daily).
+Default: **every hour** (`0 * * * *`). Each run (1) seeds new markets, then (2) calls **POST /api/resolve-markets**.
+
+**Quota-friendly behavior:** Sports (The Odds API, 500 req/month) is included only at **UTC 08:00**; all other hours seed stocks, crypto, weather, and news only. Alpha Vantage (stocks) uses 1 symbol per run to stay under 25 req/day. Event fetches run in parallel to avoid timeouts. Edit `wrangler.toml` → `[triggers]` → `crons` to change (e.g. `0 */6 * * *` every 6 hours).
 
 ## API keys (on the Pages project, not this Worker)
 

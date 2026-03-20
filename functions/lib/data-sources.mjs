@@ -671,11 +671,10 @@ export function probeAutoMarketEnv(env) {
   }
 }
 
-/** Default list of source keys for seed_all. Order: sports, stocks, crypto, weather, news. */
+/** Default list of source keys for seed_all. Excludes stocks_trend to stay under Alpha Vantage 25 req/day. */
 export const AUTO_MARKET_SOURCES = [
   'sports',
   'stocks',
-  'stocks_trend',
   'crypto',
   'crypto_trend',
   'weather',
@@ -697,7 +696,7 @@ export async function getEventsFromSource(env, source, opts = {}) {
   const q = opts.q ?? 'technology'
   try {
     if (source === 'sports') return await eventsFromOdds(env, sportKey, limit)
-    if (source === 'alpha_vantage' || source === 'stocks') return await eventsFromAlphaVantage(env, ALPHA_VANTAGE_SYMBOLS.slice(0, 5))
+    if (source === 'alpha_vantage' || source === 'stocks') return await eventsFromAlphaVantage(env, ALPHA_VANTAGE_SYMBOLS.slice(0, 1))
     if (source === 'stocks_trend') return await eventsFromStocksTrend(env, ALPHA_VANTAGE_SYMBOLS.slice(0, 5), 0.02, true)
     if (source === 'crypto' || source === 'coingecko') return await eventsFromCoinGecko(env, COINGECKO_COINS.slice(0, 5))
     if (source === 'crypto_trend') return await eventsFromCryptoTrend(env, COINGECKO_COINS.slice(0, 3), 24, 0.02)
@@ -715,16 +714,20 @@ export async function getEventsFromSource(env, source, opts = {}) {
 }
 
 /**
- * Gather events from multiple sources. Tries each source; on failure (e.g. no key) returns [] for that source.
+ * Gather events from multiple sources in parallel. On failure (e.g. no key, rate limit) returns [] for that source.
  * perSourceLimit applied to each source. Returns { events, bySource: { [source]: count } }.
  */
 export async function gatherEventsFromAllSources(env, sources = AUTO_MARKET_SOURCES, perSourceLimit = 5) {
   const bySource = {}
+  const results = await Promise.allSettled(
+    sources.map((src) => getEventsFromSource(env, src, { limit: perSourceLimit }))
+  )
   const allEvents = []
-  for (const src of sources) {
-    const events = await getEventsFromSource(env, src, { limit: perSourceLimit })
+  results.forEach((outcome, i) => {
+    const src = sources[i]
+    const events = outcome.status === 'fulfilled' ? outcome.value : []
     bySource[src] = events.length
     allEvents.push(...events)
-  }
+  })
   return { events: allEvents, bySource }
 }
