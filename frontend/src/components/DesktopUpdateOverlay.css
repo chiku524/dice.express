@@ -1,0 +1,120 @@
+.desktop-update-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 99998;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.95);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  animation: desktopUpdateOverlayFadeIn 0.3s ease-out;
+}
+
+@keyframes desktopUpdateOverlayFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.desktop-update-overlay__card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border-radius: 1rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: linear-gradient(
+    135deg,
+    rgba(12, 16, 28, 0.95) 0%,
+    rgba(8, 12, 22, 0.98) 100%
+  );
+  padding: 2.5rem 2.5rem;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+}
+
+.desktop-update-overlay__symbol {
+  width: 64px;
+  height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(
+    135deg,
+    rgba(139, 92, 246, 0.25) 0%,
+    rgba(20, 184, 166, 0.2) 100%
+  );
+  border-radius: 1rem;
+  animation: desktopUpdateSymbolFadeIn 0.5s ease-out;
+}
+
+@keyframes desktopUpdateSymbolFadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.desktop-update-overlay__name {
+  margin-top: 0.75rem;
+  font-size: 1.25rem;
+  font-weight: 700;
+  background: linear-gradient(90deg, var(--color-primary, #8b5cf6), var(--color-teal, #14b8a6));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: desktopUpdateNameFadeIn 0.4s ease-out 0.1s both;
+}
+
+@keyframes desktopUpdateNameFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.desktop-update-overlay__spinner {
+  width: 28px;
+  height: 28px;
+  margin-top: 1rem;
+  border: 2px solid var(--color-primary, #8b5cf6);
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: desktopUpdateSpinner 0.8s linear infinite;
+}
+
+@keyframes desktopUpdateSpinner {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.desktop-update-overlay__message {
+  margin-top: 1rem;
+  font-size: 0.9rem;
+  color: var(--color-text-muted, rgba(255, 255, 255, 0.5));
+  animation: desktopUpdateMessageFadeIn 0.4s ease-out 0.2s both;
+}
+
+@keyframes desktopUpdateMessageFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}

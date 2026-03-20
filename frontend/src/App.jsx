@@ -1,15 +1,20 @@
 import { useState, useEffect, useRef } from 'react'
-import { BrowserRouter as Router, Routes, Route, useLocation, Navigate } from 'react-router-dom'
-import { WalletProvider, useWallet } from './contexts/WalletContext'
+import {
+  BrowserRouter as Router,
+  Routes,
+  Route,
+  useLocation,
+  Navigate,
+  Outlet,
+} from 'react-router-dom'
+import { WalletProvider } from './contexts/WalletContext'
 import { Suspense } from 'react'
 import LoadingSpinner from './components/LoadingSpinner'
 import { lazyWithRetry } from './utils/lazyWithRetry'
 
-// Lazy load components for code splitting with retry logic
 const MarketsList = lazyWithRetry(() => import('./components/MarketsList'))
 const MarketDetail = lazyWithRetry(() => import('./components/MarketDetail'))
 const AutomatedMarketsInfo = lazyWithRetry(() => import('./components/AutomatedMarketsInfo'))
-const WalletConnect = lazyWithRetry(() => import('./components/WalletConnect'))
 const Portfolio = lazyWithRetry(() => import('./components/Portfolio'))
 const Documentation = lazyWithRetry(() => import('./components/Documentation'))
 const AdminDashboard = lazyWithRetry(() => import('./components/AdminDashboard'))
@@ -23,111 +28,192 @@ const DesktopLaunch = lazyWithRetry(() => import('./components/DesktopLaunch'))
 const Download = lazyWithRetry(() => import('./components/Download'))
 const PrivacyPolicy = lazyWithRetry(() => import('./components/PrivacyPolicy'))
 const TermsOfService = lazyWithRetry(() => import('./components/TermsOfService'))
+const PitchDeck = lazyWithRetry(() => import('./components/PitchDeck'))
 import { analytics } from './utils/analytics'
 import AnimatedBackground from './components/AnimatedBackground'
 import WalletModal from './components/WalletModal'
 import ErrorBoundary from './components/ErrorBoundary'
 import Navbar from './components/Navbar'
 import Footer from './components/Footer'
+import DesktopSidebar from './components/DesktopSidebar'
 import PageSEO from './components/PageSEO'
 import { ToastContainer } from './components/Toast'
 import { ToastProvider, useToastContext } from './contexts/ToastContext'
 import { AccountModalProvider } from './contexts/AccountModalContext'
 import { Web3WalletProvider } from './contexts/Web3WalletContext'
 import ProtectedRoute from './components/ProtectedRoute'
-// Import theme.css FIRST to ensure variables are available
 import './styles/theme.css'
 import './styles/desktop-app.css'
 import './App.css'
 
-// Mark body when running inside Tauri desktop app (for layout and styling)
 if (typeof document !== 'undefined' && typeof window !== 'undefined' && window.__TAURI__) {
   document.documentElement.classList.add('desktop-app')
 } else if (typeof document !== 'undefined') {
   document.documentElement.classList.remove('desktop-app')
 }
 
-// Component to track page views
-// Memoized to prevent unnecessary re-renders
+function isTauriApp() {
+  return typeof window !== 'undefined' && window.__TAURI__
+}
+
 function PageViewTracker() {
   const location = useLocation()
   const lastPathRef = useRef('')
-  
+
   useEffect(() => {
-    // Only track if pathname actually changed
     if (location.pathname !== lastPathRef.current) {
       lastPathRef.current = location.pathname
-      // Debounce analytics to prevent rapid-fire events
       const timeoutId = setTimeout(() => {
         analytics.trackPageView(location.pathname)
       }, 100)
-      
       return () => clearTimeout(timeoutId)
     }
-  }, [location.pathname]) // Only depend on pathname, not entire location object
-  
+  }, [location.pathname])
+
   return null
 }
 
-function AppContent() {
-  const { wallet, connectWallet } = useWallet()
-  const [showWalletModal, setShowWalletModal] = useState(false)
-  const { toasts, removeToast } = useToastContext()
+/** Web: top nav + footer. Tauri: left sidebar, no footer, route transitions. */
+function RootLayout({ showWalletModal, setShowWalletModal }) {
+  const isTauri = isTauriApp()
+  const location = useLocation()
 
-  return (
-    <>
-      <PageViewTracker />
-      <PageSEO />
-      <AnimatedBackground />
-      <ToastContainer toasts={toasts} onRemove={removeToast} />
-      <div className="app">
-        <Navbar setShowWalletModal={setShowWalletModal} />
+  const outlet = (
+    <AccountModalProvider open={() => setShowWalletModal(true)}>
+      <Suspense fallback={<LoadingSpinner message="Loading..." />}>
+        <div
+          key={isTauri ? location.pathname : 'web'}
+          className={isTauri ? 'desktop-main-inner desktop-route-enter' : undefined}
+        >
+          <Outlet />
+        </div>
+      </Suspense>
+    </AccountModalProvider>
+  )
 
-        <main className="app-main">
-          <div className="container">
-            <AccountModalProvider open={() => setShowWalletModal(true)}>
-              <Suspense fallback={<LoadingSpinner message="Loading..." />}>
-                <Routes>
-                  <Route path="/" element={<MarketsList />} />
-                  <Route path="/discover/active" element={<MarketsList source="active" />} />
-                  <Route path="/discover/sports" element={<MarketsList source="sports" />} />
-                  <Route path="/discover/global-events" element={<MarketsList source="global_events" />} />
-                  <Route path="/discover/industry" element={<MarketsList source="industry" />} />
-                  <Route path="/discover/tech-ai" element={<MarketsList source="tech_ai" />} />
-                  <Route path="/discover/politics" element={<MarketsList source="politics" />} />
-                  <Route path="/discover/entertainment" element={<MarketsList source="entertainment" />} />
-                  <Route path="/discover/science" element={<MarketsList source="science" />} />
-                  <Route path="/discover/virtual-realities" element={<MarketsList source="virtual_realities" />} />
-                  <Route path="/discover/user" element={<MarketsList source="user" />} />
-                  <Route path="/market/:marketId" element={<MarketDetail />} />
-                  <Route path="/splashscreen" element={<SplashScreen />} />
-                  <Route path="/launch" element={<DesktopLaunch />} />
-                  <Route path="/sign-in" element={<SignIn />} />
-                  <Route path="/register" element={<Register />} />
-                  <Route path="/account" element={<Navigate to="/dashboard" replace />} />
-                  <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-                  <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
-                  <Route path="/create" element={<AutomatedMarketsInfo />} />
-                  <Route path="/portfolio" element={<ProtectedRoute><Portfolio /></ProtectedRoute>} />
-                  <Route path="/admin" element={<AdminDashboard />} />
-                  <Route path="/history" element={<ContractHistory />} />
-                  <Route path="/download" element={<Download />} />
-                  <Route path="/docs" element={<Documentation />} />
-                  <Route path="/documentation" element={<Documentation />} />
-                  <Route path="/privacy" element={<PrivacyPolicy />} />
-                  <Route path="/terms" element={<TermsOfService />} />
-                </Routes>
-              </Suspense>
-            </AccountModalProvider>
-          </div>
-        </main>
-        <Footer />
-
+  if (isTauri) {
+    return (
+      <div className="app app--desktop-shell">
+        <DesktopSidebar />
+        <main className="app-main-desktop">{outlet}</main>
         <WalletModal
           isOpen={showWalletModal}
           onClose={() => setShowWalletModal(false)}
         />
       </div>
+    )
+  }
+
+  return (
+    <>
+      <AnimatedBackground />
+      <div className="app">
+        <Navbar setShowWalletModal={setShowWalletModal} />
+        <main className="app-main">
+          <div className="container">{outlet}</div>
+        </main>
+        <Footer />
+        <WalletModal
+          isOpen={showWalletModal}
+          onClose={() => setShowWalletModal(false)}
+        />
+      </div>
+    </>
+  )
+}
+
+function AppContent() {
+  const [showWalletModal, setShowWalletModal] = useState(false)
+  const { toasts, removeToast } = useToastContext()
+  const location = useLocation()
+  const skipMarketingChrome =
+    location.pathname === '/splashscreen' || location.pathname === '/launch'
+
+  return (
+    <>
+      <PageViewTracker />
+      {!skipMarketingChrome && <PageSEO />}
+      <ToastContainer toasts={toasts} onRemove={removeToast} />
+      <Routes>
+        <Route
+          path="/splashscreen"
+          element={
+            <div className="app app--frameless-shell">
+              <Suspense fallback={null}>
+                <SplashScreen />
+              </Suspense>
+            </div>
+          }
+        />
+        <Route
+          path="/launch"
+          element={
+            <div className="app app--frameless-shell">
+              <Suspense fallback={null}>
+                <DesktopLaunch />
+              </Suspense>
+            </div>
+          }
+        />
+        <Route
+          element={
+            <RootLayout
+              showWalletModal={showWalletModal}
+              setShowWalletModal={setShowWalletModal}
+            />
+          }
+        >
+          <Route path="/" element={<MarketsList />} />
+          <Route path="/discover/active" element={<MarketsList source="active" />} />
+          <Route path="/discover/sports" element={<MarketsList source="sports" />} />
+          <Route path="/discover/global-events" element={<MarketsList source="global_events" />} />
+          <Route path="/discover/industry" element={<MarketsList source="industry" />} />
+          <Route path="/discover/tech-ai" element={<MarketsList source="tech_ai" />} />
+          <Route path="/discover/politics" element={<MarketsList source="politics" />} />
+          <Route path="/discover/entertainment" element={<MarketsList source="entertainment" />} />
+          <Route path="/discover/science" element={<MarketsList source="science" />} />
+          <Route path="/discover/virtual-realities" element={<MarketsList source="virtual_realities" />} />
+          <Route path="/discover/user" element={<MarketsList source="user" />} />
+          <Route path="/market/:marketId" element={<MarketDetail />} />
+          <Route path="/sign-in" element={<SignIn />} />
+          <Route path="/register" element={<Register />} />
+          <Route path="/account" element={<Navigate to="/dashboard" replace />} />
+          <Route
+            path="/dashboard"
+            element={
+              <ProtectedRoute>
+                <Dashboard />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/profile"
+            element={
+              <ProtectedRoute>
+                <Profile />
+              </ProtectedRoute>
+            }
+          />
+          <Route path="/create" element={<AutomatedMarketsInfo />} />
+          <Route
+            path="/portfolio"
+            element={
+              <ProtectedRoute>
+                <Portfolio />
+              </ProtectedRoute>
+            }
+          />
+          <Route path="/admin" element={<AdminDashboard />} />
+          <Route path="/history" element={<ContractHistory />} />
+          <Route path="/download" element={<Download />} />
+          <Route path="/docs" element={<Documentation />} />
+          <Route path="/documentation" element={<Documentation />} />
+          <Route path="/privacy" element={<PrivacyPolicy />} />
+          <Route path="/terms" element={<TermsOfService />} />
+          <Route path="/pitch" element={<PitchDeck />} />
+          <Route path="/investors" element={<PitchDeck />} />
+        </Route>
+      </Routes>
     </>
   )
 }
@@ -149,4 +235,3 @@ function App() {
 }
 
 export default App
-
