@@ -89,6 +89,35 @@ jobs:
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         run: npm run tauri build -- ${{ matrix.args }}
 
+      # Tauri names both mac targets dice.express.app.tar.gz — merged artifacts would overwrite.
+      - name: Disambiguate macOS updater bundle names
+        if: matrix.platform == 'macos-latest' && matrix.args == '--target aarch64-apple-darwin'
+        shell: bash
+        run: |
+          M=src-tauri/target/aarch64-apple-darwin/release/bundle/macos
+          shopt -s nullglob
+          for f in "$M"/*.app.tar.gz; do
+            [ -f "$f" ] || continue
+            sig="${f}.sig"
+            new="${f%.app.tar.gz}_aarch64.app.tar.gz"
+            mv "$f" "$new"
+            [ -f "$sig" ] && mv "$sig" "${new}.sig"
+          done
+
+      - name: Disambiguate macOS updater bundle names (Intel)
+        if: matrix.platform == 'macos-latest' && matrix.args == '--target x86_64-apple-darwin'
+        shell: bash
+        run: |
+          M=src-tauri/target/x86_64-apple-darwin/release/bundle/macos
+          shopt -s nullglob
+          for f in "$M"/*.app.tar.gz; do
+            [ -f "$f" ] || continue
+            sig="${f}.sig"
+            new="${f%.app.tar.gz}_x64.app.tar.gz"
+            mv "$f" "$new"
+            [ -f "$sig" ] && mv "$sig" "${new}.sig"
+          done
+
       - name: Upload Windows artifacts
         if: matrix.platform == 'windows-latest'
         uses: actions/upload-artifact@v4

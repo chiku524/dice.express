@@ -39,14 +39,14 @@ if (winSetup) {
   }
 }
 
-// macOS updater bundles (.app.tar.gz)
+// macOS updater bundles (.app.tar.gz); filenames must include arch (CI renames from dice.express.app.tar.gz)
 for (const f of files) {
   if (!f.endsWith('.app.tar.gz') || f.endsWith('.sig')) continue
   const sig = readSig(f, files)
   if (!sig) continue
   let key = null
-  if (/aarch64|arm64/i.test(f)) key = 'darwin-aarch64'
-  else if (/x86_64|x64/i.test(f)) key = 'darwin-x86_64'
+  if (/_aarch64\.app\.tar\.gz$/i.test(f) || /aarch64|arm64/i.test(f)) key = 'darwin-aarch64'
+  else if (/_x64\.app\.tar\.gz$/i.test(f) || /x86_64|x64/i.test(f)) key = 'darwin-x86_64'
   if (key) platforms[key] = { signature: sig, url: `${baseUrl}/${f}` }
 }
 
