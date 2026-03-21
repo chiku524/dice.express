@@ -52,8 +52,10 @@ The app includes the Tauri updater plugin. To ship updates:
 
 1. Generate keys: `npm run tauri signer generate -- -w ~/.tauri/dice-express.key`
 2. In `src-tauri/tauri.conf.json`, under `plugins.updater`, set `pubkey` to the **contents** of the generated `.pub` file, and set `endpoints` to an array of URLs (e.g. `["https://github.com/owner/repo/releases/latest/download/latest.json"]`).
-3. When building installers, set `TAURI_SIGNING_PRIVATE_KEY` (path or content of the private key) so Tauri can sign update artifacts.
+3. When building installers, set `TAURI_SIGNING_PRIVATE_KEY` (path or content of the private key) so Tauri can sign update artifacts. In **GitHub Actions**, add the same value as a repository secret named `TAURI_SIGNING_PRIVATE_KEY` (and optionally `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` if the key is encrypted).
 4. Enable artifact creation: in `tauri.conf.json` under `bundle`, add `"createUpdaterArtifacts": true`.
+
+**CI without signing:** Leave `createUpdaterArtifacts` **out** of `bundle` (or `false`). If it is `true` while a `pubkey` is configured but `TAURI_SIGNING_PRIVATE_KEY` is missing in CI, the build fails with *"A public key has been found, but no private key"*.
 
 If `pubkey` or `endpoints` are left empty, the splash still runs but skips the update check and goes straight to the app.
 
