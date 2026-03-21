@@ -24,6 +24,8 @@ Production builds run **`npm run build:frontend:tauri`** before bundling (see `s
 
 **macOS bundle ID:** `com.dice.express` (`tauri.conf.json` → `identifier`). Do not use an identifier ending in `.app`.
 
+**System tray:** Closing the **main** window (✕) hides the app to the tray; use the tray icon to **Show**, **Sign out** (clears the local account and opens sign-in), or **Quit**. Left-click the tray icon shows the main window; the menu opens on right-click (Windows/Linux) or secondary click (macOS). The splash window uses **destroy** (not **close**) when handing off to main so programmatic startup does not trigger a user-close exit.
+
 Output: `src-tauri/target/release/` (and installer in `target/release/bundle/`).
 
 ## Icons

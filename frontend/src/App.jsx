@@ -36,6 +36,7 @@ import ErrorBoundary from './components/ErrorBoundary'
 import Navbar from './components/Navbar'
 import Footer from './components/Footer'
 import DesktopSidebar from './components/DesktopSidebar'
+import TauriTrayBridge from './components/TauriTrayBridge'
 import PageSEO from './components/PageSEO'
 import { ToastContainer } from './components/Toast'
 import { ToastProvider, useToastContext } from './contexts/ToastContext'
@@ -266,6 +267,7 @@ function App() {
         <ToastProvider>
           <WalletProvider>
             <Web3WalletProvider>
+              <TauriTrayBridge />
               <AppContent />
             </Web3WalletProvider>
           </WalletProvider>

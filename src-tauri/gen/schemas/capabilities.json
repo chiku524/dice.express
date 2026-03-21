@@ -1,1 +1,1 @@
-{"default":{"identifier":"default","description":"Default capability for splash and main windows","local":true,"windows":["main","splashscreen"],"permissions":[]}}
+{"default":{"identifier":"default","description":"Default capability for splash and main windows","local":true,"windows":["main","splashscreen"],"permissions":["updater:default","process:default"]}}

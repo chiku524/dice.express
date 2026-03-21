@@ -1,6 +1,6 @@
 {
   "name": "dice-express",
-  "version": "1.0.15",
+  "version": "1.0.16",
   "description": "dice.express — prediction markets with Pips on Cloudflare",
   "dependencies": {
     "viem": "^2.21.0"

@@ -7,6 +7,7 @@ The desktop app is built for **Windows**, **macOS** (Intel + Apple Silicon), and
 - **Intro flow**: A frameless splash window shows a short logo animation, then checks for updates (with progress in the same window). If an update is available it is downloaded and installed there; only the splash progress is shown (Windows installer runs in quiet/silent mode). When done, the splash closes and the main window opens at **home** if the user has an account in storage, or **sign-in** otherwise.
 - **Auto-update**: On first load the app checks for updates in the frameless splash; if one is available it is downloaded with a progress bar in that window, then the app installs silently and relaunches. To enable updates you must configure the updater in `tauri.conf.json` (see **Updater** below).
 - **App-like UI**: When running inside Tauri, the UI uses a tighter layout and compact footer; the navbar logo area can act as a window drag region if you switch to a custom title bar. Direct download links on the [Download](/download) page point to the release assets.
+- **System tray**: Closing the main window (✕) minimizes to the tray instead of quitting. The tray menu includes **Show dice.express**, **Sign out** (local account cleared → sign-in), and **Quit**. Left-click the tray icon restores the window; the context menu is typically on right-click (Windows/Linux) or control-click (macOS).
 
 ## GitHub Actions authentication
 
