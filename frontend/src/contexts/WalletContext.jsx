@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useEffect } from 'react'
-import { getAccount } from '../services/accountApi'
+import { getAccount, saveAccount } from '../services/accountApi'
 
 const WalletContext = createContext(null)
 
@@ -110,13 +110,11 @@ export function WalletProvider({ children }) {
     localStorage.setItem(WALLET_STORAGE_KEY, JSON.stringify(updated))
     window.dispatchEvent(new CustomEvent('wallet_connected', { detail: updated }))
     // Persist to server so profile is saved remotely
-    import('../services/accountApi').then(({ saveAccount }) => {
-      saveAccount({
-        accountId: wallet.accountId,
-        displayName: trimmed,
-        onboardingCompleted: true,
-        fundChoice: wallet.fundChoice ?? null,
-      })
+    saveAccount({
+      accountId: wallet.accountId,
+      displayName: trimmed,
+      onboardingCompleted: true,
+      fundChoice: wallet.fundChoice ?? null,
     }).catch(() => {})
   }
 

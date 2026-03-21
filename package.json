@@ -1,6 +1,6 @@
 {
   "name": "dice-express",
-  "version": "1.0.13",
+  "version": "1.0.14",
   "description": "dice.express — prediction markets with Pips on Cloudflare",
   "dependencies": {
     "viem": "^2.21.0"
@@ -9,6 +9,7 @@
     "start": "npm run start:frontend",
     "start:frontend": "cd frontend && npm run dev",
     "build:frontend": "cd frontend && npm run build",
+    "build:frontend:tauri": "node scripts/build-frontend-for-tauri.mjs",
     "pages:dev": "npm run build:frontend && npx wrangler pages dev frontend/dist",
     "pages:project:create": "bash scripts/cloudflare-setup.sh",
     "pages:deploy": "npm run build:frontend && npx wrangler pages deploy frontend/dist --project-name=dice-express",

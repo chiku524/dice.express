@@ -8,26 +8,19 @@ The desktop app is built for **Windows**, **macOS** (Intel + Apple Silicon), and
 - **Auto-update**: On first load the app checks for updates in the frameless splash; if one is available it is downloaded with a progress bar in that window, then the app installs silently and relaunches. To enable updates you must configure the updater in `tauri.conf.json` (see **Updater** below).
 - **App-like UI**: When running inside Tauri, the UI uses a tighter layout and compact footer; the navbar logo area can act as a window drag region if you switch to a custom title bar. Direct download links on the [Download](/download) page point to the release assets.
 
-## Required: GitHub PAT secret
+## GitHub Actions authentication
 
-The workflow needs a **Personal Access Token (PAT)** to create releases and upload installers.
+The **Release desktop app** workflow uses the default **`GITHUB_TOKEN`** (with `permissions: contents: write`) to create releases and upload assets. You do **not** need a separate PAT unless you fork into a setup that disables the default token.
 
-1. **Add the secret**
-   - Go to **GitHub → your repo → Settings → Secrets and variables → Actions**
-   - Click **New repository secret**
-   - **Name:** `GH_TOKEN`
-   - **Value:** your GitHub PAT (with `repo` scope, or at least permission to write release assets)
+## macOS DMG builds on CI
 
-2. **If you ever shared the PAT** (e.g. in chat or email), **rotate it**:
-   - GitHub → **Settings → Developer settings → Personal access tokens**
-   - Revoke the old token and generate a new one
-   - Add the new token as `GH_TOKEN` in the repo secrets (step 1)
+Keep **`CI=true`** for the `tauri build` step (GitHub sets this by default). Do **not** override with `CI=false`: Tauri’s DMG bundler would then try to drive **Finder/AppleScript** to lay out the disk image, which fails on headless runners.
 
-To set the secret from the command line (you’ll be prompted for the value):
+The frontend is built via **`npm run build:frontend:tauri`**, which runs Vite with **`CI=false` only in that subprocess**—so tooling differences under CI don’t affect the outer Tauri build.
 
-```bash
-gh secret set GH_TOKEN
-```
+## Bundle identifier (macOS)
+
+`identifier` in `src-tauri/tauri.conf.json` is **`com.dice.express`** (reverse-DNS style; avoids the `.app` suffix that conflicts with macOS bundle extensions).
 
 ## How to release
 

@@ -54,7 +54,13 @@ Repo → **Settings** → **Secrets and variables** → **Actions** → **New re
 
 The workflow `.github/workflows/release-desktop.yml` passes these into `tauri build` automatically.
 
-## 4. Enable updater artifacts in config
+## 4. macOS bundle identifier
+
+`src-tauri/tauri.conf.json` → `identifier` must **not** end with `.app` (Apple reserves that suffix for bundles). This repo uses **`com.dice.express`**.
+
+Changing the identifier creates a **new app identity** on macOS: the auto-updater may still replace the app bundle, but Keychain or “Open at login” entries from an older ID may not carry over. Prefer stabilizing the identifier after the first public release.
+
+## 5. Enable updater artifacts in config
 
 In `src-tauri/tauri.conf.json`, under `bundle`, add:
 
@@ -64,7 +70,7 @@ In `src-tauri/tauri.conf.json`, under `bundle`, add:
 
 Then cut a new release tag (version must match `tauri.conf.json`). CI will produce signed updater bundles (e.g. `.tar.gz` on macOS) in addition to installers.
 
-## 5. `latest.json` on each release
+## 6. `latest.json` on each release
 
 The **Release desktop app** workflow (`.github/workflows/release-desktop.yml`) runs `scripts/generate-updater-latest.mjs` after collecting all platform bundles and `.sig` files, then uploads **`latest.json`** with the release. No manual step needed once CI is green.
 

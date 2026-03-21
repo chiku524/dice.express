@@ -1,11 +1,11 @@
 {
   "productName": "dice.express",
-  "version": "1.0.13",
-  "identifier": "express.dice.app",
+  "version": "1.0.14",
+  "identifier": "com.dice.express",
   "build": {
     "beforeDevCommand": "npm run start:frontend",
     "devUrl": "http://localhost:3000",
-    "beforeBuildCommand": "npm run build:frontend",
+    "beforeBuildCommand": "npm run build:frontend:tauri",
     "frontendDist": "../frontend/dist"
   },
   "app": {

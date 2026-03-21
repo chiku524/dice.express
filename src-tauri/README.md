@@ -20,6 +20,10 @@ From repo root:
 npm run tauri:build
 ```
 
+Production builds run **`npm run build:frontend:tauri`** before bundling (see `scripts/build-frontend-for-tauri.mjs`): Vite runs with `CI=false` in that subprocess only, while the outer `tauri build` keeps `CI=true` on CI hosts so macOS DMG creation does not invoke Finder/AppleScript.
+
+**macOS bundle ID:** `com.dice.express` (`tauri.conf.json` → `identifier`). Do not use an identifier ending in `.app`.
+
 Output: `src-tauri/target/release/` (and installer in `target/release/bundle/`).
 
 ## Icons

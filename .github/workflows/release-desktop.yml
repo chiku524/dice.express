@@ -82,9 +82,12 @@ jobs:
       - name: Install frontend dependencies
         run: cd frontend && npm ci
 
+      # Do not set CI=false here: Tauri’s DMG step uses Finder/AppleScript when CI is unset/false,
+      # which fails on GitHub-hosted macOS runners. GHA provides CI=true — keep it so bundle_dmg uses the CI-safe path.
       - name: Build Tauri app
         env:
-          CI: false
+          # Explicit CI-safe DMG path if a tool ever unsets CI (see Tauri bundle_dmg / Finder AppleScript issues on runners).
+          TAURI_BUNDLER_DMG_IGNORE_CI: 'false'
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         run: npm run tauri build -- ${{ matrix.args }}
