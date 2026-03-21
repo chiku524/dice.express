@@ -9,7 +9,7 @@ const STORAGE_KEY = 'virtual_contracts'
 const MAX_STORED_CONTRACTS = 100 // Limit to prevent storage bloat
 
 const STORE_CONTRACT_ENDPOINT = apiUrl('store-contract')
-const GET_CONTRACTS_ENDPOINT = apiUrl('get-contracts')`
+const GET_CONTRACTS_ENDPOINT = apiUrl('get-contracts')
 
 export const ContractStorage = {
   /**
