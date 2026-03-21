@@ -16,7 +16,8 @@
     "pages:custom-domain": "bash scripts/pages-add-custom-domain.sh",
     "tauri": "tauri",
     "tauri:dev": "tauri dev",
-    "tauri:build": "tauri build"
+    "tauri:build": "tauri build",
+    "tauri:signer-generate": "tauri signer generate"
   },
   "devDependencies": {
     "@tauri-apps/cli": "^2"

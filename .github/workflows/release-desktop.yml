@@ -1,10 +1,11 @@
 # Build Tauri desktop app for Windows, macOS (Intel + Apple Silicon), and Linux,
 # then create a GitHub Release and upload installers as direct-download assets.
 #
-# Required: Add a GitHub PAT as a repository secret named GH_TOKEN.
-# GitHub: repo → Settings → Secrets and variables → Actions → New repository secret
-#   Name: GH_TOKEN
-#   Value: your Personal Access Token (with scope: repo, or at least contents: write)
+# Optional: For signed updater artifacts (createUpdaterArtifacts: true in tauri.conf.json):
+#   TAURI_SIGNING_PRIVATE_KEY — full contents of the .key file from `tauri signer generate`
+#   TAURI_SIGNING_PRIVATE_KEY_PASSWORD — only if the key was generated with a password
+# See docs/TAURI_UPDATER_SIGNING.md
+#
 # Then trigger via "Run workflow" (Actions tab) or push a version tag (e.g. v1.0.1).
 
 name: Release desktop app
@@ -84,6 +85,8 @@ jobs:
       - name: Build Tauri app
         env:
           CI: false
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         run: npm run tauri build -- ${{ matrix.args }}
 
       - name: Upload Windows artifacts
