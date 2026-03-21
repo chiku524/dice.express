@@ -1,6 +1,6 @@
 {
   "productName": "dice.express",
-  "version": "1.0.14",
+  "version": "1.0.15",
   "identifier": "com.dice.express",
   "build": {
     "beforeDevCommand": "npm run start:frontend",

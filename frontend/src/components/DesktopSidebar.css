@@ -127,7 +127,8 @@
 }
 
 .desktop-sidebar__markets-flyout {
-  z-index: 500;
+  /* Portal to body: above main column (incl. docs ~102); below WalletModal / app-header (~1000) and toasts (10000) */
+  z-index: 999;
   min-width: 220px;
   max-width: min(280px, calc(100vw - 260px));
   max-height: min(480px, calc(100vh - 16px));

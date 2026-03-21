@@ -1,4 +1,5 @@
 import { useEffect, useState, useRef, useLayoutEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { Link, NavLink, useLocation } from 'react-router-dom'
 import { useWallet } from '../contexts/WalletContext'
 import { useToastContext } from '../contexts/ToastContext'
@@ -26,6 +27,7 @@ export default function DesktopSidebar() {
   const [marketsMenuOpen, setMarketsMenuOpen] = useState(false)
   const [flyoutPos, setFlyoutPos] = useState({ top: 0, left: 0 })
   const marketsBlockRef = useRef(null)
+  const flyoutRef = useRef(null)
   const triggerRef = useRef(null)
 
   const discoverActive = isDiscoverRoute(location.pathname)
@@ -77,7 +79,10 @@ export default function DesktopSidebar() {
     }
     const onPointerDown = (e) => {
       const block = marketsBlockRef.current
-      if (block && !block.contains(e.target)) setMarketsMenuOpen(false)
+      const flyout = flyoutRef.current
+      const insideTrigger = block?.contains(e.target)
+      const insideFlyout = flyout?.contains(e.target)
+      if (!insideTrigger && !insideFlyout) setMarketsMenuOpen(false)
     }
     document.addEventListener('keydown', onKey)
     document.addEventListener('mousedown', onPointerDown)
@@ -133,41 +138,44 @@ export default function DesktopSidebar() {
               {marketsMenuOpen ? '▾' : '▸'}
             </span>
           </button>
-          {marketsMenuOpen && (
-            <div
-              id="desktop-markets-flyout"
-              className="desktop-sidebar__markets-flyout"
-              role="menu"
-              aria-labelledby="desktop-markets-trigger"
-              style={{
-                position: 'fixed',
-                top: flyoutPos.top,
-                left: flyoutPos.left,
-              }}
-            >
-              <p className="desktop-sidebar__flyout-title">Market categories</p>
-              <ul className="desktop-sidebar__flyout-list">
-                {discoverSources.map((source) => {
-                  const path = getDiscoverPathForSource(source.value)
-                  return (
-                    <li key={source.value} role="none">
-                      <NavLink
-                        role="menuitem"
-                        to={path}
-                        end={path === '/'}
-                        className={({ isActive }) =>
-                          `desktop-sidebar__flyout-link${isActive ? ' desktop-sidebar__flyout-link--active' : ''}`
-                        }
-                        onClick={() => setMarketsMenuOpen(false)}
-                      >
-                        {source.label}
-                      </NavLink>
-                    </li>
-                  )
-                })}
-              </ul>
-            </div>
-          )}
+          {marketsMenuOpen &&
+            createPortal(
+              <div
+                id="desktop-markets-flyout"
+                ref={flyoutRef}
+                className="desktop-sidebar__markets-flyout"
+                role="menu"
+                aria-labelledby="desktop-markets-trigger"
+                style={{
+                  position: 'fixed',
+                  top: flyoutPos.top,
+                  left: flyoutPos.left,
+                }}
+              >
+                <p className="desktop-sidebar__flyout-title">Market categories</p>
+                <ul className="desktop-sidebar__flyout-list">
+                  {discoverSources.map((source) => {
+                    const path = getDiscoverPathForSource(source.value)
+                    return (
+                      <li key={source.value} role="none">
+                        <NavLink
+                          role="menuitem"
+                          to={path}
+                          end={path === '/'}
+                          className={({ isActive }) =>
+                            `desktop-sidebar__flyout-link${isActive ? ' desktop-sidebar__flyout-link--active' : ''}`
+                          }
+                          onClick={() => setMarketsMenuOpen(false)}
+                        >
+                          {source.label}
+                        </NavLink>
+                      </li>
+                    )
+                  })}
+                </ul>
+              </div>,
+              document.body
+            )}
         </div>
 
         {wallet?.party && (
