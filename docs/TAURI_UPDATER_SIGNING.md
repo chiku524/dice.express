@@ -37,21 +37,11 @@ Open the `.pub` file in a text editor. It is a **single line** (minisign public 
 
 ## 2. Put the public key in the repo
 
-Edit `src-tauri/tauri.conf.json`:
+This repo already has `pubkey` and `endpoints` set in `src-tauri/tauri.conf.json`, plus `bundle.createUpdaterArtifacts: true`.
 
-```json
-"plugins": {
-  "updater": {
-    "pubkey": "PASTE_THE_FULL_LINE_FROM_.pub_FILE_HERE",
-    "endpoints": [
-      "https://github.com/chiku524/dice.express/releases/latest/download/latest.json"
-    ],
-    ...
-  }
-}
-```
+If you rotate keys: replace `plugins.updater.pubkey` with the **full text** of your new `.pub` file (two lines: `untrusted comment:...` and the `RWR...` line), as a JSON string with `\n` between lines.
 
-Commit and push that change. **Never** commit the `.key` file.
+Commit and push. **Never** commit the `.key` file.
 
 ## 3. Add GitHub Actions secrets
 
@@ -74,14 +64,9 @@ In `src-tauri/tauri.conf.json`, under `bundle`, add:
 
 Then cut a new release tag (version must match `tauri.conf.json`). CI will produce signed updater bundles (e.g. `.tar.gz` on macOS) in addition to installers.
 
-## 5. Publish `latest.json` (updater manifest)
+## 5. `latest.json` on each release
 
-Tauri’s updater expects a manifest at the URL in `endpoints`. For GitHub Releases, you typically:
-
-- Use **tauri-action** or a follow-up step to upload `latest.json` from each build, **or**
-- Follow the [Tauri updater](https://v2.tauri.app/plugin/updater/) docs to attach the generated manifest to the release.
-
-Until `latest.json` is published at the configured URL, the in-app update check may find no update or fail gracefully (your splash already catches errors).
+The **Release desktop app** workflow (`.github/workflows/release-desktop.yml`) runs `scripts/generate-updater-latest.mjs` after collecting all platform bundles and `.sig` files, then uploads **`latest.json`** with the release. No manual step needed once CI is green.
 
 ## Summary
 

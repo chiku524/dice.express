@@ -1,6 +1,6 @@
 {
   "productName": "dice.express",
-  "version": "1.0.8",
+  "version": "1.0.9",
   "identifier": "express.dice.app",
   "build": {
     "beforeDevCommand": "npm run start:frontend",
@@ -39,6 +39,7 @@
   },
   "bundle": {
     "active": true,
+    "createUpdaterArtifacts": true,
     "targets": "all",
     "icon": [
       "icons/32x32.png",
@@ -63,8 +64,10 @@
   },
   "plugins": {
     "updater": {
-      "pubkey": "",
-      "endpoints": [],
+      "pubkey": "untrusted comment: minisign public key: EB866968F861B648\nRWRItmH4aGmG67KdfjoEdYrI9F4HtFKVu5dzp32NE4mvVL5FDf7APBbB\n",
+      "endpoints": [
+        "https://github.com/chiku524/dice.express/releases/latest/download/latest.json"
+      ],
       "windows": {
         "installMode": "quiet"
       }
