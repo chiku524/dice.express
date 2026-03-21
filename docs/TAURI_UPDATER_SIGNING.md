@@ -33,13 +33,13 @@ This creates:
 - **Private key file** — e.g. `~/.tauri/dice-express.key` — **secret**; used only for signing builds.
 - **Public key file** — same name with `.pub` — e.g. `dice-express.key.pub` — **safe to commit** into `tauri.conf.json`.
 
-Open the `.pub` file in a text editor. It is a **single line** (minisign public key). You will paste that entire line into `src-tauri/tauri.conf.json` → `plugins.updater.pubkey`.
+Open the `.pub` file in a text editor. It should be a **single base64 line** (Tauri’s `pubkey` field expects that base64 string, not the decoded “untrusted comment…” text). Paste that entire line into `src-tauri/tauri.conf.json` → `plugins.updater.pubkey`.
 
 ## 2. Put the public key in the repo
 
 This repo already has `pubkey` and `endpoints` set in `src-tauri/tauri.conf.json`, plus `bundle.createUpdaterArtifacts: true`.
 
-If you rotate keys: replace `plugins.updater.pubkey` with the **full text** of your new `.pub` file (two lines: `untrusted comment:...` and the `RWR...` line), as a JSON string with `\n` between lines.
+If you rotate keys: set `plugins.updater.pubkey` to the **exact single-line base64 string** from your `.pub` file (open `dice-express.key.pub` in a text editor—it is one long line). Tauri decodes this as base64; do **not** paste the decoded “untrusted comment…” plaintext into `tauri.conf.json` (that causes `Invalid symbol 32` / base64 decode errors).
 
 Commit and push. **Never** commit the `.key` file.
 
