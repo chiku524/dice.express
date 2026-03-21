@@ -205,7 +205,7 @@ export async function fetchNewsDataIoLatest(env, q = 'technology', language = 'e
   const data = await fetchApi(url)
   if (data?.status === 'error') throw new Error(data?.message || 'NewsData.io error')
   const results = data?.results || []
-  return results.slice(0, Math.min(limit, 20))
+  return results.slice(0, Math.min(limit, 50))
 }
 
 export async function fetchNewsApiAiSearch(env, q = 'technology', limit = 10) {
@@ -685,12 +685,63 @@ export const AUTO_MARKET_SOURCES = [
   'newsdata_io',
 ]
 
+/** Default events requested per non-news source when seeding. */
+export const DEFAULT_SEED_PER_SOURCE_LIMIT = 25
+
+/**
+ * News sources whose events pass through enrichNewsEvent (custom-news-markets.mjs).
+ * Typically request more articles so enrichment has more signal.
+ */
+export const NEWS_ENRICHED_PER_SOURCE_LIMIT = 50
+
+/** Source keys that use headline fetching + optional enrichment (must match custom-news-markets NEWS_SOURCES + route aliases). */
+export const NEWS_ENRICHED_SEED_SOURCES = new Set(['news', 'gnews', 'perigon', 'newsapi_ai', 'newsdata_io', 'newsdata'])
+
+/** Hard cap per upstream request (plan safety). */
+export const MAX_SEED_EVENT_LIMIT = 100
+
+export function clampSeedLimit(n) {
+  const x = parseInt(String(n), 10)
+  if (Number.isNaN(x) || x < 1) return 1
+  return Math.min(x, MAX_SEED_EVENT_LIMIT)
+}
+
+/**
+ * Normalize optional per-source overrides from API body.
+ * @param {unknown} raw
+ * @returns {Record<string, number>}
+ */
+export function normalizePerSourceOverrides(raw) {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return {}
+  const out = {}
+  for (const [k, v] of Object.entries(raw)) {
+    if (typeof k !== 'string' || !k.trim()) continue
+    const n = parseInt(String(v), 10)
+    if (!Number.isNaN(n)) out[k.trim()] = clampSeedLimit(n)
+  }
+  return out
+}
+
+/**
+ * Resolved event fetch limit for one source (overrides > news tier > default).
+ * @param {string} source
+ * @param {{ defaultLimit?: number, newsEnrichedLimit?: number, overrides?: Record<string, number> }} [opts]
+ */
+export function resolveSeedLimitForSource(source, opts = {}) {
+  const defaultLimit = clampSeedLimit(opts.defaultLimit ?? DEFAULT_SEED_PER_SOURCE_LIMIT)
+  const newsLimit = clampSeedLimit(opts.newsEnrichedLimit ?? NEWS_ENRICHED_PER_SOURCE_LIMIT)
+  const overrides = opts.overrides && typeof opts.overrides === 'object' ? opts.overrides : {}
+  if (overrides[source] != null) return clampSeedLimit(overrides[source])
+  if (NEWS_ENRICHED_SEED_SOURCES.has(source)) return newsLimit
+  return defaultLimit
+}
+
 /**
  * Get events from a single named source. Returns [] if source unknown or API key missing.
  * opts: { limit, sportKey, category, q }
  */
 export async function getEventsFromSource(env, source, opts = {}) {
-  const limit = Math.min(opts.limit ?? 5, 20)
+  const limit = clampSeedLimit(opts.limit ?? DEFAULT_SEED_PER_SOURCE_LIMIT)
   const sportKey = opts.sportKey ?? 'basketball_nba'
   const category = opts.category ?? 'general'
   const q = opts.q ?? 'technology'
@@ -715,12 +766,32 @@ export async function getEventsFromSource(env, source, opts = {}) {
 
 /**
  * Gather events from multiple sources in parallel. On failure (e.g. no key, rate limit) returns [] for that source.
- * perSourceLimit applied to each source. Returns { events, bySource: { [source]: count } }.
+ * @param {number | { defaultLimit?: number, newsEnrichedLimit?: number, overrides?: Record<string, number>, sportKey?: string }} [limitOpts]
+ *        If a number, that limit is used for every source (legacy). Otherwise default/news/overrides from resolveSeedLimitForSource.
+ * Returns { events, bySource: { [source]: count }, limitsBySource }.
  */
-export async function gatherEventsFromAllSources(env, sources = AUTO_MARKET_SOURCES, perSourceLimit = 5) {
+export async function gatherEventsFromAllSources(env, sources = AUTO_MARKET_SOURCES, limitOpts = {}) {
+  const opts =
+    typeof limitOpts === 'number'
+      ? {
+          defaultLimit: clampSeedLimit(limitOpts),
+          newsEnrichedLimit: clampSeedLimit(limitOpts),
+          overrides: {},
+        }
+      : {
+          defaultLimit: clampSeedLimit(limitOpts.defaultLimit ?? DEFAULT_SEED_PER_SOURCE_LIMIT),
+          newsEnrichedLimit: clampSeedLimit(limitOpts.newsEnrichedLimit ?? NEWS_ENRICHED_PER_SOURCE_LIMIT),
+          overrides: normalizePerSourceOverrides(limitOpts.overrides),
+        }
+  const sportKey = typeof limitOpts === 'object' && limitOpts !== null ? limitOpts.sportKey : undefined
   const bySource = {}
+  const limitsBySource = {}
   const results = await Promise.allSettled(
-    sources.map((src) => getEventsFromSource(env, src, { limit: perSourceLimit }))
+    sources.map((src) => {
+      const lim = resolveSeedLimitForSource(src, opts)
+      limitsBySource[src] = lim
+      return getEventsFromSource(env, src, { limit: lim, ...(sportKey ? { sportKey } : {}) })
+    })
   )
   const allEvents = []
   results.forEach((outcome, i) => {
@@ -729,5 +800,5 @@ export async function gatherEventsFromAllSources(env, sources = AUTO_MARKET_SOUR
     bySource[src] = events.length
     allEvents.push(...events)
   })
-  return { events: allEvents, bySource }
+  return { events: allEvents, bySource, limitsBySource }
 }

@@ -1032,7 +1032,6 @@ async function handleWithD1(db, kv, r2, request, path, method, env = {}) {
   if (path === 'auto-markets') {
     const action = query.action || (method === 'POST' ? (body.action || 'seed') : 'events')
     const source = query.source || body?.source || 'sports'
-    const limit = Math.min(parseInt(query.limit || body?.limit || '10', 10) || 10, 50)
     const sportKey = query.sport || body?.sport || 'basketball_nba'
     const supportedSources = [
       'sports',
@@ -1064,6 +1063,11 @@ async function handleWithD1(db, kv, r2, request, path, method, env = {}) {
         action: 'probe',
         keysPresent: dataSources.probeAutoMarketEnv(env),
         seedSources: dataSources.AUTO_MARKET_SOURCES,
+        seedLimits: {
+          defaultPerSource: dataSources.DEFAULT_SEED_PER_SOURCE_LIMIT,
+          newsEnrichedPerSource: dataSources.NEWS_ENRICHED_PER_SOURCE_LIMIT,
+          maxPerRequest: dataSources.MAX_SEED_EVENT_LIMIT,
+        },
         ...(lastSeed && { lastSeed }),
       })
     }
@@ -1072,9 +1076,22 @@ async function handleWithD1(db, kv, r2, request, path, method, env = {}) {
       if (!supportedSources.includes(source)) {
         return jsonResponse({ error: 'Unknown source', supported: supportedSources }, 400)
       }
+      const defaultListLimit = dataSources.resolveSeedLimitForSource(source, {
+        defaultLimit: dataSources.DEFAULT_SEED_PER_SOURCE_LIMIT,
+        newsEnrichedLimit: dataSources.NEWS_ENRICHED_PER_SOURCE_LIMIT,
+        overrides: {},
+      })
+      const eventsLimit = dataSources.clampSeedLimit(
+        parseInt(query.limit || String(defaultListLimit), 10) || defaultListLimit
+      )
       let events = []
       try {
-        events = await dataSources.getEventsFromSource(env, source, { limit, sportKey, category: query.category || 'general', q: query.q || body?.q || 'technology' })
+        events = await dataSources.getEventsFromSource(env, source, {
+          limit: eventsLimit,
+          sportKey,
+          category: query.category || 'general',
+          q: query.q || body?.q || 'technology',
+        })
       } catch (err) {
         console.error('[auto-markets] events', source, err)
         return jsonResponse({ error: 'Failed to fetch events', message: err?.message }, 502)
@@ -1086,19 +1103,37 @@ async function handleWithD1(db, kv, r2, request, path, method, env = {}) {
     if (method === 'POST' && (action === 'seed' || action === 'seed_all')) {
       let events = []
       let bySource = null
+      let limitsBySource = null
       const sourcesList = Array.isArray(body?.sources) ? body.sources : (action === 'seed_all' || body?.seed_all ? dataSources.AUTO_MARKET_SOURCES : null)
-      const perSourceLimit = Math.min(parseInt(body?.perSourceLimit || '5', 10) || 5, 20)
+      const seedLimitOpts = {
+        defaultLimit: dataSources.clampSeedLimit(parseInt(body?.perSourceLimit ?? '25', 10) || 25),
+        newsEnrichedLimit: dataSources.clampSeedLimit(parseInt(body?.newsEnrichedPerSourceLimit ?? '50', 10) || 50),
+        overrides: dataSources.normalizePerSourceOverrides(body?.perSourceLimits),
+        sportKey,
+      }
 
       if (sourcesList && sourcesList.length > 0) {
-        const gathered = await dataSources.gatherEventsFromAllSources(env, sourcesList, perSourceLimit)
+        const gathered = await dataSources.gatherEventsFromAllSources(env, sourcesList, seedLimitOpts)
         events = gathered.events
         bySource = gathered.bySource
+        limitsBySource = gathered.limitsBySource
         if (events.length === 0 && Object.values(gathered.bySource).every((n) => n === 0)) {
           return jsonResponse({ success: true, message: 'No events from any source (missing keys or empty)', bySource: gathered.bySource, created: [], count: 0, skipped: 0 }, 200)
         }
       } else {
         try {
-          events = await dataSources.getEventsFromSource(env, source, { limit, sportKey, category: body?.category || 'general', q: body?.q || 'technology' })
+          const defaultOne = dataSources.resolveSeedLimitForSource(source, seedLimitOpts)
+          const rawExplicit =
+            body?.limit != null && body.limit !== '' ? parseInt(String(body.limit), 10) : NaN
+          const oneLimit = Number.isFinite(rawExplicit)
+            ? dataSources.clampSeedLimit(rawExplicit)
+            : defaultOne
+          events = await dataSources.getEventsFromSource(env, source, {
+            limit: oneLimit,
+            sportKey,
+            category: body?.category || 'general',
+            q: body?.q || 'technology',
+          })
         } catch (err) {
           console.error('[auto-markets] seed fetch', source, err)
           return jsonResponse({ error: 'Failed to fetch events', message: err?.message }, 502)
@@ -1178,6 +1213,7 @@ async function handleWithD1(db, kv, r2, request, path, method, env = {}) {
       // Markets list cache will refresh on next GET (TTL)
       const res = { success: true, source: bySource ? 'multiple' : source, created, count: created.length, skipped: events.length - created.length }
       if (bySource) res.bySource = bySource
+      if (limitsBySource) res.limitsBySource = limitsBySource
       const lastSeedAt = new Date().toISOString()
       console.log('[auto-markets] seed_all completed', lastSeedAt, 'created:', res.count, 'bySource:', res.bySource ?? '')
       if (kv) {

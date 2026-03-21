@@ -1,7 +1,8 @@
 # Cron Worker: seeds automated prediction markets by calling the Pages API.
 # Deploy: npx wrangler deploy (from this directory)
 # Set secrets: npx wrangler secret put SITE_URL  (or in Dashboard)
-# Optional: AUTO_MARKETS_CRON_SECRET, AUTO_MARKETS_SOURCE (default sports), AUTO_MARKETS_LIMIT (default 10)
+# Optional: AUTO_MARKETS_CRON_SECRET, AUTO_MARKETS_SOURCE, AUTO_MARKETS_LIMIT (default 25),
+# AUTO_MARKETS_NEWS_LIMIT (default 50, for news / enriched headline sources)
 
 name = "dice-express-auto-markets-cron"
 main = "index.js"
@@ -17,4 +18,5 @@ crons = ["0 * * * *"]
 [vars]
 SITE_URL = "https://dice-express.pages.dev"
 # AUTO_MARKETS_SOURCE = "sports"
-AUTO_MARKETS_LIMIT = "4"
+AUTO_MARKETS_LIMIT = "25"
+AUTO_MARKETS_NEWS_LIMIT = "50"
