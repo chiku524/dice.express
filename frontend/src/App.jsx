@@ -43,8 +43,9 @@ import { AccountModalProvider } from './contexts/AccountModalContext'
 import { Web3WalletProvider } from './contexts/Web3WalletContext'
 import ProtectedRoute from './components/ProtectedRoute'
 import './styles/theme.css'
-import './styles/desktop-app.css'
 import './App.css'
+/* After App.css so .app--desktop-shell wins over .app { flex-direction: column } */
+import './styles/desktop-app.css'
 
 if (typeof document !== 'undefined' && typeof window !== 'undefined' && window.__TAURI__) {
   document.documentElement.classList.add('desktop-app')

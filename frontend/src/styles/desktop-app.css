@@ -36,6 +36,12 @@ html.desktop-app body {
   --desktop-sidebar-width: 232px;
 }
 
+/* Beat .app { flex-direction: column } from App.css (same specificity → order; html prefix = safety) */
+html.desktop-app .app.app--desktop-shell {
+  flex-direction: row;
+  align-items: stretch;
+}
+
 .app--desktop-shell {
   flex-direction: row;
   align-items: stretch;
