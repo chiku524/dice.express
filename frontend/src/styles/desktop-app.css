@@ -3,12 +3,58 @@
  * Applied when running inside the Tauri desktop shell (html.desktop-app).
  */
 
+/* Lock viewport: no document/body scroll — only the main column (.desktop-main-inner) scrolls */
+html.desktop-app {
+  height: 100%;
+  height: 100dvh;
+  overflow: hidden;
+}
+
 html.desktop-app body {
   display: flex;
   flex-direction: column;
   align-items: stretch;
   justify-content: flex-start;
   place-items: unset;
+  height: 100%;
+  height: 100dvh;
+  max-height: 100dvh;
+  min-height: 0;
+  overflow: hidden;
+}
+
+html.desktop-app #root {
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  max-height: 100%;
+}
+
+/* Toasts are fixed; don't let the flex row reserve space for them */
+html.desktop-app #root > .toast-container {
+  flex: 0 0 0;
+  width: 0;
+  min-width: 0;
+  height: 0;
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+  overflow: visible;
+  pointer-events: none;
+}
+
+html.desktop-app #root > .toast-container .toast {
+  pointer-events: auto;
+}
+
+/* Full-viewport routes under #root (desktop shell, auth, frameless) */
+html.desktop-app #root > .app {
+  flex: 1 1 auto;
+  min-height: 0;
+  min-width: 0;
 }
 
 /* ---- Frameless splash / launch windows: only the route content, full viewport ---- */
@@ -31,15 +77,40 @@ html.desktop-app body {
   inset: 0;
 }
 
+/* Auth routes (no sidebar): full #root height; scroll inside shell if content is tall */
+html.desktop-app .app.app--auth {
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+}
+
+html.desktop-app .app--auth .auth-page {
+  min-height: 100%;
+}
+
 /* ---- Main Tauri window: sidebar + content ---- */
 .desktop-app {
   --desktop-sidebar-width: 232px;
+}
+
+/* Sidebar stays viewport-height; nav scrolls inside (see DesktopSidebar.css) */
+html.desktop-app .desktop-sidebar {
+  flex-shrink: 0;
+  align-self: stretch;
+  max-height: 100%;
+  overflow: hidden;
 }
 
 /* Beat .app { flex-direction: column } from App.css (same specificity → order; html prefix = safety) */
 html.desktop-app .app.app--desktop-shell {
   flex-direction: row;
   align-items: stretch;
+  flex: 1 1 auto;
+  min-height: 0;
+  min-width: 0;
+  height: 100%;
+  max-height: 100%;
+  overflow: hidden;
 }
 
 .app--desktop-shell {
@@ -67,6 +138,12 @@ html.desktop-app .app.app--desktop-shell {
   overflow: hidden;
   padding: 0;
   margin: 0;
+}
+
+html.desktop-app .app-main-desktop {
+  min-height: 0;
+  height: 100%;
+  max-height: 100%;
 }
 
 .desktop-main-inner {

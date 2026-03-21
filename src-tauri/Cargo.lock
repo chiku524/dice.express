@@ -571,7 +571,7 @@ dependencies = [
 
 [[package]]
 name = "dice-express"
-version = "1.0.12"
+version = "1.0.13"
 dependencies = [
  "serde",
  "serde_json",
