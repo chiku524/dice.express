@@ -1,6 +1,7 @@
 /**
  * Health check utility for API routes
  */
+import { apiUrl } from '../services/apiBase'
 
 /**
  * Check if API routes are accessible
@@ -11,9 +12,9 @@ export async function checkApiHealth() {
     // Check the health endpoint with timeout
     const controller = new AbortController()
     const timeoutId = setTimeout(() => controller.abort(), 3000) // 3 second timeout
-    
+
     try {
-      const healthResponse = await fetch('/api/health', {
+      const healthResponse = await fetch(apiUrl('health'), {
         method: 'GET',
         signal: controller.signal,
       })

@@ -1,4 +1,5 @@
 import axios from 'axios'
+import { apiUrl as getApiUrl } from './apiBase'
 
 const REDSTONE_API_URL = 'https://api.redstone.finance/prices'
 
@@ -16,12 +17,12 @@ class OracleService {
   async fetchPrice(symbol, useProxy = null) {
     try {
       // Use proxy in production to avoid CORS, direct call in development
-      const useProxyRoute = useProxy !== null ? useProxy : (import.meta.env.PROD || window.location.hostname !== 'localhost')
-      const apiUrl = useProxyRoute 
-        ? `/api/oracle?symbol=${encodeURIComponent(symbol.toUpperCase())}`
+      const useProxyRoute = useProxy !== null ? useProxy : (import.meta.env.PROD || (typeof window !== 'undefined' && window.location.hostname !== 'localhost'))
+      const url = useProxyRoute
+        ? `${getApiUrl('oracle')}?symbol=${encodeURIComponent(symbol.toUpperCase())}`
         : `${REDSTONE_API_URL}?symbol=${encodeURIComponent(symbol.toUpperCase())}&provider=redstone`
 
-      const response = await axios.get(apiUrl)
+      const response = await axios.get(url)
 
       // RedStone returns data in various formats, normalize it
       const data = response.data

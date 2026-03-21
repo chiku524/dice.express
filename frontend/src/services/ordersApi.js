@@ -1,14 +1,7 @@
 /**
  * P2P orders API — place and list orders; matching runs on the server.
  */
-const API_ORIGIN = typeof import.meta !== 'undefined' && import.meta.env?.VITE_API_ORIGIN
-  ? import.meta.env.VITE_API_ORIGIN.replace(/\/$/, '')
-  : ''
-
-function apiUrl(path) {
-  const p = path.startsWith('/') ? path : `/${path}`
-  return `${API_ORIGIN}/api${p.startsWith('/api') ? p.slice(4) : p}`
-}
+import { apiUrl } from './apiBase'
 
 export async function fetchOpenOrders(marketId, outcome = null) {
   const params = new URLSearchParams({ marketId })

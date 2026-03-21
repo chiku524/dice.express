@@ -135,3 +135,49 @@ html.desktop-app body {
 .app--desktop-shell .app-footer {
   display: none !important;
 }
+
+/* ---- Responsive: narrow main panel (min window 800px, sidebar 232px → ~568px content) ---- */
+.desktop-app .desktop-main-inner {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.desktop-app .market-grid {
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 260px), 1fr));
+}
+
+.desktop-app .desktop-main-inner table,
+.desktop-app .portfolio-table-wrap,
+.desktop-app .documentation-container {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.desktop-app .card,
+.desktop-app .market-card {
+  min-width: 0;
+}
+
+.desktop-app .portfolio-page,
+.desktop-app .dashboard-page,
+.desktop-app .documentation-container {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.desktop-app .portfolio-header,
+.desktop-app .dashboard-header {
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.desktop-app .auth-page .auth-brand-panel {
+  min-width: 0;
+}
+
+@media (max-width: 900px) {
+  .desktop-app .market-grid {
+    grid-template-columns: 1fr;
+  }
+}

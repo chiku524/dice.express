@@ -1,14 +1,8 @@
 /**
  * Virtual markets API client — no blockchain.
- * In dev, set VITE_API_ORIGIN to your deployed API (e.g. Cloudflare Pages URL) to load markets.
  */
-const API_ORIGIN = typeof import.meta !== 'undefined' && import.meta.env?.VITE_API_ORIGIN
-  ? import.meta.env.VITE_API_ORIGIN.replace(/\/$/, '')
-  : ''
-function apiUrl(path) {
-  const p = path.startsWith('/') ? path : `/${path}`
-  return `${API_ORIGIN}/api${p.startsWith('/api') ? p.slice(4) : p}`
-}
+import { apiUrl } from './apiBase'
+
 const MARKETS_API = apiUrl('markets')
 
 export async function fetchMarkets(source = null) {

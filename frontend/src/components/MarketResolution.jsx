@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useWallet } from '../contexts/WalletContext'
 import { oracleService } from '../services/oracleService'
+import { apiUrl } from '../services/apiBase'
 
 /**
  * Virtual market resolution: update market status via API (no blockchain).
@@ -32,7 +33,7 @@ export default function MarketResolution({ market, onResolved }) {
       setLoading(true)
       setError(null)
       const marketId = market.payload?.marketId || market.contractId
-      const res = await fetch('/api/update-market-status', {
+      const res = await fetch(apiUrl('update-market-status'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ marketId, status: 'Resolving' }),

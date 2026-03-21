@@ -9,6 +9,7 @@ import { SkeletonList } from './SkeletonLoader'
 import UserHubNav from './UserHubNav'
 import ErrorState from './ErrorState'
 import { formatPips, PLATFORM_CURRENCY_SYMBOL } from '../constants/currency'
+import { apiUrl } from '../services/apiBase'
 import './Portfolio.css'
 
 const USDC_ABI = [{ type: 'function', name: 'transfer', inputs: [{ name: 'to', type: 'address' }, { name: 'value', type: 'uint256' }], outputs: [{ type: 'bool' }] }]
@@ -63,7 +64,7 @@ export default function Portfolio() {
       if (!wallet) return
 
       try {
-        const response = await fetch('/api/get-user-balance', {
+        const response = await fetch(apiUrl('get-user-balance'), {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json'
@@ -224,7 +225,7 @@ export default function Portfolio() {
   const fetchWithdrawalRequests = async () => {
     if (!wallet) return
     try {
-      const res = await fetch(`/api/withdrawal-requests?userParty=${encodeURIComponent(wallet.party)}`)
+      const res = await fetch(`${apiUrl('withdrawal-requests')}?userParty=${encodeURIComponent(wallet.party)}`)
       const data = await res.json()
       if (data.requests) setWithdrawalRequests(data.requests)
     } catch {
@@ -234,7 +235,7 @@ export default function Portfolio() {
   const fetchDepositRecords = async () => {
     if (!wallet) return
     try {
-      const res = await fetch(`/api/deposit-records?userParty=${encodeURIComponent(wallet.party)}&limit=20`)
+      const res = await fetch(`${apiUrl('deposit-records')}?userParty=${encodeURIComponent(wallet.party)}&limit=20`)
       const data = await res.json()
       if (data.records) setDepositRecords(data.records)
     } catch {
@@ -243,7 +244,7 @@ export default function Portfolio() {
   }
   const fetchDepositAddresses = async () => {
     try {
-      const res = await fetch('/api/deposit-addresses')
+      const res = await fetch(apiUrl('deposit-addresses'))
       const data = await res.json()
       if (data.addresses) setDepositAddresses(data.addresses)
     } catch {
@@ -348,7 +349,7 @@ export default function Portfolio() {
     setWithdrawSuccess(false)
     setWithdrawTxHash(null)
     try {
-      const res = await fetch('/api/withdraw-request', {
+      const res = await fetch(apiUrl('withdraw-request'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -450,7 +451,7 @@ export default function Portfolio() {
         params: [message, web3Address],
       })
       const networkId = walletDepositToken === 'native_matic' ? 'polygon' : 'ethereum'
-      const res = await fetch('/api/deposit-with-tx', {
+      const res = await fetch(apiUrl('deposit-with-tx'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

@@ -2,8 +2,7 @@
  * Balance (Pips) service.
  */
 import { formatPips, PLATFORM_CURRENCY_SYMBOL } from '../../constants/currency'
-
-const BALANCE_API = '/api/get-user-balance'
+import { apiUrl } from '../apiBase'
 
 /**
  * Fetch current virtual balance for a party.
@@ -15,7 +14,7 @@ export async function getVirtualBalance(userParty) {
     return { balance: '0', formatted: formatPips(0), raw: 0 }
   }
   try {
-    const response = await fetch(BALANCE_API, {
+    const response = await fetch(apiUrl('get-user-balance'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ userParty }),
@@ -37,8 +36,6 @@ export async function getVirtualBalance(userParty) {
   }
 }
 
-const TRANSFER_API = '/api/transfer-pips'
-
 /**
  * Transfer Pips from one user to another (tip).
  * @param {string} fromParty - Sender party (display name)
@@ -47,7 +44,7 @@ const TRANSFER_API = '/api/transfer-pips'
  * @returns {Promise<{ success: boolean, amount?: string, senderNewBalance?: string, error?: string }>}
  */
 export async function transferPips(fromParty, toParty, amount) {
-  const res = await fetch(TRANSFER_API, {
+  const res = await fetch(apiUrl('transfer-pips'), {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ fromParty, toParty, amount: String(amount) }),

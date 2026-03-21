@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useWallet } from '../contexts/WalletContext'
 import { ContractStorage } from '../utils/contractStorage'
 import { SkeletonList } from './SkeletonLoader'
+import { apiUrl } from '../services/apiBase'
 import './AdminDashboard.css'
 
 export default function AdminDashboard() {
@@ -64,7 +65,7 @@ export default function AdminDashboard() {
       console.log('[AdminDashboard] 📝 Updating database status to Approved...')
       
       // Update status in database
-      const updateResponse = await fetch('/api/update-contract-status', {
+      const updateResponse = await fetch(apiUrl('update-contract-status'), {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json'
@@ -127,7 +128,7 @@ export default function AdminDashboard() {
       console.log('[AdminDashboard] 📝 Updating database status to Rejected...')
       
       // Update status in database
-      const updateResponse = await fetch('/api/update-contract-status', {
+      const updateResponse = await fetch(apiUrl('update-contract-status'), {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json'

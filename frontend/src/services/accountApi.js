@@ -2,16 +2,9 @@
  * Account/onboarding persistence — save and load from API (remote) with local fallback.
  * Display name -> accountId map is stored locally for sign-in lookup.
  */
-const API_ORIGIN = typeof import.meta !== 'undefined' && import.meta.env?.VITE_API_ORIGIN
-  ? import.meta.env.VITE_API_ORIGIN.replace(/\/$/, '')
-  : ''
+import { apiUrl } from './apiBase'
 
 const DISPLAY_NAME_MAP_KEY = 'account_display_name_map'
-
-function apiUrl(path) {
-  const p = path.startsWith('/') ? path : `/${path}`
-  return `${API_ORIGIN}/api${p.startsWith('/api') ? p.slice(4) : p}`
-}
 
 function getDisplayNameMap() {
   try {

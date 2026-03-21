@@ -3,14 +3,13 @@
  * Stores contracts via API (Cloudflare D1) with local storage as fallback
  * Prioritizes cloud storage for cross-device access and reliability
  */
+import { apiUrl } from '../services/apiBase'
 
 const STORAGE_KEY = 'virtual_contracts'
 const MAX_STORED_CONTRACTS = 100 // Limit to prevent storage bloat
 
-// API endpoints
-const API_BASE = '/api'
-const STORE_CONTRACT_ENDPOINT = `${API_BASE}/store-contract`
-const GET_CONTRACTS_ENDPOINT = `${API_BASE}/get-contracts`
+const STORE_CONTRACT_ENDPOINT = apiUrl('store-contract')
+const GET_CONTRACTS_ENDPOINT = apiUrl('get-contracts')`
 
 export const ContractStorage = {
   /**
