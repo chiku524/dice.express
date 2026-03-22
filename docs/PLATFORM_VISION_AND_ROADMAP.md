@@ -170,7 +170,7 @@ See **AMM_AND_ALGORITHMS.md** for formulas and integration points.
 - [ ] **Multi-outcome**: Already in DAML; improve UI (outcome creation, resolution, display).
 - [ ] **Style selector**: Create market → choose style (Yes/No, True/False, Happens/Doesn’t, Multi-outcome).
 - [ ] **Categories**: Filter/browse by category (Finance, Sports, Politics, etc.); optional subcategories.
-- [ ] **Oracle mapping**: Per category, recommend or require oracle type (see ORACLE_STRATEGY.md).
+- [x] **Oracle mapping**: Per category, recommend or require oracle type (see **ORACLE_STRATEGY.md** — updated for automated sources + RedStone).
 
 ### Phase 4: AMM & Algorithm Upgrades
 
@@ -181,7 +181,7 @@ See **AMM_AND_ALGORITHMS.md** for formulas and integration points.
 
 ### Phase 5: Scale & Polish
 
-- [ ] **Scalar / conditional markets**: Design and implement if needed.
+- [x] **Scalar / conditional markets**: Scalar as multi-outcome range buckets + optional `scalarSpec`; conditional as binary with optional `parentMarketId` (see Create Market + API payload). Full AMM beyond binary pool remains future work.
 - [ ] **Concentrated liquidity**: Research and roadmap.
 - [ ] **Analytics**: Volume, open interest, top markets by category.
 - [ ] **Compliance & limits**: Per-user or per-market limits; optional KYC hooks.

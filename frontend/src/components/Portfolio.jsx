@@ -1,6 +1,13 @@
 import { useState, useEffect, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import { encodeFunctionData } from 'viem'
+import { Connection, PublicKey, Transaction } from '@solana/web3.js'
+import {
+  getAssociatedTokenAddressSync,
+  createAssociatedTokenAccountIdempotentInstruction,
+  createTransferInstruction,
+  TOKEN_PROGRAM_ID,
+} from '@solana/spl-token'
 import { useWallet } from '../contexts/WalletContext'
 import { useAccountModal } from '../contexts/AccountModalContext'
 import { useWeb3Wallet } from '../contexts/Web3WalletContext'
@@ -9,13 +16,29 @@ import { SkeletonList } from './SkeletonLoader'
 import UserHubNav from './UserHubNav'
 import ErrorState from './ErrorState'
 import { formatPips, PLATFORM_CURRENCY_SYMBOL } from '../constants/currency'
+import {
+  EVM_USDC_CONTRACT,
+  EVM_CHAIN_ID,
+  EVM_NETWORK_LABEL,
+  evmTxExplorerUrl,
+  WITHDRAW_EVM_USDC_NETWORKS,
+  WITHDRAW_EVM_NATIVE_NETWORKS,
+  SOLANA_MAINNET_USDC_MINT,
+} from '../constants/chainConfig'
 import { apiUrl } from '../services/apiBase'
 import './Portfolio.css'
 
 const USDC_ABI = [{ type: 'function', name: 'transfer', inputs: [{ name: 'to', type: 'address' }, { name: 'value', type: 'uint256' }], outputs: [{ type: 'bool' }] }]
-const USDC_ETHEREUM = '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48'
-const CHAIN_ID_ETHEREUM = 1
-const CHAIN_ID_POLYGON = 137
+
+const SOLANA_RPC_BROWSER = typeof import.meta !== 'undefined' && import.meta.env?.VITE_SOLANA_RPC_URL
+  ? String(import.meta.env.VITE_SOLANA_RPC_URL)
+  : 'https://api.mainnet-beta.solana.com'
+
+function uint8ToBase64(u8) {
+  let s = ''
+  for (let i = 0; i < u8.length; i++) s += String.fromCharCode(u8[i])
+  return btoa(s)
+}
 
 export default function Portfolio() {
   const { wallet } = useWallet()
@@ -24,6 +47,8 @@ export default function Portfolio() {
   const [positions, setPositions] = useState([])
   const [walletDepositAmount, setWalletDepositAmount] = useState('')
   const [walletDepositToken, setWalletDepositToken] = useState('usdc')
+  const [walletDepositEvmNetwork, setWalletDepositEvmNetwork] = useState('ethereum')
+  const [phantomPub, setPhantomPub] = useState(null)
   const [walletDepositLoading, setWalletDepositLoading] = useState(false)
   const [walletDepositError, setWalletDepositError] = useState(null)
   const [walletDepositSuccess, setWalletDepositSuccess] = useState(false)
@@ -49,6 +74,23 @@ export default function Portfolio() {
   const [retryCount, setRetryCount] = useState(0)
   const isMountedRef = useRef(true)
   const depositCardRef = useRef(null)
+
+  useEffect(() => {
+    const sol = typeof window !== 'undefined' && window.solana?.isPhantom ? window.solana : null
+    if (!sol) return undefined
+    const syncPhantom = () => setPhantomPub(sol.publicKey?.toBase58?.() || null)
+    syncPhantom()
+    sol.on?.('accountChanged', syncPhantom)
+    return () => sol.removeListener?.('accountChanged', syncPhantom)
+  }, [])
+
+  useEffect(() => {
+    if (withdrawNetwork === 'solana') setWithdrawToken('usdc')
+  }, [withdrawNetwork])
+
+  useEffect(() => {
+    if (withdrawToken === 'native' && withdrawNetwork === 'solana') setWithdrawNetwork('ethereum')
+  }, [withdrawToken, withdrawNetwork])
 
   useEffect(() => {
     isMountedRef.current = true
@@ -331,6 +373,31 @@ export default function Portfolio() {
     }
   }
 
+  const connectPhantom = async () => {
+    setWalletDepositError(null)
+    const sol = typeof window !== 'undefined' && window.solana?.isPhantom ? window.solana : null
+    if (!sol) {
+      setWalletDepositError('Install Phantom (https://phantom.app) for Solana USDC deposits.')
+      return
+    }
+    try {
+      const { publicKey } = await sol.connect()
+      setPhantomPub(publicKey?.toBase58?.() || null)
+    } catch (e) {
+      setWalletDepositError(e?.message || 'Could not connect Phantom')
+    }
+  }
+
+  const disconnectPhantom = async () => {
+    try {
+      const sol = typeof window !== 'undefined' && window.solana?.isPhantom ? window.solana : null
+      await sol?.disconnect?.()
+    } catch (_) {
+      /* ignore */
+    }
+    setPhantomPub(null)
+  }
+
   const handleWithdraw = async () => {
     if (!wallet) return
     const amount = parseFloat(withdrawAmount)
@@ -342,8 +409,18 @@ export default function Portfolio() {
       setWithdrawError('Enter destination address')
       return
     }
-    const token = withdrawToken === 'native_eth' || withdrawToken === 'native_matic' ? 'native' : 'usdc'
-    const networkId = withdrawToken === 'native_matic' ? 'polygon' : withdrawNetwork
+    const netLower = withdrawNetwork.toLowerCase()
+    if (netLower === 'solana') {
+      if (!/^[1-9A-HJ-NP-Za-km-z]{32,48}$/.test(withdrawAddress.trim())) {
+        setWithdrawError('Enter a valid Solana address')
+        return
+      }
+    } else if (!/^0x[a-fA-F0-9]{40}$/i.test(withdrawAddress.trim())) {
+      setWithdrawError('Enter a valid EVM address (0x + 40 hex characters)')
+      return
+    }
+    const networkId = netLower
+    const token = netLower === 'solana' ? 'usdc' : withdrawToken === 'native' ? 'native' : 'usdc'
     setWithdrawLoading(true)
     setWithdrawError(null)
     setWithdrawSuccess(false)
@@ -385,15 +462,93 @@ export default function Portfolio() {
   }
 
   const handleWalletDeposit = async () => {
-    if (!wallet?.party || !web3Address || !depositAddresses?.evm?.address) {
-      setWalletDepositError('Connect your Web3 wallet and ensure platform address is loaded.')
-      return
-    }
+    if (!wallet?.party) return
     const amount = parseFloat(walletDepositAmount)
-    const isNative = walletDepositToken === 'native_eth' || walletDepositToken === 'native_matic'
+    const isSol = walletDepositToken === 'usdc_solana'
+    const isNative = walletDepositToken === 'native'
     const minAmount = isNative ? 0.0001 : 0.01
     if (!walletDepositAmount || isNaN(amount) || amount < minAmount) {
-      setWalletDepositError(isNative ? 'Enter a valid amount.' : 'Enter a valid amount (min 0.01 PP).')
+      setWalletDepositError(isNative ? 'Enter a valid native amount.' : 'Enter a valid amount (min 0.01 PP for USDC).')
+      return
+    }
+
+    if (isSol) {
+      if (!depositAddresses?.solana?.address) {
+        setWalletDepositError('Solana deposit address not configured.')
+        return
+      }
+      const sol = typeof window !== 'undefined' && window.solana?.isPhantom ? window.solana : null
+      if (!sol?.publicKey) {
+        setWalletDepositError('Connect Phantom first (Solana USDC).')
+        return
+      }
+      setWalletDepositLoading(true)
+      setWalletDepositError(null)
+      setWalletDepositSuccess(false)
+      try {
+        const connection = new Connection(SOLANA_RPC_BROWSER, 'confirmed')
+        const mint = new PublicKey(SOLANA_MAINNET_USDC_MINT)
+        const platformPk = new PublicKey(depositAddresses.solana.address)
+        const userPk = sol.publicKey
+        const userAta = getAssociatedTokenAddressSync(mint, userPk, false, TOKEN_PROGRAM_ID)
+        const platformAta = getAssociatedTokenAddressSync(mint, platformPk, false, TOKEN_PROGRAM_ID)
+        const amountRaw = BigInt(Math.floor(amount * 1e6))
+        const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash('confirmed')
+        const tx = new Transaction()
+        tx.add(
+          createAssociatedTokenAccountIdempotentInstruction(userPk, platformAta, platformPk, mint, TOKEN_PROGRAM_ID)
+        )
+        tx.add(createTransferInstruction(userAta, platformAta, userPk, amountRaw, [], TOKEN_PROGRAM_ID))
+        tx.recentBlockhash = blockhash
+        tx.feePayer = userPk
+        const signed = await sol.signTransaction(tx)
+        const sig = await connection.sendRawTransaction(signed.serialize(), { skipPreflight: false })
+        await connection.confirmTransaction({ signature: sig, blockhash, lastValidBlockHeight }, 'confirmed')
+        const msgBytes = new TextEncoder().encode(`deposit:${wallet.party}:${sig}`)
+        const signedMsg = await sol.signMessage(msgBytes)
+        const sigBytes =
+          signedMsg instanceof Uint8Array
+            ? signedMsg
+            : signedMsg?.signature instanceof Uint8Array
+              ? signedMsg.signature
+              : new Uint8Array(signedMsg?.signature || [])
+        const sigB64 = uint8ToBase64(sigBytes)
+        const res = await fetch(apiUrl('deposit-with-tx'), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            userParty: wallet.party,
+            txHash: sig,
+            fromAddress: userPk.toBase58(),
+            amountPips: String(amount),
+            signature: sigB64,
+            depositType: 'usdc',
+            networkId: 'solana',
+          }),
+        })
+        const result = await res.json()
+        if (!res.ok) throw new Error(result.error || result.message || 'Deposit failed')
+        setWalletDepositSuccess(true)
+        setWalletDepositAmount('')
+        await fetchUserBalance()
+        await fetchDepositRecords()
+      } catch (err) {
+        setWalletDepositError(err?.message || 'Deposit failed')
+      } finally {
+        setWalletDepositLoading(false)
+        setTimeout(() => setWalletDepositSuccess(false), 5000)
+      }
+      return
+    }
+
+    if (!web3Address || !depositAddresses?.evm?.address) {
+      setWalletDepositError('Connect your EVM wallet and ensure platform address is loaded.')
+      return
+    }
+    const evmNet = walletDepositEvmNetwork
+    const targetChainId = EVM_CHAIN_ID[evmNet]
+    if (targetChainId == null) {
+      setWalletDepositError('Unsupported EVM network.')
       return
     }
     const ethereum = typeof window !== 'undefined' && window.ethereum
@@ -405,29 +560,43 @@ export default function Portfolio() {
     setWalletDepositError(null)
     setWalletDepositSuccess(false)
     try {
-      const targetChainId = walletDepositToken === 'native_matic' ? CHAIN_ID_POLYGON : CHAIN_ID_ETHEREUM
       if (Number(web3ChainId) !== targetChainId) {
         const hexChain = '0x' + targetChainId.toString(16)
-        await ethereum.request({
-          method: 'wallet_switchEthereumChain',
-          params: [{ chainId: hexChain }],
-        })
+        try {
+          await ethereum.request({
+            method: 'wallet_switchEthereumChain',
+            params: [{ chainId: hexChain }],
+          })
+        } catch (e) {
+          setWalletDepositError(
+            e?.message || `Switch your wallet to ${EVM_NETWORK_LABEL[evmNet] || evmNet} (chain ${targetChainId}) and try again.`
+          )
+          setWalletDepositLoading(false)
+          return
+        }
       }
       const platformAddress = depositAddresses.evm.address
+      const usdcContract = EVM_USDC_CONTRACT[evmNet]
+      if (!isNative && !usdcContract) {
+        setWalletDepositError('USDC contract unknown for this network.')
+        setWalletDepositLoading(false)
+        return
+      }
       let txHash
       if (isNative) {
         const valueWei = BigInt(Math.floor(amount * 1e18))
         txHash = await ethereum.request({
           method: 'eth_sendTransaction',
-          params: [{
-            from: web3Address,
-            to: platformAddress,
-            value: '0x' + valueWei.toString(16),
-            data: '0x',
-          }],
+          params: [
+            {
+              from: web3Address,
+              to: platformAddress,
+              value: '0x' + valueWei.toString(16),
+              data: '0x',
+            },
+          ],
         })
       } else {
-        const usdcContract = USDC_ETHEREUM
         const amountRaw = BigInt(Math.floor(amount * 1e6))
         const data = encodeFunctionData({
           abi: USDC_ABI,
@@ -436,12 +605,14 @@ export default function Portfolio() {
         })
         txHash = await ethereum.request({
           method: 'eth_sendTransaction',
-          params: [{
-            from: web3Address,
-            to: usdcContract,
-            data,
-            value: '0x0',
-          }],
+          params: [
+            {
+              from: web3Address,
+              to: usdcContract,
+              data,
+              value: '0x0',
+            },
+          ],
         })
       }
       if (!txHash) throw new Error('No transaction hash returned')
@@ -450,7 +621,6 @@ export default function Portfolio() {
         method: 'personal_sign',
         params: [message, web3Address],
       })
-      const networkId = walletDepositToken === 'native_matic' ? 'polygon' : 'ethereum'
       const res = await fetch(apiUrl('deposit-with-tx'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -461,7 +631,7 @@ export default function Portfolio() {
           amountPips: String(amount),
           signature,
           depositType: isNative ? 'native' : 'usdc',
-          networkId,
+          networkId: evmNet,
         }),
       })
       const result = await res.json()
@@ -535,68 +705,129 @@ export default function Portfolio() {
       <div className="card mb-xl">
         <h2 className="mb-md">Deposit from wallet</h2>
         <p className="text-secondary mb-md" style={{ fontSize: 'var(--font-size-sm)' }}>
-          Connect your Web3 wallet and send USDC or native tokens (ETH, MATIC). Your Pips are credited after the transaction confirms and you sign the verification message.
+          Use an EVM wallet for USDC or native gas tokens on the chain you select, or Phantom for Solana USDC. Pips credit after confirmation and you sign the verification step (EVM: personal_sign; Solana: message signature).
         </p>
-        {!web3Connected ? (
-          <div>
+        <p className="text-muted mb-md" style={{ fontSize: 'var(--font-size-xs)' }}>
+          <strong>Solana USDC:</strong> SPL token (6 decimals). You need a small amount of SOL in Phantom for network fees. Deposits use at least 0.01 PP (USDC) in the form below; withdrawals to Solana are USDC-only (see Withdraw).
+        </p>
+        <div className="form-group" style={{ maxWidth: '320px' }}>
+          <label>Asset</label>
+          <select
+            value={walletDepositToken}
+            onChange={(e) => setWalletDepositToken(e.target.value)}
+            disabled={walletDepositLoading}
+          >
+            <option value="usdc">USDC (EVM)</option>
+            <option value="native">Native gas token (EVM)</option>
+            <option value="usdc_solana">USDC (Solana)</option>
+          </select>
+        </div>
+        {(walletDepositToken === 'usdc' || walletDepositToken === 'native') && (
+          <div className="form-group" style={{ maxWidth: '320px' }}>
+            <label>EVM network</label>
+            <select
+              value={walletDepositEvmNetwork}
+              onChange={(e) => setWalletDepositEvmNetwork(e.target.value)}
+              disabled={walletDepositLoading}
+            >
+              {(walletDepositToken === 'native' ? WITHDRAW_EVM_NATIVE_NETWORKS : WITHDRAW_EVM_USDC_NETWORKS).map((id) => (
+                <option key={id} value={id}>
+                  {EVM_NETWORK_LABEL[id] || id}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
+        {walletDepositToken === 'usdc_solana' ? (
+          <div className="mb-md">
+            {phantomPub ? (
+              <div>
+                <p className="text-muted mb-sm" style={{ fontSize: 'var(--font-size-sm)' }}>
+                  Phantom: <code>{phantomPub.slice(0, 6)}…{phantomPub.slice(-4)}</code>
+                </p>
+                <button
+                  type="button"
+                  className="btn-secondary"
+                  onClick={disconnectPhantom}
+                  disabled={walletDepositLoading}
+                >
+                  Disconnect Phantom
+                </button>
+              </div>
+            ) : (
+              <button type="button" className="btn-primary" onClick={connectPhantom}>
+                Connect Phantom
+              </button>
+            )}
+          </div>
+        ) : !web3Connected ? (
+          <div className="mb-md">
             <button type="button" className="btn-primary" onClick={web3Connect}>
               Connect Web3 wallet
             </button>
             {web3Error && <p className="error mt-sm" style={{ fontSize: 'var(--font-size-sm)' }}>{web3Error}</p>}
           </div>
         ) : (
-          <div>
+          <div className="mb-md">
             <p className="text-muted mb-sm" style={{ fontSize: 'var(--font-size-sm)' }}>
               Connected: <code>{web3Address.slice(0, 6)}…{web3Address.slice(-4)}</code>
-              {(walletDepositToken === 'native_matic' ? Number(web3ChainId) !== CHAIN_ID_POLYGON : Number(web3ChainId) !== CHAIN_ID_ETHEREUM) && (
-                <span style={{ marginLeft: 'var(--spacing-sm)', color: 'var(--color-warning, #eab308)' }}>
-                  Switch to {walletDepositToken === 'native_matic' ? 'Polygon' : 'Ethereum'} for this token.
-                </span>
-              )}
+              {EVM_CHAIN_ID[walletDepositEvmNetwork] != null &&
+                Number(web3ChainId) !== EVM_CHAIN_ID[walletDepositEvmNetwork] && (
+                  <span style={{ marginLeft: 'var(--spacing-sm)', color: 'var(--color-warning, #eab308)' }}>
+                    Switch wallet to {EVM_NETWORK_LABEL[walletDepositEvmNetwork] || walletDepositEvmNetwork} (chain {EVM_CHAIN_ID[walletDepositEvmNetwork]}).
+                  </span>
+                )}
             </p>
-            <div className="form-group" style={{ maxWidth: '280px' }}>
-              <label>Token</label>
-              <select value={walletDepositToken} onChange={(e) => setWalletDepositToken(e.target.value)} disabled={walletDepositLoading}>
-                <option value="usdc">USDC (Ethereum)</option>
-                <option value="native_eth">ETH (Ethereum native)</option>
-                <option value="native_matic">MATIC (Polygon native)</option>
-              </select>
-            </div>
-            <div className="form-group" style={{ maxWidth: '280px' }}>
-              <label>
-                {walletDepositToken === 'usdc' ? 'Amount (PP, in USDC)' : walletDepositToken === 'native_eth' ? 'Amount (ETH)' : 'Amount (MATIC)'}
-              </label>
-              <input
-                type="number"
-                value={walletDepositAmount}
-                onChange={(e) => setWalletDepositAmount(e.target.value)}
-                placeholder={walletDepositToken === 'usdc' ? 'e.g. 10' : 'e.g. 0.1'}
-                min={walletDepositToken === 'usdc' ? '0.01' : '0.0001'}
-                step={walletDepositToken === 'usdc' ? '0.01' : '0.0001'}
-                disabled={walletDepositLoading}
-              />
-            </div>
-            {walletDepositError && <p className="error mt-sm" style={{ fontSize: 'var(--font-size-sm)' }}>{walletDepositError}</p>}
-            {walletDepositSuccess && <p className="success-message mt-sm">Deposit credited. Your balance has been updated.</p>}
-            <button
-              type="button"
-              className="btn-primary"
-              onClick={handleWalletDeposit}
-              disabled={
-                walletDepositLoading ||
-                !walletDepositAmount ||
-                parseFloat(walletDepositAmount) < (walletDepositToken === 'usdc' ? 0.01 : 0.0001) ||
-                (walletDepositToken === 'native_matic' ? Number(web3ChainId) !== CHAIN_ID_POLYGON : Number(web3ChainId) !== CHAIN_ID_ETHEREUM)
-              }
-              style={{ marginTop: 'var(--spacing-sm)' }}
-            >
-              {walletDepositLoading ? 'Sending & verifying…' : walletDepositToken === 'usdc' ? 'Send USDC' : walletDepositToken === 'native_eth' ? 'Send ETH' : 'Send MATIC'}
-            </button>
-            <button type="button" className="btn-secondary" onClick={web3Disconnect} style={{ marginTop: 'var(--spacing-sm)', marginLeft: 'var(--spacing-sm)' }}>
+            <button type="button" className="btn-secondary" onClick={web3Disconnect}>
               Disconnect Web3 wallet
             </button>
           </div>
         )}
+        <div className="form-group" style={{ maxWidth: '280px' }}>
+          <label>
+            {walletDepositToken === 'native'
+              ? `Amount (native ${EVM_NETWORK_LABEL[walletDepositEvmNetwork] || ''})`
+              : walletDepositToken === 'usdc_solana'
+                ? 'Amount (PP, in USDC)'
+                : 'Amount (PP, in USDC)'}
+          </label>
+          <input
+            type="number"
+            value={walletDepositAmount}
+            onChange={(e) => setWalletDepositAmount(e.target.value)}
+            placeholder={walletDepositToken === 'native' ? 'e.g. 0.1' : 'e.g. 10'}
+            min={walletDepositToken === 'native' ? '0.0001' : '0.01'}
+            step={walletDepositToken === 'native' ? '0.0001' : '0.01'}
+            disabled={walletDepositLoading}
+          />
+        </div>
+        {walletDepositError && <p className="error mt-sm" style={{ fontSize: 'var(--font-size-sm)' }}>{walletDepositError}</p>}
+        {walletDepositSuccess && <p className="success-message mt-sm">Deposit credited. Your balance has been updated.</p>}
+        <button
+          type="button"
+          className="btn-primary"
+          onClick={handleWalletDeposit}
+          disabled={
+            walletDepositLoading ||
+            !walletDepositAmount ||
+            parseFloat(walletDepositAmount) <
+              (walletDepositToken === 'native' ? 0.0001 : 0.01) ||
+            (walletDepositToken === 'usdc_solana'
+              ? !phantomPub
+              : !web3Connected ||
+                (EVM_CHAIN_ID[walletDepositEvmNetwork] != null &&
+                  Number(web3ChainId) !== EVM_CHAIN_ID[walletDepositEvmNetwork]))
+          }
+          style={{ marginTop: 'var(--spacing-sm)' }}
+        >
+          {walletDepositLoading
+            ? 'Sending & verifying…'
+            : walletDepositToken === 'usdc_solana'
+              ? 'Send Solana USDC'
+              : walletDepositToken === 'native'
+                ? 'Send native token'
+                : 'Send USDC'}
+        </button>
       </div>
 
       {/* Deposit with crypto (platform addresses) — ref for ?deposit= scroll */}
@@ -612,15 +843,27 @@ export default function Portfolio() {
           <div className="mt-md" style={{ fontSize: 'var(--font-size-sm)' }}>
             {depositAddresses.evm && (
               <div className="mb-md">
-                <strong>EVM (Ethereum, Polygon, Arbitrum, Optimism, Base, etc.)</strong>
+                <strong>EVM</strong>
+                {depositAddresses.evm.asset && (
+                  <p className="mt-xs mb-0 text-muted" style={{ fontSize: 'var(--font-size-xs)' }}>{depositAddresses.evm.asset}</p>
+                )}
                 <p className="mt-xs mb-xs text-muted" style={{ fontSize: 'var(--font-size-xs)' }}>{depositAddresses.evm.networks?.join(', ')}</p>
                 <code style={{ wordBreak: 'break-all', display: 'block', padding: 'var(--spacing-sm)', background: 'var(--color-bg-secondary)', borderRadius: 'var(--radius-sm)' }}>{depositAddresses.evm.address}</code>
+                {depositAddresses.evm.note && (
+                  <p className="mt-xs text-muted" style={{ fontSize: 'var(--font-size-xs)' }}>{depositAddresses.evm.note}</p>
+                )}
               </div>
             )}
             {depositAddresses.solana && (
               <div>
                 <strong>Solana</strong>
-                <code style={{ wordBreak: 'break-all', display: 'block', padding: 'var(--spacing-sm)', background: 'var(--color-bg-secondary)', borderRadius: 'var(--radius-sm)' }}>{depositAddresses.solana.address}</code>
+                {depositAddresses.solana.asset && (
+                  <p className="mt-xs mb-0 text-muted" style={{ fontSize: 'var(--font-size-xs)' }}>{depositAddresses.solana.asset}</p>
+                )}
+                <code style={{ wordBreak: 'break-all', display: 'block', padding: 'var(--spacing-sm)', background: 'var(--color-bg-secondary)', borderRadius: 'var(--radius-sm)', marginTop: 'var(--spacing-xs)' }}>{depositAddresses.solana.address}</code>
+                {depositAddresses.solana.note && (
+                  <p className="mt-xs text-muted" style={{ fontSize: 'var(--font-size-xs)' }}>{depositAddresses.solana.note}</p>
+                )}
               </div>
             )}
           </div>
@@ -643,20 +886,25 @@ export default function Portfolio() {
       <div className="card mb-xl">
         <h2 className="mb-md">Withdraw</h2>
         <p className="text-secondary mb-md" style={{ fontSize: 'var(--font-size-sm)' }}>
-          Withdraw USDC or native tokens (ETH, MATIC) to your EVM address. USDC: 2% fee (min 1 PP). Native: 1 PP fee. Sent immediately from the platform wallet.
+          Withdraw USDC (EVM or Solana) or native EVM gas tokens to your address. USDC: 2% fee (min 1 PP). Native: 1 PP fee. Processing is immediate when the platform wallet sends on-chain.
         </p>
         <div className="form-group" style={{ maxWidth: '280px' }}>
           <label>Token</label>
-          <select value={withdrawToken} onChange={(e) => setWithdrawToken(e.target.value)} disabled={withdrawLoading}>
-            <option value="usdc">USDC (stablecoin)</option>
-            <option value="native_eth">ETH (Ethereum native)</option>
-            <option value="native_matic">MATIC (Polygon native)</option>
+          <select
+            value={withdrawToken}
+            onChange={(e) => {
+              const v = e.target.value
+              setWithdrawToken(v)
+              if (v === 'native' && withdrawNetwork === 'solana') setWithdrawNetwork('ethereum')
+            }}
+            disabled={withdrawLoading || withdrawNetwork === 'solana'}
+          >
+            <option value="usdc">USDC</option>
+            <option value="native">Native (EVM gas token)</option>
           </select>
         </div>
         <div className="form-group" style={{ maxWidth: '320px' }}>
-          <label>
-            {withdrawToken === 'usdc' ? 'Amount (PP)' : withdrawToken === 'native_eth' ? 'Amount (ETH)' : 'Amount (MATIC)'}
-          </label>
+          <label>{withdrawToken === 'usdc' ? 'Amount (PP)' : 'Amount (native token)'}</label>
           <input
             type="number"
             value={withdrawAmount}
@@ -667,22 +915,24 @@ export default function Portfolio() {
             disabled={withdrawLoading}
           />
         </div>
-        {withdrawToken === 'usdc' && (
-          <div className="form-group" style={{ maxWidth: '200px' }}>
-            <label>Network</label>
-            <select value={withdrawNetwork} onChange={(e) => setWithdrawNetwork(e.target.value)} disabled={withdrawLoading}>
-              <option value="ethereum">Ethereum</option>
-              <option value="polygon">Polygon</option>
-            </select>
-          </div>
-        )}
+        <div className="form-group" style={{ maxWidth: '280px' }}>
+          <label>Network</label>
+          <select value={withdrawNetwork} onChange={(e) => setWithdrawNetwork(e.target.value)} disabled={withdrawLoading}>
+            {withdrawToken === 'usdc' && <option value="solana">Solana</option>}
+            {(withdrawToken === 'usdc' ? WITHDRAW_EVM_USDC_NETWORKS : WITHDRAW_EVM_NATIVE_NETWORKS).map((id) => (
+              <option key={id} value={id}>
+                {EVM_NETWORK_LABEL[id] || id}
+              </option>
+            ))}
+          </select>
+        </div>
         <div className="form-group" style={{ maxWidth: '320px' }}>
           <label>Destination address</label>
           <input
             type="text"
             value={withdrawAddress}
             onChange={(e) => setWithdrawAddress(e.target.value)}
-            placeholder="0x..."
+            placeholder={withdrawNetwork === 'solana' ? 'Solana address…' : '0x…'}
             disabled={withdrawLoading}
           />
         </div>
@@ -690,7 +940,17 @@ export default function Portfolio() {
         {withdrawSuccess && (
           <div className="success-message mt-sm">
             {withdrawTxHash ? (
-              <>Withdrawal sent. <a href={withdrawTxNetwork === 'polygon' ? `https://polygonscan.com/tx/${withdrawTxHash}` : `https://etherscan.io/tx/${withdrawTxHash}`} target="_blank" rel="noopener noreferrer" style={{ color: 'inherit', textDecoration: 'underline' }}>View transaction</a></>
+              <>
+                Withdrawal sent.{' '}
+                <a
+                  href={evmTxExplorerUrl(withdrawTxNetwork || withdrawNetwork, withdrawTxHash)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{ color: 'inherit', textDecoration: 'underline' }}
+                >
+                  View transaction
+                </a>
+              </>
             ) : (
               'Withdrawal queued; it will be processed shortly.'
             )}

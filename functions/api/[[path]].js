@@ -8,13 +8,23 @@ import { getQuote, isTradeWithinLimit, applyTrade, createPoolState } from '../li
 import { hashPassword, verifyPassword } from '../lib/auth.mjs'
 import * as dataSources from '../lib/data-sources.mjs'
 import { enrichNewsEvent } from '../lib/custom-news-markets.mjs'
+import { finalizeNewsFeedTopicMarket, isFeedTopicOnlyNewsCandidate } from '../lib/news-market-topic.mjs'
+import { promoteNewsArticleToOutcomeMarket } from '../lib/outcome-news-markets.mjs'
 import * as resolveMarkets from '../lib/resolve-markets.mjs'
 import { addPips, pipsToCents, centsToPipsStr, cryptoAmountToPipsStr } from '../lib/pips-precision.mjs'
 import { verifyErc20Deposit, verifyNativeDeposit } from '../lib/verify-deposit-rpc.mjs'
-import { getAlchemyRpcUrl } from '../lib/alchemy-networks.mjs'
-import { createWalletClient, createPublicClient, http, encodeFunctionData, parseAbi, verifyMessage } from 'viem'
+import { getAlchemyRpcUrl, listAlchemyNetworkIdsForDisplay } from '../lib/alchemy-networks.mjs'
+import { verifySolanaSplDeposit, SOLANA_MAINNET_USDC_MINT } from '../lib/verify-deposit-solana.mjs'
+import {
+  getEvmWithdrawConfig,
+  EVM_NATIVE_WITHDRAW_NETWORKS,
+  EVM_USDC_WITHDRAW_NETWORKS,
+  getDefaultUsdcContractForEvm,
+} from '../lib/evm-withdraw-config.mjs'
+import { sendSolanaUsdcWithdrawal } from '../lib/solana-spl-withdraw.mjs'
+import { verifySolanaDepositSignature, isValidSolanaAddress } from '../lib/solana-deposit-signature.mjs'
+import { createWalletClient, http, encodeFunctionData, parseAbi, verifyMessage } from 'viem'
 import { privateKeyToAccount } from 'viem/accounts'
-import { mainnet, polygon } from 'viem/chains'
 
 const CORS = {
   'Access-Control-Allow-Origin': '*',
@@ -25,32 +35,48 @@ const CORS = {
 const TEMPLATE_VIRTUAL_MARKET = 'VirtualMarket'
 const R2_BUCKET_NAME = 'dice-express-r2'
 
-const USDC_ABI = parseAbi(['function transfer(address to, uint256 value) returns (bool)'])
-const USDC_BY_NETWORK = {
-  ethereum: '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48',
-  polygon: '0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174',
+function envFlagTrue(env, key) {
+  const v = (env[key] ?? '').toString().trim().toLowerCase()
+  return v === '1' || v === 'true' || v === 'yes'
 }
-const CHAINS_BY_NETWORK = { ethereum: mainnet, polygon }
 
-/** Send one withdrawal (USDC or native) from platform wallet. Returns { ok: true, txHash } or { ok: false, error }. */
+const USDC_ABI = parseAbi(['function transfer(address to, uint256 value) returns (bool)'])
+/** Send one withdrawal (EVM USDC/native or Solana SPL USDC). Returns { ok: true, txHash } or { ok: false, error }. */
 async function sendOneWithdrawal(env, db, w) {
+  const netId = (w.networkId || 'ethereum').toString().toLowerCase()
+  const token = w.token === 'native' ? 'native' : 'usdc'
+
+  if (netId === 'solana') {
+    if (token !== 'usdc') return { ok: false, error: 'Solana supports USDC (SPL) withdrawals only' }
+    const out = await sendSolanaUsdcWithdrawal(env, w)
+    if (out.ok) {
+      await storage.updateWithdrawalRequestWithTx(db, w.requestId, out.signature, 'sent')
+      return { ok: true, txHash: out.signature }
+    }
+    return { ok: false, error: out.error }
+  }
+
   const privateKeyHex = env.PLATFORM_WALLET_PRIVATE_KEY
   if (!privateKeyHex || typeof privateKeyHex !== 'string' || !privateKeyHex.startsWith('0x')) {
     return { ok: false, error: 'PLATFORM_WALLET_PRIVATE_KEY not set' }
   }
-  const rpcUrl = env.DEPOSIT_VERIFICATION_RPC_URL || (env.ALCHEMY_API_KEY ? getAlchemyRpcUrl(env.ALCHEMY_API_KEY, (w.networkId || 'ethereum').toString().toLowerCase()) : null)
-  if (!rpcUrl) return { ok: false, error: 'RPC not configured' }
+  const cfg = getEvmWithdrawConfig(netId)
+  if (!cfg) return { ok: false, error: `Unsupported EVM network: ${netId}` }
+  if (token === 'native' && !EVM_NATIVE_WITHDRAW_NETWORKS.has(netId)) {
+    return { ok: false, error: 'Native withdrawals not enabled for this network' }
+  }
+
+  const rpcUrl = env.DEPOSIT_VERIFICATION_RPC_URL || (env.ALCHEMY_API_KEY ? getAlchemyRpcUrl(env.ALCHEMY_API_KEY, netId) : null)
+  if (!rpcUrl) return { ok: false, error: 'RPC not configured for this network' }
   let account
   try {
     account = privateKeyToAccount(privateKeyHex)
   } catch (e) {
     return { ok: false, error: e?.message || 'Invalid private key' }
   }
-  const netId = (w.networkId || 'ethereum').toString().toLowerCase()
-  const chain = CHAINS_BY_NETWORK[netId] || mainnet
+  const chain = cfg.chain
   const transport = http(rpcUrl)
   const walletClient = createWalletClient({ account, chain, transport })
-  const token = w.token === 'native' ? 'native' : 'usdc'
   try {
     if (token === 'native') {
       const amountWei = BigInt(Math.floor(Number(w.netPips) * 1e18))
@@ -64,7 +90,7 @@ async function sendOneWithdrawal(env, db, w) {
       await storage.updateWithdrawalRequestWithTx(db, w.requestId, hash, 'sent')
       return { ok: true, txHash: hash }
     }
-    const usdcAddress = USDC_BY_NETWORK[netId] || USDC_BY_NETWORK.ethereum
+    const usdcAddress = cfg.usdc
     const amountRaw = BigInt(Math.floor(Number(w.netPips) * 1e6))
     if (amountRaw <= 0n) return { ok: false, error: 'Invalid USDC amount' }
     const data = encodeFunctionData({
@@ -76,7 +102,7 @@ async function sendOneWithdrawal(env, db, w) {
       account,
       to: usdcAddress,
       data,
-      gas: 100000n,
+      gas: 120000n,
     })
     await storage.updateWithdrawalRequestWithTx(db, w.requestId, hash, 'sent')
     return { ok: true, txHash: hash }
@@ -98,6 +124,17 @@ const AUTO_SOURCE_DISPLAY = {
   perigon: { source: 'global_events', category: 'News' },
   newsapi_ai: { source: 'global_events', category: 'News' },
   newsdata_io: { source: 'global_events', category: 'News' },
+  operator_manual: { source: 'global_events', category: 'News' },
+  fred: { source: 'industry', category: 'Finance' },
+  finnhub: { source: 'industry', category: 'Finance' },
+  frankfurter: { source: 'industry', category: 'Finance' },
+  forex: { source: 'industry', category: 'Finance' },
+  usgs: { source: 'global_events', category: 'Science' },
+  fec: { source: 'global_events', category: 'Politics' },
+  openfec: { source: 'global_events', category: 'Politics' },
+  nasa_neo: { source: 'global_events', category: 'Science' },
+  congress_gov: { source: 'global_events', category: 'Politics' },
+  bls: { source: 'industry', category: 'Finance' },
 }
 function getDisplaySourceAndCategory(apiSource) {
   return AUTO_SOURCE_DISPLAY[apiSource] || { source: 'global_events', category: 'Other' }
@@ -295,7 +332,40 @@ async function handleWithD1(db, kv, r2, request, path, method, env = {}) {
     const platformWallet = env.PLATFORM_WALLET_ADDRESS || null
     const tokenContract = env.DEPOSIT_VERIFICATION_USDC_CONTRACT || null
     const minConfirmations = Math.max(0, parseInt(env.DEPOSIT_VERIFICATION_MIN_CONFIRMATIONS || '1', 10) || 1)
-    if (rpcUrl && platformWallet) {
+
+    if (netId === 'solana') {
+      const solRpc = env.SOLANA_RPC_URL?.trim() || null
+      const platformSol = env.PLATFORM_WALLET_SOL?.trim() || null
+      const solMint = (env.DEPOSIT_VERIFICATION_SOLANA_USDC_MINT || SOLANA_MAINNET_USDC_MINT).trim()
+      if (!solRpc || !platformSol) {
+        return jsonResponse(
+          {
+            error: 'Solana deposit verification not configured',
+            code: 'SOLANA_NOT_CONFIGURED',
+            message: 'Set SOLANA_RPC_URL and PLATFORM_WALLET_SOL on Pages.',
+          },
+          503
+        )
+      }
+      if (!referenceId) {
+        return jsonResponse(
+          { error: 'txHash (Solana signature) required for verified Solana deposits', code: 'VERIFICATION_REQUIRED' },
+          400
+        )
+      }
+      const solVerify = await verifySolanaSplDeposit(solRpc, referenceId, {
+        recipientWallet: platformSol,
+        expectedAmountRaw,
+        mint: solMint,
+        minConfirmations,
+      })
+      if (!solVerify.ok) {
+        return jsonResponse(
+          { error: 'Deposit verification failed', message: solVerify.reason, code: 'VERIFICATION_FAILED' },
+          400
+        )
+      }
+    } else if (rpcUrl && platformWallet) {
       if (!referenceId) {
         return jsonResponse(
           { error: 'txHash required when deposit verification is enabled', code: 'VERIFICATION_REQUIRED' },
@@ -344,78 +414,136 @@ async function handleWithD1(db, kv, r2, request, path, method, env = {}) {
   // GET /api/deposit-addresses — public platform wallet addresses for crypto deposits (multi-chain)
   if (path === 'deposit-addresses' && method === 'GET') {
     const evm = env.PLATFORM_WALLET_ADDRESS || null
-    const solana = env.PLATFORM_WALLET_SOL || null
+    const solAddr = env.PLATFORM_WALLET_SOL || null
+    const evmNetworkIds = listAlchemyNetworkIdsForDisplay()
     return jsonResponse({
       success: true,
       addresses: {
-        evm: evm ? { address: evm, networks: ['ethereum', 'polygon', 'arbitrum', 'optimism', 'base', 'avalanche', 'fantom', 'bnb'] } : null,
-        solana: solana ? { address: solana } : null,
+        evm: evm
+          ? {
+              address: evm,
+              networks: evmNetworkIds,
+              asset: 'USDC (ERC-20) recommended; native ETH/MATIC via deposit-with-tx',
+              note: 'Use DEPOSIT_VERIFICATION_USDC_CONTRACT to pin a single USDC contract when verifying ERC-20 deposits.',
+            }
+          : null,
+        solana: solAddr
+          ? {
+              address: solAddr,
+              asset: 'USDC (SPL)',
+              note: 'Send SPL USDC (mainnet mint EPjF… if using default). Crediting uses POST /api/deposit-crypto with networkId "solana" and SOLANA_RPC_URL set.',
+            }
+          : null,
       },
     })
   }
 
-  // POST /api/deposit-with-tx — credit Pips after user deposits from connected wallet (EVM). No DEPOSIT_CRYPTO_SECRET.
-  // Body: { userParty, txHash, fromAddress, amountPips, signature, depositType?: 'usdc'|'native', networkId?: 'ethereum'|'polygon' }.
-  // For depositType 'native', amountPips is in native token units (e.g. 0.5 ETH); we verify tx.value >= amountWei and credit amountPips as PP.
+  // POST /api/deposit-with-tx — credit Pips after user deposits from connected wallet (EVM or Solana SPL). No DEPOSIT_CRYPTO_SECRET.
+  // Body: { userParty, txHash, fromAddress, amountPips, signature, depositType?: 'usdc'|'native', networkId }.
+  // Solana: signature = base64-encoded 64-byte ed25519 (e.g. Phantom signMessage); txHash = transaction signature (base58).
   if (path === 'deposit-with-tx' && method === 'POST') {
-    const platformWallet = env.PLATFORM_WALLET_ADDRESS || null
-    if (!platformWallet) {
-      return jsonResponse({ error: 'Deposit from wallet is not configured (PLATFORM_WALLET_ADDRESS required)' }, 503)
-    }
     const amountRaw = body.amountPips ?? body.amountGuap
     const { userParty, txHash, fromAddress, signature, depositType, networkId } = body
     const party = (userParty || '').trim()
     const txHashNorm = (txHash || '').trim()
-    const fromNorm = (fromAddress || '').trim().toLowerCase()
-    if (!party || !txHashNorm || !fromNorm || amountRaw == null || !signature) {
+    const fromAddrRaw = (fromAddress || '').trim()
+    if (!party || !txHashNorm || !fromAddrRaw || amountRaw == null || !signature) {
       return jsonResponse({ error: 'userParty, txHash, fromAddress, amountPips, and signature are required' }, 400)
     }
     const isNative = depositType === 'native'
     const netId = (networkId || 'ethereum').toString().toLowerCase()
-    const rpcUrl = env.DEPOSIT_VERIFICATION_RPC_URL || (env.ALCHEMY_API_KEY ? getAlchemyRpcUrl(env.ALCHEMY_API_KEY, netId) : null)
-    if (!rpcUrl) {
-      return jsonResponse({ error: 'RPC not configured for this network' }, 503)
+    const platformWallet =
+      netId === 'solana'
+        ? env.PLATFORM_WALLET_SOL?.trim() || null
+        : env.PLATFORM_WALLET_ADDRESS?.trim() || null
+    if (!platformWallet) {
+      return jsonResponse(
+        {
+          error: 'Deposit wallet not configured',
+          message:
+            netId === 'solana' ? 'Set PLATFORM_WALLET_SOL' : 'Set PLATFORM_WALLET_ADDRESS',
+        },
+        503
+      )
     }
+
     const amountNum = parseFloat(amountRaw)
     if (!Number.isFinite(amountNum) || amountNum <= 0) {
       return jsonResponse({ error: 'amountPips must be a positive number' }, 400)
     }
     const message = `deposit:${party}:${txHashNorm}`
-    let recoveredAddress
-    try {
-      recoveredAddress = await verifyMessage({ message, signature })
-    } catch (e) {
-      return jsonResponse({ error: 'Invalid signature', message: e?.message || 'Signature verification failed' }, 400)
-    }
-    if (recoveredAddress.toLowerCase() !== fromNorm) {
-      return jsonResponse({ error: 'Signature does not match fromAddress' }, 400)
-    }
     const minConfirmations = Math.max(0, parseInt(env.DEPOSIT_VERIFICATION_MIN_CONFIRMATIONS || '1', 10) || 1)
-    if (isNative) {
-      const expectedAmountWei = BigInt(Math.floor(amountNum * 1e18))
-      const verification = await verifyNativeDeposit(rpcUrl, txHashNorm, {
-        platformWallet: platformWallet.trim(),
-        expectedAmountWei: expectedAmountWei.toString(),
-        minConfirmations,
-      })
-      if (!verification.ok) {
-        return jsonResponse({ error: 'Transaction verification failed', message: verification.reason }, 400)
+
+    if (netId === 'solana') {
+      if (isNative) {
+        return jsonResponse({ error: 'Native SOL deposit-with-tx is not supported; use SPL USDC' }, 400)
       }
-    } else {
+      if (!isValidSolanaAddress(fromAddrRaw)) {
+        return jsonResponse({ error: 'Invalid Solana fromAddress' }, 400)
+      }
+      const solRpc = env.SOLANA_RPC_URL?.trim()
+      if (!solRpc) {
+        return jsonResponse({ error: 'SOLANA_RPC_URL required for Solana deposits' }, 503)
+      }
+      if (!verifySolanaDepositSignature(message, signature, fromAddrRaw)) {
+        return jsonResponse({ error: 'Invalid signature', message: 'Solana signMessage does not match fromAddress' }, 400)
+      }
       const amountPipsStrUsdc = addPips('0', amountRaw)
       if (pipsToCents(amountPipsStrUsdc) <= 0) return jsonResponse({ error: 'amountPips must be positive' }, 400)
       const cents = pipsToCents(amountPipsStrUsdc)
-      const cryptoDecimals = 6
-      const expectedAmountRaw = String(Math.floor(cents * Math.pow(10, cryptoDecimals - 2)))
-      const tokenContract = env.DEPOSIT_VERIFICATION_USDC_CONTRACT || null
-      const verification = await verifyErc20Deposit(rpcUrl, txHashNorm, {
-        platformWallet: platformWallet.trim(),
+      const expectedAmountRaw = String(Math.floor(cents * Math.pow(10, 6 - 2)))
+      const solMint = (env.DEPOSIT_VERIFICATION_SOLANA_USDC_MINT || SOLANA_MAINNET_USDC_MINT).trim()
+      const splOk = await verifySolanaSplDeposit(solRpc, txHashNorm, {
+        recipientWallet: platformWallet,
         expectedAmountRaw,
-        tokenContractAddress: tokenContract || undefined,
+        mint: solMint,
         minConfirmations,
       })
-      if (!verification.ok) {
-        return jsonResponse({ error: 'Transaction verification failed', message: verification.reason }, 400)
+      if (!splOk.ok) {
+        return jsonResponse({ error: 'Transaction verification failed', message: splOk.reason }, 400)
+      }
+    } else {
+      const fromNorm = fromAddrRaw.toLowerCase()
+      const rpcUrl = env.DEPOSIT_VERIFICATION_RPC_URL || (env.ALCHEMY_API_KEY ? getAlchemyRpcUrl(env.ALCHEMY_API_KEY, netId) : null)
+      if (!rpcUrl) {
+        return jsonResponse({ error: 'RPC not configured for this network' }, 503)
+      }
+      let recoveredAddress
+      try {
+        recoveredAddress = await verifyMessage({ message, signature })
+      } catch (e) {
+        return jsonResponse({ error: 'Invalid signature', message: e?.message || 'Signature verification failed' }, 400)
+      }
+      if (recoveredAddress.toLowerCase() !== fromNorm) {
+        return jsonResponse({ error: 'Signature does not match fromAddress' }, 400)
+      }
+      if (isNative) {
+        const expectedAmountWei = BigInt(Math.floor(amountNum * 1e18))
+        const verification = await verifyNativeDeposit(rpcUrl, txHashNorm, {
+          platformWallet: platformWallet.trim(),
+          expectedAmountWei: expectedAmountWei.toString(),
+          minConfirmations,
+        })
+        if (!verification.ok) {
+          return jsonResponse({ error: 'Transaction verification failed', message: verification.reason }, 400)
+        }
+      } else {
+        const amountPipsStrUsdc = addPips('0', amountRaw)
+        if (pipsToCents(amountPipsStrUsdc) <= 0) return jsonResponse({ error: 'amountPips must be positive' }, 400)
+        const cents = pipsToCents(amountPipsStrUsdc)
+        const cryptoDecimals = 6
+        const expectedAmountRaw = String(Math.floor(cents * Math.pow(10, cryptoDecimals - 2)))
+        const tokenContract =
+          env.DEPOSIT_VERIFICATION_USDC_CONTRACT?.trim() || getDefaultUsdcContractForEvm(netId) || null
+        const verification = await verifyErc20Deposit(rpcUrl, txHashNorm, {
+          platformWallet: platformWallet.trim(),
+          expectedAmountRaw,
+          tokenContractAddress: tokenContract || undefined,
+          minConfirmations,
+        })
+        if (!verification.ok) {
+          return jsonResponse({ error: 'Transaction verification failed', message: verification.reason }, 400)
+        }
       }
     }
     const existing = await storage.getDepositRecordByReferenceId(db, txHashNorm)
@@ -450,8 +578,8 @@ async function handleWithD1(db, kv, r2, request, path, method, env = {}) {
   }
 
   // POST /api/withdraw-request — debit (if needed), create withdrawal, and send immediately from platform wallet.
-  // Body: userParty, amount, destinationAddress, networkId ('ethereum'|'polygon'), token ('usdc'|'native').
-  // For token 'usdc': amount in PP, fee in PP. For token 'native': amount in native units (e.g. 0.5 ETH), flat 1 PP fee from balance.
+  // Body: userParty, amount, destinationAddress, networkId (EVM id or solana), token ('usdc'|'native').
+  // Solana: USDC SPL only; set SOLANA_WALLET_PRIVATE_KEY + SOLANA_RPC_URL. EVM: PLATFORM_WALLET_PRIVATE_KEY + Alchemy/RPC.
   if (path === 'withdraw-request' && method === 'POST') {
     const feeRate = parseFloat(env.WITHDRAWAL_FEE_RATE || '0.02')
     const feeMin = parseFloat(env.WITHDRAWAL_FEE_MIN || '1')
@@ -464,12 +592,30 @@ async function handleWithD1(db, kv, r2, request, path, method, env = {}) {
       return jsonResponse({ error: 'userParty/accountId, amount, and destinationAddress required' }, 400)
     }
     const dest = String(destinationAddress).trim()
-    if (!/^0x[a-fA-F0-9]{40}$/.test(dest)) {
-      return jsonResponse({ error: 'Invalid destination address', message: 'Use a valid EVM address (0x + 40 hex characters)' }, 400)
-    }
     const netId = (networkId || 'ethereum').toString().toLowerCase()
-    if (!['ethereum', 'polygon'].includes(netId)) {
-      return jsonResponse({ error: 'Unsupported network', message: 'Use ethereum or polygon' }, 400)
+    if (netId === 'solana') {
+      if (token !== 'usdc') {
+        return jsonResponse({ error: 'Solana withdrawals support USDC (SPL) only' }, 400)
+      }
+      if (!isValidSolanaAddress(dest)) {
+        return jsonResponse({ error: 'Invalid Solana destination address' }, 400)
+      }
+    } else {
+      if (!/^0x[a-fA-F0-9]{40}$/.test(dest)) {
+        return jsonResponse({ error: 'Invalid destination address', message: 'Use a valid EVM address (0x + 40 hex)' }, 400)
+      }
+      if (!EVM_USDC_WITHDRAW_NETWORKS.has(netId)) {
+        return jsonResponse(
+          {
+            error: 'Unsupported network',
+            message: `Use one of: ${[...EVM_USDC_WITHDRAW_NETWORKS].sort().join(', ')}, solana`,
+          },
+          400
+        )
+      }
+      if (token === 'native' && !EVM_NATIVE_WITHDRAW_NETWORKS.has(netId)) {
+        return jsonResponse({ error: 'Native withdrawals not supported on this network' }, 400)
+      }
     }
     let amountPips, feePips, netPips, amountCents, feeCents, netCents, deductCents
     if (token === 'native') {
@@ -567,7 +713,7 @@ async function handleWithD1(db, kv, r2, request, path, method, env = {}) {
     return jsonResponse({ success: true, requests: list })
   }
 
-  // POST /api/process-withdrawals — send pending withdrawals from platform wallet (uses PLATFORM_WALLET_PRIVATE_KEY).
+  // POST /api/process-withdrawals — send pending withdrawals (EVM: PLATFORM_WALLET_PRIVATE_KEY; Solana: SOLANA_WALLET_PRIVATE_KEY).
   // Requires PROCESS_WITHDRAWALS_SECRET header X-Process-Withdrawals-Secret. Cron or admin only.
   if (path === 'process-withdrawals' && method === 'POST') {
     const secret = env.PROCESS_WITHDRAWALS_SECRET
@@ -1030,6 +1176,28 @@ async function handleWithD1(db, kv, r2, request, path, method, env = {}) {
 
   // GET/POST /api/auto-markets — list events from APIs or seed markets from them
   if (path === 'auto-markets') {
+    const cronSecretEnv = env.AUTO_MARKETS_CRON_SECRET
+    if (cronSecretEnv && method === 'POST') {
+      const pendingAction = query.action || body.action || 'seed'
+      const isSeedRequest =
+        pendingAction === 'seed' ||
+        pendingAction === 'seed_all' ||
+        body.seed_all === true ||
+        (Array.isArray(body.sources) && body.sources.length > 0)
+      if (isSeedRequest) {
+        const providedCron = request.headers.get('X-Cron-Secret') || body.cronSecret || ''
+        if (providedCron !== cronSecretEnv) {
+          return jsonResponse(
+            {
+              error: 'Unauthorized',
+              message:
+                'Invalid or missing X-Cron-Secret. Set AUTO_MARKETS_CRON_SECRET on Pages (same value as the cron Worker) to require this header for seeding.',
+            },
+            401
+          )
+        }
+      }
+    }
     const action = query.action || (method === 'POST' ? (body.action || 'seed') : 'events')
     const source = query.source || body?.source || 'sports'
     const sportKey = query.sport || body?.sport || 'basketball_nba'
@@ -1048,6 +1216,16 @@ async function handleWithD1(db, kv, r2, request, path, method, env = {}) {
       'newsapi_ai',
       'newsdata_io',
       'newsdata',
+      'fred',
+      'finnhub',
+      'frankfurter',
+      'forex',
+      'usgs',
+      'fec',
+      'openfec',
+      'nasa_neo',
+      'congress_gov',
+      'bls',
     ]
 
     if (method === 'GET' && action === 'probe') {
@@ -1062,6 +1240,9 @@ async function handleWithD1(db, kv, r2, request, path, method, env = {}) {
         success: true,
         action: 'probe',
         keysPresent: dataSources.probeAutoMarketEnv(env),
+        autoMarketsPolicy: {
+          skipFeedTopicNews: envFlagTrue(env, 'AUTO_MARKETS_OUTCOME_ONLY'),
+        },
         seedSources: dataSources.AUTO_MARKET_SOURCES,
         seedLimits: {
           defaultPerSource: dataSources.DEFAULT_SEED_PER_SOURCE_LIMIT,
@@ -1141,52 +1322,76 @@ async function handleWithD1(db, kv, r2, request, path, method, env = {}) {
       }
 
       const created = []
-      const usedCustomTypes = { election: false, olympics: false, conflict: false }
+      const usedCustomTypes = {
+        election: false,
+        olympics: false,
+        conflict: false,
+        fda_drug: false,
+        court: false,
+        legislation: false,
+        mna_ipo: false,
+        macro_data: false,
+        fed_operator: false,
+        summit: false,
+        tech_antitrust: false,
+      }
+      const skipFeedTopicOnlyNews = envFlagTrue(env, 'AUTO_MARKETS_OUTCOME_ONLY')
+      let skippedFeedTopicNews = 0
       for (const ev of events) {
-        const evUse = enrichNewsEvent(ev, { usedCustomTypes })
-        const id = evUse.id ? `market-${evUse.id}` : `market-${evUse.source}-${Date.now()}-${created.length}`
+        const evPromoted = await promoteNewsArticleToOutcomeMarket(env, ev)
+        const evUse = enrichNewsEvent(evPromoted, { usedCustomTypes })
+        if (skipFeedTopicOnlyNews && isFeedTopicOnlyNewsCandidate(evUse)) {
+          skippedFeedTopicNews += 1
+          continue
+        }
+        const evFinal = finalizeNewsFeedTopicMarket(evUse)
+        const id = evFinal.id ? `market-${evFinal.id}` : `market-${evFinal.source}-${Date.now()}-${created.length}`
         // Event-driven: only create if we don't already have a market for this event (avoids duplicates when cron runs frequently)
         const existing = await storage.getContractById(db, id)
         if (existing && (existing.templateId === TEMPLATE_VIRTUAL_MARKET || (existing.templateId && existing.templateId.includes('Market')))) {
           continue // already have this event as a market, skip
         }
-        const { source: displaySource, category: displayCategory } = getDisplaySourceAndCategory(evUse.source)
-        const topicCategory = categoryFromNewsTopic(evUse.oracleConfig?.q || evUse.oracleConfig?.category)
-        const finalCategory = topicCategory || displayCategory
-        let resolutionDeadline = evUse.resolutionDeadline || null
-        if (!resolutionDeadline && evUse.endDate && String(evUse.endDate).length >= 10) {
-          resolutionDeadline = `${String(evUse.endDate).slice(0, 10)}T23:59:59.000Z`
+        const { source: displaySource, category: displayCategory } = getDisplaySourceAndCategory(evFinal.source)
+        const topicCategory = categoryFromNewsTopic(evFinal.oracleConfig?.q || evFinal.oracleConfig?.category || evFinal.oracleConfig?.seedQuery)
+        const finalCategory = evFinal.categoryHint || topicCategory || displayCategory
+        let resolutionDeadline = evFinal.resolutionDeadline || null
+        if (!resolutionDeadline && evFinal.endDate && String(evFinal.endDate).length >= 10) {
+          resolutionDeadline = `${String(evFinal.endDate).slice(0, 10)}T23:59:59.000Z`
         }
-        if (!resolutionDeadline && evUse.commenceTime) {
-          const d = new Date(evUse.commenceTime)
+        if (!resolutionDeadline && evFinal.commenceTime) {
+          const d = new Date(evFinal.commenceTime)
           if (!Number.isNaN(d.getTime())) {
             d.setUTCHours(d.getUTCHours() + 3)
             resolutionDeadline = d.toISOString()
           } else {
-            resolutionDeadline = String(evUse.commenceTime).slice(0, 10)
+            resolutionDeadline = String(evFinal.commenceTime).slice(0, 10)
           }
         }
-        if (!resolutionDeadline) resolutionDeadline = evUse.endDate || evUse.date || (evUse.commenceTime ? String(evUse.commenceTime).slice(0, 10) : null)
+        if (!resolutionDeadline) resolutionDeadline = evFinal.endDate || evFinal.date || (evFinal.commenceTime ? String(evFinal.commenceTime).slice(0, 10) : null)
+        const eventSettlementSummary =
+          (evFinal.oneLiner && String(evFinal.oneLiner).trim()) ||
+          (evFinal.resolutionCriteria && String(evFinal.resolutionCriteria).trim().slice(0, 500)) ||
+          evFinal.title
         const payload = {
           marketId: id,
-          title: evUse.title,
-          description: evUse.description || evUse.title,
+          title: evFinal.title,
+          description: evFinal.description || evFinal.title,
           marketType: 'Binary',
           outcomes: ['Yes', 'No'],
-          settlementTrigger: { tag: 'Manual' },
-          resolutionCriteria: evUse.resolutionCriteria || evUse.title,
+          settlementTrigger: { tag: 'EventBased', value: eventSettlementSummary },
+          resolutionCriteria: evFinal.resolutionCriteria || evFinal.title,
           resolutionDeadline: resolutionDeadline || null,
-          oneLiner: evUse.oneLiner || null,
+          oneLiner: evFinal.oneLiner || null,
           status: 'Active',
           totalVolume: 0,
           yesVolume: 0,
           noVolume: 0,
           outcomeVolumes: {},
           category: finalCategory,
-          styleLabel: evUse.source,
+          styleLabel: evFinal.source,
           source: displaySource,
-          oracleSource: evUse.oracleSource || evUse.source,
-          oracleConfig: { ...(evUse.oracleConfig || {}), ...(evUse.customType && { customType: evUse.customType }) },
+          oracleSource: evFinal.oracleSource || evFinal.source,
+          oracleConfig: { ...(evFinal.oracleConfig || {}), ...(evFinal.customType && { customType: evFinal.customType }) },
           createdAt: new Date().toISOString(),
         }
         await storage.upsertContract(db, {
@@ -1208,10 +1413,17 @@ async function handleWithD1(db, kv, r2, request, path, method, env = {}) {
           status: 'Active',
         })
         await backupToR2(r2, undefined, poolState.poolId, poolState)
-        created.push({ marketId: id, title: evUse.title, source: evUse.source })
+        created.push({ marketId: id, title: evFinal.title, source: evFinal.source })
       }
       // Markets list cache will refresh on next GET (TTL)
-      const res = { success: true, source: bySource ? 'multiple' : source, created, count: created.length, skipped: events.length - created.length }
+      const res = {
+        success: true,
+        source: bySource ? 'multiple' : source,
+        created,
+        count: created.length,
+        skipped: events.length - created.length,
+        ...(skipFeedTopicOnlyNews && skippedFeedTopicNews > 0 ? { skippedFeedTopicNews } : {}),
+      }
       if (bySource) res.bySource = bySource
       if (limitsBySource) res.limitsBySource = limitsBySource
       const lastSeedAt = new Date().toISOString()
@@ -1270,6 +1482,8 @@ async function handleWithD1(db, kv, r2, request, path, method, env = {}) {
         styleLabel,
         source = 'user',
         creator,
+        parentMarketId,
+        scalarSpec,
       } = body
       // Only API-driven (auto-markets) creation allowed; no user-created markets
       if (source === 'user') {
@@ -1297,6 +1511,12 @@ async function handleWithD1(db, kv, r2, request, path, method, env = {}) {
         styleLabel: styleLabel || null,
         source,
         createdAt: new Date().toISOString(),
+      }
+      if (parentMarketId && String(parentMarketId).trim()) {
+        payload.parentMarketId = String(parentMarketId).trim()
+      }
+      if (scalarSpec && typeof scalarSpec === 'object' && !Array.isArray(scalarSpec)) {
+        payload.scalarSpec = scalarSpec
       }
       await storage.upsertContract(db, {
         contract_id: id,

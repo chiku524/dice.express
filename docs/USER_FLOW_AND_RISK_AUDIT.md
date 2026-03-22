@@ -13,7 +13,7 @@ This document answers: **Is the user flow flawless? Can users register, sign in,
 | **Add Credits** | ✅ Implemented | **Cloudflare**: `POST /api/add-credits` (virtual top-up; no blockchain). Users add Credits from the Portfolio page. |
 | **View balance** | ✅ Implemented | `GET/POST /api/get-user-balance` with `userParty`. |
 | **Bet on prediction** | ✅ Implemented | `POST /api/trade` (AMM) or `POST /api/create-position` (fixed price). Debits balance, updates pool, creates Position. |
-| **Resolution payout** | ❌ Not implemented | `POST /api/update-market-status` only sets `status` and `resolvedOutcome` on the market. **No code credits winning positions** when a market settles. Winners are not paid. |
+| **Resolution payout** | ✅ Implemented | `POST /api/resolve-markets` settles due oracle markets and credits winning **P2P/counterparty** positions (2% settlement fee). `POST /api/update-market-status` with `Settled` + `resolvedOutcome` runs the same winner-credit loop for manual/operator resolution. |
 
 ---
 
@@ -26,7 +26,7 @@ This document answers: **Is the user flow flawless? Can users register, sign in,
 - **Markets**: `GET /api/markets`, `POST /api/markets`
 - **AMM**: `GET /api/pools?marketId=...`, `POST /api/trade` (marketId, side, amount, minOut, userId). Can be disabled for P2P-only via `DISABLE_AMM_TRADE` (see `docs/P2P_AND_GROWTH_STRATEGY.md`).
 - **Positions**: `POST /api/create-position`, positions stored in `contracts` (template Position)
-- **Resolution**: `POST /api/update-market-status` (marketId, status, resolvedOutcome) — **no payout step**
+- **Resolution**: `POST /api/resolve-markets` (cron/oracle settlement + payouts); `POST /api/update-market-status` (manual settle + same payout path for matched positions)
 
 ---
 
@@ -59,11 +59,8 @@ The AMM is implemented and used:
 
 ### 4.3 Settlement and payouts
 
-- **Current**: When a market is set to `Settled` with `resolvedOutcome`, **no payout logic runs**. Winning positions are never credited.
-- **Fix**: On resolution (e.g. when `status` is set to `Settled` and `resolvedOutcome` is set), backend should:
-  1. Find all positions for that market where `positionType` (or equivalent) matches `resolvedOutcome`.
-  2. For each winning position, credit `owner` with `amount` (e.g. 1 Credit per share).
-  3. Debit the pool (or the AMM reserves) by the same total so that value is conserved and the platform does not invent Credits.
+- **Current**: `POST /api/resolve-markets` and `POST /api/update-market-status` (when `Settled` + `resolvedOutcome`) credit **winning counterparty positions** (`counterpartyPositionId` set) at `2 * amount * (1 - fee)`. AMM-only positions without a counterparty are a separate product question; P2P matched flow is paid.
+- **Remaining design work**: Tie AMM pool accounting to settlement if you mix AMM and P2P on the same market, or keep pools at zero (`AUTO_MARKETS_ZERO_LIQUIDITY`) and rely on matched orders only.
 
 ---
 
@@ -92,5 +89,5 @@ Summary: **AMM logic is fine; the risk-free goal is achieved by not being the LP
 
 1. **Use `accountId` for balance and positions** in API and DB (and in frontend when calling balance/trade/create-position).
 2. **Add Credits** is implemented; optional future: real crypto deposit/withdraw.
-3. **Implement settlement**: on `update-market-status` to `Settled` + `resolvedOutcome`, credit winners and debit the pool (or the relevant reserves) so that payouts are consistent and the platform does not take residual risk.
+3. **Settlement**: automated oracle path is `resolve-markets`; ensure cron runs it. For AMM-heavy markets, validate pool vs payout accounting separately from P2P.
 4. **Make the platform risk-free**: Use **P2P-only** (no platform LP). Set `DISABLE_AMM_TRADE=1` to turn off AMM trading; implement order book / matching so only matched pairs create positions and payouts come from counterparties. See **`docs/P2P_AND_GROWTH_STRATEGY.md`** for the full brainstorm and growth-from-zero approach.

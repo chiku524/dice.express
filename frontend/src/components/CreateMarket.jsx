@@ -13,6 +13,10 @@ const INITIAL_FORM_DATA = {
   predictionStyle: 'yesNo',
   marketType: 'Binary',
   outcomes: '',
+  parentMarketId: '',
+  scalarMin: '',
+  scalarMax: '',
+  scalarUnit: '',
   settlementType: 'TimeBased',
   settlementTime: '',
   resolutionCriteria: '',
@@ -85,6 +89,21 @@ export default function CreateMarket() {
         ? 'EventBased'
         : 'Manual'
 
+      const scalarSpec =
+        formData.predictionStyle === 'scalarBuckets'
+          ? (() => {
+              const min = formData.scalarMin?.trim() ? parseFloat(formData.scalarMin) : null
+              const max = formData.scalarMax?.trim() ? parseFloat(formData.scalarMax) : null
+              const unit = formData.scalarUnit?.trim() || null
+              if ((min == null || Number.isNaN(min)) && (max == null || Number.isNaN(max)) && !unit) return undefined
+              return {
+                ...(min != null && !Number.isNaN(min) ? { min } : {}),
+                ...(max != null && !Number.isNaN(max) ? { max } : {}),
+                ...(unit ? { unit } : {}),
+              }
+            })()
+          : undefined
+
       const result = await createMarket({
         title: formData.title,
         description: formData.description,
@@ -96,6 +115,10 @@ export default function CreateMarket() {
         styleLabel: formData.predictionStyle || null,
         source: 'user',
         creator: wallet.party,
+        ...(formData.predictionStyle === 'conditional' && formData.parentMarketId?.trim()
+          ? { parentMarketId: formData.parentMarketId.trim() }
+          : {}),
+        ...(scalarSpec && Object.keys(scalarSpec).length > 0 ? { scalarSpec } : {}),
       })
 
       const id = result.market?.contractId || result.market?.payload?.marketId || `market-${Date.now()}`
@@ -103,17 +126,7 @@ export default function CreateMarket() {
       setMarketId(id)
 
       // Reset form after successful creation
-      setFormData({
-        title: '',
-        description: '',
-        category: 'Other',
-        predictionStyle: 'yesNo',
-        marketType: 'Binary',
-        outcomes: '',
-        settlementType: 'TimeBased',
-        settlementTime: '',
-        resolutionCriteria: '',
-      })
+      setFormData({ ...INITIAL_FORM_DATA })
       
       // DO NOT redirect - let user see the success message and contract details
     } catch (err) {
@@ -283,6 +296,10 @@ export default function CreateMarket() {
                 predictionStyle: e.target.value,
                 marketType: style.marketType,
                 outcomes: style.outcomes ? style.outcomes.join(', ') : prev.outcomes,
+                parentMarketId: e.target.value === 'conditional' ? prev.parentMarketId : '',
+                scalarMin: e.target.value === 'scalarBuckets' ? prev.scalarMin : '',
+                scalarMax: e.target.value === 'scalarBuckets' ? prev.scalarMax : '',
+                scalarUnit: e.target.value === 'scalarBuckets' ? prev.scalarUnit : '',
               }))
             }}
             required
@@ -292,6 +309,45 @@ export default function CreateMarket() {
             ))}
           </select>
         </div>
+
+        {formData.predictionStyle === 'conditional' && (
+          <div className="form-group">
+            <label htmlFor="parentMarketId">Related market ID (optional)</label>
+            <input
+              id="parentMarketId"
+              type="text"
+              name="parentMarketId"
+              value={formData.parentMarketId}
+              onChange={handleChange}
+              placeholder="e.g. market-abc123 or contract id"
+            />
+            <p className="text-muted mt-xs" style={{ fontSize: 'var(--font-size-sm)' }}>
+              Use when this question is explicitly tied to another market; helps operators and resolution notes. Still a standard Yes/No market for trading.
+            </p>
+          </div>
+        )}
+
+        {formData.predictionStyle === 'scalarBuckets' && (
+          <div className="form-group">
+            <p className="text-muted mb-sm" style={{ fontSize: 'var(--font-size-sm)' }}>
+              Define <strong>outcomes</strong> as ordered buckets (e.g. <code>&lt;2M, 2M–5M, &gt;5M</code>). Optional numeric hints for the template:
+            </p>
+            <div style={{ display: 'grid', gap: 'var(--spacing-sm)', maxWidth: '420px' }}>
+              <label className="text-secondary" style={{ fontSize: 'var(--font-size-sm)' }}>
+                Min (optional){' '}
+                <input type="text" name="scalarMin" value={formData.scalarMin} onChange={handleChange} placeholder="e.g. 0" />
+              </label>
+              <label className="text-secondary" style={{ fontSize: 'var(--font-size-sm)' }}>
+                Max (optional){' '}
+                <input type="text" name="scalarMax" value={formData.scalarMax} onChange={handleChange} placeholder="e.g. 100" />
+              </label>
+              <label className="text-secondary" style={{ fontSize: 'var(--font-size-sm)' }}>
+                Unit (optional){' '}
+                <input type="text" name="scalarUnit" value={formData.scalarUnit} onChange={handleChange} placeholder="e.g. USD, %, °C" />
+              </label>
+            </div>
+          </div>
+        )}
 
         {getStyleByValue(formData.predictionStyle).marketType === 'MultiOutcome' && (
           <div className="form-group">
@@ -303,7 +359,11 @@ export default function CreateMarket() {
               onChange={handleChange}
               onBlur={handleBlur}
               required
-              placeholder="e.g., Option A, Option B, Option C"
+              placeholder={
+                formData.predictionStyle === 'scalarBuckets'
+                  ? 'e.g. Under $100k, $100k–$150k, Over $150k'
+                  : 'e.g., Option A, Option B, Option C'
+              }
               className={fieldErrors.outcomes ? 'error' : ''}
               aria-invalid={!!fieldErrors.outcomes}
               aria-describedby={fieldErrors.outcomes ? 'outcomes-error' : undefined}

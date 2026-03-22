@@ -97,7 +97,7 @@ There is **no UI** and **no public API** for users to create markets. The route 
    - **Default:** `{ "action": "seed_all", "perSourceLimit": 5 }` — tries all integrated sources (sports, stocks, stocks_trend, crypto, crypto_trend, weather, weatherapi, news, perigon, newsapi_ai, newsdata_io). Sources without an API key are skipped.
    - **Single source:** If **AUTO_MARKETS_SOURCE** is set (e.g. `sports`), body is `{ "action": "seed", "source": "sports", "limit": 5 }`.
 2. API loads **events** from the chosen source(s). For each event it uses a stable **market ID**. It **only creates a market if that ID doesn't already exist**. New events → new markets; existing → skipped.
-3. For each *new* event the API creates a **market** and **liquidity pool**, stores them in D1 and backs up to R2.
+3. For each *new* event the API creates a **market** and **liquidity pool**, stores them in D1 and backs up to R2. Automated markets use **`settlementTrigger: { tag: "EventBased", value: "<summary>" }`** (outcome/event-driven), not time-only or manual; **`resolutionDeadline`** still reflects the oracle window (e.g. game time or last trading day).
 4. **POST /api/resolve-markets** (called by the same cron after seeding) resolves due markets and settles winners (2% fee).
 
 ## Categories and APIs (what gets created)
@@ -106,6 +106,7 @@ There is **no UI** and **no public API** for users to create markets. The route 
 |--------|-----|------------------|--------|
 | **sports** | The Odds API | `THE_ODDS_API_KEY` | NBA, NFL, etc. |
 | **stocks** | Alpha Vantage | `ALPHA_VANTAGE_API_KEY` | "Will X close above $Y by date?" (7-day). |
+| **massive** | Massive.com (Polygon.io REST) | `MASSIVE_API_KEY` | Same style as stocks; daily aggregate close vs threshold; optional `MASSIVE_API_BASE`. |
 | **stocks_trend** | Alpha Vantage | `ALPHA_VANTAGE_API_KEY` | Trend: "Will [symbol] close above $X by [Friday]?" (current × 1.02). |
 | **crypto** / **coingecko** | CoinGecko | (optional) `COINGECKO_API_KEY` | "Will X be above $Y by date?" |
 | **crypto_trend** | CoinGecko | (optional) `COINGECKO_API_KEY` | "Will [symbol] be above $X in 24h?" (current × 1.02). |
@@ -129,7 +130,7 @@ Sources without a key are skipped when using **seed_all**. Set **AUTO_MARKETS_SO
 
 **Parameters:** `action` (events / seed / seed_all), `source`, `sources` (array), `limit`, `perSourceLimit`, `sport` (for sports), `category` (for news), `q` (Perigon/NewsAPI.ai query).
 
-**Environment variables:** Set in Cloudflare Pages/Workers. Examples: `THE_ODDS_API_KEY`, `ALPHA_VANTAGE_API_KEY`, `OPENWEATHER_API_KEY`, `WEATHERAPI_API_KEY`, `GNEWS_API_KEY`, `PERIGON_API_KEY`, `NEWSAPI_AI_KEY`, `NEWSDATA_API_KEY`, optional `COINGECKO_API_KEY`, `RAPIDAPI_KEY`.
+**Environment variables:** Set in Cloudflare Pages/Workers. Examples: `THE_ODDS_API_KEY`, `ALPHA_VANTAGE_API_KEY`, `MASSIVE_API_KEY`, `OPENWEATHER_API_KEY`, `WEATHERAPI_API_KEY`, `GNEWS_API_KEY`, `PERIGON_API_KEY`, `NEWSAPI_AI_KEY`, `NEWSDATA_API_KEY`, optional `COINGECKO_API_KEY`, `RAPIDAPI_KEY`.
 
 ## Viewing markets on the webapp
 

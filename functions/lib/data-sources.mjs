@@ -14,6 +14,14 @@ const GNEWS_BASE = 'https://gnews.io/api/v4'
 const PERIGON_BASE = 'https://api.goperigon.com/v1'
 const NEWSAPI_AI_BASE = 'https://eventregistry.org/api/v1'
 const NEWSDATA_BASE = 'https://newsdata.io/api/1'
+const FRED_API_ROOT = 'https://api.stlouisfed.org/fred'
+const FINNHUB_BASE = 'https://finnhub.io/api/v1'
+const FEC_API_ROOT = 'https://api.open.fec.gov/v1'
+const FRANKFURTER_ROOT = 'https://api.frankfurter.app'
+const USGS_FDSN_ROOT = 'https://earthquake.usgs.gov/fdsnws/event/1'
+const NASA_NEO_ROOT = 'https://api.nasa.gov/neo/rest/v1'
+const CONGRESS_GOV_ROOT = 'https://api.congress.gov/v3'
+const BLS_TIMESERIES_URL = 'https://api.bls.gov/publicAPI/v2/timeseries/data'
 
 /** Generic fetch with timeout; returns JSON or text. */
 async function fetchApi(url, options = {}, timeoutMs = 15000) {
@@ -60,6 +68,18 @@ export async function fetchAlphaVantageQuote(env, symbol = 'AAPL') {
 /** List of symbols we can create markets for (sample). */
 export const ALPHA_VANTAGE_SYMBOLS = ['AAPL', 'MSFT', 'GOOGL', 'AMZN', 'NVDA', 'META', 'TSLA', 'BTC', 'ETH']
 
+/** Extra liquid tickers for news→outcome promotion (earnings + price). */
+export const NEWS_OUTCOME_EXTRA_TICKERS = [
+  'JPM', 'BAC', 'XOM', 'CVX', 'WMT', 'JNJ', 'PG', 'UNH', 'MA', 'V', 'DIS', 'NFLX', 'AMD', 'INTC', 'CSCO',
+  'PEP', 'COST', 'ABBV', 'MRK', 'KO', 'TMO', 'ACN', 'DHR', 'MCD', 'ABT', 'WFC', 'BMY', 'NEE', 'PM', 'TXN',
+  'RTX', 'UPS', 'QCOM', 'LOW', 'AMT', 'HON', 'SPGI', 'INTU', 'IBM', 'GS', 'CAT', 'DE', 'LMT', 'SBUX',
+]
+
+/** All equity tickers used when scanning headlines (excludes BTC/ETH — use crypto path). */
+export const ALL_NEWS_PROMO_EQUITY_TICKERS = [
+  ...new Set(ALPHA_VANTAGE_SYMBOLS.filter((s) => s !== 'BTC' && s !== 'ETH').concat(NEWS_OUTCOME_EXTRA_TICKERS)),
+]
+
 // --- CoinGecko (crypto) ---
 /** Get simple price. env.COINGECKO_API_KEY (Pro: x-cg-pro-api-key). */
 export async function fetchCoinGeckoPrice(env, coinIds = ['bitcoin'], vsCurrencies = ['usd']) {
@@ -80,6 +100,8 @@ export const COINGECKO_COINS = [
   { id: 'bitcoin', symbol: 'BTC' },
   { id: 'ethereum', symbol: 'ETH' },
   { id: 'solana', symbol: 'SOL' },
+  { id: 'cardano', symbol: 'ADA' },
+  { id: 'dogecoin', symbol: 'DOGE' },
   { id: 'tether', symbol: 'USDT' },
   { id: 'usd-coin', symbol: 'USDC' },
 ]
@@ -227,6 +249,572 @@ export async function fetchNewsApiAiSearch(env, q = 'technology', limit = 10) {
   return Array.isArray(results) ? results : []
 }
 
+/**
+ * Article titles from the same feed parameters as market creation (for feed-topic resolution).
+ */
+export async function fetchNewsTitlesForOracle(env, oracleSource, cfg = {}) {
+  const limit = Math.min(Math.max(1, cfg.resolutionCheckLimit || 20), 50)
+  try {
+    if (oracleSource === 'gnews') {
+      const articles = await fetchGNewsHeadlines(env, cfg.category || 'general', 'en', limit)
+      return articles.map((a) => (a.title ? String(a.title) : '')).filter(Boolean)
+    }
+    if (oracleSource === 'perigon') {
+      const articles = await fetchPerigonSearch(env, cfg.seedQuery || 'technology', limit)
+      return articles.map((a) => String(a.title || a.headline || '')).filter(Boolean)
+    }
+    if (oracleSource === 'newsapi_ai') {
+      const articles = await fetchNewsApiAiSearch(env, cfg.seedQuery || 'technology', limit)
+      return articles.map((a) => String(a.title || '')).filter(Boolean)
+    }
+    if (oracleSource === 'newsdata_io') {
+      const articles = await fetchNewsDataIoLatest(env, cfg.seedQuery || 'technology', 'en', limit)
+      return articles.map((a) => String(a.title || '')).filter(Boolean)
+    }
+  } catch (err) {
+    console.warn('[data-sources] fetchNewsTitlesForOracle', oracleSource, err?.message)
+    throw err
+  }
+  return []
+}
+
+// --- FRED (St. Louis Fed) — env.FRED_API_KEY ---
+/**
+ * Latest numeric observation on or before observationEnd (YYYY-MM-DD). Skips FRED "." missing values.
+ */
+export async function fetchFredObservationOnOrBefore(env, seriesId, observationEndYmd) {
+  const key = env.FRED_API_KEY
+  if (!key) throw new Error('FRED_API_KEY not set')
+  const end = (observationEndYmd || '').toString().slice(0, 10)
+  const url = `${FRED_API_ROOT}/series/observations?series_id=${encodeURIComponent(seriesId)}&api_key=${encodeURIComponent(key)}&file_type=json&sort_order=desc&observation_end=${encodeURIComponent(end)}&limit=30`
+  const data = await fetchApi(url)
+  const obs = data?.observations || []
+  for (const o of obs) {
+    if (!o || o.value === '.' || o.value == null) continue
+    const v = parseFloat(o.value)
+    if (!Number.isNaN(v)) return { date: o.date, value: v }
+  }
+  return null
+}
+
+// --- Finnhub — env.FINNHUB_API_KEY ---
+export async function fetchFinnhubEarningsCalendar(env, symbol, fromYmd, toYmd) {
+  const token = env.FINNHUB_API_KEY
+  if (!token) throw new Error('FINNHUB_API_KEY not set')
+  const url = `${FINNHUB_BASE}/calendar/earnings?symbol=${encodeURIComponent(symbol)}&from=${fromYmd}&to=${toYmd}&token=${encodeURIComponent(token)}`
+  const data = await fetchApi(url)
+  return Array.isArray(data?.earningsCalendar) ? data.earningsCalendar : []
+}
+
+export async function fetchFinnhubStockEarnings(env, symbol) {
+  const token = env.FINNHUB_API_KEY
+  if (!token) throw new Error('FINNHUB_API_KEY not set')
+  const url = `${FINNHUB_BASE}/stock/earnings?symbol=${encodeURIComponent(symbol)}&token=${encodeURIComponent(token)}`
+  return await fetchApi(url)
+}
+
+/**
+ * Scheduled macro markets: effective fed funds (DFF) vs a threshold by a future date.
+ */
+export async function eventsFromFredFunds(env, limit = 2) {
+  const key = env.FRED_API_KEY
+  if (!key) return []
+  const today = new Date().toISOString().slice(0, 10)
+  let current
+  try {
+    current = await fetchFredObservationOnOrBefore(env, 'DFF', today)
+  } catch (err) {
+    console.warn('[data-sources] FRED DFF', err?.message)
+    return []
+  }
+  if (!current || current.value == null) return []
+  const spot = current.value
+  const events = []
+  const horizons = []
+  if (limit >= 1) horizons.push(14)
+  if (limit >= 2) horizons.push(28)
+  for (const days of horizons) {
+    const end = new Date()
+    end.setUTCDate(end.getUTCDate() + days)
+    const dateStr = end.toISOString().slice(0, 10)
+    const threshold = Math.round(spot * 100) / 100
+    const title = `Will the effective federal funds rate (FRED: DFF) be at or above ${threshold}% on the last print on or before ${dateStr}?`
+    events.push({
+      id: `fred-dff-${dateStr}-${days}d`,
+      source: 'fred',
+      title,
+      description: `${title} Latest observation ${spot}% as of ${current.date}. Data source: FRED.`,
+      resolutionCriteria: `Yes if the latest FRED series DFF observation on or before ${dateStr} (UTC calendar) is ≥ ${threshold}%. No if it is below. Missing/invalid prints: market stays open until data is available.`,
+      oneLiner: `DFF last print on or before ${dateStr} is ≥ ${threshold}%; otherwise No.`,
+      endDate: dateStr,
+      resolutionDeadline: `${dateStr.slice(0, 10)}T23:59:59.000Z`,
+      oracleSource: 'fred',
+      oracleConfig: {
+        seriesId: 'DFF',
+        threshold,
+        comparator: 'gte',
+        endDate: dateStr,
+        outcomeResolutionKind: 'macro_fred',
+        unit: 'percent',
+      },
+    })
+  }
+  return events
+}
+
+/**
+ * Upcoming earnings: EPS at or above Finnhub consensus for the next scheduled print.
+ */
+export async function eventsFromFinnhubEarnings(env, symbols = ALPHA_VANTAGE_SYMBOLS.slice(0, 6), maxEvents = 6) {
+  if (!env.FINNHUB_API_KEY) return []
+  const today = new Date()
+  const fromYmd = today.toISOString().slice(0, 10)
+  const to = new Date(today)
+  to.setUTCDate(to.getUTCDate() + 90)
+  const toYmd = to.toISOString().slice(0, 10)
+  const events = []
+  for (const symbol of symbols) {
+    if (events.length >= maxEvents) break
+    let cal = []
+    try {
+      cal = await fetchFinnhubEarningsCalendar(env, symbol, fromYmd, toYmd)
+    } catch (err) {
+      console.warn('[data-sources] Finnhub calendar', symbol, err?.message)
+      continue
+    }
+    const upcoming = cal
+      .filter((r) => r.symbol === symbol && r.date && r.epsEstimate != null && parseFloat(r.epsEstimate) > 0)
+      .sort((a, b) => String(a.date).localeCompare(String(b.date)))[0]
+    if (!upcoming) continue
+    const epsEst = parseFloat(upcoming.epsEstimate)
+    if (Number.isNaN(epsEst)) continue
+    const q = upcoming.quarter
+    const y = upcoming.year
+    const reportDate = String(upcoming.date).slice(0, 10)
+    const title = `Will ${symbol} report EPS of at least $${epsEst.toFixed(2)} for Q${q} ${y} (Finnhub consensus)?`
+    const id = `fh-earn-${symbol}-${y}-Q${q}-${reportDate}`
+    events.push({
+      id,
+      source: 'finnhub',
+      title,
+      description: `${title} Expected report date ~${reportDate} (Finnhub earnings calendar). Resolved from Finnhub reported EPS vs stored estimate.`,
+      resolutionCriteria: `Yes if Finnhub’s reported EPS (stock/earnings) for ${symbol} Q${q} ${y} is ≥ $${epsEst.toFixed(2)} when available. If no actual EPS after 7 calendar days past ${reportDate}, leave open until data appears or operator intervenes.`,
+      oneLiner: `${symbol} Q${q} ${y} EPS ≥ $${epsEst.toFixed(2)}; otherwise No.`,
+      endDate: reportDate,
+      resolutionDeadline: `${reportDate.slice(0, 10)}T23:59:59.000Z`,
+      oracleSource: 'finnhub',
+      oracleConfig: {
+        finnhubSymbol: symbol,
+        epsEstimate: epsEst,
+        quarter: q,
+        year: y,
+        reportDate,
+        outcomeResolutionKind: 'earnings_beat',
+      },
+    })
+  }
+  return events
+}
+
+// --- Frankfurter (ECB reference rates) — NO API KEY ---
+/** Latest or historical cross rate: `rates[quote]` = quote units per 1 base. */
+export async function fetchFrankfurterRate(dateYmd, base, quote) {
+  const path = dateYmd ? `/${String(dateYmd).slice(0, 10)}` : '/latest'
+  const url = `${FRANKFURTER_ROOT}${path}?from=${encodeURIComponent(base)}&to=${encodeURIComponent(quote)}`
+  const data = await fetchApi(url)
+  const r = data?.rates?.[quote]
+  if (r == null) return null
+  const rate = parseFloat(r)
+  if (Number.isNaN(rate)) return null
+  return { date: data.date, rate }
+}
+
+/** Walk back up to 5 days if ECB did not publish on endYmd (weekends/holidays). */
+export async function fetchFrankfurterRateOnOrBefore(endYmd, base, quote) {
+  let d = new Date(`${String(endYmd).slice(0, 10)}T12:00:00.000Z`)
+  for (let i = 0; i < 6; i++) {
+    const ymd = d.toISOString().slice(0, 10)
+    try {
+      const r = await fetchFrankfurterRate(ymd, base, quote)
+      if (r && r.rate != null) return r
+    } catch {
+      /* try previous day */
+    }
+    d.setUTCDate(d.getUTCDate() - 1)
+  }
+  return null
+}
+
+export async function eventsFromFrankfurterForex(env, limit = 4) {
+  const pairs = [
+    { base: 'USD', quote: 'EUR' },
+    { base: 'USD', quote: 'GBP' },
+    { base: 'USD', quote: 'JPY' },
+    { base: 'EUR', quote: 'USD' },
+  ].slice(0, Math.max(1, Math.min(limit, 4)))
+  const events = []
+  const settle = new Date()
+  settle.setUTCDate(settle.getUTCDate() + 7)
+  const dateStr = settle.toISOString().slice(0, 10)
+  for (const { base, quote } of pairs) {
+    try {
+      const cur = await fetchFrankfurterRate(null, base, quote)
+      if (!cur || cur.rate == null) continue
+      const decimals = quote === 'JPY' ? 2 : 4
+      const mult = 10 ** decimals
+      const threshold = Math.round(cur.rate * 0.998 * mult) / mult
+      const title = `On ${dateStr}, will 1 ${base} be worth at least ${threshold} ${quote} (Frankfurter / ECB)?`
+      const id = `fx-${base}-${quote}-${dateStr}`
+      events.push({
+        id,
+        source: 'frankfurter',
+        title,
+        description: `${title} Spot about ${cur.rate} on ${cur.date}. No API key required.`,
+        resolutionCriteria: `Yes if Frankfurter’s ${dateStr} (or last available ECB publish on or before that date) rate for 1 ${base} in ${quote} is ≥ ${threshold}. Data: https://www.frankfurter.app (ECB).`,
+        oneLiner: `${base}/${quote} ≥ ${threshold} on ${dateStr}; otherwise No.`,
+        endDate: dateStr,
+        resolutionDeadline: `${dateStr}T23:59:59.000Z`,
+        oracleSource: 'frankfurter',
+        oracleConfig: {
+          base,
+          quote,
+          threshold,
+          comparator: 'gte',
+          endDate: dateStr,
+          outcomeResolutionKind: 'forex_ecb',
+        },
+      })
+    } catch (err) {
+      console.warn('[data-sources] Frankfurter', base, quote, err?.message)
+    }
+  }
+  return events
+}
+
+// --- USGS FDSN earthquake query — NO API KEY ---
+export async function fetchUsgsEarthquakeCount(startYmd, endYmd, minMagnitude = 5) {
+  const url = `${USGS_FDSN_ROOT}/query?format=geojson&starttime=${encodeURIComponent(startYmd)}&endtime=${encodeURIComponent(endYmd)}&minmagnitude=${minMagnitude}`
+  const data = await fetchApi(url)
+  const n = data?.metadata?.count
+  if (typeof n === 'number') return n
+  return Array.isArray(data?.features) ? data.features.length : 0
+}
+
+export async function eventsFromUsgsQuakeCount(env, limit = 1) {
+  if (limit < 1) return []
+  const start = new Date()
+  const startYmd = start.toISOString().slice(0, 10)
+  const end = new Date(start)
+  end.setUTCDate(end.getUTCDate() + 7)
+  const endYmd = end.toISOString().slice(0, 10)
+  const minMag = 5
+  const minCount = 12
+  const title = `Will USGS record at least ${minCount} global earthquakes M≥${minMag} from ${startYmd} through ${endYmd} (UTC)?`
+  return [
+    {
+      id: `usgs-m${minMag}-${startYmd}-${endYmd}`,
+      source: 'usgs',
+      title,
+      description: `${title} Counts from USGS FDSNWS event API (public, no key).`,
+      resolutionCriteria: `Yes if USGS FDSNWS “count” for starttime=${startYmd} and endtime=${endYmd} with minmagnitude=${minMag} is ≥ ${minCount}.`,
+      oneLiner: `≥ ${minCount} quakes M≥${minMag} in window; otherwise No.`,
+      endDate: endYmd,
+      resolutionDeadline: `${endYmd}T23:59:59.000Z`,
+      oracleSource: 'usgs',
+      oracleConfig: {
+        usgsStartYmd: startYmd,
+        usgsEndYmd: endYmd,
+        minMagnitude: minMag,
+        minCount,
+        outcomeResolutionKind: 'usgs_count',
+      },
+    },
+  ]
+}
+
+// --- OpenFEC — DEMO_KEY works for low volume; set FEC_API_KEY (or shared api.data.gov key) for production ---
+export function fecApiKey(env) {
+  const k = env.FEC_API_KEY || env.OPENFEC_API_KEY || env.DATA_GOV_API_KEY
+  if (k && String(k).trim()) return String(k).trim()
+  return 'DEMO_KEY'
+}
+
+export async function fetchFecTopPresidentialByReceipts(env, electionYear) {
+  const key = fecApiKey(env)
+  const url = `${FEC_API_ROOT}/candidates/totals/?election_year=${electionYear}&office=P&sort=-receipts&per_page=3&api_key=${encodeURIComponent(key)}`
+  const data = await fetchApi(url)
+  const results = data?.results || []
+  return results.length ? results[0] : null
+}
+
+export async function eventsFromFecPresidentialLead(env, limit = 1) {
+  if (limit < 1) return []
+  const electionYear = nextUsPresidentialElectionYear()
+  let top
+  try {
+    top = await fetchFecTopPresidentialByReceipts(env, electionYear)
+  } catch (err) {
+    console.warn('[data-sources] OpenFEC', err?.message)
+    return []
+  }
+  if (!top || !top.candidate_id) return []
+  const name = top.name || top.candidate_id
+  const receipts = top.receipts != null ? `$${Number(top.receipts).toLocaleString()}` : 'N/A'
+  const end = new Date()
+  end.setUTCDate(end.getUTCDate() + 21)
+  const endYmd = end.toISOString().slice(0, 10)
+  const title = `Will ${name} still lead presidential candidates by FEC total receipts for ${electionYear} on ${endYmd}?`
+  return [
+    {
+      id: `fec-pres-lead-${electionYear}-${endYmd}`,
+      source: 'fec',
+      title,
+      description: `${title} Leader by OpenFEC candidates/totals when created (${receipts} reported). Use FEC_API_KEY in production (DEMO_KEY is rate-limited).`,
+      resolutionCriteria: `Yes if the same OpenFEC query (election_year=${electionYear}, office=P, sort=-receipts) still lists candidate_id ${top.candidate_id} first on resolution. Ties: Yes only if that candidate remains first in API order.`,
+      oneLiner: `${name} stays #1 by receipts on ${endYmd}; otherwise No.`,
+      endDate: endYmd,
+      resolutionDeadline: `${endYmd}T23:59:59.000Z`,
+      oracleSource: 'fec',
+      oracleConfig: {
+        fecElectionYear: electionYear,
+        leaderCandidateId: top.candidate_id,
+        leaderName: name,
+        outcomeResolutionKind: 'fec_presidential_lead',
+        endDate: endYmd,
+      },
+    },
+  ]
+}
+
+function nextUsPresidentialElectionYear() {
+  const y = new Date().getUTCFullYear()
+  const cycles = [2024, 2028, 2032, 2036, 2040, 2044]
+  return cycles.find((c) => c >= y) || y + 4 - (y % 4)
+}
+
+// --- NASA NeoWs — DEMO_KEY allowed; set NASA_API_KEY (or shared api.data.gov key) for higher limits ---
+export function nasaApiKey(env) {
+  const k = env.NASA_API_KEY || env.DATA_GOV_API_KEY
+  if (k && String(k).trim()) return String(k).trim()
+  return 'DEMO_KEY'
+}
+
+export async function fetchNasaNeoElementCount(startYmd, endYmd, apiKey) {
+  const url = `${NASA_NEO_ROOT}/feed?start_date=${encodeURIComponent(startYmd)}&end_date=${encodeURIComponent(endYmd)}&api_key=${encodeURIComponent(apiKey)}`
+  const data = await fetchApi(url)
+  const n = data?.element_count
+  return typeof n === 'number' ? n : 0
+}
+
+export async function eventsFromNasaNeo(env, limit = 1) {
+  if (limit < 1) return []
+  const startYmd = new Date().toISOString().slice(0, 10)
+  const end = new Date()
+  end.setUTCDate(end.getUTCDate() + 7)
+  const endYmd = end.toISOString().slice(0, 10)
+  const key = nasaApiKey(env)
+  let baseline = 0
+  try {
+    baseline = await fetchNasaNeoElementCount(startYmd, endYmd, key)
+  } catch (err) {
+    console.warn('[data-sources] NASA NEO', err?.message)
+    return []
+  }
+  const threshold = Math.max(35, Math.ceil(baseline * 1.08))
+  const title = `Will NASA NeoWs report at least ${threshold} near-Earth objects from ${startYmd} through ${endYmd}?`
+  return [
+    {
+      id: `nasa-neo-${startYmd}-${endYmd}`,
+      source: 'nasa_neo',
+      title,
+      description: `${title} Uses element_count from NeoWs feed. Public DEMO_KEY ok; set NASA_API_KEY for production.`,
+      resolutionCriteria: `Yes if NASA NeoWs feed for the same start_date/end_date returns element_count ≥ ${threshold}. API: https://api.nasa.gov.`,
+      oneLiner: `NeoWs element_count ≥ ${threshold}; otherwise No.`,
+      endDate: endYmd,
+      resolutionDeadline: `${endYmd}T23:59:59.000Z`,
+      oracleSource: 'nasa_neo',
+      oracleConfig: {
+        nasaNeoStartYmd: startYmd,
+        nasaNeoEndYmd: endYmd,
+        neoMinCount: threshold,
+        outcomeResolutionKind: 'nasa_neo_count',
+      },
+    },
+  ]
+}
+
+// --- BLS Public Data API — free registration: https://data.bls.gov/registrationEngine/ ---
+export async function fetchBlsLatestObservation(env, seriesId) {
+  const regKey = env.BLS_API_KEY
+  if (!regKey || !String(regKey).trim()) throw new Error('BLS_API_KEY not set')
+  const y = new Date().getUTCFullYear()
+  const body = JSON.stringify({
+    seriesid: [seriesId],
+    startyear: String(y - 1),
+    endyear: String(y),
+    registrationkey: String(regKey).trim(),
+  })
+  const data = await fetchApi(BLS_TIMESERIES_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body,
+  })
+  const series = data?.Results?.series?.[0]
+  const pts = series?.data || []
+  const latest = pts[0]
+  if (!latest || latest.value == null) return null
+  const v = parseFloat(latest.value)
+  if (Number.isNaN(v)) return null
+  return { period: latest.period, year: latest.year, value: v }
+}
+
+function blsPeriodEndUtc(yearStr, period) {
+  const y = parseInt(yearStr, 10)
+  if (!period?.startsWith('M')) return null
+  const mi = parseInt(period.slice(1), 10) - 1
+  if (mi < 0 || mi > 11) return null
+  return new Date(Date.UTC(y, mi + 1, 0, 23, 59, 59, 999))
+}
+
+/** Newest observation whose period end is on or before endYmd (for resolution). */
+export async function fetchBlsLatestObservationOnOrBefore(env, seriesId, endYmd) {
+  const regKey = env.BLS_API_KEY
+  if (!regKey || !String(regKey).trim()) throw new Error('BLS_API_KEY not set')
+  const end = new Date(`${String(endYmd).slice(0, 10)}T23:59:59.000Z`)
+  const y = new Date().getUTCFullYear()
+  const body = JSON.stringify({
+    seriesid: [seriesId],
+    startyear: String(y - 2),
+    endyear: String(y + 1),
+    registrationkey: String(regKey).trim(),
+  })
+  const data = await fetchApi(BLS_TIMESERIES_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body,
+  })
+  const series = data?.Results?.series?.[0]
+  const pts = series?.data || []
+  for (const pt of pts) {
+    const d = blsPeriodEndUtc(pt.year, pt.period)
+    if (!d || d > end) continue
+    const v = parseFloat(pt.value)
+    if (Number.isNaN(v)) continue
+    return { period: pt.period, year: pt.year, value: v }
+  }
+  return null
+}
+
+export async function eventsFromBlsCpi(env, limit = 1) {
+  if (limit < 1 || !env.BLS_API_KEY) return []
+  const seriesId = 'CUSR0000SA0'
+  let obs
+  try {
+    obs = await fetchBlsLatestObservation(env, seriesId)
+  } catch (err) {
+    console.warn('[data-sources] BLS CPI', err?.message)
+    return []
+  }
+  if (!obs) return []
+  const threshold = Math.round(obs.value * 1000) / 1000
+  const end = new Date()
+  end.setUTCDate(end.getUTCDate() + 45)
+  const endYmd = end.toISOString().slice(0, 10)
+  const title = `Will CPI-U (all items, seasonally adjusted, BLS ${seriesId}) stay at or above index ${threshold} on the latest print on or before ${endYmd}?`
+  return [
+    {
+      id: `bls-cpi-${seriesId}-${endYmd}`,
+      source: 'bls',
+      title,
+      description: `${title} Latest BLS point ${obs.year} ${obs.period}: ${obs.value}. Requires free BLS_API_KEY (data.bls.gov; not api.data.gov).`,
+      resolutionCriteria: `Yes if the latest BLS observation for ${seriesId} on or before ${endYmd} is ≥ ${threshold}. No if below. Source: U.S. Bureau of Labor Statistics Public Data API.`,
+      oneLiner: `CPI-U SA index ≥ ${threshold} on last print by ${endYmd}; otherwise No.`,
+      endDate: endYmd,
+      resolutionDeadline: `${endYmd}T23:59:59.000Z`,
+      oracleSource: 'bls',
+      oracleConfig: {
+        blsSeriesId: seriesId,
+        thresholdIndex: threshold,
+        comparator: 'gte',
+        endDate: endYmd,
+        outcomeResolutionKind: 'bls_cpi',
+      },
+    },
+  ]
+}
+
+// --- Congress.gov v3 — key from https://api.congress.gov/sign-up/ (often same style as api.data.gov keys) ---
+export function congressGovApiKey(env) {
+  const k = env.CONGRESS_GOV_API_KEY || env.DATA_GOV_API_KEY
+  return k && String(k).trim() ? String(k).trim() : ''
+}
+
+/** Default session when CONGRESS_GOV_CONGRESS is unset (UTC year heuristic). */
+export function defaultCongressGovSession(env) {
+  const raw = env?.CONGRESS_GOV_CONGRESS
+  if (raw != null && String(raw).trim() !== '') {
+    const n = parseInt(String(raw).trim(), 10)
+    if (Number.isFinite(n) && n >= 1 && n <= 999) return n
+  }
+  const y = new Date().getUTCFullYear()
+  if (y >= 2025) return 119
+  if (y >= 2023) return 118
+  return 117
+}
+
+/** Recent bills (metadata only). Used for seeding; resolution is count-based for transparency. */
+export async function fetchCongressBillList(env, congress, limit = 5) {
+  const key = congressGovApiKey(env)
+  if (!key) throw new Error('CONGRESS_GOV_API_KEY or DATA_GOV_API_KEY not set')
+  const url = `${CONGRESS_GOV_ROOT}/bill/${congress}?api_key=${encodeURIComponent(key)}&limit=${limit}&sort=updateDate+desc`
+  return await fetchApi(url)
+}
+
+/**
+ * Outcome market: same Congress.gov query at resolution must still return ≥ minBillCount bills (first page).
+ * Transparent but sensitive to API pagination/behavior changes.
+ */
+export async function eventsFromCongressGovBillFeed(env, limit = 1) {
+  if (limit < 1 || !congressGovApiKey(env)) return []
+  const congress = defaultCongressGovSession(env)
+  const pageSize = 25
+  let data
+  try {
+    data = await fetchCongressBillList(env, congress, pageSize)
+  } catch (err) {
+    console.warn('[data-sources] Congress.gov seed', err?.message)
+    return []
+  }
+  const bills = data?.bills || data?.results || []
+  const n = Array.isArray(bills) ? bills.length : 0
+  if (n < 5) return []
+  const minBillCount = Math.max(5, Math.floor(n * 0.88))
+  const end = new Date()
+  end.setUTCDate(end.getUTCDate() + 30)
+  const endYmd = end.toISOString().slice(0, 10)
+  const title = `Will Congress.gov still return at least ${minBillCount} bills (first page, updateDate desc) for the ${congress}th Congress on ${endYmd}?`
+  return [
+    {
+      id: `congress-feed-${congress}-${endYmd}`,
+      source: 'congress_gov',
+      title,
+      description: `${title} Snapshot at creation: ${n} bills on first page (limit=${pageSize}). Resolution re-runs the same API call.`,
+      resolutionCriteria: `Yes if GET /v3/bill/${congress} with limit=${pageSize} and sort=updateDate+desc returns an array of length ≥ ${minBillCount} on resolution day. No otherwise. Source: Congress.gov API v3.`,
+      oneLiner: `Congress.gov bill list still has ≥ ${minBillCount} items on first page; otherwise No.`,
+      endDate: endYmd,
+      resolutionDeadline: `${endYmd}T23:59:59.000Z`,
+      oracleSource: 'congress_gov',
+      oracleConfig: {
+        congress,
+        congressBillLimit: pageSize,
+        minBillCount,
+        outcomeResolutionKind: 'congress_feed_count',
+        endDate: endYmd,
+      },
+    },
+  ]
+}
+
 // --- RapidAPI (generic: use with any RapidAPI hub API) ---
 /** Call a RapidAPI host. env.RAPIDAPI_KEY. Pass host (e.g. api-nba-v1.p.rapidapi.com) and path. */
 export async function fetchRapidApi(env, host, path, query = {}) {
@@ -240,16 +828,44 @@ export async function fetchRapidApi(env, host, path, query = {}) {
   return data
 }
 
-// --- Massive (placeholder: add endpoint when you have docs) ---
-/** Placeholder for Massive API. env.MASSIVE_API_KEY */
+// --- Massive (https://massive.com — successor to Polygon.io stock market API) ---
+/**
+ * Generic GET helper. Auth uses `apiKey` query param (Polygon/Massive REST style). env.MASSIVE_API_KEY.
+ * Optional env.MASSIVE_API_BASE (default https://api.massive.com).
+ */
 export async function fetchMassive(env, path = '/', query = {}) {
   const key = env.MASSIVE_API_KEY
   if (!key) throw new Error('MASSIVE_API_KEY not set')
-  const base = env.MASSIVE_API_BASE || 'https://api.massive.com'
-  const qs = new URLSearchParams({ ...query }).toString()
-  const url = `${base}${path}${qs ? `?${qs}` : ''}`
-  const data = await fetchApi(url, { headers: { Authorization: `Bearer ${key}` } })
-  return data
+  const base = (env.MASSIVE_API_BASE || 'https://api.massive.com').replace(/\/$/, '')
+  const p = path.startsWith('/') ? path : `/${path}`
+  const q = new URLSearchParams({ apiKey: key, ...query })
+  const url = `${base}${p}?${q.toString()}`
+  return fetchApi(url)
+}
+
+/**
+ * Latest completed daily bar close for equities (for threshold markets + resolution). env.MASSIVE_API_KEY.
+ */
+export async function fetchMassiveLatestDailyClose(env, ticker = 'AAPL') {
+  const key = env.MASSIVE_API_KEY
+  if (!key) throw new Error('MASSIVE_API_KEY not set')
+  const base = (env.MASSIVE_API_BASE || 'https://api.massive.com').replace(/\/$/, '')
+  const to = new Date().toISOString().slice(0, 10)
+  const from = new Date(Date.now() - 21 * 864e5).toISOString().slice(0, 10)
+  const url = `${base}/v2/aggs/ticker/${encodeURIComponent(ticker)}/range/1/day/${from}/${to}?adjusted=true&sort=desc&limit=1&apiKey=${encodeURIComponent(key)}`
+  const data = await fetchApi(url)
+  const bar = data?.results?.[0]
+  if (!bar || bar.c == null) return null
+  const day = bar.t != null ? new Date(bar.t).toISOString().slice(0, 10) : null
+  return {
+    symbol: ticker,
+    price: bar.c,
+    high: bar.h,
+    low: bar.l,
+    open: bar.o,
+    volume: bar.v,
+    latestTradingDay: day,
+  }
 }
 
 // --- Event builders for auto-markets (normalize API responses into "events" we can turn into markets) ---
@@ -291,6 +907,39 @@ export async function eventsFromOdds(env, sportKey = 'basketball_nba', limit = 2
     }
   })
   return list
+}
+
+/** Stock threshold markets from Massive daily aggregates (parallel to Alpha Vantage stock lane). */
+export async function eventsFromMassive(env, symbols = ALPHA_VANTAGE_SYMBOLS.slice(0, 3)) {
+  const events = []
+  const endDate = new Date()
+  endDate.setDate(endDate.getDate() + 7)
+  const dateStr = endDate.toISOString().slice(0, 10)
+  for (const symbol of symbols) {
+    try {
+      const q = await fetchMassiveLatestDailyClose(env, symbol)
+      if (!q || q.price == null) continue
+      const threshold = Math.round(q.price * 1.05)
+      const title = `Will ${symbol} close above $${threshold} by ${dateStr}?`
+      events.push({
+        id: `massive-${symbol}-${dateStr}`,
+        source: 'massive',
+        title,
+        description: `${title} Latest daily close (Massive) about $${q.price}.`,
+        resolutionCriteria: `Closing price of ${symbol} on or before ${dateStr} is at or above $${threshold}. Data source: Massive (daily aggregates).`,
+        oneLiner: `${symbol} closes at or above $${threshold} by ${dateStr}; otherwise No.`,
+        symbol,
+        threshold,
+        endDate: dateStr,
+        resolutionDeadline: resolutionUSMarketCloseUTC(dateStr),
+        oracleSource: 'massive',
+        oracleConfig: { symbol, threshold, endDate: dateStr },
+      })
+    } catch (err) {
+      console.warn('[data-sources] Massive', symbol, err?.message)
+    }
+  }
+  return events
 }
 
 export async function eventsFromAlphaVantage(env, symbols = ALPHA_VANTAGE_SYMBOLS.slice(0, 5)) {
@@ -362,13 +1011,13 @@ export async function eventsFromCoinGecko(env, coins = COINGECKO_COINS.slice(0, 
 export const WEATHER_CITIES = ['London', 'New York', 'Los Angeles', 'Chicago', 'Tokyo']
 
 /** Precise resolution time: end of calendar day UTC (for news, weather, crypto date-based). */
-function resolutionEndOfDayUTC(dateStr) {
+export function resolutionEndOfDayUTC(dateStr) {
   if (!dateStr || dateStr.length < 10) return null
   return `${dateStr.slice(0, 10)}T23:59:59.000Z`
 }
 
 /** Precise resolution time: US equity market close 4pm Eastern. EDT = 20:00 UTC, EST = 21:00 UTC. */
-function resolutionUSMarketCloseUTC(dateStr) {
+export function resolutionUSMarketCloseUTC(dateStr) {
   if (!dateStr || dateStr.length < 10) return null
   const y = dateStr.slice(0, 4)
   const m = dateStr.slice(5, 7)
@@ -465,20 +1114,24 @@ export async function eventsFromGNews(env, category = 'general', limit = 5) {
   const dateStr = new Date().toISOString().slice(0, 10)
   const events = articles.slice(0, limit).map((a, i) => {
     const fullHeadline = sanitizeHeadline(a.title)
-    const titleHeadline = fullHeadline.length > 100 ? fullHeadline.slice(0, 97) + '…' : fullHeadline
-    const title = `Will "${titleHeadline}" be a top headline on ${dateStr}?`
-    const description = `Will this headline be among GNews top headlines on ${dateStr}? "${fullHeadline}" (GNews ${category}).`
     return {
       id: `gnews-${category}-${Date.now()}-${i}`,
       source: 'gnews',
-      title,
-      description,
-      resolutionCriteria: `Article or topic matching this headline is among GNews top headlines on ${dateStr}. Data source: GNews.`,
-      oneLiner: `This headline appears in GNews top headlines on ${dateStr}; otherwise No.`,
+      title: fullHeadline,
+      description: `GNews ${category} headline seed · ${dateStr}.`,
+      resolutionCriteria: '',
+      oneLiner: '',
       endDate: dateStr,
       resolutionDeadline: resolutionEndOfDayUTC(dateStr),
       oracleSource: 'gnews',
-      oracleConfig: { title: a.title, url: a.url, publishedAt: a.publishedAt, dateStr },
+      oracleConfig: {
+        title: a.title,
+        url: a.url,
+        publishedAt: a.publishedAt,
+        dateStr,
+        category,
+      },
+      seedNewsSource: 'gnews',
     }
   })
   return events
@@ -489,20 +1142,18 @@ export async function eventsFromPerigon(env, q = 'technology', limit = 5) {
   const dateStr = new Date().toISOString().slice(0, 10)
   const events = (articles || []).slice(0, limit).map((a, i) => {
     const fullHeadline = sanitizeHeadline(a.title || a.headline)
-    const titleHeadline = fullHeadline.length > 100 ? fullHeadline.slice(0, 97) + '…' : fullHeadline
-    const title = `Will "${titleHeadline}" be in top news on ${dateStr}?`
-    const description = `Will this article be in Perigon top news on ${dateStr}? "${fullHeadline}" Topic: ${q}.`
     return {
       id: `perigon-${Date.now()}-${i}`,
       source: 'perigon',
-      title,
-      description,
-      resolutionCriteria: `Article matching this topic appears in Perigon top news on ${dateStr}. Data source: Perigon.`,
-      oneLiner: `Matching article in Perigon top news on ${dateStr}; otherwise No.`,
+      title: fullHeadline,
+      description: `Perigon search “${q}” · ${dateStr}.`,
+      resolutionCriteria: '',
+      oneLiner: '',
       endDate: dateStr,
       resolutionDeadline: resolutionEndOfDayUTC(dateStr),
       oracleSource: 'perigon',
-      oracleConfig: { title: a.title || a.headline, url: a.url, dateStr },
+      oracleConfig: { title: a.title || a.headline, url: a.url, dateStr, seedQuery: q },
+      seedNewsSource: 'perigon',
     }
   })
   return events
@@ -513,20 +1164,18 @@ export async function eventsFromNewsApiAi(env, q = 'technology', limit = 5) {
   const dateStr = new Date().toISOString().slice(0, 10)
   const events = (articles || []).slice(0, limit).map((a, i) => {
     const fullHeadline = sanitizeHeadline(a.title)
-    const titleHeadline = fullHeadline.length > 100 ? fullHeadline.slice(0, 97) + '…' : fullHeadline
-    const title = `Will "${titleHeadline}" be in top news on ${dateStr}?`
-    const description = `Will this article be in NewsAPI.ai top news on ${dateStr}? "${fullHeadline}" Topic: ${q}.`
     return {
       id: `newsapi_ai-${Date.now()}-${i}`,
       source: 'newsapi_ai',
-      title,
-      description,
-      resolutionCriteria: `Article matching this topic appears in NewsAPI.ai top news on ${dateStr}. Data source: NewsAPI.ai (Event Registry).`,
-      oneLiner: `Matching article in NewsAPI.ai top news on ${dateStr}; otherwise No.`,
+      title: fullHeadline,
+      description: `NewsAPI.ai keyword “${q}” · ${dateStr}.`,
+      resolutionCriteria: '',
+      oneLiner: '',
       endDate: dateStr,
       resolutionDeadline: resolutionEndOfDayUTC(dateStr),
       oracleSource: 'newsapi_ai',
-      oracleConfig: { title: a.title, url: a.url, uri: a.uri, dateTime: a.dateTime, dateStr },
+      oracleConfig: { title: a.title, url: a.url, uri: a.uri, dateTime: a.dateTime, dateStr, seedQuery: q },
+      seedNewsSource: 'newsapi_ai',
     }
   })
   return events
@@ -537,20 +1186,25 @@ export async function eventsFromNewsDataIo(env, q = 'technology', limit = 5) {
   const dateStr = new Date().toISOString().slice(0, 10)
   const events = (articles || []).slice(0, limit).map((a, i) => {
     const fullHeadline = sanitizeHeadline(a.title)
-    const titleHeadline = fullHeadline.length > 100 ? fullHeadline.slice(0, 97) + '…' : fullHeadline
-    const title = `Will "${titleHeadline}" be in top news on ${dateStr}?`
-    const description = `Will this article be in NewsData.io latest news on ${dateStr}? "${fullHeadline}" Topic: ${q}.`
     return {
       id: `newsdata_io-${Date.now()}-${i}`,
       source: 'newsdata_io',
-      title,
-      description,
-      resolutionCriteria: `Article matching this topic appears in NewsData.io latest news on ${dateStr}. Data source: NewsData.io.`,
-      oneLiner: `Matching article in NewsData.io latest news on ${dateStr}; otherwise No.`,
+      title: fullHeadline,
+      description: `NewsData.io query “${q}” · ${dateStr}.`,
+      resolutionCriteria: '',
+      oneLiner: '',
       endDate: dateStr,
       resolutionDeadline: resolutionEndOfDayUTC(dateStr),
       oracleSource: 'newsdata_io',
-      oracleConfig: { title: a.title, link: a.link, article_id: a.article_id, pubDate: a.pubDate, dateStr },
+      oracleConfig: {
+        title: a.title,
+        link: a.link,
+        article_id: a.article_id,
+        pubDate: a.pubDate,
+        dateStr,
+        seedQuery: q,
+      },
+      seedNewsSource: 'newsdata_io',
     }
   })
   return events
@@ -665,9 +1319,18 @@ export function probeAutoMarketEnv(env) {
     PERIGON_API_KEY: set('PERIGON_API_KEY'),
     NEWSAPI_AI_KEY: set('NEWSAPI_AI_KEY'),
     NEWSDATA_API_KEY: set('NEWSDATA_API_KEY'),
+    FRED_API_KEY: set('FRED_API_KEY'),
+    FINNHUB_API_KEY: set('FINNHUB_API_KEY'),
+    DATA_GOV_API_KEY: set('DATA_GOV_API_KEY'),
+    FEC_API_KEY: set('FEC_API_KEY'),
+    OPENFEC_API_KEY: set('OPENFEC_API_KEY'),
+    BLS_API_KEY: set('BLS_API_KEY'),
+    NASA_API_KEY: set('NASA_API_KEY'),
+    CONGRESS_GOV_API_KEY: set('CONGRESS_GOV_API_KEY'),
     RAPIDAPI_KEY: set('RAPIDAPI_KEY'),
     MASSIVE_API_KEY: set('MASSIVE_API_KEY'),
-    note: 'CoinGecko can work without COINGECKO_API_KEY (public API; rate-limited). Empty event lists often mean quota, IP block, or no upcoming games.',
+    note:
+      'Keyless: Frankfurter (FX), USGS earthquakes. Optional DEMO_KEY: OpenFEC, NASA NeoWs when no service-specific key. At runtime, DATA_GOV_API_KEY is used as fallback for FEC, NASA, and Congress.gov if those vars are unset. BLS requires BLS_API_KEY only (register at data.bls.gov). CoinGecko public tier works without COINGECKO_API_KEY.',
   }
 }
 
@@ -679,10 +1342,19 @@ export const AUTO_MARKET_SOURCES = [
   'crypto_trend',
   'weather',
   'weatherapi',
+  'frankfurter',
+  'usgs',
+  'fec',
+  'nasa_neo',
+  'congress_gov',
+  'bls',
+  'fred',
+  'finnhub',
   'news',
   'perigon',
   'newsapi_ai',
   'newsdata_io',
+  'massive',
 ]
 
 /** Default events requested per non-news source when seeding. */
@@ -757,6 +1429,16 @@ export async function getEventsFromSource(env, source, opts = {}) {
     if (source === 'perigon') return await eventsFromPerigon(env, q, limit)
     if (source === 'newsapi_ai') return await eventsFromNewsApiAi(env, q, limit)
     if (source === 'newsdata_io' || source === 'newsdata') return await eventsFromNewsDataIo(env, q, limit)
+    if (source === 'frankfurter' || source === 'forex')
+      return await eventsFromFrankfurterForex(env, Math.min(limit, 4))
+    if (source === 'usgs') return await eventsFromUsgsQuakeCount(env, 1)
+    if (source === 'fec' || source === 'openfec') return await eventsFromFecPresidentialLead(env, 1)
+    if (source === 'nasa_neo') return await eventsFromNasaNeo(env, 1)
+    if (source === 'congress_gov') return await eventsFromCongressGovBillFeed(env, 1)
+    if (source === 'bls') return await eventsFromBlsCpi(env, 1)
+    if (source === 'fred') return await eventsFromFredFunds(env, Math.min(limit, 2))
+    if (source === 'finnhub') return await eventsFromFinnhubEarnings(env, ALPHA_VANTAGE_SYMBOLS.slice(0, 8), Math.min(limit, 8))
+    if (source === 'massive') return await eventsFromMassive(env, ALPHA_VANTAGE_SYMBOLS.slice(0, 3))
   } catch (err) {
     console.warn('[data-sources] getEventsFromSource', source, err?.message)
     return []

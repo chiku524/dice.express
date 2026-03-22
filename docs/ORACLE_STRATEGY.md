@@ -1,219 +1,88 @@
-# Oracle Strategy for Prediction Markets
+# Oracle Strategy for Prediction Markets (dice.express)
 
 ## Overview
 
-Prediction markets require reliable, trustworthy data sources (oracles) to resolve markets accurately. This document outlines the oracle strategy for the Canton Prediction Markets application.
+Oracles are the **sources of truth** used to resolve markets. This app uses two complementary layers:
 
-## Current Implementation
+1. **Server-side automated resolution** — Cron / `POST /api/resolve-markets` calls `functions/lib/resolve-markets.mjs`, which reads each market’s `oracleSource` + `oracleConfig` and fetches the matching API (The Odds API, Alpha Vantage, CoinGecko, Massive, FRED, weather, news, etc.). This is the primary path for **auto-markets** created from `functions/lib/data-sources.mjs`.
+2. **UI / manual checks** — **RedStone** (and optional proxies) power the **Market Resolution** helper and `GET /api/oracle` for quick price lookups when operators adjudicate or sanity-check financial/crypto markets.
 
-### RedStone Oracle (Primary)
+Prediction styles (binary, multi-outcome, **scalar buckets**, **conditional** Yes/No with optional `parentMarketId`) are described in the create-market UI and stored on the market payload; **resolution** still depends on explicit `resolutionCriteria` and, for automated markets, the configured upstream API.
 
-**Status**: ✅ Implemented and Active
+---
 
-**What it provides**:
-- Real-time price data for cryptocurrencies (BTC, ETH, etc.)
-- Stock prices (AAPL, TSLA, etc.)
-- Commodities and other financial instruments
-- No API key required for basic usage
-- Public API with good reliability
+## 1. Automated resolution (production)
 
-**Usage**:
-- Market resolution for price-based markets
-- Admin can fetch oracle data via MarketResolution component
-- Data fetched via `/api/oracle` proxy endpoint
+**Code:** `functions/lib/resolve-markets.mjs` (orchestration), `functions/lib/data-sources.mjs` (HTTP clients).
 
-**Limitations**:
-- Primarily financial/crypto data
-- May not cover all market types (sports, politics, etc.)
+**Typical flow:** Auto-markets seed with `oracleSource` / `oracleConfig` set from the event builder. After the market’s due date (or event time), resolution compares live API data to thresholds and sets the winning outcome (`Yes` / `No` or multi-outcome string where supported).
 
-## Required Oracle Types by Market Category
+| Source key (`oracleSource`) | Role | Env / notes |
+|------------------------------|------|-------------|
+| `the_odds_api` | Sports winners | `THE_ODDS_API_KEY` |
+| `alpha_vantage` | Stock price vs threshold | `ALPHA_VANTAGE_API_KEY` |
+| `massive` | Stock daily close vs threshold | `MASSIVE_API_KEY` (Massive.com / Polygon.io REST; `apiKey` query param) |
+| `coingecko` | Crypto price vs threshold | Optional `COINGECKO_API_KEY` |
+| `openweathermap` / `weatherapi` | Rain / forecast | `OPENWEATHER_API_KEY` / `WEATHERAPI_API_KEY` |
+| `fred` | Macro series | `FRED_API_KEY` |
+| `finnhub` | Earnings vs EPS | `FINNHUB_API_KEY` |
+| `frankfurter` | FX rate | Keyless |
+| `usgs` | Earthquake counts | Keyless |
+| `fec` / `openfec` | FEC leadership | `FEC_API_KEY` or `DATA_GOV_API_KEY` |
+| `nasa_neo` | NeoWs counts | `NASA_API_KEY` or `DATA_GOV_API_KEY` |
+| `congress_gov` | Bill feed count | `CONGRESS_GOV_API_KEY` or `DATA_GOV_API_KEY` |
+| `bls` | CPI / series | `BLS_API_KEY` |
+| `gnews`, `perigon`, `newsapi_ai`, `newsdata_io` | News / headline rules | Per-provider keys |
+| `operator_manual` | Never auto-resolves | Manual only |
 
-### 1. Financial Markets ✅
-**Current Support**: RedStone Oracle
-- **Cryptocurrencies**: BTC, ETH, USDC, USDT, etc.
-- **Stocks**: AAPL, TSLA, GOOGL, etc.
-- **Commodities**: Gold, Oil, etc.
-- **Indices**: S&P 500, NASDAQ, etc.
+**Probe which keys are set (booleans only):** `GET /api/auto-markets?action=probe` → `keysPresent`.
 
-**Trustworthiness**: High - RedStone aggregates from multiple sources
+**Related docs:** `docs/PREDICTION_MARKETS.md`, `workers/auto-markets-cron/README.md`.
 
-### 2. Sports Events ⚠️
-**Required**: Sports data API
-- **Options**:
-  - **The Odds API** - Sports odds and results
-  - **SportsDataIO** - Comprehensive sports data
-  - **API-Football** - Football/soccer specific
-  - **RapidAPI Sports** - Multiple sports
+---
 
-**Trustworthiness**: High for official results, Medium for odds
+## 2. RedStone (UI / operator assist)
 
-### 3. Political Events ⚠️
-**Required**: Election/News APIs
-- **Options**:
-  - **NewsAPI** - News aggregation
-  - **Election APIs** - Official election results
-  - **RealClearPolitics API** - Political polling data
+**Status:** ✅ Implemented for **browser-side** price fetch.
 
-**Trustworthiness**: High for official results, Medium for polling
+**What it provides:** Aggregated price feeds for crypto, equities, and other symbols RedStone lists.
 
-### 4. Weather/Climate ⚠️
-**Required**: Weather APIs
-- **Options**:
-  - **OpenWeatherMap** - Weather data
-  - **WeatherAPI** - Comprehensive weather
-  - **NOAA API** - Official US weather data
+**Usage:** `frontend/src/services/oracleService.js` → `GET /api/oracle?symbol=…` (proxy) or direct RedStone URL in dev.
 
-**Trustworthiness**: High - Official weather services
+**Limitations:** Not wired as the default resolver for auto-markets; use it for **manual** resolution workflows and spot checks. For **on-chain-style** certainty on seeded markets, prefer the dedicated source in the table above (e.g. Massive or Alpha Vantage for US equities).
 
-### 5. General Knowledge/Events ⚠️
-**Required**: News/Fact-checking APIs
-- **Options**:
-  - **NewsAPI** - News aggregation
-  - **Wikipedia API** - Factual information
-  - **Fact-checking APIs** - Verification services
+---
 
-**Trustworthiness**: Medium-High depending on source
+## 3. Category → preferred oracle (guidance)
 
-## Recommended Oracle Providers by Category
+| Category | Preferred automated source | Trust notes |
+|----------|----------------------------|-------------|
+| Sports | The Odds API | Official scores after `completed` |
+| US equities (threshold / close) | Massive or Alpha Vantage | Massive: daily aggregates; AV: global quote |
+| Crypto | CoinGecko | Public tier rate-limited |
+| Weather | OpenWeatherMap / WeatherAPI | Match city + calendar day in criteria |
+| Macro | FRED | Series id + date |
+| Politics / gov | OpenFEC, Congress.gov, BLS | Keys per provider |
+| News / topics | GNews, Perigon, NewsAPI.ai, NewsData.io | Often rule-based or feed continuation |
 
-### Tier 1: High Trustworthiness (Official Sources)
-1. **Financial**: RedStone (current) ✅
-2. **Weather**: NOAA, OpenWeatherMap
-3. **Elections**: Official election APIs
-4. **Sports**: Official league APIs
+---
 
-### Tier 2: Medium-High Trustworthiness (Aggregated)
-1. **Sports**: The Odds API, SportsDataIO
-2. **News**: NewsAPI
-3. **Political**: RealClearPolitics API
+## 4. Scalar and conditional markets
 
-### Tier 3: Medium Trustworthiness (User Verification)
-1. **General Events**: Wikipedia API
-2. **Social Media**: Twitter API (for trending topics)
-3. **Custom Verification**: Manual admin verification
+- **Scalar (range buckets):** **Multi-outcome** market: creators list discrete buckets (e.g. “Under 2%”, “2–4%”, “Over 4%”). Optional `scalarSpec` (`min`, `max`, `unit`) is stored for documentation and tooling; **resolution** must still be defined in `resolutionCriteria` (often manual or a custom oracle).
+- **Conditional (Yes/No):** Still **binary** for trading and pool math. Optional `parentMarketId` links to another market id for **operators** and narrative clarity; resolution logic is unchanged unless you add custom code paths.
 
-## Implementation Strategy
+---
 
-### Phase 1: Current (Financial Markets) ✅
-- RedStone Oracle integrated
-- Works for crypto/stock price markets
-- Admin can resolve markets using price data
+## 5. Security, cost, and hygiene
 
-### Phase 2: Sports Markets (Recommended Next)
-**Priority**: High (popular market type)
+1. **Secrets:** API keys only in Cloudflare env / `wrangler secret` — never in repo.
+2. **Rate limits:** Seed and resolve paths should stay within provider quotas; `seed_all` runs many sources in parallel.
+3. **Validation:** Resolvers should refuse to settle before the configured end date / event time.
+4. **Multi-oracle:** For high-stakes markets, consider duplicating criteria across two providers (future enhancement).
 
-**Implementation**:
-1. Integrate The Odds API or SportsDataIO
-2. Add sports market type to CreateMarket
-3. Update MarketResolution to support sports data
-4. Add sports-specific resolution logic
+---
 
-**Example Market**: "Will Team A win the game on [date]?"
-**Resolution**: Check official game results from sports API
+## 6. Conclusion
 
-### Phase 3: Political Markets
-**Priority**: Medium
-
-**Implementation**:
-1. Integrate election/news APIs
-2. Add political market type
-3. Support for election results, polling data
-
-**Example Market**: "Will Candidate X win the election?"
-**Resolution**: Check official election results
-
-### Phase 4: Weather/Climate Markets
-**Priority**: Low-Medium
-
-**Implementation**:
-1. Integrate weather APIs
-2. Add weather market type
-3. Support for temperature, precipitation, etc.
-
-**Example Market**: "Will it rain in [location] on [date]?"
-**Resolution**: Check weather API for historical data
-
-## Oracle Data Requirements
-
-### Minimum Requirements for Each Oracle
-1. **Reliability**: 99%+ uptime
-2. **Accuracy**: Data from official/trusted sources
-3. **Timeliness**: Real-time or near-real-time data
-4. **API Access**: Public API or reasonable pricing
-5. **Documentation**: Clear API documentation
-6. **Rate Limits**: Sufficient for market resolution needs
-
-### Data Format Standardization
-All oracles should return data in a standardized format:
-```json
-{
-  "symbol": "BTC",
-  "value": 50000,
-  "timestamp": "2025-01-15T12:00:00Z",
-  "source": "RedStone",
-  "confidence": 0.95
-}
-```
-
-## Security Considerations
-
-1. **API Key Management**: Store keys securely (environment variables)
-2. **Rate Limiting**: Implement rate limiting to prevent abuse
-3. **Data Validation**: Validate oracle data before using for resolution
-4. **Multiple Sources**: Consider aggregating from multiple sources for critical markets
-5. **Timestamp Verification**: Ensure data timestamps are recent and valid
-
-## Cost Considerations
-
-### Free Tier Options
-- RedStone: Free (current) ✅
-- OpenWeatherMap: Free tier available
-- NewsAPI: Free tier available
-- Wikipedia API: Free
-
-### Paid Options (if needed)
-- The Odds API: ~$10-50/month
-- SportsDataIO: ~$50-200/month
-- WeatherAPI: ~$5-20/month
-
-## Recommendations
-
-### Immediate Actions
-1. ✅ **Keep RedStone** - Works well for financial markets
-2. ⚠️ **Add Sports API** - High demand, good ROI
-3. ⚠️ **Document Oracle Requirements** - Clear guidelines for market creators
-
-### Long-term Strategy
-1. **Multi-Oracle Support**: Allow markets to specify which oracle to use
-2. **Oracle Aggregation**: Use multiple sources for critical markets
-3. **Custom Oracles**: Allow admins to manually verify and input data
-4. **Oracle Reputation**: Track oracle accuracy over time
-
-## Market Type → Oracle Mapping
-
-| Market Type | Recommended Oracle | Trust Level | Status |
-|------------|-------------------|-------------|--------|
-| Crypto Prices | RedStone | High | ✅ Implemented |
-| Stock Prices | RedStone | High | ✅ Implemented |
-| Sports Results | The Odds API / SportsDataIO | High | ⚠️ Not Implemented |
-| Elections | Official Election APIs | Very High | ⚠️ Not Implemented |
-| Weather | OpenWeatherMap / NOAA | High | ⚠️ Not Implemented |
-| News Events | NewsAPI | Medium-High | ⚠️ Not Implemented |
-| General Knowledge | Wikipedia API | Medium | ⚠️ Not Implemented |
-
-## Next Steps
-
-1. **Evaluate Sports APIs** - Test The Odds API and SportsDataIO
-2. **Implement Sports Oracle** - Add sports market resolution
-3. **Add Oracle Selection** - Allow market creators to choose oracle
-4. **Document Oracle Usage** - Create user guide for oracle selection
-5. **Monitor Oracle Performance** - Track accuracy and reliability
-
-## Conclusion
-
-The current RedStone Oracle implementation is solid for financial markets. To expand market types, we should prioritize:
-1. **Sports markets** (highest demand)
-2. **Political markets** (high engagement)
-3. **Weather markets** (niche but useful)
-
-Each new oracle should meet minimum requirements for reliability, accuracy, and API access.
+**Automated** resolution is **implemented** for the sources listed in §1. **RedStone** remains useful for **manual** adjudication and quick price display. **Massive** complements Alpha Vantage for **US stock** threshold markets when `MASSIVE_API_KEY` is set. Extend `data-sources.mjs` + `resolve-markets.mjs` when adding new provider families.

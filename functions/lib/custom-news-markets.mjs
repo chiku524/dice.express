@@ -105,6 +105,16 @@ function isHotConflict(text) {
   return isNamed && (hasEndSignal || /\b(war|invasion|conflict)\b/i.test(text))
 }
 
+function daysFromNowIso(days) {
+  const d = new Date()
+  d.setUTCDate(d.getUTCDate() + days)
+  d.setUTCHours(23, 59, 59, 999)
+  return d.toISOString()
+}
+
+/** Fed macro headlines when FRED API was not used (no key or weak match). */
+const FED_MACRO_RE = /\b(federal reserve|fomc|the fed|fed chair|jerome powell|interest rates?|fed funds|policy rate)\b/i
+
 /**
  * Enrich a news event into a custom outcome-based market when it looks like
  * a hot/trending election, Olympics, or war/conflict. Uses stricter criteria
@@ -112,7 +122,7 @@ function isHotConflict(text) {
  * via options.usedCustomTypes (mutated) limits to one custom per type per run.
  *
  * @param {object} ev - Event from data-sources (title, description, source, oracleConfig, ...)
- * @param {object} [options] - { usedCustomTypes: { election, olympics, conflict } } (mutated when custom applied)
+ * @param {object} [options] - { usedCustomTypes: { election, olympics, conflict, … } } (mutated when custom applied)
  * @returns {object} - ev with optional overrides, or unchanged ev
  */
 export function enrichNewsEvent(ev, options = {}) {
@@ -135,6 +145,9 @@ export function enrichNewsEvent(ev, options = {}) {
     const oneLiner = `${who} wins ${electionName}; otherwise No.`
     return {
       ...ev,
+      source: 'operator_manual',
+      oracleSource: 'operator_manual',
+      categoryHint: 'Politics',
       title,
       description: ev.description || title,
       resolutionCriteria,
@@ -142,6 +155,12 @@ export function enrichNewsEvent(ev, options = {}) {
       resolutionDeadline: deadline,
       endDate: deadline.slice(0, 10),
       customType: 'election',
+      oracleConfig: {
+        ...(ev.oracleConfig || {}),
+        customType: 'election',
+        outcomeResolutionKind: 'operator_manual',
+        seedHeadline: rawTitle,
+      },
     }
   }
 
@@ -158,6 +177,9 @@ export function enrichNewsEvent(ev, options = {}) {
     const oneLiner = `Outcome confirmed by end of ${year} Olympics; otherwise No.`
     return {
       ...ev,
+      source: 'operator_manual',
+      oracleSource: 'operator_manual',
+      categoryHint: 'Sports',
       title: title.length > 120 ? title.slice(0, 117) + '…' : title,
       description: ev.description || title,
       resolutionCriteria,
@@ -165,6 +187,12 @@ export function enrichNewsEvent(ev, options = {}) {
       resolutionDeadline: deadline,
       endDate: deadline.slice(0, 10),
       customType: 'olympics',
+      oracleConfig: {
+        ...(ev.oracleConfig || {}),
+        customType: 'olympics',
+        outcomeResolutionKind: 'operator_manual',
+        seedHeadline: rawTitle,
+      },
     }
   }
 
@@ -178,6 +206,9 @@ export function enrichNewsEvent(ev, options = {}) {
     const oneLiner = `Ceasefire or end of major combat for ${conflict} by deadline; otherwise No.`
     return {
       ...ev,
+      source: 'operator_manual',
+      oracleSource: 'operator_manual',
+      categoryHint: 'News',
       title,
       description: ev.description || title,
       resolutionCriteria,
@@ -185,6 +216,251 @@ export function enrichNewsEvent(ev, options = {}) {
       resolutionDeadline: deadline,
       endDate: deadline.slice(0, 10),
       customType: 'conflict',
+      oracleConfig: {
+        ...(ev.oracleConfig || {}),
+        customType: 'conflict',
+        outcomeResolutionKind: 'operator_manual',
+        seedHeadline: rawTitle,
+      },
+    }
+  }
+
+  // ---- FDA / drug regulatory (one per batch) ----
+  if (/\bFDA\b/i.test(text) && /\b(approv|clear|authoriz|reject|denied|warning letter)\b/i.test(text) && !used.fda_drug) {
+    used.fda_drug = true
+    const deadline = daysFromNowIso(200)
+    const title = `Will the FDA regulatory outcome described in this news thread be confirmed by ${deadline.slice(0, 10)}?`
+    const resolutionCriteria = `Yes if FDA approval, clearance, rejection, or formal action matching the headline is confirmed by FDA communications or major outlets (e.g. AP, Reuters). Otherwise No.`
+    return {
+      ...ev,
+      source: 'operator_manual',
+      oracleSource: 'operator_manual',
+      categoryHint: 'Science',
+      title,
+      description: ev.description || title,
+      resolutionCriteria,
+      oneLiner: `FDA outcome as described in criteria by deadline; otherwise No.`,
+      resolutionDeadline: deadline,
+      endDate: deadline.slice(0, 10),
+      customType: 'fda_drug',
+      oracleConfig: {
+        ...(ev.oracleConfig || {}),
+        customType: 'fda_drug',
+        outcomeResolutionKind: 'operator_manual',
+        seedHeadline: rawTitle,
+      },
+    }
+  }
+
+  // ---- Courts / SCOTUS (one per batch) ----
+  if (
+    /\b(SCOTUS|Supreme Court|federal (appeals? )?court|high court)\b/i.test(text) &&
+    /\b(rule|decision|ruling|uphold|overturn|strike|block|injunction|verdict)\b/i.test(text) &&
+    !used.court
+  ) {
+    used.court = true
+    const deadline = daysFromNowIso(240)
+    const title = `Will the court outcome referenced in this headline be confirmed by ${deadline.slice(0, 10)}?`
+    const resolutionCriteria = `Yes if the decision or order described is issued and reported by official court sources or major outlets. Otherwise No.`
+    return {
+      ...ev,
+      source: 'operator_manual',
+      oracleSource: 'operator_manual',
+      categoryHint: 'Politics',
+      title,
+      description: ev.description || title,
+      resolutionCriteria,
+      oneLiner: `Court outcome per criteria by deadline; otherwise No.`,
+      resolutionDeadline: deadline,
+      endDate: deadline.slice(0, 10),
+      customType: 'court',
+      oracleConfig: {
+        ...(ev.oracleConfig || {}),
+        customType: 'court',
+        outcomeResolutionKind: 'operator_manual',
+        seedHeadline: rawTitle,
+      },
+    }
+  }
+
+  // ---- Legislation (one per batch) ----
+  if (
+    /\b(senate|house of representatives|congress)\b/i.test(text) &&
+    /\b(pass|passes|passed|vote|votes|veto|signed into law|override)\b/i.test(text) &&
+    !used.legislation
+  ) {
+    used.legislation = true
+    const deadline = daysFromNowIso(150)
+    const title = `Will the legislative outcome described in this headline occur by ${deadline.slice(0, 10)}?`
+    const resolutionCriteria = `Yes if the bill or action described becomes law, fails a decisive vote, or is vetoed as claimed, per Congress.gov / official sources or major outlets. Otherwise No.`
+    return {
+      ...ev,
+      source: 'operator_manual',
+      oracleSource: 'operator_manual',
+      categoryHint: 'Politics',
+      title,
+      description: ev.description || title,
+      resolutionCriteria,
+      oneLiner: `Legislative outcome per criteria; otherwise No.`,
+      resolutionDeadline: deadline,
+      endDate: deadline.slice(0, 10),
+      customType: 'legislation',
+      oracleConfig: {
+        ...(ev.oracleConfig || {}),
+        customType: 'legislation',
+        outcomeResolutionKind: 'operator_manual',
+        seedHeadline: rawTitle,
+      },
+    }
+  }
+
+  // ---- M&A / IPO / go-private (one per batch) ----
+  if (
+    /\b(acquir|merger|buyout|takeover|LBO|IPO|initial public offering|go(es)? public|SPAC|de-?SPAC)\b/i.test(text) &&
+    !used.mna_ipo
+  ) {
+    used.mna_ipo = true
+    const deadline = daysFromNowIso(180)
+    const title = `Will the corporate transaction referenced in this headline close or price as described by ${deadline.slice(0, 10)}?`
+    const resolutionCriteria = `Yes if the deal, listing, or transaction outcome matches the headline’s claim per SEC filings, exchange notices, or major outlets. Otherwise No.`
+    return {
+      ...ev,
+      source: 'operator_manual',
+      oracleSource: 'operator_manual',
+      categoryHint: 'Finance',
+      title,
+      description: ev.description || title,
+      resolutionCriteria,
+      oneLiner: `Transaction outcome per criteria; otherwise No.`,
+      resolutionDeadline: deadline,
+      endDate: deadline.slice(0, 10),
+      customType: 'mna_ipo',
+      oracleConfig: {
+        ...(ev.oracleConfig || {}),
+        customType: 'mna_ipo',
+        outcomeResolutionKind: 'operator_manual',
+        seedHeadline: rawTitle,
+      },
+    }
+  }
+
+  // ---- Macro data prints (CPI, jobs, GDP, …) (one per batch) ----
+  if (
+    /\b(CPI|PPI|PCE|jobs report|non-?farm|NFP|unemployment rate|GDP|retail sales|inflation (data|report)|consumer spending)\b/i.test(
+      text
+    ) &&
+    !used.macro_data
+  ) {
+    used.macro_data = true
+    const deadline = daysFromNowIso(60)
+    const title = `Will the macroeconomic print referenced in this headline match the direction implied (vs prior / consensus) by ${deadline.slice(0, 10)}?`
+    const resolutionCriteria = `Yes if the official release (BLS, BEA, or primary source) plus major coverage support the headline’s implied surprise direction. Operator applies published rubric. Otherwise No.`
+    return {
+      ...ev,
+      source: 'operator_manual',
+      oracleSource: 'operator_manual',
+      categoryHint: 'Finance',
+      title,
+      description: ev.description || title,
+      resolutionCriteria,
+      oneLiner: `Macro print direction per criteria; otherwise No.`,
+      resolutionDeadline: deadline,
+      endDate: deadline.slice(0, 10),
+      customType: 'macro_data',
+      oracleConfig: {
+        ...(ev.oracleConfig || {}),
+        customType: 'macro_data',
+        outcomeResolutionKind: 'operator_manual',
+        seedHeadline: rawTitle,
+      },
+    }
+  }
+
+  // ---- Fed / rates without FRED automation (one per batch) ----
+  if (FED_MACRO_RE.test(text) && !used.fed_operator) {
+    used.fed_operator = true
+    const deadline = daysFromNowIso(60)
+    const title = `Will Federal Reserve policy developments match the headline’s implication by ${deadline.slice(0, 10)}?`
+    const resolutionCriteria = `Yes if FOMC actions, statements, and subsequent market-standard interpretation align with the headline’s implied path (cut/hike/hold) per FOMC materials and major outlets. Operator-settled.`
+    return {
+      ...ev,
+      source: 'operator_manual',
+      oracleSource: 'operator_manual',
+      categoryHint: 'Finance',
+      title,
+      description: ev.description || title,
+      resolutionCriteria,
+      oneLiner: `Fed policy path per criteria; otherwise No.`,
+      resolutionDeadline: deadline,
+      endDate: deadline.slice(0, 10),
+      customType: 'fed_operator',
+      oracleConfig: {
+        ...(ev.oracleConfig || {}),
+        customType: 'fed_operator',
+        outcomeResolutionKind: 'operator_manual',
+        seedHeadline: rawTitle,
+      },
+    }
+  }
+
+  // ---- Summits / diplomacy (one per batch) ----
+  if (
+    /\b(G7|G20|NATO summit|bilateral summit|state visit|peace (talk|plan|summit)|ceasefire talks)\b/i.test(text) &&
+    !used.summit
+  ) {
+    used.summit = true
+    const deadline = daysFromNowIso(120)
+    const title = `Will the diplomatic outcome suggested in this headline materialize by ${deadline.slice(0, 10)}?`
+    const resolutionCriteria = `Yes if the agreement, meeting, or ceasefire described is confirmed by official communiqués or major outlets. Otherwise No.`
+    return {
+      ...ev,
+      source: 'operator_manual',
+      oracleSource: 'operator_manual',
+      categoryHint: 'News',
+      title,
+      description: ev.description || title,
+      resolutionCriteria,
+      oneLiner: `Diplomatic outcome per criteria; otherwise No.`,
+      resolutionDeadline: deadline,
+      endDate: deadline.slice(0, 10),
+      customType: 'summit',
+      oracleConfig: {
+        ...(ev.oracleConfig || {}),
+        customType: 'summit',
+        outcomeResolutionKind: 'operator_manual',
+        seedHeadline: rawTitle,
+      },
+    }
+  }
+
+  // ---- Tech / antitrust (one per batch) ----
+  if (
+    /\b(antitrust|monopoly|DMA|breakup|forced sale)\b/i.test(text) &&
+    /\b(Amazon|Apple|Google|Alphabet|Meta|Microsoft|OpenAI|Nvidia|NVDA)\b/i.test(text) &&
+    !used.tech_antitrust
+  ) {
+    used.tech_antitrust = true
+    const deadline = daysFromNowIso(365)
+    const title = `Will the regulatory or antitrust outcome referenced in this headline be confirmed by ${deadline.slice(0, 10)}?`
+    const resolutionCriteria = `Yes if the enforcement action, ruling, or settlement described is finalized per agencies, courts, or major outlets. Otherwise No.`
+    return {
+      ...ev,
+      source: 'operator_manual',
+      oracleSource: 'operator_manual',
+      categoryHint: 'Tech & AI',
+      title,
+      description: ev.description || title,
+      resolutionCriteria,
+      oneLiner: `Antitrust/regulatory outcome per criteria; otherwise No.`,
+      resolutionDeadline: deadline,
+      endDate: deadline.slice(0, 10),
+      customType: 'tech_antitrust',
+      oracleConfig: {
+        ...(ev.oracleConfig || {}),
+        customType: 'tech_antitrust',
+        outcomeResolutionKind: 'operator_manual',
+        seedHeadline: rawTitle,
+      },
     }
   }
 

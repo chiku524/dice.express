@@ -62,7 +62,7 @@ Reason:
    Check the JSON: `count` (new markets created), `bySource` (events per source), `created`, `skipped`. If you get `count > 0` here but never from cron, the issue is cron (deploy, schedule, or SITE_URL). If you get `count: 0` and `bySource` all zeros, Pages env or upstream APIs are the issue. If `bySource` has non-zero counts but `count: 0`, every event was a duplicate (expected for stable-id sources; for news it would mean something is wrong with the id or DB).
 
 5. **Optional: cron secret**  
-   If you set **AUTO_MARKETS_CRON_SECRET** on the Worker, the Worker sends `X-Cron-Secret`. The API does **not** currently require this header; if you add a check later, use the same value on both Worker and Pages (or allow requests without the header for manual testing).
+   If you set **AUTO_MARKETS_CRON_SECRET** on the **Pages** project, `POST /api/auto-markets` seed actions require a matching `X-Cron-Secret` header. Set the **same** secret on the cron Worker so scheduled runs succeed. Leave the secret unset on Pages if you want open manual seeding (not recommended for production).
 
 ---
 

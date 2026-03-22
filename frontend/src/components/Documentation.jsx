@@ -770,7 +770,7 @@ function RoadmapContent() {
               <li>Political / election oracles and richer news verification (<code>docs/ORACLE_PHASE2.md</code>)</li>
               <li>Additional EVM chains or assets for deposit/withdraw</li>
               <li>AMM upgrades (e.g. alternative curves, LP incentives) per vision doc</li>
-              <li>Scalar / conditional market types and deeper analytics</li>
+              <li>Scalar (range buckets) and conditional (linked market id) in create flow; deeper analytics</li>
             </ul>
           </article>
         </div>

@@ -1,5 +1,8 @@
 # Copy to .dev.vars for local development (wrangler pages dev).
 # Never commit .dev.vars. Set these in Cloudflare Dashboard for production.
+#
+# BLS CPI auto-markets: set BLS_API_KEY (from https://data.bls.gov/registrationEngine/) — do not commit the value.
+# If a key was ever pasted in chat, rotate it before production use.
 
 # ----- Deposits & withdrawals -----
 # Required for backend/watcher to credit crypto deposits. Use a long random string.
@@ -8,6 +11,26 @@
 # For on-chain verification of deposits (recommended). Enables POST /api/deposit-with-tx and verification in deposit-crypto.
 # Get a key at https://dashboard.alchemy.com/ (free tier).
 # ALCHEMY_API_KEY=your-alchemy-key
+
+# ----- Solana RPC (two places) -----
+# SERVER (secret on Pages): SOLANA_RPC_URL — full JSON-RPC URL for Workers/Pages Functions (verify deposits, withdrawals).
+#   Recommended: Helius, QuickNode, Triton, Alchemy Solana, etc. Example shapes:
+#   https://mainnet.helius-rpc.com/?api-key=YOUR_KEY
+#   https://YOUR-ENDPOINT.solana-mainnet.quiknode.pro/YOUR_TOKEN/
+#   Dev-only / very low volume: https://api.mainnet-beta.solana.com (strict rate limits; avoid in production)
+# SOLANA_RPC_URL=https://mainnet.helius-rpc.com/?api-key=...
+#
+# FRONTEND (optional, Vite build env): VITE_SOLANA_RPC_URL — same idea; Phantom deposit flow uses Connection() in the browser.
+#   Can match SOLANA_RPC_URL if the provider allows browser origin (some keys are IP/server-only — then use a separate "browser" key or public RPC).
+#   If unset, the app defaults to https://api.mainnet-beta.solana.com
+# VITE_SOLANA_RPC_URL=https://mainnet.helius-rpc.com/?api-key=...
+# Hot wallet secret for Solana USDC withdrawals (must match PLATFORM_WALLET_SOL pubkey when both set). Never commit.
+# SOLANA_WALLET_PRIVATE_KEY=base58-or-json-array
+# Optional non-mainnet USDC mint:
+# DEPOSIT_VERIFICATION_SOLANA_USDC_MINT=EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v
+
+# Optional: browser RPC for Phantom deposit flow (defaults to public mainnet). Frontend only.
+# VITE_SOLANA_RPC_URL=https://...
 
 # Or set RPC URL directly (Ethereum mainnet) instead of ALCHEMY_API_KEY:
 # DEPOSIT_VERIFICATION_RPC_URL=https://eth-mainnet.g.alchemy.com/v2/YOUR_KEY
@@ -19,7 +42,7 @@
 # PLATFORM_WALLET_ADDRESS (EVM), PLATFORM_WALLET_SOL (Solana)
 
 # ----- Withdrawals (sending from platform wallet) -----
-# Private key for the platform wallet (0x...). Required for POST /api/process-withdrawals to send USDC to users.
+# Private key for the platform EVM wallet (0x...). Required for POST /api/process-withdrawals to send USDC/native on EVM.
 # Store as a Secret in Cloudflare Dashboard. Must match PLATFORM_WALLET_ADDRESS.
 # PLATFORM_WALLET_PRIVATE_KEY=0x...
 
@@ -31,6 +54,10 @@
 # WITHDRAWAL_FEE_RATE=0.02
 # WITHDRAWAL_FEE_MIN=1
 
+# ----- Auto-markets policy (optional; wrangler.toml [vars] defaults AUTO_MARKETS_OUTCOME_ONLY=1) -----
+# When true, seed skips news rows that would only become “headline still in feed” markets.
+# AUTO_MARKETS_OUTCOME_ONLY=1
+
 # ----- Auto-markets (optional; set in Cloudflare Pages env for cron) -----
 # THE_ODDS_API_KEY=...
 # ALPHA_VANTAGE_API_KEY=...
@@ -40,3 +67,25 @@
 # PERIGON_API_KEY=...
 # NEWSAPI_AI_KEY=...
 # NEWSDATA_API_KEY=...
+# Massive.com (US equities aggregates; optional parallel to Alpha Vantage stocks lane)
+# MASSIVE_API_KEY=...
+# MASSIVE_API_BASE — OPTIONAL. Leave UNSET unless Massive/Polygon docs tell you a different REST host.
+#   Default in code: https://api.massive.com (no env needed).
+#   Only set if you must hit a legacy or regional base URL (e.g. some accounts still document api.polygon.io — confirm with your provider).
+# MASSIVE_API_BASE=https://api.massive.com
+# FRED_API_KEY=...
+# FINNHUB_API_KEY=...
+# Optional: one api.data.gov-style key used when FEC/NASA/Congress-specific vars below are unset:
+# DATA_GOV_API_KEY=...
+# OpenFEC (or set DATA_GOV_API_KEY instead): https://api.data.gov/signup/
+# FEC_API_KEY=...
+# OPENFEC_API_KEY=...
+# NASA NeoWs (or DATA_GOV_API_KEY): https://api.nasa.gov/
+# NASA_API_KEY=...
+# Congress.gov v3 (or DATA_GOV_API_KEY): https://api.congress.gov/sign-up/
+# CONGRESS_GOV_API_KEY=...
+# Optional override; default session is inferred from UTC year (e.g. 119 for 2025+):
+# CONGRESS_GOV_CONGRESS=119
+# BLS Public Data API only — separate from api.data.gov. Register: https://data.bls.gov/registrationEngine/
+# If no email arrived, check spam or request a new key for the same address.
+# BLS_API_KEY=...

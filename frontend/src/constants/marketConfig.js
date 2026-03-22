@@ -68,6 +68,18 @@ const API_SOURCE_TO_DISPLAY = {
   perigon: 'global_events',
   newsapi_ai: 'global_events',
   newsdata_io: 'global_events',
+  operator_manual: 'global_events',
+  fred: 'industry',
+  finnhub: 'industry',
+  frankfurter: 'industry',
+  forex: 'industry',
+  usgs: 'global_events',
+  fec: 'global_events',
+  openfec: 'global_events',
+  nasa_neo: 'global_events',
+  congress_gov: 'global_events',
+  bls: 'industry',
+  massive: 'industry',
 }
 
 /** Map API source to display category (for Category filter; legacy markets may have category = API source). */
@@ -83,6 +95,18 @@ const API_SOURCE_TO_CATEGORY = {
   perigon: 'News',
   newsapi_ai: 'News',
   newsdata_io: 'News',
+  operator_manual: 'News',
+  fred: 'Finance',
+  finnhub: 'Finance',
+  frankfurter: 'Finance',
+  forex: 'Finance',
+  usgs: 'Science',
+  fec: 'Politics',
+  openfec: 'Politics',
+  nasa_neo: 'Science',
+  congress_gov: 'Politics',
+  bls: 'Finance',
+  massive: 'Finance',
 }
 
 /** Map API source to short label for card tag (e.g. "The Odds API", "User-Created"). */
@@ -98,6 +122,18 @@ const API_SOURCE_TO_LABEL = {
   perigon: 'Perigon',
   newsapi_ai: 'NewsAPI',
   newsdata_io: 'NewsData.io',
+  operator_manual: 'Operator (manual)',
+  fred: 'FRED',
+  finnhub: 'Finnhub',
+  frankfurter: 'Frankfurter (ECB)',
+  forex: 'Frankfurter (ECB)',
+  usgs: 'USGS',
+  fec: 'OpenFEC',
+  openfec: 'OpenFEC',
+  nasa_neo: 'NASA NeoWs',
+  congress_gov: 'Congress.gov',
+  bls: 'BLS',
+  massive: 'Massive',
 }
 
 /** Normalize payload.source for filtering (so both new display source and legacy API source work). Accepts full payload to support legacy sports (source global_events + category Sports → sports). */
@@ -137,7 +173,7 @@ const CATEGORY_KEYWORDS = {
   Weather: [/\b(rain|snow|temp|temperature|weather|forecast|°C|°F|degrees|celsius|fahrenheit|sunny|storm)\b/i],
   Finance: [/\b(stock|share|S&P|NASDAQ|NYSE|earnings|dividend|trading|above \$|below \$|price target)\b/i],
   Crypto: [/\b(bitcoin|btc|ethereum|eth|crypto|cryptocurrency|coin|token|blockchain)\b/i],
-  News: [/\b(headline|top news|breaking|article|coverage)\b/i],
+  News: [/\b(headline|top news|breaking|article|coverage|still appear|news feed|topic signature)\b/i],
   Politics: [/\b(election|vote|president|congress|senate|bill|policy)\b/i],
   'Tech & AI': [/\b(tech|AI|artificial intelligence|software|startup|coding|algorithm|machine learning|ML|openai|chatgpt|llm|GPT|neural)\b/i],
   Science: [/\b(study|research|experiment|discovery|NASA|space)\b/i],
@@ -156,7 +192,9 @@ function inferCategoryFromText(title, description) {
 
 /** Category to use for filter (payload.category may be display category or legacy API source). */
 export function categoryForFilter(payload) {
-  const topicCat = categoryFromNewsTopic(payload?.oracleConfig?.q || payload?.oracleConfig?.category)
+  const topicCat = categoryFromNewsTopic(
+    payload?.oracleConfig?.q || payload?.oracleConfig?.category || payload?.oracleConfig?.seedQuery
+  )
   if (topicCat) return topicCat
   const cat = payload?.category
   const src = payload?.source || payload?.styleLabel
@@ -212,11 +250,14 @@ export function getFullArticleTitle(payload) {
 /** Whether this payload looks like a news/top-headline market (has oracleConfig with title or q). */
 export function isNewsMarket(payload) {
   const oc = payload?.oracleConfig
-  return !!(oc && (oc.title || oc.q))
+  return !!(oc && (oc.title || oc.q || oc.seedQuery || oc.category || oc.newsResolutionMode))
 }
 
-/** Display title for news markets: full article title + date in the question. Uses same calendar date as "Resolves by". */
+/**
+ * Legacy news markets used a synthetic display title. Feed-topic markets store the real question on payload.title.
+ */
 export function getNewsMarketDisplayTitle(payload) {
+  if (payload?.oracleConfig?.newsResolutionMode === 'feed_topic_continuation') return null
   const fullTitle = getFullArticleTitle(payload)
   if (!fullTitle) return null
   const dateStr = payload?.resolutionDeadline || payload?.oracleConfig?.dateStr
@@ -228,7 +269,7 @@ export function getNewsMarketDisplayTitle(payload) {
 /** Topic and source for news market meta line (e.g. "Topic: technology · Source: NewsData.io"). */
 export function getNewsMarketMeta(payload) {
   if (!isNewsMarket(payload)) return null
-  const topic = payload?.oracleConfig?.q || payload?.oracleConfig?.category
+  const topic = payload?.oracleConfig?.q || payload?.oracleConfig?.seedQuery || payload?.oracleConfig?.category
   const sourceLabel = getApiSourceLabel(payload)
   if (!sourceLabel || sourceLabel === 'User-Created') return { topic, sourceLabel: null }
   return { topic, sourceLabel }
@@ -239,8 +280,44 @@ export function getResolutionSummary(payload) {
   const oc = payload?.oracleConfig
   const sourceLabel = getApiSourceLabel(payload)
   if (!sourceLabel || sourceLabel === 'User-Created') return null
+  if (oc?.outcomeResolutionKind === 'operator_manual') {
+    return `Outcome-based market: settled manually by the operator using the published criteria (not auto-oracle).`
+  }
+  if (oc?.outcomeResolutionKind === 'forex_ecb' && oc.base && oc.quote && oc.threshold != null && oc.endDate) {
+    return `ECB via Frankfurter: Yes if ${oc.base}/${oc.quote} on or before ${oc.endDate} is ≥ ${oc.threshold}.`
+  }
+  if (oc?.outcomeResolutionKind === 'usgs_count') {
+    return `USGS: Yes if earthquake count M≥${oc.minMagnitude ?? 5} in window is ≥ ${oc.minCount}.`
+  }
+  if (oc?.outcomeResolutionKind === 'fec_presidential_lead' && oc.leaderName) {
+    return `OpenFEC: Yes if ${oc.leaderName} still leads presidential receipts for ${oc.fecElectionYear} at resolution.`
+  }
+  if (oc?.outcomeResolutionKind === 'nasa_neo_count') {
+    return `NASA NeoWs: Yes if element_count ≥ ${oc.neoMinCount} for the stored date range.`
+  }
+  if (oc?.outcomeResolutionKind === 'bls_cpi' && oc.thresholdIndex != null && oc.endDate) {
+    return `BLS ${oc.blsSeriesId || 'CPI'}: Yes if latest print on or before ${oc.endDate} is ≥ index ${oc.thresholdIndex}.`
+  }
+  if (oc?.outcomeResolutionKind === 'congress_feed_count' && oc.minBillCount != null && oc.congress != null) {
+    return `Congress.gov: Yes if the same bill list query for the ${oc.congress}th Congress still returns ≥ ${oc.minBillCount} bills on the first page.`
+  }
+  if (oc?.outcomeResolutionKind === 'macro_fred' && oc.threshold != null && oc.endDate) {
+    const comp = oc.comparator === 'lte' ? '≤' : '≥'
+    return `FRED ${oc.seriesId || 'DFF'}: Yes if last print on or before ${oc.endDate} is ${comp} ${oc.threshold}%.`
+  }
+  if (oc?.outcomeResolutionKind === 'earnings_beat' && oc.finnhubSymbol && oc.epsEstimate != null) {
+    return `Finnhub: Yes if reported EPS for ${oc.finnhubSymbol} Q${oc.quarter} ${oc.year} ≥ $${Number(oc.epsEstimate).toFixed(2)}.`
+  }
+  if (oc?.outcomeResolutionKind === 'price_feed' && (oc.threshold != null || oc.endDate)) {
+    const comp = oc.comparator === 'lte' ? 'at or below' : 'at or above'
+    return `Automated price oracle: Yes if spot is ${comp} $${oc.threshold} on or before ${oc.endDate || 'settlement'}.`
+  }
+  if (oc?.newsResolutionMode === 'feed_topic_continuation') {
+    return `Automated: re-fetch the same ${sourceLabel} feed as at creation; Yes if any headline meets the stored token-overlap threshold (see criteria).`
+  }
   const parts = []
   if (oc?.q) parts.push(`topic: "${oc.q}"`)
+  if (oc?.seedQuery) parts.push(`query: "${oc.seedQuery}"`)
   if (oc?.category) parts.push(`category: ${oc.category}`)
   if (parts.length) return `Resolved via ${sourceLabel} (${parts.join(', ')}).`
   return `Resolved via ${sourceLabel}.`
@@ -268,6 +345,8 @@ export function getResolutionOutcomeSummaries(payload) {
 
 /** API/source label for card tag (e.g. "The Odds API", "User-Created"). */
 export function getApiSourceLabel(payload) {
+  const oracleKey = payload?.oracleSource || payload?.styleLabel
+  if (oracleKey && API_SOURCE_TO_LABEL[oracleKey]) return API_SOURCE_TO_LABEL[oracleKey]
   const src = payload?.source
   if (!src) return 'User-Created'
   return API_SOURCE_TO_LABEL[src] || getSourceLabel(sourceForFilter(src))
@@ -309,12 +388,19 @@ export function formatResolutionDeadline(deadline, short = false) {
   }
 }
 
-/** Binary-style variants (all use contract MarketType Binary under the hood) */
+/** Binary-style variants (Binary) and multi-outcome (AMM order book; pool is Yes/No only for Binary). */
 export const PREDICTION_STYLES = [
   { value: 'yesNo', label: 'Yes / No', marketType: 'Binary', outcomes: ['Yes', 'No'] },
   { value: 'trueFalse', label: 'True / False', marketType: 'Binary', outcomes: ['True', 'False'] },
   { value: 'happensDoesnt', label: "Happens / Doesn't", marketType: 'Binary', outcomes: ['Happens', "Doesn't"] },
+  { value: 'conditional', label: 'Conditional (Yes/No)', marketType: 'Binary', outcomes: ['Yes', 'No'] },
   { value: 'multiOutcome', label: 'Multi-Outcome', marketType: 'MultiOutcome', outcomes: null },
+  {
+    value: 'scalarBuckets',
+    label: 'Scalar (range buckets)',
+    marketType: 'MultiOutcome',
+    outcomes: null,
+  },
 ]
 
 export function getStyleByValue(value) {

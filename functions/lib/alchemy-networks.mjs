@@ -24,6 +24,32 @@ export const ALCHEMY_NETWORK_SUBDOMAINS = {
   bnb: 'bnb-mainnet',
   'bnb-mainnet': 'bnb-mainnet',
   bsc: 'bnb-mainnet',
+  linea: 'linea-mainnet',
+  'linea-mainnet': 'linea-mainnet',
+  scroll: 'scroll-mainnet',
+  'scroll-mainnet': 'scroll-mainnet',
+  zksync: 'zksync-mainnet',
+  'zksync-mainnet': 'zksync-mainnet',
+  'zksync-era': 'zksync-mainnet',
+}
+
+/** Distinct network ids for UI / deposit copy (Alchemy-backed EVM). */
+export function listAlchemyNetworkIdsForDisplay() {
+  const labels = new Set([
+    'ethereum',
+    'polygon',
+    'arbitrum',
+    'optimism',
+    'base',
+    'avalanche',
+    'fantom',
+    'cronos',
+    'bnb',
+    'linea',
+    'scroll',
+    'zksync',
+  ])
+  return [...labels].sort()
 }
 
 export function getAlchemyRpcUrl(apiKey, networkId) {

@@ -30,6 +30,8 @@ id = "bf88f3a357f640ccb3173da7e163570d"
 # P2P-only: new markets get zero liquidity so platform never seeds capital. Trading requires matched orders (P2P).
 # Set to "0" or remove when you want to enable AMM with platform liquidity. See docs/ALGORITHMS_AND_RISK.md.
 AUTO_MARKETS_ZERO_LIQUIDITY = "1"
+# Skip automated markets that are only “headline still in feed” (feed-topic); keep oracle/outcome + operator outcome templates.
+AUTO_MARKETS_OUTCOME_ONLY = "1"
 
 # Platform deposit wallets (dice.express Coinbase wallet). EVM chains use the same 0x address.
 # Set secrets via Cloudflare Dashboard → Pages/Workers → Settings → Environment variables (see docs/CRYPTO_DEPOSITS.md).
@@ -42,4 +44,10 @@ PLATFORM_WALLET_SOL = "6aJHBVSm5cxbYjsjFudoP1gZ3Ni3oMJcaN3ni5fpz3kz"
 
 # API keys for automated prediction markets (set via Cloudflare dashboard or: npx wrangler pages secret put <KEY> --project-name=dice-express)
 # ALPHA_VANTAGE_API_KEY, COINGECKO_API_KEY, THE_ODDS_API_KEY, OPENWEATHER_API_KEY, WEATHERAPI_API_KEY,
-# GNEWS_API_KEY, PERIGON_API_KEY, NEWSAPI_AI_KEY, RAPIDAPI_KEY, MASSIVE_API_KEY — see docs/PREDICTION_MARKETS.md
+# GNEWS_API_KEY, PERIGON_API_KEY, NEWSAPI_AI_KEY, NEWSDATA_API_KEY, FRED_API_KEY, FINNHUB_API_KEY,
+# FEC_API_KEY, OPENFEC_API_KEY, DATA_GOV_API_KEY (shared fallback for FEC/NASA/Congress when service keys unset),
+# BLS_API_KEY (BLS only — not api.data.gov; register at data.bls.gov), NASA_API_KEY, CONGRESS_GOV_API_KEY, CONGRESS_GOV_CONGRESS (optional session number),
+# RAPIDAPI_KEY, MASSIVE_API_KEY — see docs/PREDICTION_MARKETS.md
+# Deposits: ALCHEMY_API_KEY or DEPOSIT_VERIFICATION_RPC_URL, SOLANA_RPC_URL (SPL USDC), DEPOSIT_VERIFICATION_SOLANA_USDC_MINT (optional),
+# Solana withdrawals: SOLANA_WALLET_PRIVATE_KEY (secret; pubkey must match PLATFORM_WALLET_SOL),
+# AUTO_MARKETS_CRON_SECRET (optional; if set, same value required on Pages for POST seed — cron Worker sends X-Cron-Secret)

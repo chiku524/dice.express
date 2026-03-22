@@ -58,6 +58,10 @@ Set in Cloudflare (e.g. `wrangler secret put` or Pages env):
 |----------|---------|
 | `DEPOSIT_VERIFICATION_RPC_URL` | JSON-RPC endpoint. When set, the API verifies each deposit tx before crediting. |
 | `PLATFORM_WALLET_ADDRESS` | Platform’s deposit wallet (EVM address). Ensures Transfer is **to** this address. In `wrangler.toml` under `[vars]` — do not add in dashboard. |
+| `PLATFORM_WALLET_SOL` | Solana deposit address (public). Used with `SOLANA_RPC_URL` for SPL verification. |
+| `SOLANA_RPC_URL` | Solana JSON-RPC URL (secret recommended). Required to verify `networkId: "solana"` deposits. |
+| `SOLANA_WALLET_PRIVATE_KEY` | **Secret.** Platform Solana keypair for **USDC (SPL) withdrawals** (bs58 or JSON byte array). When set with `PLATFORM_WALLET_SOL`, the send helper checks the pubkey matches. |
+| `DEPOSIT_VERIFICATION_SOLANA_USDC_MINT` | (Optional) SPL mint to accept; defaults to mainnet USDC. |
 | `DEPOSIT_VERIFICATION_USDC_CONTRACT` | (Optional) USDC contract address. If set, API ensures Transfer is from this contract. |
 | `DEPOSIT_VERIFICATION_MIN_CONFIRMATIONS` | (Optional) Minimum block confirmations (default 1). |
 | `DEPOSIT_CRYPTO_SECRET` | Shared secret; only your watcher/backend should have it. API rejects requests without it when set. |
@@ -120,6 +124,6 @@ Non-secret values (platform wallet addresses) are in **`wrangler.toml`** under `
 ## Platform wallets (already in wrangler.toml)
 
 - **EVM:** `PLATFORM_WALLET_ADDRESS` = your EVM deposit address.
-- **Solana:** `PLATFORM_WALLET_SOL` = your Solana address (on-chain verification is implemented for EVM only; Solana/BTC/LTC/DOGE can be used for display or future verification).
+- **Solana (SPL USDC):** `PLATFORM_WALLET_SOL` = recipient wallet. Set **`SOLANA_RPC_URL`** (Helius, QuickNode, Triton, or `https://api.mainnet-beta.solana.com`) as a **secret**. Optional **`DEPOSIT_VERIFICATION_SOLANA_USDC_MINT`** (defaults to mainnet Circle USDC `EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v`). Watcher calls `POST /api/deposit-crypto` with `networkId: "solana"`, `txHash` = base58 **signature**, `cryptoAmount` / `cryptoDecimals: 6`, same verification rules as EVM (amount, idempotency). **`POST /api/deposit-with-tx`** also supports Solana: user sends SPL USDC to the platform wallet, then signs `deposit:<party>:<txSignature>` with Phantom; `signature` is **base64** ed25519 (see API handler). For **Solana USDC withdrawals**, set **`SOLANA_WALLET_PRIVATE_KEY`** (secret) matching `PLATFORM_WALLET_SOL`.
 
 Do **not** put Alchemy API keys or `DEPOSIT_CRYPTO_SECRET` in `wrangler.toml`; use Dashboard (or `wrangler secret put`) only.

@@ -6,12 +6,24 @@
  * Sports runs once per day (UTC 08:00) to stay under The Odds API 500 req/month.
  */
 
+/**
+ * All auto-market sources except `sports` (Odds API quota: sports only at SPORTS_HOUR_UTC).
+ * Keep in sync with `AUTO_MARKET_SOURCES` in functions/lib/data-sources.mjs (same order minus leading sports).
+ */
 const HOURLY_SOURCES = [
   'stocks',
   'crypto',
   'crypto_trend',
   'weather',
   'weatherapi',
+  'frankfurter',
+  'usgs',
+  'fec',
+  'nasa_neo',
+  'congress_gov',
+  'bls',
+  'fred',
+  'finnhub',
   'news',
   'perigon',
   'newsapi_ai',
