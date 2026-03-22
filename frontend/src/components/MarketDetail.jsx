@@ -8,7 +8,7 @@ import { fetchOpenOrders, placeOrder } from '../services/ordersApi'
 import MarketResolution from './MarketResolution'
 import ErrorState from './ErrorState'
 import { formatPips, PLATFORM_CURRENCY_SYMBOL } from '../constants/currency'
-import { PREDICTION_STYLES, getCategoryDisplay, getApiSourceLabel, formatResolutionDeadline, getCategoryEmoji, getMarketOneLiner, getResolutionOutcomeSummaries, getDisplayDescription, getResolutionSummary, getNewsMarketDisplayTitle, getNewsMarketMeta } from '../constants/marketConfig'
+import { PREDICTION_STYLES, getCategoryDisplay, getApiSourceLabel, formatResolutionDeadline, getCategoryEmoji, getMarketOneLiner, getResolutionOutcomeSummaries, getDisplayDescription, getResolutionSummary, getNewsMarketMeta } from '../constants/marketConfig'
 import { getQuote, isTradeWithinLimit, yesProbability } from '../utils/ammQuote'
 import { getSEOForPath } from '../constants/seo'
 import './MarketDetail.css'
@@ -200,9 +200,8 @@ export default function MarketDetail() {
   }
 
   const marketData = market.payload
-  const title = marketData.title || 'Market'
-  const newsDisplayTitle = getNewsMarketDisplayTitle(marketData)
-  const displayTitle = newsDisplayTitle || title
+  // Match MarketsList cards: always use payload.title (not synthetic news headline from oracleConfig).
+  const displayTitle = marketData.title?.trim() || 'Market'
   const breadcrumbTitle = displayTitle.length > 50 ? displayTitle.slice(0, 47) + '…' : displayTitle
   const categoryLabel = getCategoryDisplay(marketData)
   const categoryEmoji = getCategoryEmoji(categoryLabel)
