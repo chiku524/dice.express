@@ -213,6 +213,10 @@ html.desktop-app .app-main-desktop {
   transform: translateY(-1px);
 }
 
+.desktop-app .markets-filters-card.card:hover {
+  transform: none;
+}
+
 /* Hide web footer in desktop shell (sidebar app has no footer) */
 .app--desktop-shell + .app-footer,
 .app--desktop-shell .app-footer {

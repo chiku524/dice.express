@@ -1,45 +1,44 @@
 import { useState, useEffect, useMemo, useRef } from 'react'
 import { Link } from 'react-router-dom'
-import { useWallet } from '../contexts/WalletContext'
 import { SkeletonMarketGrid } from './SkeletonLoader'
 import ErrorState from './ErrorState'
 import { fetchMarkets } from '../services/marketsApi'
 import { useDebounce } from '../utils/useDebounce'
-import { MARKET_CATEGORIES, PREDICTION_STYLES, MARKET_SOURCES, getSourceLabel, sourceForFilter, categoryForFilter, getCategoryDisplay, getMarketApiAttribution, getCategoryEmoji, getMarketOneLiner, formatResolutionDeadline, DISCOVER_SOURCE_TO_CATEGORY } from '../constants/marketConfig'
+import { MARKET_CATEGORIES, PREDICTION_STYLES, getSourceLabel, sourceForFilter, categoryForFilter, getCategoryDisplay, getMarketApiAttribution, getCategoryEmoji, getMarketOneLiner, formatResolutionDeadline, DISCOVER_SOURCE_TO_CATEGORY } from '../constants/marketConfig'
 import { formatPips } from '../constants/currency'
 
+const CATEGORY_TOGGLE_OPTIONS = [
+  { value: 'trending', label: 'Trending' },
+  { value: 'all', label: 'All' },
+  ...MARKET_CATEGORIES.map((c) => ({ value: c.value, label: c.label })),
+]
+
 export default function MarketsList({ source: sourceFromRoute }) {
-  const { wallet } = useWallet()
   const [markets, setMarkets] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const pollIntervalRef = useRef(null)
   const apiRoutesWorkingRef = useRef(true)
   const isMountedRef = useRef(true)
+  const marketsListTopRef = useRef(null)
   
-  // Filter states (when on /, allow picking source; when on /discover/:source, fix to that source)
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedCategory, setSelectedCategory] = useState('trending')
   const [selectedTopic, setSelectedTopic] = useState('all')
   const [selectedType, setSelectedType] = useState('all')
   const [selectedStatus, setSelectedStatus] = useState('all')
-  const [selectedSource, setSelectedSource] = useState(sourceFromRoute || 'all')
   const [sortBy, setSortBy] = useState('volume') // 'volume', 'newest', 'oldest', 'ending_soon'
   const [currentPage, setCurrentPage] = useState(1)
   const [retryCount, setRetryCount] = useState(0)
 
   const MARKETS_PER_PAGE = 12
 
-  // Keep selectedSource in sync with route (e.g. when navigating to /discover/industry)
-  useEffect(() => {
-    setSelectedSource(sourceFromRoute || 'all')
-  }, [sourceFromRoute])
+  /** Discover routes narrow by source; home (/) shows all sources. */
+  const listSourceFilter = sourceFromRoute || 'all'
 
   // Debounce search query for better performance
   const debouncedSearchQuery = useDebounce(searchQuery, 300)
 
-  const PACKAGE_ID = 'b87ef31c8ea5c53a940a7f71a4bc6513cf44048730c0551f1fc2e02adc7271f0'
-  
   // Extract unique topics from markets
   // Topics can come from payload.topic or be extracted from title/description
   const availableTopics = useMemo(() => {
@@ -58,7 +57,6 @@ export default function MarketsList({ source: sourceFromRoute }) {
     return Array.from(topics).sort()
   }, [markets])
   
-  // Count active filters (trending/all and source from route don't count)
   const activeFilterCount = useMemo(() => {
     let count = 0
     if (debouncedSearchQuery.trim()) count++
@@ -66,9 +64,8 @@ export default function MarketsList({ source: sourceFromRoute }) {
     if (selectedTopic !== 'all') count++
     if (selectedType !== 'all') count++
     if (selectedStatus !== 'all') count++
-    if (!sourceFromRoute && selectedSource !== 'all') count++
     return count
-  }, [debouncedSearchQuery, selectedCategory, selectedTopic, selectedType, selectedStatus, selectedSource, sourceFromRoute])
+  }, [debouncedSearchQuery, selectedCategory, selectedTopic, selectedType, selectedStatus])
 
   useEffect(() => {
     isMountedRef.current = true
@@ -182,8 +179,7 @@ export default function MarketsList({ source: sourceFromRoute }) {
       )
     }
     
-    // Apply source filter (sports, global_events, industry, tech_ai, politics, etc.; category-based sources filter by category)
-    const effectiveSource = sourceFromRoute || selectedSource
+    const effectiveSource = listSourceFilter
     if (effectiveSource === 'active') {
       filtered = filtered.filter(market => (market.payload?.totalVolume || 0) > 0)
     } else if (DISCOVER_SOURCE_TO_CATEGORY[effectiveSource]) {
@@ -193,7 +189,6 @@ export default function MarketsList({ source: sourceFromRoute }) {
       filtered = filtered.filter(market => sourceForFilter(market.payload) === effectiveSource)
     }
 
-    // Apply category filter (trending = no category filter, just sort by volume later)
     if (selectedCategory !== 'all' && selectedCategory !== 'trending') {
       filtered = filtered.filter(market => categoryForFilter(market.payload) === selectedCategory)
     }
@@ -224,7 +219,6 @@ export default function MarketsList({ source: sourceFromRoute }) {
       filtered = filtered.filter(market => market.payload.status === selectedStatus)
     }
     
-    // Apply sorting (trending = always by volume). When sorting by volume: markets with volume > 0 first, then by volume desc.
     const effectiveSort = selectedCategory === 'trending' ? 'volume' : sortBy
     filtered.sort((a, b) => {
       if (effectiveSort === 'volume') {
@@ -250,7 +244,7 @@ export default function MarketsList({ source: sourceFromRoute }) {
     })
 
     return filtered
-  }, [markets, debouncedSearchQuery, selectedCategory, selectedTopic, selectedType, selectedStatus, selectedSource, sourceFromRoute, sortBy])
+  }, [markets, debouncedSearchQuery, selectedCategory, selectedTopic, selectedType, selectedStatus, listSourceFilter, sortBy])
 
   // Pagination: slice to current page and reset page when results change
   const totalFiltered = filteredAndSortedMarkets.length
@@ -264,12 +258,18 @@ export default function MarketsList({ source: sourceFromRoute }) {
   // Reset to page 1 when filters or sort change
   useEffect(() => {
     setCurrentPage(1)
-  }, [debouncedSearchQuery, selectedCategory, selectedTopic, selectedType, selectedStatus, selectedSource, sortBy])
+  }, [debouncedSearchQuery, selectedCategory, selectedTopic, selectedType, selectedStatus, sortBy])
 
   const pageTitle = sourceFromRoute ? getSourceLabel(sourceFromRoute) : 'Prediction Markets'
   const pageSubtitle = sourceFromRoute
     ? `Markets from ${getSourceLabel(sourceFromRoute).toLowerCase()}. Trade with AMM-backed liquidity.`
     : 'Trade with virtual Credits (Pips). No crypto required to browse.'
+
+  const scrollMarketsListToTop = () => {
+    requestAnimationFrame(() => {
+      marketsListTopRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    })
+  }
 
   if (loading) {
     return (
@@ -302,7 +302,7 @@ export default function MarketsList({ source: sourceFromRoute }) {
 
   return (
     <div>
-      <div className="page-header">
+      <div className="page-header" ref={marketsListTopRef}>
         <h1>{pageTitle}</h1>
         <p>{pageSubtitle}</p>
       </div>
@@ -335,40 +335,35 @@ export default function MarketsList({ source: sourceFromRoute }) {
               />
             </div>
 
-            <div className="filters-container markets-filters-secondary">
-              {!sourceFromRoute && (
-                <div className="filter-group">
-                  <label htmlFor="source">Source</label>
-                  <select
-                    id="source"
-                    value={selectedSource}
-                    onChange={(e) => setSelectedSource(e.target.value)}
-                    className="filter-select"
-                  >
-                    {MARKET_SOURCES.map(s => (
-                      <option key={s.value} value={s.value}>{s.label}</option>
-                    ))}
-                  </select>
-                </div>
-              )}
-
-              <div className="filter-group">
-                <label htmlFor="category">Category</label>
-                <select
-                  id="category"
-                  value={selectedCategory}
-                  onChange={(e) => setSelectedCategory(e.target.value)}
-                  className="filter-select"
-                >
-                  <option value="trending">Trending</option>
-                  <option value="all">All Categories</option>
-                  {MARKET_CATEGORIES.map(c => (
-                    <option key={c.value} value={c.value}>{c.label}</option>
-                  ))}
-                </select>
+            <div className="markets-category-toggles" role="group" aria-label="Category">
+              <span className="markets-category-toggles-label" id="markets-category-label">
+                Category
+              </span>
+              <div className="markets-category-toggles-row" aria-labelledby="markets-category-label">
+                {CATEGORY_TOGGLE_OPTIONS.map((opt) => {
+                  const isActive = selectedCategory === opt.value
+                  const emoji =
+                    opt.value === 'trending' ? '🔥' : opt.value === 'all' ? '🌐' : getCategoryEmoji(opt.value)
+                  return (
+                    <button
+                      key={opt.value}
+                      type="button"
+                      className={`markets-category-toggle${isActive ? ' markets-category-toggle--active' : ''}`}
+                      aria-pressed={isActive}
+                      onClick={() => setSelectedCategory(opt.value)}
+                    >
+                      <span className="markets-category-toggle-emoji" aria-hidden>
+                        {emoji}
+                      </span>
+                      {opt.label}
+                    </button>
+                  )
+                })}
               </div>
+            </div>
 
-              {availableTopics.length > 0 && (
+            {availableTopics.length > 0 && (
+              <div className="filters-container markets-filters-secondary">
                 <div className="filter-group">
                   <label htmlFor="topic">Topic</label>
                   <select
@@ -383,8 +378,8 @@ export default function MarketsList({ source: sourceFromRoute }) {
                     ))}
                   </select>
                 </div>
-              )}
-            </div>
+              </div>
+            )}
 
             <div
               className="markets-filters-quick-row"
@@ -503,19 +498,6 @@ export default function MarketsList({ source: sourceFromRoute }) {
                   </button>
                 </span>
               )}
-              {!sourceFromRoute && selectedSource !== 'all' && (
-                <span className="filter-chip">
-                  Source: {getSourceLabel(selectedSource)}
-                  <button
-                    type="button"
-                    onClick={() => setSelectedSource('all')}
-                    className="filter-chip-remove"
-                    aria-label="Remove source filter"
-                  >
-                    ×
-                  </button>
-                </span>
-              )}
               <button
                 type="button"
                 className="filter-chip-clear-all"
@@ -525,7 +507,6 @@ export default function MarketsList({ source: sourceFromRoute }) {
                   setSelectedTopic('all')
                   setSelectedType('all')
                   setSelectedStatus('all')
-                  setSelectedSource('all')
                   setSortBy('volume')
                 }}
               >
@@ -604,7 +585,6 @@ export default function MarketsList({ source: sourceFromRoute }) {
                       setSelectedTopic('all')
                       setSelectedType('all')
                       setSelectedStatus('all')
-                      setSelectedSource('all')
                       setSortBy('volume')
                     }}
                   >
@@ -691,7 +671,10 @@ export default function MarketsList({ source: sourceFromRoute }) {
                     <button
                       type="button"
                       className="btn-secondary pagination-btn"
-                      onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                      onClick={() => {
+                        setCurrentPage((p) => Math.max(1, p - 1))
+                        scrollMarketsListToTop()
+                      }}
                       disabled={effectivePage === 1}
                       aria-label="Previous page"
                     >
@@ -703,7 +686,10 @@ export default function MarketsList({ source: sourceFromRoute }) {
                     <button
                       type="button"
                       className="btn-secondary pagination-btn"
-                      onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                      onClick={() => {
+                        setCurrentPage((p) => Math.min(totalPages, p + 1))
+                        scrollMarketsListToTop()
+                      }}
                       disabled={effectivePage === totalPages}
                       aria-label="Next page"
                     >

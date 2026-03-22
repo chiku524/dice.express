@@ -482,11 +482,71 @@
   cursor: not-allowed;
 }
 
+/* Markets filters card: no lift/shadow bump on hover (uses global .card:hover otherwise) */
+.card.markets-filters-card:hover {
+  transform: none;
+  box-shadow: var(--shadow-sm);
+  background: var(--color-surface, rgba(30, 30, 46, 0.5));
+  border-color: var(--color-border, rgba(100, 108, 255, 0.2));
+}
+
 /* Markets list: toolbar + three standalone dropdowns (no collapsible Filters header) */
 .markets-filters-toolbar {
   display: flex;
   flex-direction: column;
   gap: 0;
+}
+
+.markets-category-toggles {
+  margin-top: var(--spacing-md);
+}
+
+.markets-category-toggles-label {
+  display: block;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-secondary);
+  margin-bottom: var(--spacing-sm);
+}
+
+.markets-category-toggles-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-xs);
+  align-items: center;
+}
+
+.markets-category-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.4rem 0.65rem;
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-medium);
+  font-family: var(--font-family-base);
+  color: var(--color-text-secondary);
+  background: var(--color-input-bg, rgba(0, 0, 0, 0.35));
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: color var(--transition-base), background var(--transition-base), border-color var(--transition-base);
+}
+
+.markets-category-toggle:hover {
+  border-color: var(--color-primary-border);
+  color: var(--color-text-primary);
+}
+
+.markets-category-toggle--active {
+  color: var(--color-text-primary);
+  background: var(--color-primary-light);
+  border-color: var(--color-primary-border);
+  box-shadow: 0 0 0 1px rgba(139, 92, 246, 0.2);
+}
+
+.markets-category-toggle-emoji {
+  font-size: 0.95em;
+  line-height: 1;
 }
 
 .markets-filters-secondary {
