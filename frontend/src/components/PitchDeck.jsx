@@ -4,6 +4,9 @@ import './PitchDeck.css'
 
 const CYRENEAI_LAUNCH_URL = 'https://cyreneai.com/launch'
 
+/** Indicative pre-money valuation in USD (pre-revenue; for discussion only). */
+const PRE_MONEY_VALUATION_USD_LABEL = '$5,000,000 – $8,000,000 USD'
+
 /**
  * Executive summary / pitch for supporters — aligned with the CyreneAI (Solana) launch.
  * Routes: /pitch, /investors (same content; subtitle varies slightly).
@@ -46,6 +49,14 @@ export default function PitchDeck() {
               <p className="pitch-deck__card-value">$500,000 – $1,000,000</p>
               <p className="pitch-deck__card-desc">
                 Capital to accelerate product development, distribution, and infrastructure ahead of broader go-to-market.
+              </p>
+            </div>
+            <div className="pitch-deck__card">
+              <h3 className="pitch-deck__card-title">Pre-money valuation (USD)</h3>
+              <p className="pitch-deck__card-value">{PRE_MONEY_VALUATION_USD_LABEL}</p>
+              <p className="pitch-deck__card-desc">
+                Indicative pre-money range for this round while the company is <strong>pre-revenue</strong>. Not audited;
+                final economics may differ and should match CyreneAI launch terms and any parallel cap-table agreements.
               </p>
             </div>
             <div className="pitch-deck__card">
