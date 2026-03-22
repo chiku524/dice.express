@@ -1353,8 +1353,10 @@ async function handleWithD1(db, kv, r2, request, path, method, env = {}) {
       const skipFeedTopicOnlyNews = shouldSkipFeedTopicHeadlineMarkets(env)
       let skippedFeedTopicNews = 0
       let skippedDedupe = 0
+      let skippedNearDuplicate = 0
       const existingVirtualRows = await storage.getContracts(db, { templateType: 'VirtualMarket', limit: 1500 })
-      const occupiedDedupeKeys = marketDedupe.dedupeKeySetFromVirtualMarketRows(existingVirtualRows)
+      const occupiedDedupeKeys = await marketDedupe.buildOccupiedDedupeKeySet(existingVirtualRows)
+      const semanticIndex = marketDedupe.buildSemanticIndex(existingVirtualRows)
       const batchDedupeKeys = new Set()
       for (const ev of events) {
         const evPromoted = await promoteNewsArticleToOutcomeMarket(env, ev)
@@ -1417,10 +1419,15 @@ async function handleWithD1(db, kv, r2, request, path, method, env = {}) {
           },
           createdAt: new Date().toISOString(),
         }
-        marketDedupe.assignDedupeKeyToPayload(payload)
-        const dedupeKey = marketDedupe.computeDedupeKeyFromPayload(payload)
-        if (dedupeKey && (occupiedDedupeKeys.has(dedupeKey) || batchDedupeKeys.has(dedupeKey))) {
+        await marketDedupe.assignDedupeKeyToPayload(payload)
+        const candidateKeys = await marketDedupe.allDedupeKeysForPayload(payload)
+        const hitsKnownKey = [...candidateKeys].some((k) => occupiedDedupeKeys.has(k) || batchDedupeKeys.has(k))
+        if (hitsKnownKey) {
           skippedDedupe += 1
+          continue
+        }
+        if (marketDedupe.isSemanticNearDuplicateIndexed(payload, semanticIndex, { minJaccard: 0.76, minTokens: 5 })) {
+          skippedNearDuplicate += 1
           continue
         }
         await storage.upsertContract(db, {
@@ -1442,10 +1449,13 @@ async function handleWithD1(db, kv, r2, request, path, method, env = {}) {
           status: 'Active',
         })
         await backupToR2(r2, undefined, poolState.poolId, poolState)
-        if (dedupeKey) {
-          occupiedDedupeKeys.add(dedupeKey)
-          batchDedupeKeys.add(dedupeKey)
+        for (const k of candidateKeys) {
+          if (k) {
+            occupiedDedupeKeys.add(k)
+            batchDedupeKeys.add(k)
+          }
         }
+        marketDedupe.appendSemanticIndexEntry(semanticIndex, payload)
         created.push({ marketId: id, title: evFinal.title, source: evFinal.source })
       }
       // Markets list cache will refresh on next GET (TTL)
@@ -1457,6 +1467,7 @@ async function handleWithD1(db, kv, r2, request, path, method, env = {}) {
         skipped: events.length - created.length,
         ...(skipFeedTopicOnlyNews && skippedFeedTopicNews > 0 ? { skippedFeedTopicNews } : {}),
         ...(skippedDedupe > 0 ? { skippedDedupe } : {}),
+        ...(skippedNearDuplicate > 0 ? { skippedNearDuplicate } : {}),
       }
       if (bySource) res.bySource = bySource
       if (limitsBySource) res.limitsBySource = limitsBySource
