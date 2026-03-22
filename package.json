@@ -19,6 +19,8 @@
     "pages:deploy": "npm run build:frontend && npx wrangler pages deploy frontend/dist --project-name=dice-express",
     "pages:setup": "npm run pages:project:create && npm run pages:deploy",
     "pages:custom-domain": "bash scripts/pages-add-custom-domain.sh",
+    "d1:clear-prediction-markets": "node scripts/clear-prediction-markets.mjs remote",
+    "d1:clear-prediction-markets:local": "node scripts/clear-prediction-markets.mjs local",
     "tauri": "tauri",
     "tauri:dev": "tauri dev",
     "tauri:build": "tauri build",

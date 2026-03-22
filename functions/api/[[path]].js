@@ -10,6 +10,7 @@ import * as dataSources from '../lib/data-sources.mjs'
 import { enrichNewsEvent } from '../lib/custom-news-markets.mjs'
 import { finalizeNewsFeedTopicMarket, isFeedTopicOnlyNewsCandidate } from '../lib/news-market-topic.mjs'
 import { promoteNewsArticleToOutcomeMarket } from '../lib/outcome-news-markets.mjs'
+import * as marketDedupe from '../lib/market-dedupe.mjs'
 import * as resolveMarkets from '../lib/resolve-markets.mjs'
 import { addPips, pipsToCents, centsToPipsStr, cryptoAmountToPipsStr } from '../lib/pips-precision.mjs'
 import { verifyErc20Deposit, verifyNativeDeposit } from '../lib/verify-deposit-rpc.mjs'
@@ -1351,6 +1352,10 @@ async function handleWithD1(db, kv, r2, request, path, method, env = {}) {
       }
       const skipFeedTopicOnlyNews = shouldSkipFeedTopicHeadlineMarkets(env)
       let skippedFeedTopicNews = 0
+      let skippedDedupe = 0
+      const existingVirtualRows = await storage.getContracts(db, { templateType: 'VirtualMarket', limit: 800 })
+      const occupiedDedupeKeys = marketDedupe.dedupeKeySetFromVirtualMarketRows(existingVirtualRows)
+      const batchDedupeKeys = new Set()
       for (const ev of events) {
         const evPromoted = await promoteNewsArticleToOutcomeMarket(env, ev)
         const evUse = enrichNewsEvent(evPromoted, { usedCustomTypes })
@@ -1412,6 +1417,12 @@ async function handleWithD1(db, kv, r2, request, path, method, env = {}) {
           },
           createdAt: new Date().toISOString(),
         }
+        marketDedupe.assignDedupeKeyToPayload(payload)
+        const dedupeKey = marketDedupe.computeDedupeKeyFromPayload(payload)
+        if (dedupeKey && (occupiedDedupeKeys.has(dedupeKey) || batchDedupeKeys.has(dedupeKey))) {
+          skippedDedupe += 1
+          continue
+        }
         await storage.upsertContract(db, {
           contract_id: id,
           template_id: TEMPLATE_VIRTUAL_MARKET,
@@ -1431,6 +1442,10 @@ async function handleWithD1(db, kv, r2, request, path, method, env = {}) {
           status: 'Active',
         })
         await backupToR2(r2, undefined, poolState.poolId, poolState)
+        if (dedupeKey) {
+          occupiedDedupeKeys.add(dedupeKey)
+          batchDedupeKeys.add(dedupeKey)
+        }
         created.push({ marketId: id, title: evFinal.title, source: evFinal.source })
       }
       // Markets list cache will refresh on next GET (TTL)
@@ -1441,6 +1456,7 @@ async function handleWithD1(db, kv, r2, request, path, method, env = {}) {
         count: created.length,
         skipped: events.length - created.length,
         ...(skipFeedTopicOnlyNews && skippedFeedTopicNews > 0 ? { skippedFeedTopicNews } : {}),
+        ...(skippedDedupe > 0 ? { skippedDedupe } : {}),
       }
       if (bySource) res.bySource = bySource
       if (limitsBySource) res.limitsBySource = limitsBySource

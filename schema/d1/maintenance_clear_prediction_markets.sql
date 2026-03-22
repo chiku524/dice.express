@@ -2,10 +2,12 @@
 -- Preserves: user_balances, UserAccount, deposit_records, withdrawal_requests, other contract types.
 --
 -- Apply to production D1:
---   npx wrangler d1 execute dice-express-db --remote --file=./schema/d1/maintenance_clear_prediction_markets.sql
+--   npm run d1:clear-prediction-markets
+--   (or: npx wrangler d1 execute dice-express-db --remote --file=./schema/d1/maintenance_clear_prediction_markets.sql)
 --
 -- Apply locally (pages dev / wrangler d1 local):
---   npx wrangler d1 execute dice-express-db --local --file=./schema/d1/maintenance_clear_prediction_markets.sql
+--   npm run d1:clear-prediction-markets:local
+--   (or: npx wrangler d1 execute dice-express-db --local --file=./schema/d1/maintenance_clear_prediction_markets.sql)
 
 DELETE FROM p2p_orders;
 

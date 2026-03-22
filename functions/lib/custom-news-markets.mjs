@@ -139,13 +139,38 @@ function inferElectionName(text, year) {
   return `${y} election`
 }
 
+/** Broad Israel / Gaza / Lebanon / regional hostilities → one canonical topic (deduped). */
+function isMiddleEastHostilitiesContext(lower) {
+  if (
+    /\b(middle\s+east)\b/.test(lower) &&
+    /\b(war|conflict|strike|ceasefire|attack|hostilit|invasion|bomb|missile|troops|bombing)\b/.test(lower)
+  )
+    return true
+  if (
+    /\b(gaza|hamas|west\s+bank|hezbollah|beirut|idf|palestin|jerusalem)\b/.test(lower) &&
+    /\b(war|conflict|strike|ceasefire|attack|hostilit|bomb|missile|invasion|troops|bombing)\b/.test(lower)
+  )
+    return true
+  if (
+    /\b(yemen|houthi|red\s+sea)\b/.test(lower) &&
+    /\b(strike|missile|war|conflict|attack|hostilit|ceasefire)\b/.test(lower)
+  )
+    return true
+  if (
+    /\b(israel|israeli)\b/.test(lower) &&
+    /\b(iran|missile|strike|war|gaza|hamas|lebanon|hezbollah|ceasefire|drone|attack|conflict)\b/.test(lower)
+  )
+    return true
+  return false
+}
+
 /** Detect conflict name from headline (display string; keep stable for a given geopolitical topic). */
 function extractConflictName(text) {
   const lower = text.toLowerCase()
   if (lower.includes('ukraine') && (lower.includes('russia') || lower.includes('war'))) return 'Russia-Ukraine'
-  if (lower.includes('gaza') || (lower.includes('israel') && lower.includes('hamas'))) return 'Israel-Hamas / Gaza'
   if (lower.includes('taiwan') && lower.includes('china')) return 'Taiwan-China'
   if (lower.includes('syria')) return 'Syria conflict'
+  if (isMiddleEastHostilitiesContext(lower)) return 'Middle East hostilities'
   if (
     lower.includes('iran') &&
     /\b(war|conflict|strike|missile|military|nuclear|drone|attack|tension|ceasefire|peace|invasion|troops)\b/i.test(lower)
@@ -171,10 +196,10 @@ function extractConflictName(text) {
 function canonicalConflictSlug(displayName) {
   const lower = String(displayName).toLowerCase()
   if (lower.includes('ukraine') || lower.includes('russia')) return 'russia-ukraine'
-  if (lower.includes('gaza') || lower.includes('hamas')) return 'israel-hamas-gaza'
+  if (lower.includes('middle east') && lower.includes('hostilit')) return 'middle-east-hostilities'
   if (lower.includes('taiwan')) return 'taiwan-china'
   if (lower.includes('syria')) return 'syria'
-  if (lower.includes('iran')) return 'iran'
+  if (lower.includes('iran') && lower.includes('conflict')) return 'iran'
   if (lower.startsWith('war in '))
     return (
       'war-in-' +
@@ -325,6 +350,7 @@ export function enrichNewsEvent(ev, options = {}) {
     const ym = deadline.slice(0, 7)
     const slug = canonicalConflictSlug(conflict)
     const stableArticleId = `conflict-${slug}-${ym}`
+    const dedupeKey = `conflict:${slug}:${ym}`
     const title = `Will the ${conflict} end by ${ym}?`
     const resolutionCriteria = `Yes if a formal ceasefire or peace agreement is announced, or major combat is widely reported over for ${conflict}, per major news (e.g. AP, Reuters).`
     const oneLiner = `Ceasefire or end of major combat for ${conflict} by deadline; otherwise No.`
@@ -348,6 +374,7 @@ export function enrichNewsEvent(ev, options = {}) {
         seedHeadline: rawTitle,
         conflictSlug: slug,
         conflictDeadlineYm: ym,
+        dedupeKey,
       },
     }
   }
