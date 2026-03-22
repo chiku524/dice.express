@@ -352,6 +352,41 @@ export function getApiSourceLabel(payload) {
   return API_SOURCE_TO_LABEL[src] || getSourceLabel(sourceForFilter(src))
 }
 
+/** Map a stored backend source/oracle key to a product label, or null if it is a discover bucket / unknown. */
+function resolveApiProviderLabel(key) {
+  if (key == null || key === '') return null
+  const k = String(key).trim()
+  return API_SOURCE_TO_LABEL[k] || null
+}
+
+/**
+ * Labels for which data feed/API seeded the market vs which powers resolution.
+ * Creation uses oracleConfig.seedNewsSource (news) when present, else styleLabel/source when they are API keys.
+ */
+export function getMarketApiAttribution(payload) {
+  const oc = payload?.oracleConfig || {}
+
+  let resolution = resolveApiProviderLabel(payload?.oracleSource)
+  if (!resolution && payload?.oracleSource) {
+    resolution = String(payload.oracleSource).replace(/_/g, ' ')
+  }
+  if (!resolution) resolution = resolveApiProviderLabel(payload?.styleLabel)
+  if (!resolution) resolution = resolveApiProviderLabel(payload?.source)
+  if (!resolution) resolution = getApiSourceLabel(payload)
+
+  let creation = resolveApiProviderLabel(oc.seedNewsSource)
+  if (!creation) creation = resolveApiProviderLabel(payload?.styleLabel)
+  if (!creation) creation = resolveApiProviderLabel(payload?.source)
+  if (!creation) creation = resolution
+  if (!creation) creation = getApiSourceLabel(payload)
+
+  return {
+    creation,
+    resolution,
+    same: creation === resolution,
+  }
+}
+
 export function getSourceLabel(value) {
   const s = MARKET_SOURCES.find(x => x.value === value)
   return s ? s.label : value

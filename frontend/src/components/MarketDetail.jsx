@@ -8,7 +8,7 @@ import { fetchOpenOrders, placeOrder } from '../services/ordersApi'
 import MarketResolution from './MarketResolution'
 import ErrorState from './ErrorState'
 import { formatPips, PLATFORM_CURRENCY_SYMBOL } from '../constants/currency'
-import { PREDICTION_STYLES, getCategoryDisplay, getApiSourceLabel, formatResolutionDeadline, getCategoryEmoji, getMarketOneLiner, getResolutionOutcomeSummaries, getDisplayDescription, getResolutionSummary, getNewsMarketMeta } from '../constants/marketConfig'
+import { PREDICTION_STYLES, getCategoryDisplay, formatResolutionDeadline, getCategoryEmoji, getMarketOneLiner, getResolutionOutcomeSummaries, getDisplayDescription, getResolutionSummary, getNewsMarketMeta, getMarketApiAttribution } from '../constants/marketConfig'
 import { getQuote, isTradeWithinLimit, yesProbability } from '../utils/ammQuote'
 import { getSEOForPath } from '../constants/seo'
 import './MarketDetail.css'
@@ -205,7 +205,7 @@ export default function MarketDetail() {
   const breadcrumbTitle = displayTitle.length > 50 ? displayTitle.slice(0, 47) + '…' : displayTitle
   const categoryLabel = getCategoryDisplay(marketData)
   const categoryEmoji = getCategoryEmoji(categoryLabel)
-  const apiLabel = getApiSourceLabel(marketData)
+  const apiAttr = getMarketApiAttribution(marketData)
   const oneLiner = getMarketOneLiner(marketData)
   const outcomeSummaries = getResolutionOutcomeSummaries(marketData)
   const displayDescription = getDisplayDescription(marketData)
@@ -229,16 +229,36 @@ export default function MarketDetail() {
         <div className="market-detail-info card">
           <div className="market-detail-tags">
             <span className="market-detail-tag market-detail-tag-category">{categoryEmoji} {categoryLabel}</span>
-            <span className="market-detail-tag market-detail-tag-api">{apiLabel}</span>
+            {apiAttr.same ? (
+              <span
+                className="market-detail-tag market-detail-tag-api"
+                title="Used to create and resolve this market"
+              >
+                {apiAttr.creation}
+              </span>
+            ) : (
+              <>
+                <span
+                  className="market-detail-tag market-detail-tag-creation"
+                  title="Feed/API used when this market was created"
+                >
+                  Creation: {apiAttr.creation}
+                </span>
+                <span
+                  className="market-detail-tag market-detail-tag-resolution"
+                  title="Data source or process used to resolve this market"
+                >
+                  Resolution: {apiAttr.resolution}
+                </span>
+              </>
+            )}
             <span className="market-detail-tag market-detail-tag-type">{marketTypeLabel}</span>
           </div>
 
           <h1 className="market-detail-title">{displayTitle}</h1>
-          {newsMeta && (newsMeta.topic || newsMeta.sourceLabel) && (
+          {newsMeta?.topic && (
             <p className="market-detail-meta">
-              {newsMeta.topic && <span>Topic: {newsMeta.topic}</span>}
-              {newsMeta.topic && newsMeta.sourceLabel && <span className="market-detail-meta-sep"> · </span>}
-              {newsMeta.sourceLabel && <span>Source: {newsMeta.sourceLabel}</span>}
+              <span>Topic: {newsMeta.topic}</span>
             </p>
           )}
           <span className={`status status-${marketData.status?.toLowerCase() || 'active'}`}>

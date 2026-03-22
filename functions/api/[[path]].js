@@ -1405,7 +1405,11 @@ async function handleWithD1(db, kv, r2, request, path, method, env = {}) {
           styleLabel: evFinal.source,
           source: displaySource,
           oracleSource: evFinal.oracleSource || evFinal.source,
-          oracleConfig: { ...(evFinal.oracleConfig || {}), ...(evFinal.customType && { customType: evFinal.customType }) },
+          oracleConfig: {
+            ...(evFinal.oracleConfig || {}),
+            ...(evFinal.seedNewsSource ? { seedNewsSource: evFinal.seedNewsSource } : {}),
+            ...(evFinal.customType && { customType: evFinal.customType }),
+          },
           createdAt: new Date().toISOString(),
         }
         await storage.upsertContract(db, {

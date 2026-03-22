@@ -5,7 +5,7 @@ import { SkeletonMarketGrid } from './SkeletonLoader'
 import ErrorState from './ErrorState'
 import { fetchMarkets } from '../services/marketsApi'
 import { useDebounce } from '../utils/useDebounce'
-import { MARKET_CATEGORIES, PREDICTION_STYLES, MARKET_SOURCES, getSourceLabel, sourceForFilter, categoryForFilter, getCategoryDisplay, getApiSourceLabel, getCategoryEmoji, getMarketOneLiner, formatResolutionDeadline, DISCOVER_SOURCE_TO_CATEGORY } from '../constants/marketConfig'
+import { MARKET_CATEGORIES, PREDICTION_STYLES, MARKET_SOURCES, getSourceLabel, sourceForFilter, categoryForFilter, getCategoryDisplay, getMarketApiAttribution, getCategoryEmoji, getMarketOneLiner, formatResolutionDeadline, DISCOVER_SOURCE_TO_CATEGORY } from '../constants/marketConfig'
 import { formatPips } from '../constants/currency'
 
 export default function MarketsList({ source: sourceFromRoute }) {
@@ -619,6 +619,7 @@ export default function MarketsList({ source: sourceFromRoute }) {
                 {paginatedMarkets.map((market) => {
                   const oneLiner = getMarketOneLiner(market.payload)
                   const categoryLabel = getCategoryDisplay(market.payload)
+                  const apiAttr = getMarketApiAttribution(market.payload)
                   return (
                   <Link
                     key={market.contractId}
@@ -631,9 +632,29 @@ export default function MarketsList({ source: sourceFromRoute }) {
                           <span className="market-card-tag market-card-tag-category">
                             {getCategoryEmoji(categoryLabel)} {categoryLabel}
                           </span>
-                          <span className="market-card-tag market-card-tag-api">
-                            {getApiSourceLabel(market.payload)}
-                          </span>
+                          {apiAttr.same ? (
+                            <span
+                              className="market-card-tag market-card-tag-api"
+                              title="Data source for creating and resolving this market"
+                            >
+                              {apiAttr.creation}
+                            </span>
+                          ) : (
+                            <>
+                              <span
+                                className="market-card-tag market-card-tag-creation"
+                                title="Feed/API used when this market was created"
+                              >
+                                Create · {apiAttr.creation}
+                              </span>
+                              <span
+                                className="market-card-tag market-card-tag-resolution"
+                                title="Data source or process used to resolve this market"
+                              >
+                                Resolve · {apiAttr.resolution}
+                              </span>
+                            </>
+                          )}
                         </div>
                         <h3>{market.payload.title}</h3>
                         <span className={`status ${getStatusClass(market.payload.status)}`}>
