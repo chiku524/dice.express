@@ -23,12 +23,18 @@ const OLYMPICS_DEADLINES = {
   2032: '2032-08-08T23:59:59.000Z',  // Brisbane
 }
 
-/** Default conflict end: 6 months from now, end of day UTC. */
-function defaultConflictDeadline() {
-  const d = new Date()
-  d.setMonth(d.getMonth() + 6)
-  d.setUTCHours(23, 59, 59, 999)
-  return d.toISOString()
+/**
+ * End of calendar month, six months ahead (UTC). Stable for the whole calendar month so
+ * titles and IDs do not drift daily and dedupe stays predictable.
+ */
+function conflictBucketEndDeadlineIso() {
+  const now = new Date()
+  const anchor = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 6, 1))
+  const y = anchor.getUTCFullYear()
+  const mo = anchor.getUTCMonth()
+  const last = new Date(Date.UTC(y, mo + 1, 0))
+  last.setUTCHours(23, 59, 59, 999)
+  return last.toISOString()
 }
 
 /** Extract a year from text (e.g. "2024", "2028"). */
@@ -65,18 +71,60 @@ function inferElectionName(text, year) {
   return `${y} election`
 }
 
-/** Detect conflict name from headline. */
+/** Detect conflict name from headline (display string; keep stable for a given geopolitical topic). */
 function extractConflictName(text) {
   const lower = text.toLowerCase()
   if (lower.includes('ukraine') && (lower.includes('russia') || lower.includes('war'))) return 'Russia-Ukraine'
   if (lower.includes('gaza') || (lower.includes('israel') && lower.includes('hamas'))) return 'Israel-Hamas / Gaza'
   if (lower.includes('taiwan') && lower.includes('china')) return 'Taiwan-China'
   if (lower.includes('syria')) return 'Syria conflict'
+  if (
+    lower.includes('iran') &&
+    /\b(war|conflict|strike|missile|military|nuclear|drone|attack|tension|ceasefire|peace|invasion|troops)\b/i.test(lower)
+  )
+    return 'Iran conflict'
   const warIn = text.match(/\b(the\s+)?war\s+in\s+([a-zA-Z]+)/i)
-  if (warIn) return `War in ${warIn[2]}`
+  if (warIn) {
+    const place = warIn[2]
+    if (place.toLowerCase() === 'iran') return 'Iran conflict'
+    return `War in ${place}`
+  }
   const xxWar = text.match(/\b([a-zA-Z]+)\s+war\b/i)
-  if (xxWar) return `${xxWar[1]} war`
+  if (xxWar) {
+    if (xxWar[1].toLowerCase() === 'iran') return 'Iran conflict'
+    return `${xxWar[1]} war`
+  }
   return 'the conflict'
+}
+
+/**
+ * Stable slug for market id: one automated conflict market per slug per deadline month.
+ */
+function canonicalConflictSlug(displayName) {
+  const lower = String(displayName).toLowerCase()
+  if (lower.includes('ukraine') || lower.includes('russia')) return 'russia-ukraine'
+  if (lower.includes('gaza') || lower.includes('hamas')) return 'israel-hamas-gaza'
+  if (lower.includes('taiwan')) return 'taiwan-china'
+  if (lower.includes('syria')) return 'syria'
+  if (lower.includes('iran')) return 'iran'
+  if (lower.startsWith('war in '))
+    return (
+      'war-in-' +
+      lower
+        .slice('war in '.length)
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-|-$/g, '')
+        .slice(0, 32)
+    )
+  const m = lower.match(/^([a-z]+)\s+war$/)
+  if (m) return `${m[1]}-war`
+  return (
+    'conflict-' +
+    lower
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-|-$/g, '')
+      .slice(0, 40)
+  )
 }
 
 /**
@@ -200,12 +248,16 @@ export function enrichNewsEvent(ev, options = {}) {
   if (isHotConflict(text) && !used.conflict) {
     used.conflict = true
     const conflict = extractConflictName(text)
-    const deadline = defaultConflictDeadline()
-    const title = `Will the ${conflict} end by ${deadline.slice(0, 7)}?`
+    const deadline = conflictBucketEndDeadlineIso()
+    const ym = deadline.slice(0, 7)
+    const slug = canonicalConflictSlug(conflict)
+    const stableArticleId = `conflict-${slug}-${ym}`
+    const title = `Will the ${conflict} end by ${ym}?`
     const resolutionCriteria = `Yes if a formal ceasefire or peace agreement is announced, or major combat is widely reported over for ${conflict}, per major news (e.g. AP, Reuters).`
     const oneLiner = `Ceasefire or end of major combat for ${conflict} by deadline; otherwise No.`
     return {
       ...ev,
+      id: stableArticleId,
       source: 'operator_manual',
       oracleSource: 'operator_manual',
       categoryHint: 'News',
@@ -221,6 +273,8 @@ export function enrichNewsEvent(ev, options = {}) {
         customType: 'conflict',
         outcomeResolutionKind: 'operator_manual',
         seedHeadline: rawTitle,
+        conflictSlug: slug,
+        conflictDeadlineYm: ym,
       },
     }
   }
