@@ -29,11 +29,11 @@ function newsFeedKey(ev) {
   return ev?.seedNewsSource || ev?.source
 }
 
-function shortHash(str) {
-  let h = 0
-  const s = String(str)
-  for (let i = 0; i < s.length; i++) h = (Math.imul(31, h) + s.charCodeAt(i)) | 0
-  return Math.abs(h).toString(36).slice(0, 9)
+/** Compact numeric fragment for stable market ids (no headline hash). */
+function idPartNumber(n) {
+  const x = Number(n)
+  if (!Number.isFinite(x)) return 'x'
+  return String(x).replace(/\./g, 'p')
 }
 
 function extractDollarAmounts(text) {
@@ -146,7 +146,7 @@ async function tryPromoteEarnings(env, ev, text, headline) {
   const y = upcoming.year
   const reportDate = String(upcoming.date).slice(0, 10)
   const title = `Will ${sym} report EPS of at least $${epsEst.toFixed(2)} for Q${q} ${y} (Finnhub consensus)?`
-  const id = `on-fh-${sym}-${y}-Q${q}-${reportDate}-${shortHash(headline)}`
+  const id = `on-fh-${sym}-${y}-Q${q}-${reportDate}-eps${idPartNumber(epsEst)}`
   const seedSnippet = headline.length > 120 ? `${headline.slice(0, 117)}…` : headline
   return {
     ...ev,
@@ -256,7 +256,7 @@ async function tryPromoteStock(env, ev, text, headline) {
     const end = new Date()
     end.setDate(end.getDate() + 7)
     const dateStr = end.toISOString().slice(0, 10)
-    const id = `on-av-${sym}-${dateStr}-${shortHash(headline)}`
+    const id = `on-av-${sym}-${dateStr}-${comparator}-${idPartNumber(threshold)}`
     const title =
       comparator === 'lte'
         ? `Will ${sym} close at or below $${threshold} by ${dateStr}?`
@@ -311,7 +311,7 @@ async function tryPromoteCrypto(env, ev, text, headline) {
     const end = new Date()
     end.setDate(end.getDate() + 7)
     const dateStr = end.toISOString().slice(0, 10)
-    const idSlug = `on-cg-${id}-${dateStr}-${shortHash(headline)}`
+    const idSlug = `on-cg-${id}-${dateStr}-${comparator}-${idPartNumber(threshold)}`
     const title =
       comparator === 'lte'
         ? `Will ${symbol} be at or below $${threshold} by ${dateStr}?`

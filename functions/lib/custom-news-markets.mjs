@@ -1,9 +1,8 @@
 /**
- * Infer high-stakes news (elections, Olympics, wars/conflicts) and return
+ * Infer high-stakes news (elections, Olympics, wars/conflicts, FDA, courts, …) and return
  * custom prediction market title, resolution criteria, and deadline.
- * Used when seeding markets from news so "Will X win the election?" and
- * "Will the Ukraine war end by Y?" get outcome-based markets instead of
- * generic "Will this headline be in top news?"
+ * Each branch sets a stable `id` so the same topic/oracle spec does not create duplicate
+ * markets across articles or cron runs (D1 key `market-${id}`).
  */
 
 const NEWS_SOURCES = new Set(['gnews', 'perigon', 'newsapi_ai', 'newsdata_io'])
@@ -35,6 +34,75 @@ function conflictBucketEndDeadlineIso() {
   const last = new Date(Date.UTC(y, mo + 1, 0))
   last.setUTCHours(23, 59, 59, 999)
   return last.toISOString()
+}
+
+/** Lowercase slug for stable IDs (ASCII). */
+function slugifyKey(s, maxLen = 64) {
+  const out = String(s)
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-|-$/g, '')
+    .slice(0, maxLen)
+  return out || 'x'
+}
+
+/**
+ * Resolution instant: last ms of the UTC calendar month that contains (today + days).
+ * Stable for weeks at a time; IDs use YYYY-MM so generic operator markets dedupe.
+ */
+function stableDeadlineEndOfMonthFromDaysAhead(days) {
+  const d = new Date()
+  d.setUTCDate(d.getUTCDate() + Number(days))
+  const y = d.getUTCFullYear()
+  const mo = d.getUTCMonth()
+  const last = new Date(Date.UTC(y, mo + 1, 0))
+  last.setUTCHours(23, 59, 59, 999)
+  return last.toISOString()
+}
+
+function electionTierSlug(text) {
+  if (/\b(us|u\.?s\.?|american|united states)\s+(presidential|election)/i.test(text)) return 'us-pres'
+  if (/\b(primary|primaries)\b/i.test(text)) return 'primary'
+  if (/\b(presidential|election)\b/i.test(text)) return 'pres'
+  return 'general'
+}
+
+function electionEntitySlug(who) {
+  const w = String(who || '')
+    .trim()
+    .toLowerCase()
+  if (!w || w === 'the leading candidate') return 'open'
+  return slugifyKey(who, 48)
+}
+
+/** One Olympics lane per games year + coarse subtopic (medal table vs winter vs general, etc.). */
+function olympicsSubtopicSlug(text, year) {
+  const lower = text.toLowerCase()
+  if (/\bwinter\b/i.test(lower)) return 'winter'
+  if (/\bmedal\b/i.test(lower)) return 'medal-table'
+  if (year === 2024 && /\bparis\b/i.test(lower)) return 'paris-host'
+  if (year === 2026 && /\b(milan|cortina)\b/i.test(lower)) return 'milan-cortina'
+  if (year === 2028 && /\b(los\s+angeles|\bla\b)\b/i.test(lower)) return 'la-host'
+  if (/\bsummer\b/i.test(lower)) return 'summer'
+  return 'general'
+}
+
+function extractTechAntitrustCompanySlug(text) {
+  const checks = [
+    [/\bAmazon\b/i, 'amazon'],
+    [/\bApple\b/i, 'apple'],
+    [/\bGoogle\b/i, 'google'],
+    [/\bAlphabet\b/i, 'alphabet'],
+    [/\bMeta\b/i, 'meta'],
+    [/\bMicrosoft\b/i, 'microsoft'],
+    [/\bOpenAI\b/i, 'openai'],
+    [/\bNvidia\b/i, 'nvidia'],
+    [/\bNVDA\b/, 'nvidia'],
+  ]
+  for (const [re, slug] of checks) {
+    if (re.test(text)) return slug
+  }
+  return 'general'
 }
 
 /** Extract a year from text (e.g. "2024", "2028"). */
@@ -153,13 +221,6 @@ function isHotConflict(text) {
   return isNamed && (hasEndSignal || /\b(war|invasion|conflict)\b/i.test(text))
 }
 
-function daysFromNowIso(days) {
-  const d = new Date()
-  d.setUTCDate(d.getUTCDate() + days)
-  d.setUTCHours(23, 59, 59, 999)
-  return d.toISOString()
-}
-
 /** Fed macro headlines when FRED API was not used (no key or weak match). */
 const FED_MACRO_RE = /\b(federal reserve|fomc|the fed|fed chair|jerome powell|interest rates?|fed funds|policy rate)\b/i
 
@@ -188,11 +249,15 @@ export function enrichNewsEvent(ev, options = {}) {
     const entity = extractElectionEntity(text)
     const electionName = inferElectionName(text, year)
     const who = entity || 'the leading candidate'
+    const tier = electionTierSlug(text)
+    const entSlug = electionEntitySlug(who)
+    const stableArticleId = `election-${year}-${tier}-${entSlug}`
     const title = `Will ${who} win the ${electionName}?`
     const resolutionCriteria = `Yes if ${who} is certified or officially declared winner of the ${electionName} by major outlets (e.g. AP, Reuters) or official certification.`
     const oneLiner = `${who} wins ${electionName}; otherwise No.`
     return {
       ...ev,
+      id: stableArticleId,
       source: 'operator_manual',
       oracleSource: 'operator_manual',
       categoryHint: 'Politics',
@@ -208,6 +273,9 @@ export function enrichNewsEvent(ev, options = {}) {
         customType: 'election',
         outcomeResolutionKind: 'operator_manual',
         seedHeadline: rawTitle,
+        electionYear: year,
+        electionTier: tier,
+        electionEntitySlug: entSlug,
       },
     }
   }
@@ -218,6 +286,8 @@ export function enrichNewsEvent(ev, options = {}) {
     const year = extractYear(text) || new Date().getFullYear()
     const deadline = OLYMPICS_DEADLINES[year] || (year <= 2024 ? OLYMPICS_DEADLINES[2024] : `${year}-08-15T23:59:59.000Z`)
     const shortHeadline = rawTitle.replace(/^Will\s+"(.+)"\s+be\s+.+$/i, '$1').replace(/^Will\s+/i, '').slice(0, 80)
+    const olySub = olympicsSubtopicSlug(text, year)
+    const stableArticleId = `olympics-${year}-${olySub}`
     const title = shortHeadline.includes('Olympic') || shortHeadline.includes('medal')
       ? `Will ${shortHeadline} by end of ${year} Olympics?`
       : `Will ${shortHeadline} be confirmed by end of ${year} Olympics?`
@@ -225,6 +295,7 @@ export function enrichNewsEvent(ev, options = {}) {
     const oneLiner = `Outcome confirmed by end of ${year} Olympics; otherwise No.`
     return {
       ...ev,
+      id: stableArticleId,
       source: 'operator_manual',
       oracleSource: 'operator_manual',
       categoryHint: 'Sports',
@@ -240,6 +311,8 @@ export function enrichNewsEvent(ev, options = {}) {
         customType: 'olympics',
         outcomeResolutionKind: 'operator_manual',
         seedHeadline: rawTitle,
+        olympicsYear: year,
+        olympicsSubtopic: olySub,
       },
     }
   }
@@ -282,11 +355,14 @@ export function enrichNewsEvent(ev, options = {}) {
   // ---- FDA / drug regulatory (one per batch) ----
   if (/\bFDA\b/i.test(text) && /\b(approv|clear|authoriz|reject|denied|warning letter)\b/i.test(text) && !used.fda_drug) {
     used.fda_drug = true
-    const deadline = daysFromNowIso(200)
+    const deadline = stableDeadlineEndOfMonthFromDaysAhead(200)
+    const ym = deadline.slice(0, 7)
+    const stableArticleId = `fda-drug-op-${ym}`
     const title = `Will the FDA regulatory outcome described in this news thread be confirmed by ${deadline.slice(0, 10)}?`
     const resolutionCriteria = `Yes if FDA approval, clearance, rejection, or formal action matching the headline is confirmed by FDA communications or major outlets (e.g. AP, Reuters). Otherwise No.`
     return {
       ...ev,
+      id: stableArticleId,
       source: 'operator_manual',
       oracleSource: 'operator_manual',
       categoryHint: 'Science',
@@ -302,6 +378,7 @@ export function enrichNewsEvent(ev, options = {}) {
         customType: 'fda_drug',
         outcomeResolutionKind: 'operator_manual',
         seedHeadline: rawTitle,
+        operatorDedupeYm: ym,
       },
     }
   }
@@ -313,11 +390,14 @@ export function enrichNewsEvent(ev, options = {}) {
     !used.court
   ) {
     used.court = true
-    const deadline = daysFromNowIso(240)
+    const deadline = stableDeadlineEndOfMonthFromDaysAhead(240)
+    const ym = deadline.slice(0, 7)
+    const stableArticleId = `court-op-${ym}`
     const title = `Will the court outcome referenced in this headline be confirmed by ${deadline.slice(0, 10)}?`
     const resolutionCriteria = `Yes if the decision or order described is issued and reported by official court sources or major outlets. Otherwise No.`
     return {
       ...ev,
+      id: stableArticleId,
       source: 'operator_manual',
       oracleSource: 'operator_manual',
       categoryHint: 'Politics',
@@ -333,6 +413,7 @@ export function enrichNewsEvent(ev, options = {}) {
         customType: 'court',
         outcomeResolutionKind: 'operator_manual',
         seedHeadline: rawTitle,
+        operatorDedupeYm: ym,
       },
     }
   }
@@ -344,11 +425,14 @@ export function enrichNewsEvent(ev, options = {}) {
     !used.legislation
   ) {
     used.legislation = true
-    const deadline = daysFromNowIso(150)
+    const deadline = stableDeadlineEndOfMonthFromDaysAhead(150)
+    const ym = deadline.slice(0, 7)
+    const stableArticleId = `legislation-op-${ym}`
     const title = `Will the legislative outcome described in this headline occur by ${deadline.slice(0, 10)}?`
     const resolutionCriteria = `Yes if the bill or action described becomes law, fails a decisive vote, or is vetoed as claimed, per Congress.gov / official sources or major outlets. Otherwise No.`
     return {
       ...ev,
+      id: stableArticleId,
       source: 'operator_manual',
       oracleSource: 'operator_manual',
       categoryHint: 'Politics',
@@ -364,6 +448,7 @@ export function enrichNewsEvent(ev, options = {}) {
         customType: 'legislation',
         outcomeResolutionKind: 'operator_manual',
         seedHeadline: rawTitle,
+        operatorDedupeYm: ym,
       },
     }
   }
@@ -374,11 +459,14 @@ export function enrichNewsEvent(ev, options = {}) {
     !used.mna_ipo
   ) {
     used.mna_ipo = true
-    const deadline = daysFromNowIso(180)
+    const deadline = stableDeadlineEndOfMonthFromDaysAhead(180)
+    const ym = deadline.slice(0, 7)
+    const stableArticleId = `mna-ipo-op-${ym}`
     const title = `Will the corporate transaction referenced in this headline close or price as described by ${deadline.slice(0, 10)}?`
     const resolutionCriteria = `Yes if the deal, listing, or transaction outcome matches the headline’s claim per SEC filings, exchange notices, or major outlets. Otherwise No.`
     return {
       ...ev,
+      id: stableArticleId,
       source: 'operator_manual',
       oracleSource: 'operator_manual',
       categoryHint: 'Finance',
@@ -394,6 +482,7 @@ export function enrichNewsEvent(ev, options = {}) {
         customType: 'mna_ipo',
         outcomeResolutionKind: 'operator_manual',
         seedHeadline: rawTitle,
+        operatorDedupeYm: ym,
       },
     }
   }
@@ -406,11 +495,14 @@ export function enrichNewsEvent(ev, options = {}) {
     !used.macro_data
   ) {
     used.macro_data = true
-    const deadline = daysFromNowIso(60)
+    const deadline = stableDeadlineEndOfMonthFromDaysAhead(60)
+    const ym = deadline.slice(0, 7)
+    const stableArticleId = `macro-data-op-${ym}`
     const title = `Will the macroeconomic print referenced in this headline match the direction implied (vs prior / consensus) by ${deadline.slice(0, 10)}?`
     const resolutionCriteria = `Yes if the official release (BLS, BEA, or primary source) plus major coverage support the headline’s implied surprise direction. Operator applies published rubric. Otherwise No.`
     return {
       ...ev,
+      id: stableArticleId,
       source: 'operator_manual',
       oracleSource: 'operator_manual',
       categoryHint: 'Finance',
@@ -426,6 +518,7 @@ export function enrichNewsEvent(ev, options = {}) {
         customType: 'macro_data',
         outcomeResolutionKind: 'operator_manual',
         seedHeadline: rawTitle,
+        operatorDedupeYm: ym,
       },
     }
   }
@@ -433,11 +526,14 @@ export function enrichNewsEvent(ev, options = {}) {
   // ---- Fed / rates without FRED automation (one per batch) ----
   if (FED_MACRO_RE.test(text) && !used.fed_operator) {
     used.fed_operator = true
-    const deadline = daysFromNowIso(60)
+    const deadline = stableDeadlineEndOfMonthFromDaysAhead(60)
+    const ym = deadline.slice(0, 7)
+    const stableArticleId = `fed-operator-op-${ym}`
     const title = `Will Federal Reserve policy developments match the headline’s implication by ${deadline.slice(0, 10)}?`
     const resolutionCriteria = `Yes if FOMC actions, statements, and subsequent market-standard interpretation align with the headline’s implied path (cut/hike/hold) per FOMC materials and major outlets. Operator-settled.`
     return {
       ...ev,
+      id: stableArticleId,
       source: 'operator_manual',
       oracleSource: 'operator_manual',
       categoryHint: 'Finance',
@@ -453,6 +549,7 @@ export function enrichNewsEvent(ev, options = {}) {
         customType: 'fed_operator',
         outcomeResolutionKind: 'operator_manual',
         seedHeadline: rawTitle,
+        operatorDedupeYm: ym,
       },
     }
   }
@@ -463,11 +560,14 @@ export function enrichNewsEvent(ev, options = {}) {
     !used.summit
   ) {
     used.summit = true
-    const deadline = daysFromNowIso(120)
+    const deadline = stableDeadlineEndOfMonthFromDaysAhead(120)
+    const ym = deadline.slice(0, 7)
+    const stableArticleId = `summit-op-${ym}`
     const title = `Will the diplomatic outcome suggested in this headline materialize by ${deadline.slice(0, 10)}?`
     const resolutionCriteria = `Yes if the agreement, meeting, or ceasefire described is confirmed by official communiqués or major outlets. Otherwise No.`
     return {
       ...ev,
+      id: stableArticleId,
       source: 'operator_manual',
       oracleSource: 'operator_manual',
       categoryHint: 'News',
@@ -483,6 +583,7 @@ export function enrichNewsEvent(ev, options = {}) {
         customType: 'summit',
         outcomeResolutionKind: 'operator_manual',
         seedHeadline: rawTitle,
+        operatorDedupeYm: ym,
       },
     }
   }
@@ -494,11 +595,15 @@ export function enrichNewsEvent(ev, options = {}) {
     !used.tech_antitrust
   ) {
     used.tech_antitrust = true
-    const deadline = daysFromNowIso(365)
+    const deadline = stableDeadlineEndOfMonthFromDaysAhead(365)
+    const ym = deadline.slice(0, 7)
+    const co = extractTechAntitrustCompanySlug(text)
+    const stableArticleId = `tech-antitrust-${co}-${ym}`
     const title = `Will the regulatory or antitrust outcome referenced in this headline be confirmed by ${deadline.slice(0, 10)}?`
     const resolutionCriteria = `Yes if the enforcement action, ruling, or settlement described is finalized per agencies, courts, or major outlets. Otherwise No.`
     return {
       ...ev,
+      id: stableArticleId,
       source: 'operator_manual',
       oracleSource: 'operator_manual',
       categoryHint: 'Tech & AI',
@@ -514,6 +619,8 @@ export function enrichNewsEvent(ev, options = {}) {
         customType: 'tech_antitrust',
         outcomeResolutionKind: 'operator_manual',
         seedHeadline: rawTitle,
+        techAntitrustTarget: co,
+        operatorDedupeYm: ym,
       },
     }
   }
