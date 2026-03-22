@@ -80,8 +80,8 @@ See **`CRYPTO_DEPOSITS.md`** for crypto-specific secrets.
 - **Cron Worker (recommended):** A Worker runs on a schedule and calls your site’s `POST /api/auto-markets` to seed markets.
   - Deploy the cron Worker: `cd workers/auto-markets-cron && npx wrangler deploy`
   - In Cloudflare Dashboard → Workers & Pages → **dice-express-auto-markets-cron** → Settings → Variables: set **SITE_URL** to your site (e.g. `https://dice-express.pages.dev` or your custom domain).
-  - Optional: **AUTO_MARKETS_SOURCE** = `sports` (default), `crypto`, `stocks`, `weather`, etc.; **AUTO_MARKETS_LIMIT** = `10`.
-  - Default schedule: daily at 08:00 UTC. Edit `workers/auto-markets-cron/wrangler.toml` → `crons` to change.
+  - Leave **AUTO_MARKETS_SOURCE** unset for full **seed_all** (all integrated lanes; sports on configurable UTC hours — see `workers/auto-markets-cron/README.md`). Set it only to debug a single source.
+  - Default schedule: **every hour** UTC. Edit `workers/auto-markets-cron/wrangler.toml` → `crons` to change.
 - **API keys (on the Pages project):** For **sports** set **THE_ODDS_API_KEY** (free 500 req/month). For stocks: **ALPHA_VANTAGE_API_KEY**. For crypto, CoinGecko can work without a key (rate limited). See `workers/auto-markets-cron/README.md` and `docs/PREDICTION_MARKETS.md`.
 - **Manual seed:** You can also call `POST https://<your-site>/api/auto-markets` with body `{ "action": "seed", "source": "sports", "limit": 10 }` anytime (e.g. from Postman or a script).
 

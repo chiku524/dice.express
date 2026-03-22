@@ -1,35 +1,45 @@
 /**
- * Cron Worker: seeds automated prediction markets (all APIs with keys) and resolves due markets.
+ * Cron Worker: seeds automated prediction markets (all integrated lanes) and resolves due markets.
  * Deploy: cd workers/auto-markets-cron && npx wrangler deploy
  * Set env: SITE_URL. Optional: AUTO_MARKETS_CRON_SECRET, AUTO_MARKETS_LIMIT (default 25),
- * AUTO_MARKETS_NEWS_LIMIT (default 50, for news/enriched sources), AUTO_MARKETS_SOURCE.
- * Sports runs once per day (UTC 08:00) to stay under The Odds API 500 req/month.
+ * AUTO_MARKETS_NEWS_LIMIT (default 50), AUTO_MARKETS_SOURCE (single-source override).
+ *
+ * Non-sports sources match `AUTO_MARKET_SOURCES` in functions/lib/data-sources.mjs (including massive).
+ * Sports (The Odds API, ~500 req/month): default 4 UTC slots/day; override with AUTO_MARKETS_SPORTS_HOURS_UTC
+ * or set AUTO_MARKETS_SPORTS_EVERY_RUN=1 to run every cron tick (high quota use).
  */
 
+import { AUTO_MARKET_SOURCES_WITHOUT_SPORTS } from '../../functions/lib/data-sources.mjs'
+
+/** Default Odds API cadence: four seeds/day (~124/mo at hourly cron). */
+const DEFAULT_SPORTS_HOURS_UTC = [2, 8, 14, 20]
+
 /**
- * All auto-market sources except `sports` (Odds API quota: sports only at SPORTS_HOUR_UTC).
- * Keep in sync with `AUTO_MARKET_SOURCES` in functions/lib/data-sources.mjs (same order minus leading sports).
+ * @param {Record<string, unknown>} env
+ * @returns {number[]}
  */
-const HOURLY_SOURCES = [
-  'stocks',
-  'crypto',
-  'crypto_trend',
-  'weather',
-  'weatherapi',
-  'frankfurter',
-  'usgs',
-  'fec',
-  'nasa_neo',
-  'congress_gov',
-  'bls',
-  'fred',
-  'finnhub',
-  'news',
-  'perigon',
-  'newsapi_ai',
-  'newsdata_io',
-]
-const SPORTS_HOUR_UTC = 8
+function parseSportsHoursUTC(env) {
+  const raw = env.AUTO_MARKETS_SPORTS_HOURS_UTC
+  if (raw == null || String(raw).trim() === '') return DEFAULT_SPORTS_HOURS_UTC
+  const parts = String(raw)
+    .split(',')
+    .map((s) => parseInt(s.trim(), 10))
+    .filter((h) => !Number.isNaN(h) && h >= 0 && h <= 23)
+  return parts.length > 0 ? parts : DEFAULT_SPORTS_HOURS_UTC
+}
+
+/**
+ * @param {Record<string, unknown>} env
+ * @param {number} hourUtc
+ */
+function shouldSeedSportsThisRun(env, hourUtc) {
+  const every =
+    env.AUTO_MARKETS_SPORTS_EVERY_RUN === '1' ||
+    env.AUTO_MARKETS_SPORTS_EVERY_RUN === 'true' ||
+    String(env.AUTO_MARKETS_SPORTS_EVERY_RUN || '').toLowerCase() === 'yes'
+  if (every) return true
+  return parseSportsHoursUTC(env).includes(hourUtc)
+}
 
 function clampLimit(n, max = 100) {
   const x = parseInt(String(n), 10)
@@ -56,8 +66,9 @@ export default {
         newsEnrichedPerSourceLimit,
       }
     } else {
-      const hour = new Date().getUTCHours()
-      const sources = hour === SPORTS_HOUR_UTC ? ['sports', ...HOURLY_SOURCES] : HOURLY_SOURCES
+      const hourUtc = new Date().getUTCHours()
+      const nonSports = [...AUTO_MARKET_SOURCES_WITHOUT_SPORTS]
+      const sources = shouldSeedSportsThisRun(env, hourUtc) ? ['sports', ...nonSports] : nonSports
       body = { action: 'seed_all', perSourceLimit, newsEnrichedPerSourceLimit, sources }
     }
 
@@ -78,7 +89,6 @@ export default {
       console.error('[auto-markets-cron] seed', err.message)
     }
 
-    // 2. Resolve due markets (settle winners)
     try {
       const resolveRes = await fetch(`${siteUrl}/api/resolve-markets`, { method: 'POST', headers })
       const resolveData = await resolveRes.json().catch(() => ({}))

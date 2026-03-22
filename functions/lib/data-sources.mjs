@@ -1357,6 +1357,9 @@ export const AUTO_MARKET_SOURCES = [
   'massive',
 ]
 
+/** Same order as seed_all, minus sports (The Odds API monthly quota). Used by auto-markets cron Worker. */
+export const AUTO_MARKET_SOURCES_WITHOUT_SPORTS = AUTO_MARKET_SOURCES.filter((s) => s !== 'sports')
+
 /** Default events requested per non-news source when seeding. */
 export const DEFAULT_SEED_PER_SOURCE_LIMIT = 25
 

@@ -20,12 +20,20 @@ Set in Cloudflare Dashboard → Workers & Pages → dice-express-auto-markets-cr
 | **AUTO_MARKETS_LIMIT** | No | Per-source cap for **non-news** APIs (default `25` in `wrangler.toml`, hard max `100` in API). Lower (e.g. `4`) reduces markets per run and API usage; it does **not** control news volume (see next row). |
 | **AUTO_MARKETS_NEWS_LIMIT** | No | Per-source cap for **news / enriched** sources (`news`, `perigon`, `newsapi_ai`, `newsdata_io`). Default `50` when unset in Worker env. |
 | **AUTO_MARKETS_CRON_SECRET** | No | If set on the **Worker**, every seed request sends `X-Cron-Secret`. If you set the **same** variable on the **Pages** project (`AUTO_MARKETS_CRON_SECRET`), `POST /api/auto-markets` seed actions **require** a matching header (401 otherwise). Use both together for production. |
+| **AUTO_MARKETS_SPORTS_HOURS_UTC** | No | Comma-separated hours (0–23) when **sports** is included in `seed_all`. Default **`2,8,14,20`** (~4 Odds API calls/day, ~124/month at hourly cron). Example: **`8`** for once daily at 08:00 UTC only. |
+| **AUTO_MARKETS_SPORTS_EVERY_RUN** | No | If **`1`** / **`true`** / **`yes`**, **sports** runs **every** cron tick (fresh odds often; **high** The Odds API usage — ~720+/month on hourly cron). |
 
 ## Cron schedule
 
 Default: **every hour** (`0 * * * *`). Each run (1) seeds new markets, then (2) calls **POST /api/resolve-markets**.
 
-**Quota-friendly behavior:** Sports (The Odds API, 500 req/month) is included only at **UTC 08:00**; other hours seed all other integrated lanes (stocks, crypto, weather, Frankfurter, USGS, FEC, NASA, Congress.gov, BLS, FRED, Finnhub, news providers). Alpha Vantage (stocks) still uses one symbol per run in code. Fetches run in parallel. Edit `wrangler.toml` → `[triggers]` → `crons` to change cadence.
+**Integrated lanes (non-sports):** Every tick calls the same source list as **`AUTO_MARKET_SOURCES`** in `functions/lib/data-sources.mjs` (including **massive**, minus **sports**), so new finance/crypto/weather/news/macro markets stay current as APIs return new events. Only **new** stable market IDs are inserted; duplicates are skipped.
+
+**Sports (The Odds API):** Included on the default **four UTC hours** above (~1 request per sports tick). Override hours or use **every run** only if your Odds plan allows it.
+
+**Outcome-based markets** stay controlled on **Pages** (`AUTO_MARKETS_OUTCOME_ONLY`, `AUTO_MARKETS_ALLOW_FEED_TOPIC`); the cron does not create feed-topic-only headline markets by itself.
+
+Edit `wrangler.toml` → `[triggers]` → `crons` to change cadence (e.g. `*/30 * * * *` for twice hourly).
 
 ## API keys (on the Pages project, not this Worker)
 

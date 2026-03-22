@@ -70,7 +70,7 @@ Reason:
 
 | Source | Env key | Typical limit / note |
 |--------|---------|----------------------|
-| Sports | THE_ODDS_API_KEY | 500 req/month (free); cron runs sports once/day at UTC 08:00 |
+| Sports | THE_ODDS_API_KEY | 500 req/month (free); cron includes sports on default UTC hours **02,08,14,20** (override **AUTO_MARKETS_SPORTS_HOURS_UTC** or **AUTO_MARKETS_SPORTS_EVERY_RUN** on the Worker) |
 | Stocks | ALPHA_VANTAGE_API_KEY | 25 req/day (free); cron uses 1 symbol per run, stocks_trend excluded from default |
 | Crypto | COINGECKO_API_KEY (optional) | Public API rate-limited; Pro key helps |
 | Crypto trend | COINGECKO_API_KEY (optional) | Same |
