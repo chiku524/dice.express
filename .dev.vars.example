@@ -54,9 +54,9 @@
 # WITHDRAWAL_FEE_RATE=0.02
 # WITHDRAWAL_FEE_MIN=1
 
-# ----- Auto-markets policy (optional) -----
-# Feed-topic markets (“headline still in GNews/Perigon/…”) are skipped by default in code.
-# Set to 1 only if you want those markets back:
+# ----- Auto-markets policy (optional; wrangler.toml [vars] includes AUTO_MARKETS_OUTCOME_ONLY=1) -----
+# AUTO_MARKETS_OUTCOME_ONLY=1
+# Set only if you want “headline still in feed” markets back:
 # AUTO_MARKETS_ALLOW_FEED_TOPIC=1
 
 # ----- Auto-markets (optional; set in Cloudflare Pages env for cron) -----

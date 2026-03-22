@@ -42,11 +42,13 @@ function envFlagTrue(env, key) {
 
 /**
  * "Feed-topic" markets = headline still visible in GNews/Perigon/etc. (not price/sports/FRED/oracles).
- * Skipped by default (no env required). Set AUTO_MARKETS_ALLOW_FEED_TOPIC=1 to create them again.
- * Legacy: AUTO_MARKETS_OUTCOME_ONLY=1 matched old opt-in skip; default skip makes it unnecessary.
+ * Skipped when AUTO_MARKETS_OUTCOME_ONLY=1 (committed in wrangler.toml) or by default when unset.
+ * Set AUTO_MARKETS_ALLOW_FEED_TOPIC=1 to create feed-topic markets anyway.
  */
 function shouldSkipFeedTopicHeadlineMarkets(env) {
   if (envFlagTrue(env, 'AUTO_MARKETS_ALLOW_FEED_TOPIC')) return false
+  const v = (env.AUTO_MARKETS_OUTCOME_ONLY ?? '').toString().trim().toLowerCase()
+  if (v === '0' || v === 'false' || v === 'no') return false
   return true
 }
 
@@ -1253,6 +1255,7 @@ async function handleWithD1(db, kv, r2, request, path, method, env = {}) {
         autoMarketsPolicy: {
           skipFeedTopicHeadlineMarkets: shouldSkipFeedTopicHeadlineMarkets(env),
           allowFeedTopicHeadlineMarkets: envFlagTrue(env, 'AUTO_MARKETS_ALLOW_FEED_TOPIC'),
+          autoMarketsOutcomeOnly: envFlagTrue(env, 'AUTO_MARKETS_OUTCOME_ONLY'),
         },
         seedSources: dataSources.AUTO_MARKET_SOURCES,
         seedLimits: {
