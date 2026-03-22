@@ -1353,7 +1353,7 @@ async function handleWithD1(db, kv, r2, request, path, method, env = {}) {
       const skipFeedTopicOnlyNews = shouldSkipFeedTopicHeadlineMarkets(env)
       let skippedFeedTopicNews = 0
       let skippedDedupe = 0
-      const existingVirtualRows = await storage.getContracts(db, { templateType: 'VirtualMarket', limit: 800 })
+      const existingVirtualRows = await storage.getContracts(db, { templateType: 'VirtualMarket', limit: 1500 })
       const occupiedDedupeKeys = marketDedupe.dedupeKeySetFromVirtualMarketRows(existingVirtualRows)
       const batchDedupeKeys = new Set()
       for (const ev of events) {

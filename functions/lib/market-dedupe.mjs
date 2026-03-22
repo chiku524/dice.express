@@ -1,6 +1,7 @@
 /**
- * Cross-market dedupe for auto-seed: same logical topic + resolution window → one contract.
- * Used when stable `market-${id}` is not enough (legacy rows, slug renames, title variants).
+ * Cross-market dedupe for auto-seed: same logical outcome + same resolution date + same
+ * outcome options → one contract. Uses oracle-specific keys when available, then a general
+ * text fingerprint (normalized title + criteria + settlement summary).
  */
 
 /** @param {string | null | undefined} iso */
@@ -37,6 +38,94 @@ function conflictYmFromTitle(title) {
  * @param {string} ym
  * @returns {string | null}
  */
+const STOPWORDS = new Set([
+  'a',
+  'an',
+  'and',
+  'are',
+  'as',
+  'at',
+  'be',
+  'by',
+  'for',
+  'from',
+  'in',
+  'into',
+  'is',
+  'it',
+  'of',
+  'on',
+  'or',
+  'per',
+  'the',
+  'this',
+  'that',
+  'to',
+  'vs',
+  'versus',
+  'was',
+  'were',
+  'will',
+  'with',
+  'any',
+])
+
+/** FNV-1a 32-bit hex — stable in Workers without crypto.subtle. */
+function fnv1a32Hex(s) {
+  let h = 2166136261
+  const str = String(s)
+  for (let i = 0; i < str.length; i++) {
+    h ^= str.charCodeAt(i)
+    h = Math.imul(h, 16777619)
+  }
+  return (h >>> 0).toString(16).padStart(8, '0')
+}
+
+/**
+ * Word-order invariant fingerprint: unique significant tokens, sorted.
+ * Keeps digits and $ for price-style markets.
+ */
+export function normalizeForOutcomeFingerprint(text) {
+  const raw = String(text || '')
+    .toLowerCase()
+    .replace(/[^a-z0-9$%.]+/g, ' ')
+    .split(/\s+/)
+    .filter(Boolean)
+  const seen = new Set()
+  const out = []
+  for (const w of raw) {
+    if (w.length < 2 && !/^\d/.test(w)) continue
+    if (STOPWORDS.has(w)) continue
+    if (seen.has(w)) continue
+    seen.add(w)
+    out.push(w)
+  }
+  out.sort()
+  return out.join(' ')
+}
+
+function resolutionDateKey(p) {
+  const rd = p.resolutionDeadline
+  if (typeof rd === 'string' && /^\d{4}-\d{2}-\d{2}/.test(rd)) return rd.slice(0, 10)
+  if (p.endDate != null && String(p.endDate).length >= 10) return String(p.endDate).slice(0, 10)
+  const oc = p.oracleConfig && typeof p.oracleConfig === 'object' ? p.oracleConfig : {}
+  const ocEnd = oc.endDate
+  if (typeof ocEnd === 'string' && ocEnd.length >= 10) return ocEnd.slice(0, 10)
+  const rd2 = oc.reportDate
+  if (typeof rd2 === 'string' && rd2.length >= 10) return rd2.slice(0, 10)
+  return ''
+}
+
+function outcomesFingerprint(p) {
+  const arr =
+    Array.isArray(p.outcomes) && p.outcomes.length > 0
+      ? p.outcomes.map((x) => String(x).toLowerCase().trim())
+      : ['yes', 'no']
+  const u = [...new Set(arr)].filter(Boolean)
+  u.sort()
+  return u.join('|')
+}
+
 function inferMiddleEastConflictDedupeKey(title, ym) {
   if (!ym) return null
   const t = String(title || '').toLowerCase()
@@ -101,7 +190,24 @@ export function buildDedupeKeyFromPayload(payload) {
   const legacy = inferMiddleEastConflictDedupeKey(title, ym)
   if (legacy) return legacy
 
-  return null
+  // Feed-topic markets are anchored to a specific headline thread; do not collapse by text fingerprint.
+  if (oc.newsResolutionMode === 'feed_topic_continuation') return null
+
+  const rd = resolutionDateKey(p)
+  const titleTrim = String(p.title || '').trim()
+  if (!rd || rd.length < 10 || titleTrim.length < 10) return null
+
+  const crit = String(p.resolutionCriteria || '')
+  const st = p.settlementTrigger
+  const settle =
+    st && typeof st === 'object' && st !== null && 'value' in st ? String(/** @type {{ value?: string }} */ (st).value || '') : ''
+
+  const bundle = normalizeForOutcomeFingerprint(`${titleTrim} ${crit} ${settle}`)
+  if (bundle.length < 12) return null
+
+  const outcomesFp = outcomesFingerprint(p)
+  const h = fnv1a32Hex(bundle)
+  return `out:${outcomesFp}:${rd}:${h}`
 }
 
 /**
