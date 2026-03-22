@@ -482,34 +482,55 @@
   cursor: not-allowed;
 }
 
-/* Filters header as full-width clickable button (markets page) */
-.filters-header-btn {
+/* Markets list: toolbar + three standalone dropdowns (no collapsible Filters header) */
+.markets-filters-toolbar {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.markets-filters-secondary {
+  margin-top: var(--spacing-md);
+  padding-top: var(--spacing-md);
+  border-top: 1px solid var(--color-border);
+}
+
+.markets-filters-quick-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--spacing-md);
+  margin-top: var(--spacing-lg);
+  padding: var(--spacing-md);
+  background: var(--color-surface-hover);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+}
+
+.markets-filter-dropdown {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+  flex: 1 1 160px;
+  min-width: 140px;
+  max-width: 280px;
+}
+
+.markets-filters-quick-row .filter-select {
   width: 100%;
-  cursor: pointer;
-  background: none;
-  border: none;
-  font: inherit;
-  color: inherit;
-  text-align: left;
-  padding: 0;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
 }
 
-.filters-header-btn:hover .filters-header-chevron {
-  color: var(--color-teal);
+.filter-badge--inline {
+  margin-right: var(--spacing-sm);
+  vertical-align: middle;
 }
 
-.filters-header-chevron {
+.filter-results--markets .filter-results-text {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  justify-content: center;
-  min-width: 32px;
-  height: 32px;
-  font-size: var(--font-size-sm);
-  color: var(--color-text-secondary);
-  transition: color var(--transition-base);
+  gap: var(--spacing-sm);
 }
 
 .market-grid {
@@ -517,6 +538,10 @@
   grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
   gap: var(--spacing-lg, 1.5rem);
   margin-top: var(--spacing-xl, 2rem);
+}
+
+.market-grid--below-toolbar {
+  margin-top: var(--spacing-md);
 }
 
 /* Market card styles are now in theme.css - removed duplicate to ensure theme.css takes precedence */

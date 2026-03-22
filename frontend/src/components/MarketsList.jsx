@@ -26,7 +26,6 @@ export default function MarketsList({ source: sourceFromRoute }) {
   const [selectedSource, setSelectedSource] = useState(sourceFromRoute || 'all')
   const [sortBy, setSortBy] = useState('volume') // 'volume', 'newest', 'oldest', 'ending_soon'
   const [currentPage, setCurrentPage] = useState(1)
-  const [filtersExpanded, setFiltersExpanded] = useState(false)
   const [retryCount, setRetryCount] = useState(0)
 
   const MARKETS_PER_PAGE = 12
@@ -308,285 +307,245 @@ export default function MarketsList({ source: sourceFromRoute }) {
         <p>{pageSubtitle}</p>
       </div>
       
-      {/* Filters Section — always show when loaded so discover pages (e.g. Sports, Virtual Realities) show filters even if category is empty */}
+      {/* Filters: always visible; Market Type, Status, Sort as separate dropdowns above the grid */}
       {(!loading && !error) && (
-        <div className="card mb-xl filters-card">
-          <button
-            type="button"
-            className="filters-header filters-header-btn"
-            onClick={() => setFiltersExpanded(!filtersExpanded)}
-            aria-expanded={filtersExpanded}
-            aria-label={filtersExpanded ? 'Collapse filters' : 'Expand filters'}
-          >
-            <div className="filters-header-left">
-              <h3 className="filters-title">Filters</h3>
-              {activeFilterCount > 0 && (
-                <span className="filter-badge">{activeFilterCount} active</span>
-              )}
+        <div className="card mb-xl filters-card markets-filters-card">
+          <div className="markets-filters-toolbar">
+            <div className="filter-group filter-group-full">
+              <label htmlFor="search">
+                <span>Search Markets</span>
+                {searchQuery && (
+                  <button
+                    type="button"
+                    className="filter-clear"
+                    onClick={() => setSearchQuery('')}
+                    aria-label="Clear search"
+                  >
+                    ×
+                  </button>
+                )}
+              </label>
+              <input
+                id="search"
+                type="text"
+                placeholder="Search by title, description, or market ID..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="filter-input"
+              />
             </div>
-            <span className={`filters-header-chevron ${filtersExpanded ? 'icon-chevron-up' : 'icon-chevron-down'}`} aria-hidden>
-              {filtersExpanded ? '▲' : '▼'}
-            </span>
-          </button>
-          
-          {filtersExpanded && (
-            <>
-              <div className="filters-container">
-                {/* Search */}
-                <div className="filter-group filter-group-full">
-                  <label htmlFor="search">
-                    <span>Search Markets</span>
-                    {searchQuery && (
-                      <button
-                        type="button"
-                        className="filter-clear"
-                        onClick={() => setSearchQuery('')}
-                        aria-label="Clear search"
-                      >
-                        ×
-                      </button>
-                    )}
-                  </label>
-                  <input
-                    id="search"
-                    type="text"
-                    placeholder="Search by title, description, or market ID..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="filter-input"
-                  />
-                </div>
 
-            {/* Source Filter (only when on All Markets; on discover routes source is fixed) */}
-            {!sourceFromRoute && (
+            <div className="filters-container markets-filters-secondary">
+              {!sourceFromRoute && (
+                <div className="filter-group">
+                  <label htmlFor="source">Source</label>
+                  <select
+                    id="source"
+                    value={selectedSource}
+                    onChange={(e) => setSelectedSource(e.target.value)}
+                    className="filter-select"
+                  >
+                    {MARKET_SOURCES.map(s => (
+                      <option key={s.value} value={s.value}>{s.label}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
               <div className="filter-group">
-                <label htmlFor="source">Source</label>
+                <label htmlFor="category">Category</label>
                 <select
-                  id="source"
-                  value={selectedSource}
-                  onChange={(e) => setSelectedSource(e.target.value)}
+                  id="category"
+                  value={selectedCategory}
+                  onChange={(e) => setSelectedCategory(e.target.value)}
                   className="filter-select"
                 >
-                  {MARKET_SOURCES.map(s => (
-                    <option key={s.value} value={s.value}>{s.label}</option>
+                  <option value="trending">Trending</option>
+                  <option value="all">All Categories</option>
+                  {MARKET_CATEGORIES.map(c => (
+                    <option key={c.value} value={c.value}>{c.label}</option>
                   ))}
                 </select>
               </div>
-            )}
 
-            {/* Category Filter */}
-            <div className="filter-group">
-              <label htmlFor="category">Category</label>
-              <select
-                id="category"
-                value={selectedCategory}
-                onChange={(e) => setSelectedCategory(e.target.value)}
-                className="filter-select"
-              >
-                <option value="trending">Trending</option>
-                <option value="all">All Categories</option>
-                {MARKET_CATEGORIES.map(c => (
-                  <option key={c.value} value={c.value}>{c.label}</option>
-                ))}
-              </select>
+              {availableTopics.length > 0 && (
+                <div className="filter-group">
+                  <label htmlFor="topic">Topic</label>
+                  <select
+                    id="topic"
+                    value={selectedTopic}
+                    onChange={(e) => setSelectedTopic(e.target.value)}
+                    className="filter-select"
+                  >
+                    <option value="all">All Topics</option>
+                    {availableTopics.map(topic => (
+                      <option key={topic} value={topic}>{topic}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
             </div>
-            
-            {/* Topic Filter */}
-            {availableTopics.length > 0 && (
-              <div className="filter-group">
-                <label htmlFor="topic">Topic</label>
+
+            <div
+              className="markets-filters-quick-row"
+              role="group"
+              aria-label="Market type, status, and sort"
+            >
+              <div className="markets-filter-dropdown">
+                <label htmlFor="type">Market Type</label>
                 <select
-                  id="topic"
-                  value={selectedTopic}
-                  onChange={(e) => setSelectedTopic(e.target.value)}
+                  id="type"
+                  value={selectedType}
+                  onChange={(e) => setSelectedType(e.target.value)}
                   className="filter-select"
                 >
-                  <option value="all">All Topics</option>
-                  {availableTopics.map(topic => (
-                    <option key={topic} value={topic}>{topic}</option>
-                  ))}
+                  <option value="all">All Types</option>
+                  <option value="binary">Binary</option>
+                  <option value="multi">Multi-Outcome</option>
                 </select>
               </div>
-            )}
-            
-            {/* Type Filter */}
-            <div className="filter-group">
-              <label htmlFor="type">Market Type</label>
-              <select
-                id="type"
-                value={selectedType}
-                onChange={(e) => setSelectedType(e.target.value)}
-                className="filter-select"
-              >
-                <option value="all">All Types</option>
-                <option value="binary">Binary</option>
-                <option value="multi">Multi-Outcome</option>
-              </select>
-            </div>
-            
-            {/* Status Filter */}
-            <div className="filter-group">
-              <label htmlFor="status">Status</label>
-              <select
-                id="status"
-                value={selectedStatus}
-                onChange={(e) => setSelectedStatus(e.target.value)}
-                className="filter-select"
-              >
-                <option value="all">All Statuses</option>
-                <option value="Active">Active</option>
-                <option value="Resolving">Resolving</option>
-                <option value="Settled">Settled</option>
-                <option value="PendingApproval">Pending Approval</option>
-              </select>
-            </div>
-            
-            {/* Sort */}
-            <div className="filter-group">
-              <label htmlFor="sort">Sort By</label>
-              <select
-                id="sort"
-                value={sortBy}
-                onChange={(e) => setSortBy(e.target.value)}
-                className="filter-select"
-              >
-                <option value="volume">Volume (High to Low)</option>
-                <option value="newest">Newest First</option>
-                <option value="oldest">Oldest First</option>
-                <option value="ending_soon">Ending Soon</option>
-              </select>
-            </div>
-            
+              <div className="markets-filter-dropdown">
+                <label htmlFor="status">Status</label>
+                <select
+                  id="status"
+                  value={selectedStatus}
+                  onChange={(e) => setSelectedStatus(e.target.value)}
+                  className="filter-select"
+                >
+                  <option value="all">All Statuses</option>
+                  <option value="Active">Active</option>
+                  <option value="Resolving">Resolving</option>
+                  <option value="Settled">Settled</option>
+                  <option value="PendingApproval">Pending Approval</option>
+                </select>
               </div>
-              
-              {/* Active Filter Badges */}
-              {activeFilterCount > 0 && (
-                <div className="active-filters">
-                  {debouncedSearchQuery && (
-                    <span className="filter-chip">
-                      Search: "{debouncedSearchQuery}"
-                      <button
-                        type="button"
-                        onClick={() => setSearchQuery('')}
-                        className="filter-chip-remove"
-                        aria-label="Remove search filter"
-                      >
-                        ×
-                      </button>
-                    </span>
-                  )}
-                  {selectedCategory !== 'all' && selectedCategory !== 'trending' && (
-                    <span className="filter-chip">
-                      Category: {selectedCategory}
-                      <button
-                        type="button"
-                        onClick={() => setSelectedCategory('trending')}
-                        className="filter-chip-remove"
-                        aria-label="Remove category filter"
-                      >
-                        ×
-                      </button>
-                    </span>
-                  )}
-                  {selectedTopic !== 'all' && (
-                    <span className="filter-chip">
-                      Topic: {selectedTopic}
-                      <button
-                        type="button"
-                        onClick={() => setSelectedTopic('all')}
-                        className="filter-chip-remove"
-                        aria-label="Remove topic filter"
-                      >
-                        ×
-                      </button>
-                    </span>
-                  )}
-                  {selectedType !== 'all' && (
-                    <span className="filter-chip">
-                      Type: {selectedType === 'binary' ? 'Binary' : 'Multi-Outcome'}
-                      <button
-                        type="button"
-                        onClick={() => setSelectedType('all')}
-                        className="filter-chip-remove"
-                        aria-label="Remove type filter"
-                      >
-                        ×
-                      </button>
-                    </span>
-                  )}
-                  {selectedStatus !== 'all' && (
-                    <span className="filter-chip">
-                      Status: {selectedStatus}
-                      <button
-                        type="button"
-                        onClick={() => setSelectedStatus('all')}
-                        className="filter-chip-remove"
-                        aria-label="Remove status filter"
-                      >
-                        ×
-                      </button>
-                    </span>
-                  )}
-                  {!sourceFromRoute && selectedSource !== 'all' && (
-                    <span className="filter-chip">
-                      Source: {getSourceLabel(selectedSource)}
-                      <button
-                        type="button"
-                        onClick={() => setSelectedSource('all')}
-                        className="filter-chip-remove"
-                        aria-label="Remove source filter"
-                      >
-                        ×
-                      </button>
-                    </span>
-                  )}
+              <div className="markets-filter-dropdown">
+                <label htmlFor="sort">Sort By</label>
+                <select
+                  id="sort"
+                  value={sortBy}
+                  onChange={(e) => setSortBy(e.target.value)}
+                  className="filter-select"
+                >
+                  <option value="volume">Volume (High to Low)</option>
+                  <option value="newest">Newest First</option>
+                  <option value="oldest">Oldest First</option>
+                  <option value="ending_soon">Ending Soon</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          {activeFilterCount > 0 && (
+            <div className="active-filters">
+              {debouncedSearchQuery && (
+                <span className="filter-chip">
+                  Search: &quot;{debouncedSearchQuery}&quot;
                   <button
                     type="button"
-                    className="filter-chip-clear-all"
-                    onClick={() => {
-                      setSearchQuery('')
-                      setSelectedCategory('trending')
-                      setSelectedTopic('all')
-                      setSelectedType('all')
-                      setSelectedStatus('all')
-                      setSelectedSource('all')
-                      setSortBy('volume')
-                    }}
+                    onClick={() => setSearchQuery('')}
+                    className="filter-chip-remove"
+                    aria-label="Remove search filter"
                   >
-                    Clear All
+                    ×
                   </button>
-                </div>
+                </span>
               )}
-              
-              {/* Clear Filters Button */}
-              {activeFilterCount > 0 && (
-                <div className="filters-actions">
+              {selectedCategory !== 'all' && selectedCategory !== 'trending' && (
+                <span className="filter-chip">
+                  Category: {selectedCategory}
                   <button
                     type="button"
-                    className="btn-secondary btn-clear-filters"
-                    onClick={() => {
-                      setSearchQuery('')
-                      setSelectedCategory('trending')
-                      setSelectedTopic('all')
-                      setSelectedType('all')
-                      setSelectedStatus('all')
-                      setSelectedSource('all')
-                      setSortBy('volume')
-                    }}
+                    onClick={() => setSelectedCategory('trending')}
+                    className="filter-chip-remove"
+                    aria-label="Remove category filter"
                   >
-                    Clear All Filters
+                    ×
                   </button>
-                </div>
+                </span>
               )}
-            </>
+              {selectedTopic !== 'all' && (
+                <span className="filter-chip">
+                  Topic: {selectedTopic}
+                  <button
+                    type="button"
+                    onClick={() => setSelectedTopic('all')}
+                    className="filter-chip-remove"
+                    aria-label="Remove topic filter"
+                  >
+                    ×
+                  </button>
+                </span>
+              )}
+              {selectedType !== 'all' && (
+                <span className="filter-chip">
+                  Type: {selectedType === 'binary' ? 'Binary' : 'Multi-Outcome'}
+                  <button
+                    type="button"
+                    onClick={() => setSelectedType('all')}
+                    className="filter-chip-remove"
+                    aria-label="Remove type filter"
+                  >
+                    ×
+                  </button>
+                </span>
+              )}
+              {selectedStatus !== 'all' && (
+                <span className="filter-chip">
+                  Status: {selectedStatus}
+                  <button
+                    type="button"
+                    onClick={() => setSelectedStatus('all')}
+                    className="filter-chip-remove"
+                    aria-label="Remove status filter"
+                  >
+                    ×
+                  </button>
+                </span>
+              )}
+              {!sourceFromRoute && selectedSource !== 'all' && (
+                <span className="filter-chip">
+                  Source: {getSourceLabel(selectedSource)}
+                  <button
+                    type="button"
+                    onClick={() => setSelectedSource('all')}
+                    className="filter-chip-remove"
+                    aria-label="Remove source filter"
+                  >
+                    ×
+                  </button>
+                </span>
+              )}
+              <button
+                type="button"
+                className="filter-chip-clear-all"
+                onClick={() => {
+                  setSearchQuery('')
+                  setSelectedCategory('trending')
+                  setSelectedTopic('all')
+                  setSelectedType('all')
+                  setSelectedStatus('all')
+                  setSelectedSource('all')
+                  setSortBy('volume')
+                }}
+              >
+                Clear All
+              </button>
+            </div>
           )}
-          
-          {/* Results Count */}
-          <div className="filter-results">
+
+          <div className="filter-results filter-results--markets">
             <span className="filter-results-text">
+              {activeFilterCount > 0 && (
+                <span className="filter-badge filter-badge--inline">{activeFilterCount} active</span>
+              )}
               {totalFiltered === 0
                 ? 'No markets match.'
-                : <>Showing <strong>{(effectivePage - 1) * MARKETS_PER_PAGE + 1}</strong>–<strong>{Math.min(effectivePage * MARKETS_PER_PAGE, totalFiltered)}</strong> of <strong>{totalFiltered}</strong> markets{totalFiltered !== markets.length && ` (of ${markets.length} total)`}</>}
+                : (
+                  <>
+                    Showing <strong>{(effectivePage - 1) * MARKETS_PER_PAGE + 1}</strong>–<strong>{Math.min(effectivePage * MARKETS_PER_PAGE, totalFiltered)}</strong> of <strong>{totalFiltered}</strong> markets{totalFiltered !== markets.length && ` (of ${markets.length} total)`}
+                  </>
+                )}
             </span>
             {activeFilterCount > 0 && filteredAndSortedMarkets.length === 0 && (
               <span className="filter-no-results">
@@ -656,7 +615,7 @@ export default function MarketsList({ source: sourceFromRoute }) {
             </div>
           ) : (
             <>
-              <div className="market-grid">
+              <div className="market-grid market-grid--below-toolbar">
                 {paginatedMarkets.map((market) => {
                   const oneLiner = getMarketOneLiner(market.payload)
                   const categoryLabel = getCategoryDisplay(market.payload)
