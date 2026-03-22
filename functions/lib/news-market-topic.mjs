@@ -9,9 +9,15 @@ export const FEED_TOPIC_SOURCES = new Set(['gnews', 'perigon', 'newsapi_ai', 'ne
 /**
  * After `promoteNewsArticleToOutcomeMarket` + `enrichNewsEvent`, events that still use a raw news
  * API `source` would only become feed-topic continuation markets (not price/FRED/oracle outcomes).
+ *
+ * Promoted articles switch `source` + `oracleSource` to e.g. `alpha_vantage` / `finnhub` — those must
+ * NOT be treated as feed-topic (they are outcome/oracle markets).
  */
 export function isFeedTopicOnlyNewsCandidate(ev) {
-  return !!(ev && FEED_TOPIC_SOURCES.has(ev.source))
+  if (!ev || ev.customType) return false
+  const ocSrc = ev.oracleSource || ev.source
+  if (ocSrc && !FEED_TOPIC_SOURCES.has(ocSrc)) return false
+  return FEED_TOPIC_SOURCES.has(ev.source)
 }
 
 const STOPWORDS = new Set([

@@ -117,6 +117,8 @@ There is **no UI** and **no public API** for users to create markets. The route 
 | **newsapi_ai** | NewsAPI.ai | `NEWSAPI_AI_KEY` | Topic search. |
 | **newsdata_io** | NewsData.io | `NEWSDATA_API_KEY` | Latest news by query (English). |
 
+**News → outcome markets (automatic):** On each seed, `promoteNewsArticleToOutcomeMarket` runs first. Headlines that mention a **known ticker**, **earnings**, **Fed/macro**, or **major crypto** can become **price / Finnhub / FRED** markets (checkable oracles). Everything else used to become **feed-topic** markets (“headline still appears in this API feed”). **Those feed-topic markets are now skipped by default** so you are not flooded with Motley-Fool-style titles unless you opt in. Set **`AUTO_MARKETS_ALLOW_FEED_TOPIC=1`** in Cloudflare (or `.dev.vars`) to create them again. Confirm policy with `GET /api/auto-markets?action=probe` → `autoMarketsPolicy.skipFeedTopicHeadlineMarkets`.
+
 Sources without a key are skipped when using **seed_all**. Set **AUTO_MARKETS_SOURCE** to a single source (e.g. `sports`) to seed only that category.
 
 **Why do I only see Sports markets?** Markets are only created for sources that have an API key configured on the **Pages** project (Cloudflare env). If only `THE_ODDS_API_KEY` is set, only sports markets will be created. To get Finance/Crypto, Weather, or News markets, add the corresponding keys (e.g. `ALPHA_VANTAGE_API_KEY`, `COINGECKO_API_KEY`, `OPENWEATHER_API_KEY`, `WEATHERAPI_API_KEY`, `GNEWS_API_KEY`, `PERIGON_API_KEY`, `NEWSAPI_AI_KEY`, `NEWSDATA_API_KEY`) in Cloudflare Pages → Settings → Environment variables, then run the cron again or trigger a manual seed.

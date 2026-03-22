@@ -40,6 +40,16 @@ function envFlagTrue(env, key) {
   return v === '1' || v === 'true' || v === 'yes'
 }
 
+/**
+ * "Feed-topic" markets = headline still visible in GNews/Perigon/etc. (not price/sports/FRED/oracles).
+ * Skipped by default (no env required). Set AUTO_MARKETS_ALLOW_FEED_TOPIC=1 to create them again.
+ * Legacy: AUTO_MARKETS_OUTCOME_ONLY=1 matched old opt-in skip; default skip makes it unnecessary.
+ */
+function shouldSkipFeedTopicHeadlineMarkets(env) {
+  if (envFlagTrue(env, 'AUTO_MARKETS_ALLOW_FEED_TOPIC')) return false
+  return true
+}
+
 const USDC_ABI = parseAbi(['function transfer(address to, uint256 value) returns (bool)'])
 /** Send one withdrawal (EVM USDC/native or Solana SPL USDC). Returns { ok: true, txHash } or { ok: false, error }. */
 async function sendOneWithdrawal(env, db, w) {
@@ -1241,7 +1251,8 @@ async function handleWithD1(db, kv, r2, request, path, method, env = {}) {
         action: 'probe',
         keysPresent: dataSources.probeAutoMarketEnv(env),
         autoMarketsPolicy: {
-          skipFeedTopicNews: envFlagTrue(env, 'AUTO_MARKETS_OUTCOME_ONLY'),
+          skipFeedTopicHeadlineMarkets: shouldSkipFeedTopicHeadlineMarkets(env),
+          allowFeedTopicHeadlineMarkets: envFlagTrue(env, 'AUTO_MARKETS_ALLOW_FEED_TOPIC'),
         },
         seedSources: dataSources.AUTO_MARKET_SOURCES,
         seedLimits: {
@@ -1335,7 +1346,7 @@ async function handleWithD1(db, kv, r2, request, path, method, env = {}) {
         summit: false,
         tech_antitrust: false,
       }
-      const skipFeedTopicOnlyNews = envFlagTrue(env, 'AUTO_MARKETS_OUTCOME_ONLY')
+      const skipFeedTopicOnlyNews = shouldSkipFeedTopicHeadlineMarkets(env)
       let skippedFeedTopicNews = 0
       for (const ev of events) {
         const evPromoted = await promoteNewsArticleToOutcomeMarket(env, ev)

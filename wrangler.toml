@@ -30,8 +30,9 @@ id = "bf88f3a357f640ccb3173da7e163570d"
 # P2P-only: new markets get zero liquidity so platform never seeds capital. Trading requires matched orders (P2P).
 # Set to "0" or remove when you want to enable AMM with platform liquidity. See docs/ALGORITHMS_AND_RISK.md.
 AUTO_MARKETS_ZERO_LIQUIDITY = "1"
-# Skip automated markets that are only “headline still in feed” (feed-topic); keep oracle/outcome + operator outcome templates.
-AUTO_MARKETS_OUTCOME_ONLY = "1"
+# Feed-topic headline markets (GNews/Perigon/… “still in feed”) are SKIPPED by default in API code.
+# Set AUTO_MARKETS_ALLOW_FEED_TOPIC=1 here or in the dashboard to re-enable them.
+# (Legacy AUTO_MARKETS_OUTCOME_ONLY is no longer required.)
 
 # Platform deposit wallets (dice.express Coinbase wallet). EVM chains use the same 0x address.
 # Set secrets via Cloudflare Dashboard → Pages/Workers → Settings → Environment variables (see docs/CRYPTO_DEPOSITS.md).
