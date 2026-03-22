@@ -76,7 +76,7 @@ export default function Dashboard() {
           Sign in or create an account to get your own dashboard, profile, and portfolio.
         </p>
         <p className="wallet-hint mt-md" style={{ fontSize: 'var(--font-size-sm)' }}>
-          {BRAND_TAGLINE} — trade with Pips. No password required.
+          {BRAND_TAGLINE} — create an account or sign in to trade with Pips.
         </p>
         <button type="button" className="btn-primary mt-lg" onClick={openAccountModal}>
           Get started
@@ -99,7 +99,7 @@ export default function Dashboard() {
       </header>
 
       <p className="dashboard-subtitle">
-        Deposit with card or crypto to get Pips, trade on prediction markets, and withdraw from Portfolio.
+        Deposit with crypto to get Pips, trade on prediction markets, and withdraw from Portfolio.
       </p>
 
       <div className="dashboard-profile-card card">

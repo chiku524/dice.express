@@ -94,7 +94,7 @@ fn attach_window_close_handlers(app: &tauri::App) -> tauri::Result<()> {
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    let app = tauri::Builder::default()
+    let mut builder = tauri::Builder::default()
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_process::init())
@@ -102,7 +102,16 @@ pub fn run() {
             frontend_done: false,
             backend_done: false,
         }))
-        .invoke_handler(tauri::generate_handler![close_splash_and_show_main, set_splash_complete])
+        .invoke_handler(tauri::generate_handler![close_splash_and_show_main, set_splash_complete]);
+
+    #[cfg(desktop)]
+    {
+        builder = builder.plugin(tauri_plugin_single_instance::init(|app, _argv, _cwd| {
+            show_and_focus_main(app);
+        }));
+    }
+
+    let app = builder
         .setup(|app| {
             spawn(backend_setup(app.handle().clone()));
             create_tray(app.handle())?;

@@ -3,18 +3,20 @@ import './Documentation.css'
 
 const SECTIONS = [
   { id: 'getting-started', title: 'Getting Started' },
-  { id: 'wallet-authentication', title: 'Wallet & Authentication' },
-  { id: 'market-creation', title: 'Market Creation' },
-  { id: 'amm-fees', title: 'AMM & Fees' },
-  { id: 'position-creation', title: 'Position Creation' },
-  { id: 'deposit-withdraw', title: 'Deposit & Withdraw' },
+  { id: 'product-map', title: 'Product map' },
+  { id: 'wallet-authentication', title: 'Account & sign-in' },
+  { id: 'market-creation', title: 'Markets & discovery' },
+  { id: 'amm-fees', title: 'AMM, fees & limit orders' },
+  { id: 'position-creation', title: 'Trading & positions' },
+  { id: 'deposit-withdraw', title: 'Deposit & withdraw' },
   { id: 'portfolio', title: 'Portfolio' },
-  { id: 'admin-dashboard', title: 'Admin Dashboard' },
-  { id: 'blockchain', title: 'Blockchain Integration' },
-  { id: 'apis-oracles', title: 'APIs & Oracles' },
+  { id: 'admin-dashboard', title: 'Admin dashboard' },
+  { id: 'blockchain', title: 'Infrastructure' },
+  { id: 'apis-oracles', title: 'APIs & oracles' },
   { id: 'architecture', title: 'Architecture' },
   { id: 'security', title: 'Security' },
-  { id: 'api-reference', title: 'API Reference' },
+  { id: 'roadmap', title: 'Roadmap' },
+  { id: 'api-reference', title: 'API reference' },
 ]
 
 function getSectionFromHash() {
@@ -45,6 +47,8 @@ export default function Documentation() {
     switch (activeSection) {
       case 'getting-started':
         return <GettingStartedContent />
+      case 'product-map':
+        return <ProductMapContent />
       case 'wallet-authentication':
         return <WalletAuthenticationContent />
       case 'market-creation':
@@ -67,6 +71,8 @@ export default function Documentation() {
         return <ArchitectureContent />
       case 'security':
         return <SecurityContent />
+      case 'roadmap':
+        return <RoadmapContent />
       case 'api-reference':
         return <APIReferenceContent />
       default:
@@ -125,29 +131,96 @@ function GettingStartedContent() {
     <div className="doc-section">
       <h1>Getting Started</h1>
       <p>Welcome to dice.express — prediction markets with Pips. Your choice. Your chance.</p>
-      
+
       <h2>Overview</h2>
       <p>
-        Trade on prediction markets. Deposit with <strong>crypto</strong> (wallet or platform address) to get <strong>Pips</strong> (1 PP = $1 USD). Use Pips to buy Yes/No shares; withdraw earnings (fee applies). Markets are created automatically from real-world data; you only trade. All data runs on Cloudflare (D1, KV, R2).
+        Trade on prediction markets. Deposit with <strong>crypto</strong> (connected wallet or platform deposit address) to get <strong>Pips</strong> (1 PP = $1 USD). Spend Pips on <strong>AMM pool trades</strong> (instant price from liquidity) or <strong>limit orders</strong> (peer matching). Withdraw to crypto (fee applies). New markets are <strong>seeded automatically</strong> from external data APIs — there is no end-user market builder. Core API and data live on <strong>Cloudflare</strong> (D1, KV, R2).
       </p>
 
       <h2>Prerequisites</h2>
       <ul>
-        <li>An account — create one (email + password) or sign in from the nav</li>
+        <li>An account — email, password, and display name (create account or sign in from the nav)</li>
+        <li>For wallet deposits: a Web3 wallet (e.g. MetaMask) on Ethereum or Polygon for USDC or native ETH/MATIC</li>
       </ul>
 
-      <h2>Quick Start</h2>
+      <h2>Quick start</h2>
       <ol>
-        <li><strong>Create account:</strong> Click &quot;Create account&quot;, enter email, password, and display name. Choose how you&apos;ll add funds (card, crypto, or later).</li>
-        <li><strong>Deposit:</strong> In Portfolio → Balance, use <strong>Deposit from wallet</strong> (connect Web3 wallet, send USDC or native ETH/MATIC) or <strong>Deposit with crypto</strong> (send to platform address; we credit Pips when processed).</li>
-        <li><strong>Discover markets:</strong> Browse All Markets, With volume, Sports/Weather &amp; News, Finance &amp; Crypto, or Virtual Realities. Markets are created automatically — no user-created markets.</li>
-        <li><strong>Trade:</strong> Open a market and use the trade panel to buy Yes or No with Pips. View positions and balance in Portfolio.</li>
+        <li><strong>Create account:</strong> Use <strong>Create account</strong>, enter email, password, confirm password, and display name. On <strong>Fund your account</strong>, pick <strong>Crypto</strong> (deposit later from Portfolio) or <strong>Add funds later</strong>.</li>
+        <li><strong>Deposit:</strong> Open <strong>Portfolio</strong> → Balance → <strong>Deposit from wallet</strong> (sign message after transfer) or <strong>Deposit with crypto</strong> (send to the shown address; include your account ID in the memo when asked).</li>
+        <li><strong>Discover:</strong> Use <strong>Discover</strong> in the nav (web) or <strong>Browse categories</strong> (desktop) — see <a href="#product-map">Product map</a> for every category path.</li>
+        <li><strong>Trade:</strong> Open a market → <strong>Buy shares</strong> (AMM) and/or <strong>Limit orders</strong> (Yes/No book). Positions and balance appear under <strong>Portfolio</strong>.</li>
       </ol>
 
-      <h2>Key Concepts</h2>
+      <h2>Key concepts</h2>
       <ul>
-        <li><strong>Pips (PP):</strong> In-platform currency. 1 PP = $1 USD. You get Pips by depositing (card or crypto); you spend them to trade and can withdraw (fee applies).</li>
-        <li><strong>Display name / Party:</strong> Your public identifier; used for positions and balance. Account is stored locally and optionally on the server.</li>
+        <li><strong>Pips (PP):</strong> In-platform unit; 1 PP = $1 USD for display and accounting. Funded by crypto deposits; used for trading and tips; withdrawn as crypto (withdrawal fee applies).</li>
+        <li><strong>Display name:</strong> Public label (shown in the nav, tips, and order book). Linked to your account ID in storage and on the server.</li>
+      </ul>
+    </div>
+  )
+}
+
+function ProductMapContent() {
+  return (
+    <div className="doc-section">
+      <h1>Product map</h1>
+      <p>
+        Everything below is implemented in the app today. Use this as a sitemap for users and operators. Hash links match the sidebar (e.g. <code>#product-map</code>).
+      </p>
+
+      <h2>Web app (browser)</h2>
+      <ul>
+        <li><strong>Top navigation:</strong> Logo → home (<code>/</code>). <strong>Discover</strong> dropdown lists every public browse path (see table). <strong>Resources</strong> → Download desktop, Documentation (<code>/docs</code>), Activity (<code>/history</code>). When signed in: Pips balance → Portfolio, display name → Dashboard, copy button, Disconnect.</li>
+        <li><strong>Auth:</strong> <code>/register</code> (wizard), <code>/sign-in</code> — full-page flows without main chrome.</li>
+        <li><strong>Markets:</strong> <code>/market/:marketId</code> — resolution details, AMM trade, limit orders (binary active markets), volumes.</li>
+        <li><strong>Account hub (signed in):</strong> <code>/dashboard</code> (summary, account ID copy, links to Profile and Portfolio, <strong>Tip Pips</strong> to another display name). <code>/profile</code> — edit display name, account metadata, sign out. <code>/portfolio</code> — Balance, Positions, Activity tabs; crypto deposit and withdraw.</li>
+        <li><strong>Create market:</strong> <code>/create</code> — explains that markets are automated; link back to browse (no builder).</li>
+        <li><strong>Admin:</strong> <code>/admin</code> — for deployments using legacy <strong>Market creation requests</strong>: lists pending requests where you are the designated admin; approve/reject updates contract status via API.</li>
+        <li><strong>Marketing / legal:</strong> <code>/download</code> — desktop installers. <code>/privacy</code>, <code>/terms</code>. <code>/pitch</code> and <code>/investors</code> — pitch / investor brief (CyreneAI Solana fundraise).</li>
+      </ul>
+
+      <h2>Desktop app (Tauri)</h2>
+      <p>
+        Same React app inside a native shell. <code>/splashscreen</code> and <code>/launch</code> are intro/onboarding routes. The main shell uses a <strong>left sidebar</strong> (Markets flyout, Account: Dashboard / Portfolio / Profile, More: Create market, Documentation, Activity) instead of the top nav + footer. There is no Download link in the sidebar — open <code>/download</code> directly if you need installers inside the app. The system tray can trigger <strong>Sign out</strong> (clears session and navigates to sign-in).
+      </p>
+
+      <h2>Discover categories</h2>
+      <p>Labels match the UI; paths are stable URLs.</p>
+      <table className="docs-table" style={{ width: '100%', borderCollapse: 'collapse', marginTop: '1rem' }}>
+        <thead>
+          <tr style={{ borderBottom: '2px solid var(--color-border)' }}>
+            <th style={{ padding: '0.75rem', textAlign: 'left' }}>Label</th>
+            <th style={{ padding: '0.75rem', textAlign: 'left' }}>Path</th>
+          </tr>
+        </thead>
+        <tbody>
+          {[
+            ['All Markets', '/'],
+            ['With volume', '/discover/active'],
+            ['Sports', '/discover/sports'],
+            ['Weather & News', '/discover/global-events'],
+            ['Finance & Crypto', '/discover/industry'],
+            ['Tech & AI', '/discover/tech-ai'],
+            ['Politics', '/discover/politics'],
+            ['Entertainment', '/discover/entertainment'],
+            ['Science', '/discover/science'],
+            ['Virtual Realities', '/discover/virtual-realities'],
+          ].map(([label, path]) => (
+            <tr key={path} style={{ borderBottom: '1px solid var(--color-border)' }}>
+              <td style={{ padding: '0.75rem' }}>{label}</td>
+              <td style={{ padding: '0.75rem' }}><code>{path}</code></td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      <p className="docs-note" style={{ marginTop: '1rem', opacity: 0.9 }}>
+        A <strong>User-Created</strong> filter exists in config (<code>/discover/user</code>) but is hidden from the default Discover menu; use it if your deployment surfaces user-submitted markets.
+      </p>
+
+      <h2>Activity vs Portfolio</h2>
+      <ul>
+        <li><strong>Portfolio → Activity:</strong> Your in-app activity log (positions, deposits, etc.).</li>
+        <li><strong>Resources → Activity (<code>/history</code>):</strong> <strong>Contract history</strong> — markets, market requests, positions, and related contract records stored for your party (filter: All / Markets / Requests).</li>
       </ul>
     </div>
   )
@@ -156,32 +229,39 @@ function GettingStartedContent() {
 function WalletAuthenticationContent() {
   return (
     <div className="doc-section">
-      <h1>Account & Sign-in</h1>
-      
+      <h1>Account &amp; sign-in</h1>
+
       <h2>Creating an account</h2>
       <p>
-        Create an account with <strong>email and password</strong>. You choose a display name and how you&apos;ll add funds (card, crypto, or later). Your account is identified by display name and account ID (stored locally and on the server).
+        Accounts use <strong>email and password</strong> plus a <strong>display name</strong> (public). You choose whether you intend to fund with <strong>crypto</strong> soon or <strong>add funds later</strong>; either way you deposit from <strong>Portfolio</strong> when ready. The server stores a row keyed by <strong>account ID</strong>; the browser keeps session data in <code>localStorage</code> and syncs display name when possible.
       </p>
-      
+
       <h3>Registration steps</h3>
       <ol>
-        <li><strong>Step 1 — Account:</strong> Enter email, password, confirm password, and display name.</li>
-        <li><strong>Step 2 — Fund your account:</strong> Choose &quot;Crypto&quot; or &quot;Add funds later&quot;. You can deposit from Portfolio after signup.</li>
-        <li><strong>Step 3 — Complete:</strong> Review and click &quot;Create account&quot;. You&apos;re then taken to Dashboard (or Portfolio if you chose card, to add Pips).</li>
+        <li><strong>Step 1 — Account:</strong> Email, password, confirm password, display name (max 32 characters).</li>
+        <li><strong>Step 2 — Fund your account:</strong> <strong>Crypto</strong> (deposit later from Portfolio) or <strong>Add funds later</strong>.</li>
+        <li><strong>Step 3 — Complete:</strong> Review and <strong>Create account</strong> → you are signed in and sent to <strong>Dashboard</strong>.</li>
       </ol>
 
       <h2>Signing in</h2>
       <p>
-        Use &quot;Sign in&quot; and enter your <strong>email and password</strong> to restore your session. You&apos;ll land on Dashboard (or the page you were trying to open).
+        <strong>Sign in</strong> with email and password. Protected routes (e.g. Dashboard, Portfolio) require an active session. <strong>Disconnect</strong> / <strong>Sign out</strong> clears the local session.
       </p>
 
       <h2>Dashboard</h2>
-      <p>When signed in, go to <strong>Dashboard</strong> to view your display name, account ID, balance, positions, and links to Profile and Portfolio. You can also tip other users Pips from the Dashboard.</p>
+      <p>
+        <strong>Dashboard</strong> shows your display name, member since date, <strong>account ID</strong> (copy for deposit memos), and quick links to <strong>Profile</strong> and <strong>Portfolio</strong>. <strong>Tip Pips</strong> sends Pips to another user by their display name (<code>POST /api/transfer-pips</code>).
+      </p>
+
+      <h2>Profile</h2>
+      <p>
+        <strong>Profile</strong> (<code>/profile</code>) lets you update your display name (same validation as registration) and review account details.
+      </p>
 
       <h2>Security notes</h2>
       <ul>
-        <li>Display name and account ID are used for positions and Pips balance</li>
-        <li>Session data is stored in browser localStorage and optionally synced to the server</li>
+        <li>Display name is public (trading, tips, order book). Account ID is sensitive for linking deposits — treat memos and IDs like banking references.</li>
+        <li>Session lives in <code>localStorage</code>; use a private device or sign out when finished.</li>
       </ul>
     </div>
   )
@@ -190,31 +270,34 @@ function WalletAuthenticationContent() {
 function MarketCreationContent() {
   return (
     <div className="doc-section">
-      <h1>Markets & Discovery</h1>
-      
+      <h1>Markets &amp; discovery</h1>
+
       <p>
-        Prediction markets on dice.express are <strong>created automatically</strong> from external data (sports, crypto, weather, news, etc.). 
-        <strong> Users do not create markets.</strong> You browse and trade only.
+        Markets are <strong>seeded automatically</strong> from external data (sports, stocks, crypto, weather, news, etc.). Operators call <code>POST /api/auto-markets</code> (cron, script, or admin tool) — there is <strong>no in-app wizard</strong> for creating markets. The <code>/create</code> page explains this and links back to browse.
       </p>
 
       <h2>How to trade</h2>
       <ol>
-        <li>Go to <strong>Discover</strong> → All Markets, With volume (markets that have trading activity), Sports/Weather &amp; News, Finance &amp; Crypto, or Virtual Realities</li>
-        <li>Open a market to see full details, resolution criteria, settlement date, and current Yes/No odds</li>
-        <li>Use the <strong>Trade</strong> panel to buy Yes or No with Pips (AMM sets the price)</li>
-        <li>View positions and balance in <strong>Portfolio</strong></li>
+        <li>Open <strong>Discover</strong> and pick a category (All, With volume, Sports, Weather &amp; News, Finance &amp; Crypto, Tech &amp; AI, Politics, Entertainment, Science, Virtual Realities — see <a href="#product-map">Product map</a>).</li>
+        <li>Open a market for resolution criteria, deadline, implied odds (binary pool), and volumes.</li>
+        <li>Use <strong>Buy shares</strong> (AMM) and/or <strong>Limit orders</strong> (order book) on active binary markets.</li>
+        <li>Track balances and positions in <strong>Portfolio</strong>.</li>
       </ol>
 
-      <h2>Market sources</h2>
-      <p>Markets are seeded from APIs (e.g. The Odds API, CoinGecko, OpenWeatherMap, GNews). They auto-resolve when the outcome is known. No manual market creation or approval flow for users.</p>
+      <h2>Data sources (auto-markets)</h2>
+      <p>
+        Seeding supports multiple API lanes: sports (<strong>The Odds API</strong>), stocks (<strong>Alpha Vantage</strong> and trend variants), crypto (<strong>CoinGecko</strong> and trends), weather (<strong>OpenWeatherMap</strong>, <strong>WeatherAPI.com</strong>), and news (<strong>GNews</strong>, <strong>Perigon</strong>, <strong>NewsAPI.ai</strong>, <strong>NewsData.io</strong>). Resolution uses the same family of providers via <code>POST /api/resolve-markets</code> on a schedule you configure.
+      </p>
 
       <h2>Market types</h2>
-      <p>Most markets are <strong>binary</strong> (Yes/No). Multi-outcome markets are supported where the data source provides multiple outcomes.</p>
+      <p>
+        <strong>Binary</strong> markets use Yes/No (or labeled outcomes). <strong>Multi-outcome</strong> markets show per-outcome volumes and trade paths appropriate to that shape. Underlying records live in D1 (virtual contracts).
+      </p>
 
       <h2>Important notes</h2>
       <ul>
-        <li>All market and position data is stored in Cloudflare D1</li>
-        <li>Resolution is driven by oracles and due dates; no user-submitted resolution</li>
+        <li>Market list, pools, positions, and balances are stored in <strong>Cloudflare D1</strong>.</li>
+        <li>Resolution is automated from oracle/API data and deadlines — not user voting.</li>
       </ul>
     </div>
   )
@@ -223,33 +306,39 @@ function MarketCreationContent() {
 function AMMFeesContent() {
   return (
     <div className="doc-section">
-      <h1>AMM &amp; Fees</h1>
+      <h1>AMM, fees &amp; limit orders</h1>
       <p>
-        Markets use an <strong>Automated Market Maker (AMM)</strong>. You buy Yes or No shares with <strong>Pips</strong>; the AMM sets prices from the current pool state.
+        Binary markets combine two execution styles: an <strong>AMM pool</strong> for immediate <strong>Buy Yes / Buy No</strong> against liquidity, and an optional <strong>limit order book</strong> for peer matching at a chosen price.
       </p>
 
-      <h2>How the AMM works</h2>
+      <h2>AMM (pool trades)</h2>
       <p>
-        Each market has a liquidity pool. You pay Pips and receive shares (or sell shares for Pips). 
-        Larger orders move the price more; this gives continuous liquidity without a counterparty.
+        Each active binary market has a <strong>liquidity pool</strong>. You spend <strong>Pips</strong> to buy outcome shares at the current pool-implied price. Larger trades move the price more. The market page shows a live quote (e.g. Pips in → approximate shares out) before you confirm.
+      </p>
+      <p>
+        The UI states a <strong>0.3% fee</strong> on these pool trades (see on-page hint on the trade card). Pool parameters (fee rate, max trade fraction) come from the API.
       </p>
 
-      <h2>Trading with Pips</h2>
-      <ul>
-        <li>All trading uses <strong>Pips (PP)</strong> — 1 PP = $1 USD.</li>
-        <li>Add Pips via Portfolio → Balance: <strong>Deposit from wallet</strong> (USDC, ETH, or MATIC) or <strong>Deposit with crypto</strong> (send to platform address).</li>
-        <li>Buying Yes/No spends Pips; settling or selling returns Pips to your balance.</li>
-      </ul>
-
-      <h2>Fees</h2>
-      <ul>
-        <li><strong>Withdrawal:</strong> A fee applies (e.g. 2%, min 1 PP). Shown in Portfolio when you request a withdrawal.</li>
-        <li><strong>Trading:</strong> Any trading fee is shown in the trade panel when you place an order.</li>
-      </ul>
-
-      <h2>Quotes and slippage</h2>
+      <h2>Limit orders (order book)</h2>
       <p>
-        The UI shows a quote before you confirm (e.g. how many shares for X PP). Quotes use the current pool; execution may differ slightly if the pool changes (slippage). You can set a minimum acceptable amount to limit downside.
+        On active <strong>binary</strong> markets you can place <strong>limit orders</strong>: choose outcome (Yes/No), buy or sell, size, and price between 0 and 1. Orders rest on the book until someone takes the other side; matches create paired <strong>positions</strong>. The UI describes a <strong>2% fee on settlement</strong> for this path.
+      </p>
+
+      <h2>Funding trades</h2>
+      <ul>
+        <li>All execution is in <strong>Pips</strong> (1 PP = $1 USD display).</li>
+        <li>Fund via Portfolio → <strong>Deposit from wallet</strong> or <strong>Deposit with crypto</strong>.</li>
+        <li>Resolved markets credit winning positions back to Pips per platform rules.</li>
+      </ul>
+
+      <h2>Other fees</h2>
+      <ul>
+        <li><strong>Withdrawals:</strong> Platform fee (e.g. 2% with a minimum) — shown on the withdraw form.</li>
+      </ul>
+
+      <h2>Quotes and slippage (AMM)</h2>
+      <p>
+        Quotes reflect the pool at request time; the executed amount can differ if others trade first. If the trade exceeds the configured max fraction of reserves, the UI asks you to reduce size.
       </p>
     </div>
   )
@@ -258,34 +347,42 @@ function AMMFeesContent() {
 function PositionCreationContent() {
   return (
     <div className="doc-section">
-      <h1>Positions &amp; Trading</h1>
-      
+      <h1>Trading &amp; positions</h1>
+
       <p>
-        You open positions by buying Yes or No (or outcome) shares on a market, using your <strong>Pips</strong> balance. Positions are stored in Cloudflare D1. Add Pips from Portfolio (crypto) if needed.
+        You gain exposure by (1) <strong>buying pool shares</strong> with Pips on the AMM, or (2) having a <strong>limit order</strong> fill against another user. Both create <strong>positions</strong> stored in D1 and listed under Portfolio → Positions.
       </p>
 
-      <h2>Placing a trade</h2>
+      <h2>AMM trade</h2>
       <ol>
-        <li>Open a market from Discover (All Markets or a category)</li>
-        <li>In the <strong>Trade</strong> section, choose <strong>Yes</strong> or <strong>No</strong> (or the outcome for multi-outcome markets)</li>
-        <li>Enter the amount of Pips you want to spend (or shares you want to buy)</li>
-        <li>Review the quote and confirm. Your position is created and appears in Portfolio</li>
+        <li>Open a market from Discover.</li>
+        <li>Under <strong>Buy shares</strong>, pick <strong>Buy Yes</strong> or <strong>Buy No</strong>.</li>
+        <li>Enter the Pips amount; read the quote line.</li>
+        <li><strong>Confirm trade</strong> — pool and position update via <code>POST /api/trade</code>.</li>
       </ol>
 
-      <h2>Position types</h2>
+      <h2>Limit order</h2>
+      <ol>
+        <li>Under <strong>Limit orders</strong>, choose outcome, buy/sell, share amount, and price (0–1).</li>
+        <li>Submit — order is created via <code>POST /api/orders</code>; you may match immediately or rest on the book.</li>
+        <li>Open orders for the market are listed on the same card (up to a small preview count).</li>
+      </ol>
+
+      <h2>Outcomes</h2>
       <ul>
-        <li><strong>Yes:</strong> You profit if the market resolves to Yes</li>
-        <li><strong>No:</strong> You profit if the market resolves to No</li>
-        <li>Multi-outcome markets: choose one of the listed outcomes</li>
+        <li><strong>Binary:</strong> Yes vs No (labels may reflect True/False style in copy).</li>
+        <li><strong>Multi-outcome:</strong> trade controls follow the market shape shown on the detail page.</li>
       </ul>
 
       <h2>Resolution</h2>
-      <p>Markets auto-resolve when the outcome is known (from oracles/APIs). When resolved, winning positions are settled and Pips are credited to your balance.</p>
+      <p>
+        Operators run <code>POST /api/resolve-markets</code> on a schedule. When a market resolves, winning positions pay out to Pips balances according to platform rules.
+      </p>
 
-      <h2>Important notes</h2>
+      <h2>Data</h2>
       <ul>
-        <li>Positions use your Pips balance (deposit via crypto in Portfolio)</li>
-        <li>All position data is stored in Cloudflare D1 and linked to your account (party ID)</li>
+        <li>Positions and balances are keyed by your <strong>display name</strong> (party) in the API.</li>
+        <li>Everything persists in <strong>Cloudflare D1</strong> (plus optional R2 backups for some writes).</li>
       </ul>
     </div>
   )
@@ -309,10 +406,14 @@ function DepositWithdrawContent() {
       <h2>Withdrawals</h2>
       <p>In Portfolio, request a withdrawal by entering amount, destination address, network (Ethereum or Polygon), and token (USDC or native). A fee (e.g. 2%, min 1 PP) applies. Funds are sent from the platform wallet; status appears under &quot;Your withdrawal requests&quot;.</p>
 
-      <h2>APIs (reference)</h2>
+      <h2>Operator APIs (reference)</h2>
       <ul>
-        <li><code>POST /api/get-user-balance</code> — get balance (body: <code>{`{ userParty }`}</code>)</li>
-        <li><code>POST /api/add-credits</code> — internal/testing: add Pips (body: <code>{`{ userParty, amount }`}</code>)</li>
+        <li><code>POST /api/deposit-with-tx</code> — user-initiated wallet deposit with tx verification and signature.</li>
+        <li><code>POST /api/deposit-crypto</code> — credit Pips after an incoming transfer (automation or manual ops).</li>
+        <li><code>GET /api/deposit-addresses</code> — platform deposit addresses for the UI.</li>
+        <li><code>POST /api/process-withdrawals</code> — send queued withdrawals from the platform wallet (server-side).</li>
+        <li><code>GET|POST /api/get-user-balance</code> — balance for a party (query or JSON body <code>userParty</code>).</li>
+        <li><code>POST /api/add-credits</code> — testing / admin: add Pips (protect or disable in production).</li>
       </ul>
     </div>
   )
@@ -322,9 +423,9 @@ function PortfolioContent() {
   return (
     <div className="doc-section">
       <h1>Portfolio</h1>
-      
+
       <p>
-        Your hub for <strong>balance</strong>, <strong>deposits</strong>, <strong>withdrawals</strong>, and <strong>positions</strong>. Use the tabs: Balance, Positions, Activity.
+        Your hub for <strong>balance</strong>, <strong>deposits</strong>, <strong>withdrawals</strong>, and <strong>positions</strong>. Tabs: <strong>Balance</strong>, <strong>Positions</strong>, <strong>Activity</strong> (in-app activity). For raw <strong>contract history</strong> across templates, use <strong>Resources → Activity</strong> (<code>/history</code>).
       </p>
 
       <h2>Balance tab</h2>
@@ -350,17 +451,19 @@ function PortfolioContent() {
 function AdminDashboardContent() {
   return (
     <div className="doc-section">
-      <h1>Admin Dashboard</h1>
-      
+      <h1>Admin dashboard</h1>
+
       <p>
-        Optional admin area for reviewing and approving/rejecting market creation requests (if your deployment allows user-submitted markets). In the default dice.express setup, <strong>markets are automated</strong> from APIs, so this dashboard may be used for other admin tasks or legacy flows.
+        The <code>/admin</code> page is for deployments that still surface <strong>MarketCreationRequest</strong> contracts. It loads pending requests for the signed-in party when that party matches the request&apos;s <strong>admin</strong> field, then <strong>approve</strong> or <strong>reject</strong> by updating status through <code>PUT /api/update-contract-status</code>.
       </p>
 
-      <h2>Access</h2>
-      <p>Only users with admin privileges can access the Admin Dashboard. Typical use: review pending requests, approve or reject, and have approved markets appear in the list.</p>
+      <h2>Default product behavior</h2>
+      <p>
+        Today&apos;s public product is <strong>auto-markets only</strong> (no user builder). This screen is legacy/optional. If you never create market requests, the list may stay empty.
+      </p>
 
-      <h2>Data source</h2>
-      <p>Admin data is read from and written to Cloudflare D1.</p>
+      <h2>Data</h2>
+      <p>Contract rows are read from D1 via <code>get-contracts</code>-style storage helpers in the API worker.</p>
     </div>
   )
 }
@@ -368,15 +471,22 @@ function AdminDashboardContent() {
 function BlockchainContent() {
   return (
     <div className="doc-section">
-      <h1>Infrastructure &amp; Data</h1>
-      
-      <h2>Cloudflare-first</h2>
+      <h1>Infrastructure</h1>
+
+      <h2>Cloudflare-first backend</h2>
       <p>
-        Core data and API run on <strong>Cloudflare</strong>: D1 (SQL for markets, positions, balances), KV (cache), R2 (optional backup). Pips balances are in D1. No on-chain ledger is required for trading.
+        The live API is implemented as <strong>Cloudflare Pages Functions</strong> (<code>/api/*</code>) with <strong>D1</strong> as the system of record for markets, pools, orders, positions, balances, deposits, and withdrawals. <strong>KV</strong> caches light metadata (e.g. auto-market probes). <strong>R2</strong> optionally backs up selected contract payloads.
       </p>
 
-      <h2>Payments</h2>
-      <p><strong>Crypto:</strong> Deposit/withdraw use the platform wallet; you send/receive crypto and we credit or debit Pips in D1. Supported networks (e.g. Ethereum, Polygon) are configured per deployment.</p>
+      <h2>On-chain touchpoints</h2>
+      <p>
+        <strong>Ethereum</strong> and <strong>Polygon</strong> are used for <strong>deposits and withdrawals</strong> (USDC and native ETH/MATIC) via a configured platform wallet and RPC (e.g. Alchemy). Trading and Pips balances are <strong>off-chain</strong> in D1 — no user-signed chain tx is required to trade.
+      </p>
+
+      <h2>Clients</h2>
+      <p>
+        <strong>Web:</strong> React + Vite, React Router, wallet connect for deposits. <strong>Desktop:</strong> Tauri wraps the same frontend with a native window, sidebar navigation, and tray sign-out. Both talk to the same API origin.
+      </p>
     </div>
   )
 }
@@ -447,9 +557,9 @@ function APIsAndOraclesContent() {
       <p><strong>Status:</strong> Implemented and Active</p>
       <p><strong>Purpose:</strong> Weather forecasts for binary markets (e.g. &quot;Will it rain in [city] on [date]?&quot;). Set <code>OPENWEATHER_API_KEY</code> or <code>WEATHERAPI_API_KEY</code> in Cloudflare env.</p>
 
-      <h3>GNews, Perigon, NewsAPI.ai (News) ✅</h3>
+      <h3>GNews, Perigon, NewsAPI.ai, NewsData.io (News) ✅</h3>
       <p><strong>Status:</strong> Implemented and Active</p>
-      <p><strong>Purpose:</strong> News headlines and topic search for headline/topic-based markets. Set <code>GNEWS_API_KEY</code>, <code>PERIGON_API_KEY</code>, or <code>NEWSAPI_AI_KEY</code> in Cloudflare env.</p>
+      <p><strong>Purpose:</strong> News headlines and topic search for headline/topic-based markets. Set <code>GNEWS_API_KEY</code>, <code>PERIGON_API_KEY</code>, <code>NEWSAPI_AI_KEY</code>, or <code>NEWSDATA_API_KEY</code> in Cloudflare env.</p>
 
       <h2>Oracle Selection by Market Type</h2>
       <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: '1rem' }}>
@@ -494,18 +604,17 @@ function APIsAndOraclesContent() {
           </tr>
           <tr style={{ borderBottom: '1px solid var(--color-border)' }}>
             <td style={{ padding: '0.75rem' }}>News / Headlines</td>
-            <td style={{ padding: '0.75rem' }}>GNews / Perigon / NewsAPI.ai</td>
+            <td style={{ padding: '0.75rem' }}>GNews / Perigon / NewsAPI.ai / NewsData.io</td>
             <td style={{ padding: '0.75rem' }}>Medium-High</td>
             <td style={{ padding: '0.75rem', color: 'var(--color-success)' }}>✅ Implemented</td>
           </tr>
         </tbody>
       </table>
 
-      <h2>Implementation Roadmap</h2>
-      <ol>
-        <li><strong>Phase 1:</strong> ✅ Financial (Alpha Vantage, CoinGecko), Sports (The Odds API), Weather (OpenWeatherMap, WeatherAPI), News (GNews, Perigon, NewsAPI.ai)</li>
-        <li><strong>Phase 2 (Future):</strong> Political/election APIs (official results provider + resolution branch + event builder); multi-oracle selection (already supported via <code>oracleSource</code> + <code>oracleConfig</code> — add new oracle types as needed). See <code>docs/ORACLE_PHASE2.md</code> for implementation steps.</li>
-      </ol>
+      <h2>Oracle expansion</h2>
+      <p>
+        <strong>Shipped today:</strong> sports, stocks/crypto trends, weather, and multi-provider news seeding + resolution paths wired in the worker. <strong>Next wave:</strong> first-class political/election resolution (official results providers, dedicated event builders) — see <code>docs/ORACLE_PHASE2.md</code>. Market rows already carry <code>oracleSource</code> and <code>oracleConfig</code> for adding types without breaking older markets.
+      </p>
 
       <h2>Oracle Requirements</h2>
       <p>All oracles must meet these minimum requirements:</p>
@@ -549,28 +658,33 @@ function ArchitectureContent() {
 
       <h2>Technology stack</h2>
       <ul>
-        <li><strong>Frontend:</strong> React, React Router</li>
-        <li><strong>API:</strong> Cloudflare Pages Functions (<code>/api/*</code>)</li>
-        <li><strong>Database:</strong> Cloudflare D1 (markets, pools, positions, balances)</li>
-        <li><strong>Auth:</strong> Email/password register and sign-in; session in localStorage</li>
-        <li><strong>Payments:</strong> Crypto deposit/withdraw via platform wallet</li>
+        <li><strong>Frontend:</strong> React (Vite), React Router, contexts for account and Web3 wallet</li>
+        <li><strong>Desktop:</strong> Tauri 2 (Rust shell) + same web bundle</li>
+        <li><strong>API:</strong> Cloudflare Pages Functions router in <code>functions/api/[[path]].js</code></li>
+        <li><strong>Database:</strong> D1 (markets, pools, orders, positions, balances, contracts)</li>
+        <li><strong>Auth:</strong> Email/password via <code>/api/register</code> and <code>/api/sign-in</code>; session in <code>localStorage</code></li>
+        <li><strong>Crypto rails:</strong> viem for verify/send; USDC + native on Ethereum and Polygon</li>
       </ul>
 
       <h2>Data flow</h2>
       <ul>
-        <li><strong>Deposit (crypto):</strong> User sends from wallet or to platform address → API verifies and credits Pips in D1</li>
-        <li><strong>Trade:</strong> User buys Yes/No → API updates pool and position in D1</li>
-        <li><strong>Resolution:</strong> Cron or manual trigger resolves due markets; winning positions credited in D1</li>
-        <li><strong>Withdraw:</strong> User submits request → platform sends crypto → status stored in D1</li>
+        <li><strong>Deposit:</strong> Wallet flow (<code>deposit-with-tx</code>) or ops crediting (<code>deposit-crypto</code>) → Pips in D1</li>
+        <li><strong>AMM trade:</strong> <code>POST /api/trade</code> adjusts pool + position</li>
+        <li><strong>Limit order:</strong> <code>POST /api/orders</code> matches or rests on book</li>
+        <li><strong>Tip:</strong> <code>POST /api/transfer-pips</code> moves balance between parties</li>
+        <li><strong>Resolution:</strong> Scheduled <code>POST /api/resolve-markets</code></li>
+        <li><strong>Withdraw:</strong> User request row + <code>POST /api/process-withdrawals</code> (or equivalent ops) sends on-chain</li>
       </ul>
 
       <h2>API overview</h2>
       <ul>
-        <li><code>/api/register</code>, <code>/api/sign-in</code> — Auth</li>
-        <li><code>/api/get-user-balance</code>, <code>/api/add-credits</code> — Balance</li>
-        <li><code>/api/markets</code>, <code>/api/pools</code>, <code>/api/trade</code> — Markets and AMM</li>
-        <li><code>/api/withdrawal-requests</code>, withdraw flow — Withdrawals</li>
-        <li><code>/api/health</code>, <code>/api/oracle?symbol=</code> — Health and oracles</li>
+        <li><strong>Auth &amp; account:</strong> <code>register</code>, <code>sign-in</code>, <code>account</code></li>
+        <li><strong>Balance &amp; tips:</strong> <code>get-user-balance</code>, <code>update-user-balance</code>, <code>transfer-pips</code>, <code>add-credits</code> (guard in prod)</li>
+        <li><strong>Markets:</strong> <code>markets</code>, <code>pools</code>, <code>trade</code>, <code>auto-markets</code>, <code>resolve-markets</code>, <code>update-market-status</code></li>
+        <li><strong>Orders:</strong> <code>orders</code> (GET list, POST create/cancel)</li>
+        <li><strong>Deposits &amp; withdrawals:</strong> <code>deposit-addresses</code>, <code>deposit-with-tx</code>, <code>deposit-crypto</code>, <code>deposit-records</code>, <code>withdraw-request</code>, <code>withdrawal-requests</code>, <code>process-withdrawals</code></li>
+        <li><strong>Legacy contracts UI:</strong> <code>get-contracts</code>, <code>store-contract</code>, <code>update-contract-status</code>, <code>create-position</code></li>
+        <li><strong>Health &amp; oracle:</strong> <code>health</code>, <code>oracle?symbol=</code></li>
       </ul>
 
       <h2>Storage</h2>
@@ -587,49 +701,91 @@ function SecurityContent() {
   return (
     <div className="doc-section">
       <h1>Security</h1>
-      
-      <h2>Wallet Connection Security</h2>
-      
-      <h3>Party IDs</h3>
-      <p>
-        Party IDs / display names are public identifiers. They are meant 
-        to be shared publicly and are not secret.
-      </p>
-      <ul>
-        <li>Anyone who knows a Party ID can see contracts visible to that party</li>
-        <li>Party ID alone is NOT enough to authorize actions</li>
-        <li>Party IDs cannot be used to steal funds or impersonate users</li>
-      </ul>
 
-      <h3>Authentication</h3>
+      <h2>Display name vs account ID</h2>
       <p>
-        Sign-in uses email and password. Session data (accountId, display name) is stored in the browser and optionally on the server.
-      </p>
-      <ul>
-        <li>Keep your password private; never share account or session data</li>
-        <li>Session is stored in browser localStorage</li>
-      </ul>
-
-      <h3>Authorization</h3>
-      <p>
-        Actions (trading, withdrawals) are tied to your account. Your party ID (display name) is the public identifier; the session proves you own that account.
+        Your <strong>display name</strong> is public (navbar, tips, order book). It is not a secret, but it <strong>identifies</strong> you in the ledger. Your <strong>account ID</strong> is used in deposit memos and should be treated as sensitive reference data — do not post it publicly.
       </p>
 
-      <h2>Best Practices</h2>
+      <h2>Authentication</h2>
+      <p>
+        Email and password authenticate you to the product. After sign-in, the browser stores session fields in <code>localStorage</code> under a virtual-account key. <strong>Sign out / Disconnect</strong> clears it; on desktop, the tray can also sign you out.
+      </p>
       <ul>
-        <li><strong>Never share:</strong> Your account ID or session data with others</li>
-        <li><strong>Safe to share:</strong> Party IDs (they're public identifiers)</li>
-        <li><strong>Token Storage:</strong> Tokens are stored in localStorage (browser-only)</li>
-        <li><strong>Auto-Refresh:</strong> Enable automatic token refresh to avoid expiration issues</li>
-        <li><strong>Clear Tokens:</strong> Use "Clear Token" button when using a shared computer</li>
+        <li>Use a strong, unique password.</li>
+        <li>On shared computers, always sign out when done.</li>
       </ul>
 
-      <h2>Data Security</h2>
+      <h2>Authorization model</h2>
+      <p>
+        API calls from the UI send your <strong>party</strong> (display name) for balance, trade, and withdraw actions. Production deployments should continue to harden this (session tokens, CSRF, rate limits, role checks for admin routes). Wallet signatures are used where deposit verification requires them.
+      </p>
+
+      <h2>Data security</h2>
       <ul>
-        <li>D1 is only accessible from Cloudflare Workers (server-side)</li>
-        <li>All writes go through API endpoints; no direct DB access from the client</li>
-        <li>Credentials and secrets live in Cloudflare env (wrangler.toml / dashboard)</li>
+        <li>D1 and secrets are only reachable from the worker — not from the browser.</li>
+        <li>Platform private keys and API keys belong in Cloudflare environment variables, never in the client bundle.</li>
+        <li>Restrict or remove <code>add-credits</code>, <code>auto-markets</code>, and similar power endpoints in public production (API key, IP allowlist, or Workers Access).</li>
       </ul>
+    </div>
+  )
+}
+
+function RoadmapContent() {
+  return (
+    <div className="doc-section">
+      <h1>Roadmap</h1>
+      <p>
+        High-level plan aligned with the live codebase and <code>docs/PLATFORM_VISION_AND_ROADMAP.md</code>. Status reflects intent for the public product — timelines shift with shipping priorities.
+      </p>
+
+      <div className="docs-roadmap" aria-label="Product roadmap timeline">
+        <div className="docs-roadmap-track">
+          <article className="docs-roadmap-card docs-roadmap-card--live">
+            <span className="docs-roadmap-badge">Live</span>
+            <h2 className="docs-roadmap-card-title">Core platform</h2>
+            <ul>
+              <li>Email accounts, Dashboard, Profile, Portfolio (deposits, withdrawals, positions, activity)</li>
+              <li>Pips ledger in D1; crypto deposit/withdraw on Ethereum &amp; Polygon (USDC + native)</li>
+              <li>Automated market seeding (<code>auto-markets</code>) and resolution (<code>resolve-markets</code>)</li>
+              <li>Discover categories, market detail, AMM trades, limit order book, tips (<code>transfer-pips</code>)</li>
+              <li>Desktop app (Tauri) + web client; documentation and download pages</li>
+            </ul>
+          </article>
+
+          <article className="docs-roadmap-card docs-roadmap-card--next">
+            <span className="docs-roadmap-badge">Next</span>
+            <h2 className="docs-roadmap-card-title">Operations &amp; hardening</h2>
+            <ul>
+              <li>Scheduled cron (or Worker trigger) for <code>auto-markets</code> and <code>resolve-markets</code></li>
+              <li>Lock down privileged routes (<code>add-credits</code>, bulk seed) behind auth or secrets</li>
+              <li>Monitoring, alerts, and withdrawal queue runbooks (<code>docs/NEXT_STEPS_AND_PROD_READINESS.md</code>)</li>
+            </ul>
+          </article>
+
+          <article className="docs-roadmap-card docs-roadmap-card--explore">
+            <span className="docs-roadmap-badge">Exploring</span>
+            <h2 className="docs-roadmap-card-title">Markets &amp; rails</h2>
+            <ul>
+              <li>Political / election oracles and richer news verification (<code>docs/ORACLE_PHASE2.md</code>)</li>
+              <li>Additional EVM chains or assets for deposit/withdraw</li>
+              <li>AMM upgrades (e.g. alternative curves, LP incentives) per vision doc</li>
+              <li>Scalar / conditional market types and deeper analytics</li>
+            </ul>
+          </article>
+        </div>
+      </div>
+
+      <figure className="docs-roadmap-diagram" aria-label="Roadmap flow diagram">
+        <figcaption className="docs-roadmap-diagram-caption">Directional flow</figcaption>
+        <pre className="docs-roadmap-ascii">{`  [ Live: trade + Pips + auto markets ]
+              │
+              ▼
+  [ Next: cron + security + ops polish ]
+              │
+              ▼
+  [ Explore: new oracles, chains, AMM v2, new market shapes ]`}</pre>
+      </figure>
     </div>
   )
 }
@@ -637,28 +793,67 @@ function SecurityContent() {
 function APIReferenceContent() {
   return (
     <div className="doc-section">
-      <h1>API Reference</h1>
-      
-      <h2>Account &amp; Auth</h2>
-      <p>Registration and sign-in: <code>POST /api/register</code>, <code>POST /api/sign-in</code>. Account data: <code>POST /api/account</code>, <code>GET /api/account?accountId=...</code>.</p>
+      <h1>API reference</h1>
+      <p>All paths are under <code>/api/</code> on your Pages domain unless proxied. Method shown when not GET.</p>
 
-      <h2>Balance</h2>
-      <h3>POST /api/get-user-balance</h3>
-      <p>Get Pips balance. Body: <code>{`{ userParty }`}</code>. Returns <code>{ balance }</code>.</p>
-      <h3>POST /api/add-credits</h3>
-      <p>Add Pips (testing/internal). Body: <code>{`{ userParty or accountId, amount }`}</code>.</p>
+      <h2>Account &amp; auth</h2>
+      <ul>
+        <li><code>POST /api/register</code> — create account (email, password, displayName, fundChoice).</li>
+        <li><code>POST /api/sign-in</code> — session payload with account fields.</li>
+        <li><code>GET /api/account?accountId=…</code> / <code>POST /api/account</code> — read/update stored account metadata.</li>
+      </ul>
 
-      <h2>Markets &amp; Trading</h2>
-      <p><code>GET /api/markets</code>, <code>GET /api/pools</code>, <code>POST /api/trade</code> — markets, pool state, and placing trades. Positions and resolution use the same API surface.</p>
+      <h2>Balance &amp; P2P</h2>
+      <ul>
+        <li><code>GET|POST /api/get-user-balance</code> — <code>userParty</code> in query or JSON body; returns <code>{'{ success, balance }'}</code> with <code>balance</code> as a decimal string.</li>
+        <li><code>POST /api/update-user-balance</code> — admin-style add/subtract with <code>userParty</code>, <code>amount</code>, <code>operation</code> (<code>add</code> | <code>subtract</code>).</li>
+        <li><code>POST /api/transfer-pips</code> — body <code>{'{ fromParty, toParty, amount }'}</code>; moves Pips between parties.</li>
+        <li><code>POST /api/add-credits</code> — add Pips (dev/test; restrict in production).</li>
+      </ul>
+
+      <h2>Markets, pools, AMM</h2>
+      <ul>
+        <li><code>GET /api/markets</code> — list market contracts.</li>
+        <li><code>GET /api/pools?marketId=…</code> — pool state for AMM quotes.</li>
+        <li><code>POST /api/trade</code> — execute pool trade (spend Pips for shares).</li>
+        <li><code>GET|POST /api/auto-markets</code> — list events, probe env, or <code>seed</code> / <code>seed_all</code> markets from configured APIs.</li>
+        <li><code>POST /api/resolve-markets</code> — resolve due markets from oracle data.</li>
+        <li><code>POST /api/update-market-status</code> — administrative status changes.</li>
+        <li><code>POST /api/create-position</code> — legacy/helper position creation when needed.</li>
+      </ul>
+
+      <h2>Limit orders</h2>
+      <ul>
+        <li><code>GET /api/orders?marketId=…&amp;outcome=…</code> — open orders.</li>
+        <li><code>POST /api/orders</code> — place a limit order (<code>marketId</code>, <code>outcome</code>, <code>side</code>, <code>amount</code>, <code>price</code>, <code>owner</code>) or cancel (<code>cancel</code>, <code>orderId</code>, <code>owner</code>).</li>
+      </ul>
 
       <h2>Deposits &amp; withdrawals</h2>
-      <p><code>GET /api/deposit-records?userParty=...</code> — list deposit history. <code>POST /api/deposit-with-tx</code> — credit Pips after wallet deposit (body: <code>{`{ userParty, txHash, fromAddress, amountPips, signature, depositType: 'usdc'|'native', networkId: 'ethereum'|'polygon' }`}</code>). <code>POST /api/withdraw-request</code> — submit withdrawal (body: <code>{`{ userParty, amount, destinationAddress, networkId, token: 'usdc'|'native' }`}</code>). <code>GET /api/withdrawal-requests?userParty=...</code> — list requests.</p>
+      <ul>
+        <li><code>GET /api/deposit-addresses</code> — addresses shown in the UI.</li>
+        <li><code>POST /api/deposit-with-tx</code> — verify on-chain transfer + credit Pips.</li>
+        <li><code>POST /api/deposit-crypto</code> — operator crediting path after detecting deposits.</li>
+        <li><code>GET /api/deposit-records?userParty=…</code> — history.</li>
+        <li><code>POST /api/withdraw-request</code> — enqueue withdrawal.</li>
+        <li><code>GET /api/withdrawal-requests?userParty=…</code> — list user requests.</li>
+        <li><code>POST /api/process-withdrawals</code> — platform wallet payout worker.</li>
+      </ul>
 
-      <h2>Oracles &amp; Health</h2>
-      <p><code>GET /api/oracle?symbol=</code> — RedStone price data. <code>GET /api/health</code> — health check.</p>
+      <h2>Legacy contract storage (admin / history UI)</h2>
+      <ul>
+        <li><code>GET|POST /api/get-contracts</code> — filter by <code>party</code>, <code>templateType</code>, <code>status</code>.</li>
+        <li><code>POST /api/store-contract</code> — persist a contract payload.</li>
+        <li><code>PUT|PATCH /api/update-contract-status</code> — approve/reject flows.</li>
+      </ul>
 
-      <h2>Error responses</h2>
-      <p>Errors return JSON: <code>{`{ error, message?, details? }`}</code> with appropriate HTTP status.</p>
+      <h2>Oracle &amp; health</h2>
+      <ul>
+        <li><code>GET /api/oracle?symbol=…</code> — price-style oracle (RedStone-backed in deployment).</li>
+        <li><code>GET /api/health</code> — liveness.</li>
+      </ul>
+
+      <h2>Errors</h2>
+      <p>JSON body typically includes <code>error</code> and optional <code>message</code> / <code>details</code>; HTTP status follows REST conventions.</p>
     </div>
   )
 }

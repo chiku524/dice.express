@@ -1,56 +1,86 @@
+import { useLocation } from 'react-router-dom'
 import { BRAND_NAME } from '../constants/brand'
 import './PitchDeck.css'
 
+const CYRENEAI_LAUNCH_URL = 'https://cyreneai.com/launch'
+
 /**
- * Executive summary / pitch deck for potential investors.
- * Not linked from the main website - direct URL access only.
+ * Executive summary / pitch for supporters — aligned with the CyreneAI (Solana) launch.
+ * Routes: /pitch, /investors (same content; subtitle varies slightly).
  */
 export default function PitchDeck() {
+  const { pathname } = useLocation()
+  const isInvestorsRoute = pathname === '/investors'
+
   return (
     <div className="pitch-deck">
       <div className="pitch-deck__container">
         <header className="pitch-deck__header">
           <img src="/logo.svg" alt="" className="pitch-deck__logo" width={64} height={64} />
           <h1 className="pitch-deck__title">{BRAND_NAME}</h1>
-          <p className="pitch-deck__subtitle">Executive Summary & Investment Opportunity</p>
+          <p className="pitch-deck__subtitle">
+            {isInvestorsRoute
+              ? 'Investor brief — participate via CyreneAI on Solana'
+              : 'Executive summary & tokenized fundraise (CyreneAI)'}
+          </p>
+          <div className="pitch-deck__header-cta">
+            <a
+              className="pitch-deck__cta pitch-deck__cta--primary"
+              href={CYRENEAI_LAUNCH_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Open CyreneAI launch
+            </a>
+            <span className="pitch-deck__header-cta-note">
+              Connect a wallet on CyreneAI to view launch terms, allocation, and vesting.
+            </span>
+          </div>
         </header>
 
         <section className="pitch-deck__section">
-          <h2 className="pitch-deck__section-title">Investment Overview</h2>
+          <h2 className="pitch-deck__section-title">Fundraise overview</h2>
           <div className="pitch-deck__grid">
             <div className="pitch-deck__card">
-              <h3 className="pitch-deck__card-title">Amount Raising</h3>
-              <p className="pitch-deck__card-value">$500,000 - $1,000,000</p>
+              <h3 className="pitch-deck__card-title">Target raise</h3>
+              <p className="pitch-deck__card-value">$500,000 – $1,000,000</p>
               <p className="pitch-deck__card-desc">
-                Seed round to accelerate platform development, expand market reach, and build strategic partnerships.
+                Capital to accelerate product development, distribution, and infrastructure ahead of broader go-to-market.
               </p>
             </div>
             <div className="pitch-deck__card">
-              <h3 className="pitch-deck__card-title">Valuation</h3>
-              <p className="pitch-deck__card-value">$5M - $8M</p>
+              <h3 className="pitch-deck__card-title">Launch platform</h3>
+              <p className="pitch-deck__card-value">CyreneAI</p>
               <p className="pitch-deck__card-desc">
-                Pre-money valuation based on traction, market opportunity, and comparable platforms.
+                Tokenized capital infrastructure on Solana — transparent fundraising, community participation, and
+                on-chain workflows (see CyreneAI for the live instrument and mechanics).
               </p>
             </div>
             <div className="pitch-deck__card">
-              <h3 className="pitch-deck__card-title">Equity Allocation</h3>
-              <p className="pitch-deck__card-value">10% - 20%</p>
+              <h3 className="pitch-deck__card-title">Instrument</h3>
+              <p className="pitch-deck__card-value">On-chain (Solana)</p>
               <p className="pitch-deck__card-desc">
-                Equity stake available based on investment amount and strategic value.
+                Exact supply, pricing, vesting, and eligibility are defined on the CyreneAI launch — not on this page.
+                In-app <strong>Pips</strong> are platform credits for trading; they are separate from any launch token.
               </p>
             </div>
           </div>
         </section>
 
         <section className="pitch-deck__section">
-          <h2 className="pitch-deck__section-title">What Supporters Receive</h2>
+          <h2 className="pitch-deck__section-title">What supporters may receive</h2>
+          <p className="pitch-deck__section-lead">
+            Benefits depend on the CyreneAI launch configuration. The list below is illustrative; binding terms appear only
+            on CyreneAI and related offering materials.
+          </p>
           <div className="pitch-deck__benefits">
             <div className="pitch-deck__benefit">
-              <div className="pitch-deck__benefit-icon">📈</div>
+              <div className="pitch-deck__benefit-icon">⛓️</div>
               <div>
-                <h3 className="pitch-deck__benefit-title">Equity Stake</h3>
+                <h3 className="pitch-deck__benefit-title">On-chain participation</h3>
                 <p className="pitch-deck__benefit-desc">
-                  Direct ownership in the company with potential for significant returns as the platform scales.
+                  Wallet-based participation in the fundraise on Solana via CyreneAI&apos;s launch and liquidity
+                  infrastructure (e.g. vesting and discovery as offered for your project).
                 </p>
               </div>
             </div>
@@ -75,9 +105,11 @@ export default function PitchDeck() {
             <div className="pitch-deck__benefit">
               <div className="pitch-deck__benefit-icon">💎</div>
               <div>
-                <h3 className="pitch-deck__benefit-title">Platform Credits</h3>
+                <h3 className="pitch-deck__benefit-title">Pips (in-app)</h3>
                 <p className="pitch-deck__benefit-desc">
-                  Significant platform credits (Pips) for trading and market creation, plus reduced fees.
+                  Where offered as part of the relationship, Pips are <strong>in-platform credits</strong> for trading on{' '}
+                  {BRAND_NAME} — not the same asset as the CyreneAI launch token unless explicitly stated in the official
+                  terms.
                 </p>
               </div>
             </div>
@@ -113,26 +145,33 @@ export default function PitchDeck() {
 
             <h3 className="pitch-deck__content-title">Our Solution</h3>
             <p className="pitch-deck__content-text">
-              {BRAND_NAME} is a next-generation prediction market platform that democratizes access to trading on real-world outcomes. 
-              Users can deposit via crypto or card, trade on sports, global events, tech trends, and more, then withdraw earnings seamlessly.
+              {BRAND_NAME} is a prediction market platform built for real-world outcomes: users fund with crypto, trade in{' '}
+              <strong>Pips</strong> (platform credits), and can withdraw subject to fees. Markets are powered by automated
+              data sources and APIs; matching and liquidity include <strong>P2P</strong> order flow and an optional{' '}
+              <strong>AMM</strong>, with the stack running on <strong>Cloudflare</strong> (Pages, D1, KV, R2) plus a{' '}
+              <strong>Tauri</strong> desktop client.
             </p>
 
             <h3 className="pitch-deck__content-title">Key Differentiators</h3>
             <ul className="pitch-deck__list">
               <li>
-                <strong>Fiat & Crypto Support:</strong> Deposit with credit card or cryptocurrency, lowering entry barriers
+                <strong>Virtual-first trading:</strong> Pips for positions and fees; blockchain used where it matters for
+                moving value in and out
               </li>
               <li>
-                <strong>Automated Markets:</strong> AI-powered market creation for sports, news, weather, and trending topics
+                <strong>Automated markets:</strong> Seeded from sports, news, weather, crypto, and other sources via API —
+                scalable catalog without relying on casual user-created markets
               </li>
               <li>
-                <strong>Desktop Application:</strong> Native desktop app with auto-updates, providing a professional trading experience
+                <strong>P2P + optional AMM:</strong> Order book matching alongside pool-style trading when enabled
               </li>
               <li>
-                <strong>User-Created Markets:</strong> Community-driven market creation for niche events and interests
+                <strong>Edge-native stack:</strong> Fast global API and web app on Cloudflare; desktop app with updates for a
+                focused trading experience
               </li>
               <li>
-                <strong>Virtual Balance System:</strong> "Pips" credits system for easy onboarding without immediate crypto setup
+                <strong>Solana fundraise rail:</strong> Community and capital aligned through CyreneAI&apos;s tokenized
+                infrastructure
               </li>
             </ul>
 
@@ -189,11 +228,21 @@ export default function PitchDeck() {
         </section>
 
         <section className="pitch-deck__section">
-          <h2 className="pitch-deck__section-title">Next Steps</h2>
+          <h2 className="pitch-deck__section-title">Next steps</h2>
           <div className="pitch-deck__contact">
             <p className="pitch-deck__contact-text">
-              Interested in learning more or discussing investment opportunities?
+              Review the live launch on CyreneAI (wallet required). For questions not covered there, reach out by email.
             </p>
+            <div className="pitch-deck__cta-row">
+              <a
+                className="pitch-deck__cta pitch-deck__cta--primary"
+                href={CYRENEAI_LAUNCH_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                Participate on CyreneAI
+              </a>
+            </div>
             <p className="pitch-deck__contact-email">
               Contact: <a href="mailto:investors@dice.express">investors@dice.express</a>
             </p>
@@ -202,7 +251,9 @@ export default function PitchDeck() {
 
         <footer className="pitch-deck__footer">
           <p className="pitch-deck__footer-text">
-            This document is confidential and intended solely for the use of the individual or entity to whom it is addressed.
+            This page is for informational purposes only and is not investment, legal, or tax advice. Offering terms,
+            eligibility, and risks are governed by CyreneAI and applicable law. This document is confidential and intended
+            solely for the use of the individual or entity to whom it is addressed.
           </p>
         </footer>
       </div>
