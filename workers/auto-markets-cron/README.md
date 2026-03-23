@@ -33,6 +33,8 @@ Default: **every hour** (`0 * * * *`). Each run (1) seeds new markets, then (2) 
 
 **Outcome-based markets** stay controlled on **Pages** (`AUTO_MARKETS_OUTCOME_ONLY`, `AUTO_MARKETS_ALLOW_FEED_TOPIC`); the cron does not create feed-topic-only headline markets by itself.
 
+**Vectorize / embeddings:** After a large D1 wipe or to backfill older markets, call **POST `/api/prediction-maintenance`** on the Pages project (same cron secret or `PREDICTION_MAINTENANCE_SECRET`). See `docs/PREDICTION_MARKETS.md` (Maintenance section).
+
 Edit `wrangler.toml` → `[triggers]` → `crons` to change cadence (e.g. `*/30 * * * *` for twice hourly).
 
 ## API keys (on the Pages project, not this Worker)

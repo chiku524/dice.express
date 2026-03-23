@@ -151,3 +151,21 @@ Sources without a key are skipped when using **seed_all**. Set **AUTO_MARKETS_SO
 - Only **POST /api/auto-markets** (seed / seed_all / sources) can create markets.
 
 All live markets come from the automated pipeline (cron + integrated APIs), not from users.
+
+---
+
+## Maintenance (Vectorize, embeddings, P2P discovery)
+
+**P2P:** Markets stay **zero AMM liquidity** while `AUTO_MARKETS_ZERO_LIQUIDITY=1` in `wrangler.toml`. Listing supports `GET /api/markets?sort=activity` to sort by open P2P order count; each market includes `openOrderCount`.
+
+**POST `/api/prediction-maintenance`** (requires `X-Maintenance-Secret` if `PREDICTION_MAINTENANCE_SECRET` is set, otherwise the same `X-Cron-Secret` as auto-markets when `AUTO_MARKETS_CRON_SECRET` is set):
+
+| Body `action` | Purpose |
+|----------------|---------|
+| `backfill_embeddings` | Paginate VirtualMarkets (`afterContractId`, `limit`), upsert missing vectors. Repeat with `nextAfter` until `done`. |
+| `prune_settled_embeddings` | Delete vectors for markets whose payload status is `Settled`. |
+| `delete_embeddings_by_ids` | Body `contractIds`: string array (max 500 per call). |
+
+**Logs:** Seed and resolve emit JSON lines with `event` keys `auto_markets.seed.complete`, `resolve_markets.complete`, and `prediction_maintenance.*` for Logpush / dashboard search.
+
+**Env:** `MARKET_EMBED_SIMILARITY_MIN`, optional `MARKET_EMBED_BATCH_SIZE` (Workers AI batch size for backfill).

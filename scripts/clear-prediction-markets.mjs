@@ -38,4 +38,10 @@ if (r.error) {
   console.error(r.error)
   process.exit(1)
 }
+if (r.status === 0) {
+  console.log('')
+  console.log('D1 prediction-market rows cleared. Vectorize is separate: either run POST /api/prediction-maintenance')
+  console.log('with action prune_settled_embeddings in a loop, or delete/recreate index dice-express-market-embeddings')
+  console.log('(see wrangler.toml). See docs/PREDICTION_MARKETS.md (Maintenance section).')
+}
 process.exit(r.status === 0 ? 0 : r.status ?? 1)

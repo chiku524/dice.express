@@ -4,6 +4,7 @@
  */
 
 import {
+  isFeedTopicPayload,
   outcomesFingerprint,
   outcomeTextBundle,
   resolutionDateKey,
@@ -39,19 +40,69 @@ function cosineSimilarity(a, b) {
  * @param {string} text
  * @returns {Promise<number[] | null>}
  */
-export async function embedText(env, text) {
-  const ai = env?.AI
-  if (!ai || typeof text !== 'string' || !text.trim()) return null
-  try {
-    const res = await ai.run(EMBED_MODEL, { text: [text.slice(0, 8000)] })
-    const data = res?.data
-    const row = Array.isArray(data) ? data[0] : data
-    const vec = row && Array.isArray(row) ? row : null
-    if (!vec || vec.length !== EMBED_DIM) return null
-    return vec
-  } catch {
-    return null
+/**
+ * Parse Workers AI embedding response for one or many texts.
+ * @param {unknown} res
+ * @param {number} expectedCount
+ * @returns {(number[] | null)[]}
+ */
+export function parseEmbeddingBatchResponse(res, expectedCount) {
+  const out = /** @type {(number[] | null)[]} */ (Array(expectedCount).fill(null))
+  const data = res?.data
+  if (expectedCount <= 0) return out
+  if (Array.isArray(data) && data.length > 0) {
+    const first = data[0]
+    if (Array.isArray(first) && typeof first[0] === 'number') {
+      for (let i = 0; i < Math.min(expectedCount, data.length); i++) {
+        const row = data[i]
+        out[i] = Array.isArray(row) && row.length === EMBED_DIM ? row : null
+      }
+      return out
+    }
   }
+  const row = Array.isArray(data) ? data[0] : data
+  const vec = row && Array.isArray(row) && row.length === EMBED_DIM ? row : null
+  if (vec) out[0] = vec
+  return out
+}
+
+export async function embedText(env, text) {
+  const batch = await embedTextsBatch(env, [text])
+  return batch[0] ?? null
+}
+
+const DEFAULT_EMBED_BATCH = 8
+
+/**
+ * Embed multiple documents in one Workers AI call when possible.
+ * @param {unknown} env
+ * @param {string[]} texts
+ * @returns {Promise<(number[] | null)[]>}
+ */
+export async function embedTextsBatch(env, texts) {
+  const ai = env?.AI
+  if (!ai || !Array.isArray(texts) || texts.length === 0) return texts.map(() => null)
+  const trimmed = texts.map((t) => (typeof t === 'string' ? t.slice(0, 8000).trim() : ''))
+  const n = trimmed.length
+  if (n === 0) return []
+  const maxB = Math.min(
+    16,
+    Math.max(1, parseInt(String(env?.MARKET_EMBED_BATCH_SIZE || DEFAULT_EMBED_BATCH), 10) || DEFAULT_EMBED_BATCH)
+  )
+  /** @type {(number[] | null)[]} */
+  const all = []
+  for (let i = 0; i < n; i += maxB) {
+    const chunk = trimmed.slice(i, i + maxB)
+    const nonEmpty = chunk.map((t) => (t.length ? t : ' '))
+    try {
+      const res = await ai.run(EMBED_MODEL, { text: nonEmpty })
+      const parsed = parseEmbeddingBatchResponse(res, chunk.length)
+      all.push(...parsed)
+    } catch {
+      for (let j = 0; j < chunk.length; j++) all.push(null)
+    }
+  }
+  return all
 }
 
 function parseMinScore(env) {
@@ -161,4 +212,77 @@ export async function upsertMarketEmbedding(env, contractId, payload, opts = {})
   } catch {
     return { ok: false, reason: 'upsert_failed' }
   }
+}
+
+/**
+ * Remove vectors for contract ids (e.g. after settlement or D1 delete).
+ * @param {unknown} env
+ * @param {string[]} contractIds
+ */
+export async function deleteMarketEmbeddings(env, contractIds) {
+  const vz = env?.VECTORIZE
+  if (!vz || !Array.isArray(contractIds) || contractIds.length === 0) {
+    return { ok: false, reason: 'no_bindings_or_empty', deleted: 0 }
+  }
+  const ids = [...new Set(contractIds.map((id) => String(id)).filter(Boolean))]
+  if (ids.length === 0) return { ok: true, deleted: 0 }
+  try {
+    await vz.deleteByIds(ids)
+    return { ok: true, deleted: ids.length }
+  } catch {
+    return { ok: false, reason: 'delete_failed', deleted: 0 }
+  }
+}
+
+function parseRowPayload(row) {
+  const raw = row?.payload
+  if (raw && typeof raw === 'object') return /** @type {Record<string, unknown>} */ (raw)
+  if (typeof raw !== 'string') return {}
+  try {
+    return JSON.parse(raw)
+  } catch {
+    return {}
+  }
+}
+
+/**
+ * Upsert embeddings for a page of D1 rows ({ contract_id, payload }).
+ * Skips feed-topic and settled payloads.
+ * @param {unknown} env
+ * @param {Array<{ contract_id: string, payload: unknown }>} rows
+ */
+export async function backfillVirtualMarketsEmbeddingsChunk(env, rows) {
+  if (!rows?.length) {
+    return { considered: 0, upserted: 0, failed: 0, skipped: 0 }
+  }
+  /** @type {Array<{ id: string, payload: Record<string, unknown> }>} */
+  const work = []
+  let skipped = 0
+  for (const row of rows) {
+    const id = row.contract_id != null ? String(row.contract_id) : ''
+    if (!id) {
+      skipped += 1
+      continue
+    }
+    const p = parseRowPayload(row)
+    if (p.status === 'Settled') {
+      skipped += 1
+      continue
+    }
+    if (isFeedTopicPayload(p)) {
+      skipped += 1
+      continue
+    }
+    work.push({ id, payload: p })
+  }
+  let upserted = 0
+  let failed = 0
+  const texts = work.map((w) => embeddingDocumentFromPayload(w.payload))
+  const vecs = await embedTextsBatch(env, texts)
+  for (let j = 0; j < work.length; j++) {
+    const r = await upsertMarketEmbedding(env, work[j].id, work[j].payload, { precomputedVec: vecs[j] })
+    if (r.ok) upserted += 1
+    else failed += 1
+  }
+  return { considered: work.length, upserted, failed, skipped }
 }

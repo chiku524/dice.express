@@ -38,7 +38,7 @@ index_name = "dice-express-market-embeddings"
 binding = "AI"
 
 [vars]
-# P2P-only: new markets get zero liquidity so platform never seeds capital. Trading requires matched orders (P2P).
+# P2P-only (until you opt into platform liquidity): new markets get zero AMM liquidity — trading is matched orders only.
 # Set to "0" or remove when you want to enable AMM with platform liquidity. See docs/ALGORITHMS_AND_RISK.md.
 AUTO_MARKETS_ZERO_LIQUIDITY = "1"
 # Feed-topic headline markets (GNews/Perigon/… “still in feed”): skipped unless you opt in below.
@@ -47,6 +47,10 @@ AUTO_MARKETS_OUTCOME_ONLY = "1"
 # Set AUTO_MARKETS_ALLOW_FEED_TOPIC=1 to create feed-topic headline markets again.
 # Embedding dedupe (Vectorize + Workers AI): cosine threshold 0–1; 0.88 catches paraphrases while avoiding over-merging distinct questions.
 MARKET_EMBED_SIMILARITY_MIN = "0.88"
+# Workers AI texts per request for batch embed (backfill + internal batching). Default 8.
+# MARKET_EMBED_BATCH_SIZE = "8"
+# POST /api/prediction-maintenance (backfill / prune vectors). If unset, same secret as AUTO_MARKETS_CRON_SECRET works.
+# PREDICTION_MAINTENANCE_SECRET = "..."
 
 # Platform deposit wallets (dice.express Coinbase wallet). EVM chains use the same 0x address.
 # Set secrets via Cloudflare Dashboard → Pages/Workers → Settings → Environment variables (see docs/CRYPTO_DEPOSITS.md).

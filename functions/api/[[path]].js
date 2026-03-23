@@ -12,6 +12,8 @@ import { finalizeNewsFeedTopicMarket, isFeedTopicOnlyNewsCandidate } from '../li
 import { promoteNewsArticleToOutcomeMarket } from '../lib/outcome-news-markets.mjs'
 import * as marketDedupe from '../lib/market-dedupe.mjs'
 import {
+  backfillVirtualMarketsEmbeddingsChunk,
+  deleteMarketEmbeddings,
   embedText,
   embeddingDocumentFromPayload,
   findParaphraseDuplicate,
@@ -19,6 +21,7 @@ import {
   marketEmbedMinScore,
   upsertMarketEmbedding,
 } from '../lib/market-embeddings.mjs'
+import { predictionLog } from '../lib/prediction-observability.mjs'
 import * as resolveMarkets from '../lib/resolve-markets.mjs'
 import { addPips, pipsToCents, centsToPipsStr, cryptoAmountToPipsStr } from '../lib/pips-precision.mjs'
 import { verifyErc20Deposit, verifyNativeDeposit } from '../lib/verify-deposit-rpc.mjs'
@@ -59,6 +62,21 @@ function shouldSkipFeedTopicHeadlineMarkets(env) {
   const v = (env.AUTO_MARKETS_OUTCOME_ONLY ?? '').toString().trim().toLowerCase()
   if (v === '0' || v === 'false' || v === 'no') return false
   return true
+}
+
+/** Cron / maintenance: prefer PREDICTION_MAINTENANCE_SECRET, else AUTO_MARKETS_CRON_SECRET. */
+function checkPredictionMaintenanceAuth(request, env, body) {
+  const maint = (env.PREDICTION_MAINTENANCE_SECRET || '').toString().trim()
+  const cron = (env.AUTO_MARKETS_CRON_SECRET || '').toString().trim()
+  const headerMaint = request.headers.get('X-Maintenance-Secret') || ''
+  const headerCron = request.headers.get('X-Cron-Secret') || ''
+  if (maint) {
+    return headerMaint === maint || body?.maintenanceSecret === maint
+  }
+  if (cron) {
+    return headerCron === cron || body?.cronSecret === cron
+  }
+  return false
 }
 
 const USDC_ABI = parseAbi(['function transfer(address to, uint256 value) returns (bool)'])
@@ -763,6 +781,86 @@ async function handleWithD1(db, kv, r2, request, path, method, env = {}) {
     })
   }
 
+  // POST /api/prediction-maintenance — Vectorize backfill / prune (requires X-Maintenance-Secret or shared cron secret)
+  if (path === 'prediction-maintenance' && method === 'POST') {
+    if (!checkPredictionMaintenanceAuth(request, env, body)) {
+      return jsonResponse(
+        {
+          error: 'Unauthorized',
+          message:
+            'Set PREDICTION_MAINTENANCE_SECRET or AUTO_MARKETS_CRON_SECRET on Pages, then send X-Maintenance-Secret or X-Cron-Secret (or body.maintenanceSecret / cronSecret).',
+        },
+        401
+      )
+    }
+    if (!env?.VECTORIZE || !env?.AI) {
+      return jsonResponse({ error: 'Bindings missing', message: 'VECTORIZE and AI must be bound for embedding maintenance.' }, 503)
+    }
+    const action = body.action || query.action
+    if (action === 'backfill_embeddings') {
+      const limit = Math.min(100, Math.max(1, parseInt(String(body.limit ?? '30'), 10) || 30))
+      const afterContractId = body.afterContractId != null ? String(body.afterContractId) : ''
+      const rows = await storage.listVirtualMarketsPageForBackfill(db, { afterContractId, limit })
+      const lastId = rows.length ? String(rows[rows.length - 1].contract_id) : afterContractId
+      const nextAfter = rows.length >= limit ? lastId : null
+      const stats = await backfillVirtualMarketsEmbeddingsChunk(env, rows)
+      predictionLog('prediction_maintenance.backfill_embeddings', {
+        limit,
+        afterContractId,
+        rowCount: rows.length,
+        ...stats,
+        nextAfter,
+      })
+      return jsonResponse({
+        success: true,
+        action: 'backfill_embeddings',
+        ...stats,
+        pageRowCount: rows.length,
+        nextAfter,
+        done: nextAfter == null,
+      })
+    }
+    if (action === 'prune_settled_embeddings') {
+      const limit = Math.min(200, Math.max(1, parseInt(String(body.limit ?? '80'), 10) || 80))
+      const afterContractId = body.afterContractId != null ? String(body.afterContractId) : ''
+      const ids = await storage.listSettledVirtualMarketIdsPage(db, { afterContractId, limit })
+      const del = await deleteMarketEmbeddings(env, ids)
+      const nextAfter = ids.length >= limit ? ids[ids.length - 1] : null
+      predictionLog('prediction_maintenance.prune_settled_embeddings', {
+        limit,
+        afterContractId,
+        idCount: ids.length,
+        ...del,
+        nextAfter,
+      })
+      return jsonResponse({
+        success: true,
+        action: 'prune_settled_embeddings',
+        idsProcessed: ids.length,
+        ...del,
+        nextAfter,
+        done: nextAfter == null,
+      })
+    }
+    if (action === 'delete_embeddings_by_ids') {
+      const raw = body.contractIds
+      const ids = Array.isArray(raw) ? raw.map((x) => String(x)).filter(Boolean) : []
+      if (ids.length === 0) {
+        return jsonResponse({ error: 'contractIds array required' }, 400)
+      }
+      const del = await deleteMarketEmbeddings(env, ids.slice(0, 500))
+      predictionLog('prediction_maintenance.delete_embeddings_by_ids', { requested: ids.length, ...del })
+      return jsonResponse({ success: true, action: 'delete_embeddings_by_ids', ...del })
+    }
+    return jsonResponse(
+      {
+        error: 'Unknown action',
+        actions: ['backfill_embeddings', 'prune_settled_embeddings', 'delete_embeddings_by_ids'],
+      },
+      400
+    )
+  }
+
   // POST /api/add-credits — virtual top-up (Pips added to balance; no blockchain)
   if (path === 'add-credits' && method === 'POST') {
     const { userParty, accountId, amount } = body
@@ -1305,6 +1403,7 @@ async function handleWithD1(db, kv, r2, request, path, method, env = {}) {
 
     // POST seed: multi-source (sources array or seed_all) or single source
     if (method === 'POST' && (action === 'seed' || action === 'seed_all')) {
+      const seedStarted = Date.now()
       let events = []
       let bySource = null
       let limitsBySource = null
@@ -1363,6 +1462,8 @@ async function handleWithD1(db, kv, r2, request, path, method, env = {}) {
       let skippedDedupe = 0
       let skippedNearDuplicate = 0
       let skippedEmbeddingDuplicate = 0
+      let embeddingEmbedFailed = 0
+      let embeddingUpsertFailed = 0
       /** @type {Array<{ vec: number[], resolutionDay: string, outcomesFp: string }>} */
       const embeddingBatchScratch = []
       const existingVirtualRows = await storage.getContracts(db, { templateType: 'VirtualMarket', limit: 1500 })
@@ -1448,11 +1549,12 @@ async function handleWithD1(db, kv, r2, request, path, method, env = {}) {
           const rd = marketDedupe.resolutionDateKey(payload)
           const ofp = marketDedupe.outcomesFingerprint(payload)
           const vec = await embedText(env, embeddingDocumentFromPayload(payload))
-          if (vec) {
-            if (isNearDuplicateInBatch(vec, embeddingBatchScratch, rd, ofp, minSc)) {
-              skippedEmbeddingDuplicate += 1
-              continue
-            }
+          if (!vec) {
+            embeddingEmbedFailed += 1
+          } else if (isNearDuplicateInBatch(vec, embeddingBatchScratch, rd, ofp, minSc)) {
+            skippedEmbeddingDuplicate += 1
+            continue
+          } else {
             const embedDup = await findParaphraseDuplicate(env, payload, { precomputedVec: vec })
             if (embedDup.duplicate) {
               skippedEmbeddingDuplicate += 1
@@ -1494,7 +1596,8 @@ async function handleWithD1(db, kv, r2, request, path, method, env = {}) {
             outcomesFp: marketDedupe.outcomesFingerprint(payload),
           })
         }
-        await upsertMarketEmbedding(env, id, payload, { precomputedVec: embeddingVecForUpsert })
+        const embedUp = await upsertMarketEmbedding(env, id, payload, { precomputedVec: embeddingVecForUpsert })
+        if (embeddingVecForUpsert && !embedUp.ok) embeddingUpsertFailed += 1
         created.push({ marketId: id, title: evFinal.title, source: evFinal.source })
       }
       // Markets list cache will refresh on next GET (TTL)
@@ -1508,10 +1611,26 @@ async function handleWithD1(db, kv, r2, request, path, method, env = {}) {
         ...(skippedDedupe > 0 ? { skippedDedupe } : {}),
         ...(skippedNearDuplicate > 0 ? { skippedNearDuplicate } : {}),
         ...(skippedEmbeddingDuplicate > 0 ? { skippedEmbeddingDuplicate } : {}),
+        ...(embeddingEmbedFailed > 0 ? { embeddingEmbedFailed } : {}),
+        ...(embeddingUpsertFailed > 0 ? { embeddingUpsertFailed } : {}),
       }
       if (bySource) res.bySource = bySource
       if (limitsBySource) res.limitsBySource = limitsBySource
       const lastSeedAt = new Date().toISOString()
+      predictionLog('auto_markets.seed.complete', {
+        ms: Date.now() - seedStarted,
+        lastSeedAt,
+        events: events.length,
+        created: res.count,
+        skipped: res.skipped,
+        skippedFeedTopicNews,
+        skippedDedupe,
+        skippedNearDuplicate,
+        skippedEmbeddingDuplicate,
+        embeddingEmbedFailed,
+        embeddingUpsertFailed,
+        bySource: res.bySource ?? null,
+      })
       console.log('[auto-markets] seed_all completed', lastSeedAt, 'created:', res.count, 'bySource:', res.bySource ?? '')
       if (kv) {
         try {
@@ -1528,10 +1647,14 @@ async function handleWithD1(db, kv, r2, request, path, method, env = {}) {
   if (path === 'markets') {
     if (method === 'GET') {
       const { source, status } = query
-      const cached = kv ? await storage.getMarketsCache(kv, source || 'all') : null
+      const sortRaw = (query.sort || '').toString().toLowerCase()
+      const useActivitySort = sortRaw === 'activity' || sortRaw === 'p2p'
+      const cached =
+        kv && !useActivitySort ? await storage.getMarketsCache(kv, source || 'all') : null
       if (cached) return jsonResponse(cached)
 
       const all = await storage.getContracts(db, { limit: 500 })
+      const orderCounts = await storage.getOpenP2pOrderCountsByMarket(db)
       const marketRows = all.filter(
         (r) => r.templateId === TEMPLATE_VIRTUAL_MARKET || (r.templateId && r.templateId.includes('Market'))
       )
@@ -1545,12 +1668,16 @@ async function handleWithD1(db, kv, r2, request, path, method, env = {}) {
           party: r.party,
           status: r.status,
           createdAt: r.createdAt,
+          openOrderCount: orderCounts[r.contractId] || 0,
         }))
       if (source && source !== 'all') {
         markets = markets.filter((m) => (m.payload?.source ?? 'user') === source)
       }
+      if (useActivitySort) {
+        markets.sort((a, b) => (b.openOrderCount || 0) - (a.openOrderCount || 0))
+      }
       const out = { success: true, markets, count: markets.length }
-      if (kv) await storage.setMarketsCache(kv, source || 'all', out)
+      if (kv && !useActivitySort) await storage.setMarketsCache(kv, source || 'all', out)
       return jsonResponse(out)
     }
 
@@ -1603,6 +1730,7 @@ async function handleWithD1(db, kv, r2, request, path, method, env = {}) {
       if (scalarSpec && typeof scalarSpec === 'object' && !Array.isArray(scalarSpec)) {
         payload.scalarSpec = scalarSpec
       }
+      await marketDedupe.assignDedupeKeyToPayload(payload)
       await storage.upsertContract(db, {
         contract_id: id,
         template_id: TEMPLATE_VIRTUAL_MARKET,
@@ -1611,6 +1739,9 @@ async function handleWithD1(db, kv, r2, request, path, method, env = {}) {
         status: 'Active',
       })
       await backupToR2(r2, undefined, id, payload)
+      if (!marketDedupe.isFeedTopicPayload(payload)) {
+        await upsertMarketEmbedding(env, id, payload)
+      }
       const useZeroLiquidity = env.AUTO_MARKETS_ZERO_LIQUIDITY === '1' || env.AUTO_MARKETS_ZERO_LIQUIDITY === 'true' || String(env.INITIAL_POOL_LIQUIDITY || '').trim() === '0'
       const initialLiquidity = useZeroLiquidity ? 0 : 1000
       const poolState = createPoolState(id, initialLiquidity, initialLiquidity)
@@ -1747,6 +1878,7 @@ async function handleWithD1(db, kv, r2, request, path, method, env = {}) {
 
   // POST /api/resolve-markets — resolve due markets from oracle APIs and settle (call from cron or manually)
   if (path === 'resolve-markets' && method === 'POST') {
+    const resolveStarted = Date.now()
     const all = await storage.getContracts(db, { limit: 500 })
     const marketRows = all.filter(
       (r) => (r.templateId === TEMPLATE_VIRTUAL_MARKET || (r.templateId && r.templateId.includes('Market'))) &&
@@ -1757,6 +1889,7 @@ async function handleWithD1(db, kv, r2, request, path, method, env = {}) {
     const due = marketRows.filter((m) => resolveMarkets.isMarketDueForResolution(m))
     const SETTLEMENT_FEE = 0.02
     const resolved = []
+    let resolveErrors = 0
     for (const market of due) {
       try {
         const { resolved: didResolve, outcome } = await resolveMarkets.resolveOutcome(env, market)
@@ -1781,10 +1914,23 @@ async function handleWithD1(db, kv, r2, request, path, method, env = {}) {
           }
         }
         resolved.push({ marketId, outcome })
+        if (env?.VECTORIZE) {
+          const delEmb = await deleteMarketEmbeddings(env, [marketId])
+          if (!delEmb.ok && delEmb.reason === 'delete_failed') {
+            predictionLog('resolve_markets.embedding_delete_failed', { marketId, reason: delEmb.reason })
+          }
+        }
       } catch (err) {
+        resolveErrors += 1
         console.error('[resolve-markets]', market.contractId, err?.message)
       }
     }
+    predictionLog('resolve_markets.complete', {
+      ms: Date.now() - resolveStarted,
+      due: due.length,
+      resolved: resolved.length,
+      resolveErrors,
+    })
     return jsonResponse({ success: true, due: due.length, resolved: resolved.length, markets: resolved })
   }
 
@@ -1799,6 +1945,13 @@ async function handleWithD1(db, kv, r2, request, path, method, env = {}) {
     if (resolvedOutcome !== undefined) payload.resolvedOutcome = resolvedOutcome
     await storage.updateContractPayload(db, marketId, payload)
     await backupToR2(r2, undefined, marketId, payload)
+
+    if (status === 'Settled' && env?.VECTORIZE) {
+      const delEmb = await deleteMarketEmbeddings(env, [marketId])
+      if (!delEmb.ok && delEmb.reason === 'delete_failed') {
+        predictionLog('update_market_status.embedding_delete_failed', { marketId, reason: delEmb.reason })
+      }
+    }
 
     const SETTLEMENT_FEE = 0.02
     if (status === 'Settled' && resolvedOutcome) {

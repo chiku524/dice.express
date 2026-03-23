@@ -20,8 +20,12 @@ function safeJsonParse(str, fallback = {}) {
   }
 }
 
-/** @param {D1Database} db */
-export async function getContracts(db, { party, templateType, status, limit = 100 } = {}) {
+/**
+ * Build SQL + bind params for listing contracts (used by getContracts and tests).
+ * @param {{ party?: string, templateType?: string, status?: string, limit?: number }} opts
+ * @returns {{ query: string, params: unknown[] }}
+ */
+export function buildGetContractsQuery({ party, templateType, status, limit = 100 } = {}) {
   const conditions = []
   const params = []
   if (party) {
@@ -39,6 +43,12 @@ export async function getContracts(db, { party, templateType, status, limit = 10
   const whereClause = conditions.length ? `WHERE ${conditions.join(' AND ')}` : ''
   const query = `SELECT * FROM ${CONTRACTS_TABLE} ${whereClause} ORDER BY created_at DESC LIMIT ?`
   params.push(limit)
+  return { query, params }
+}
+
+/** @param {D1Database} db */
+export async function getContracts(db, opts = {}) {
+  const { query, params } = buildGetContractsQuery(opts)
   const stmt = db.prepare(query).bind(...params)
   const { results } = await stmt.all()
   return (results || []).map((row) => ({
@@ -247,6 +257,53 @@ export async function cancelOrder(db, orderId, owner) {
     `UPDATE ${ORDERS_TABLE} SET status = 'cancelled', updated_at = ? WHERE order_id = ? AND owner = ? AND status = 'open'`
   ).bind(now, orderId, owner).run()
   return r.meta.changes > 0
+}
+
+/** Open P2P order counts per market_id (for discovery / sorting). @param {D1Database} db */
+export async function getOpenP2pOrderCountsByMarket(db) {
+  const { results } = await db.prepare(
+    `SELECT market_id, COUNT(*) AS cnt FROM ${ORDERS_TABLE}
+     WHERE status = 'open' AND (amount_remaining IS NULL OR amount_remaining > 0)
+     GROUP BY market_id`
+  ).all()
+  /** @type {Record<string, number>} */
+  const out = {}
+  for (const r of results || []) {
+    out[String(r.market_id)] = Number(r.cnt) || 0
+  }
+  return out
+}
+
+/**
+ * Paginate VirtualMarket rows for embedding backfill (stable key order).
+ * @param {D1Database} db
+ * @param {{ afterContractId?: string, limit?: number }} opts
+ */
+export async function listVirtualMarketsPageForBackfill(db, { afterContractId = '', limit = 25 } = {}) {
+  const lim = Math.min(100, Math.max(1, limit))
+  const { results } = await db.prepare(
+    `SELECT contract_id, payload FROM ${CONTRACTS_TABLE}
+     WHERE template_id = 'VirtualMarket' AND contract_id > ?
+     ORDER BY contract_id ASC LIMIT ?`
+  ).bind(String(afterContractId || ''), lim).all()
+  return results || []
+}
+
+/**
+ * Paginate settled prediction markets (payload.status = Settled) for Vectorize cleanup.
+ * @param {D1Database} db
+ * @param {{ afterContractId?: string, limit?: number }} opts
+ */
+export async function listSettledVirtualMarketIdsPage(db, { afterContractId = '', limit = 50 } = {}) {
+  const lim = Math.min(200, Math.max(1, limit))
+  const { results } = await db.prepare(
+    `SELECT contract_id FROM ${CONTRACTS_TABLE}
+     WHERE template_id = 'VirtualMarket'
+     AND json_extract(payload, '$.status') = 'Settled'
+     AND contract_id > ?
+     ORDER BY contract_id ASC LIMIT ?`
+  ).bind(String(afterContractId || ''), lim).all()
+  return (results || []).map((r) => String(r.contract_id))
 }
 
 // --- Deposits & withdrawals ---
