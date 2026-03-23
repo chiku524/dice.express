@@ -15,7 +15,7 @@ Set in Cloudflare Dashboard → Workers & Pages → dice-express-auto-markets-cr
 
 | Variable | Required | Description |
 |----------|----------|-------------|
-| **SITE_URL** | Yes | Your site base URL (e.g. `https://dice-express.pages.dev` or your custom domain). No trailing slash. |
+| **SITE_URL** | Yes | Your site base URL (committed default: `https://dice.express`). No trailing slash. Override in Dashboard if needed. |
 | **AUTO_MARKETS_SOURCE** | No | If **unset**, the Worker runs **seed_all** with the full source list (see `index.js`). If **set** (e.g. `sports`), only that single source runs each hour — use for debugging, not for “use all keys”. |
 | **AUTO_MARKETS_LIMIT** | No | Per-source cap for **non-news** APIs (default `25` in `wrangler.toml`, hard max `100` in API). Lower (e.g. `4`) reduces markets per run and API usage; it does **not** control news volume (see next row). |
 | **AUTO_MARKETS_NEWS_LIMIT** | No | Per-source cap for **news / enriched** sources (`news`, `perigon`, `newsapi_ai`, `newsdata_io`). Default `50` when unset in Worker env. |

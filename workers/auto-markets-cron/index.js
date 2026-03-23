@@ -19,7 +19,7 @@ function clampLimit(n, max = 100) {
 
 export default {
   async scheduled(event, env, ctx) {
-    const siteUrl = (env.SITE_URL || 'https://dice-express.pages.dev').replace(/\/$/, '')
+    const siteUrl = (env.SITE_URL || 'https://dice.express').replace(/\/$/, '')
     const headers = { 'Content-Type': 'application/json' }
     if (env.AUTO_MARKETS_CRON_SECRET) headers['X-Cron-Secret'] = env.AUTO_MARKETS_CRON_SECRET
 

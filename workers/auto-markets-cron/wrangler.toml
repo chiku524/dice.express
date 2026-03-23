@@ -17,7 +17,7 @@ crons = ["0 * * * *"]
 # Leave AUTO_MARKETS_SOURCE unset for seed_all (all lanes in AUTO_MARKET_SOURCES, including sports, every tick).
 # To reduce The Odds API usage, set AUTO_MARKETS_SOURCE to a single non-sports source (e.g. fred) for debugging.
 [vars]
-SITE_URL = "https://dice-express.pages.dev"
+SITE_URL = "https://dice.express"
 # AUTO_MARKETS_SOURCE = "sports"
 AUTO_MARKETS_LIMIT = "25"
 AUTO_MARKETS_NEWS_LIMIT = "50"
