@@ -1,18 +1,29 @@
 import { useState, useEffect } from 'react'
+import { useLocation } from 'react-router-dom'
 import { documentationHashToSectionId } from '../constants/documentationSections'
 import './Documentation.css'
 
-function getSectionFromHash() {
+function sectionIdFromWindowHash() {
   const hash = typeof window !== 'undefined' ? window.location.hash.slice(1) : ''
   return documentationHashToSectionId(hash)
 }
 
 export default function Documentation() {
-  const [activeSection, setActiveSection] = useState(() => getSectionFromHash())
+  const location = useLocation()
+  const [activeSection, setActiveSection] = useState(() => sectionIdFromWindowHash())
+
+  // React Router uses pushState for same-route hash changes — hashchange does NOT fire (HTML5 spec).
+  useEffect(() => {
+    setActiveSection(documentationHashToSectionId(location.hash))
+  }, [location.hash, location.pathname])
 
   useEffect(() => {
-    setActiveSection(getSectionFromHash())
-    const onHashChange = () => setActiveSection(getSectionFromHash())
+    window.scrollTo(0, 0)
+  }, [activeSection])
+
+  // Plain <a href="#..."> links in doc content update the URL without always going through Router.
+  useEffect(() => {
+    const onHashChange = () => setActiveSection(sectionIdFromWindowHash())
     window.addEventListener('hashchange', onHashChange)
     return () => window.removeEventListener('hashchange', onHashChange)
   }, [])

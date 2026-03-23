@@ -10,14 +10,29 @@ struct SplashState {
     backend_done: bool,
 }
 
+/// Tray icon: load the **same** bundle files Windows uses for the exe / shortcuts / taskbar
+/// (`icon.ico` on Windows). `default_window_icon()` can differ (embedded raster choice), which
+/// made the notification area look unlike the taskbar.
+fn load_tray_icon() -> tauri::image::Image<'static> {
+    #[cfg(windows)]
+    {
+        tauri::image::Image::from_bytes(include_bytes!("../icons/icon.ico"))
+            .expect("icons/icon.ico must decode for system tray")
+    }
+    #[cfg(target_os = "macos")]
+    {
+        tauri::image::Image::from_bytes(include_bytes!("../icons/128x128.png"))
+            .expect("icons/128x128.png must decode for system tray")
+    }
+    #[cfg(all(not(windows), not(target_os = "macos")))]
+    {
+        tauri::image::Image::from_bytes(include_bytes!("../icons/32x32.png"))
+            .expect("icons/32x32.png must decode for system tray")
+    }
+}
+
 fn create_tray(app: &AppHandle) -> tauri::Result<()> {
-    let icon = match app.default_window_icon() {
-        Some(i) => i.clone(),
-        None => {
-            eprintln!("[dice-express] no default window icon; tray not created");
-            return Ok(());
-        }
-    };
+    let icon = load_tray_icon();
 
     let show_i = MenuItem::with_id(app, "show", "Show dice.express", true, None::<&str>)?;
     let logout_i = MenuItem::with_id(app, "sign-out", "Sign out", true, None::<&str>)?;
