@@ -50,7 +50,7 @@ Reason:
    Cloudflare Dashboard → **Workers & Pages** → **dice-express-auto-markets-cron** → **Logs**. Filter by Cron trigger. You should see hourly runs and logs like `[auto-markets-cron] seed all created: N bySource: {...}`.
 
 3. **Confirm SITE_URL**  
-   On the **cron Worker**, **Settings** → Variables and Secrets. **SITE_URL** must be the **exact** base URL of the Pages deployment that has the env vars and D1 (e.g. `https://dice-express.pages.dev` or your custom domain). No trailing slash. If this points at a different app or a preview URL without DB, seed will not create markets in your production DB.
+   On the **cron Worker**, **Settings** → Variables and Secrets. **SITE_URL** must be the **exact** base URL of the Pages deployment that has the env vars and D1 (production default in repo: **`https://dice.express`**). No trailing slash. If this points at a different app or a preview URL without DB, seed will not create markets in your production DB.
 
 4. **Run seed manually**  
    From a browser or curl:
@@ -70,7 +70,7 @@ Reason:
 
 | Source | Env key | Typical limit / note |
 |--------|---------|----------------------|
-| Sports | THE_ODDS_API_KEY | 500 req/month (free); cron includes sports on default UTC hours **02,08,14,20** (override **AUTO_MARKETS_SPORTS_HOURS_UTC** or **AUTO_MARKETS_SPORTS_EVERY_RUN** on the Worker) |
+| Sports | THE_ODDS_API_KEY | 500 req/month (free); cron includes **sports every run** — hourly usage can exceed free tier; use a paid Odds plan or set **AUTO_MARKETS_SOURCE** to a non-sports source for testing |
 | Stocks | ALPHA_VANTAGE_API_KEY | 25 req/day (free); cron uses 1 symbol per run, stocks_trend excluded from default |
 | Crypto | COINGECKO_API_KEY (optional) | Public API rate-limited; Pro key helps |
 | Crypto trend | COINGECKO_API_KEY (optional) | Same |

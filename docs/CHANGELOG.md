@@ -4,6 +4,13 @@ Summary of major cleanups and improvements. For current structure see [README](.
 
 ---
 
+## 1.0.22 — Docs, desktop tag (March 2026)
+
+- **Docs refreshed** for production reality: **ARCHITECTURE.md** (Cloudflare, D1, Vectorize, P2P-first), **API.md** (Cloudflare Pages API first; Canton/DAML moved to historical appendix), **CLOUDFLARE.md** (Vectorize, Workers AI, markets cache + `sort=activity`), **GET_APP_UP_AND_RUNNING.md**, **NEXT_STEPS_AND_PROD_READINESS.md**, **AUTO_MARKETS_TROUBLESHOOTING.md** (cron + Odds quota, **SITE_URL** **dice.express**).
+- **Desktop / Tauri:** version bump to **1.0.22** (`package.json`, `frontend/package.json`, `src-tauri/tauri.conf.json`, `Cargo.toml`, download fallback). Release tag **`v1.0.22`** triggers GitHub Actions desktop build.
+
+---
+
 ## Remove Stripe integration (March 2025)
 
 - **Stripe removed:** Card deposits and all Stripe references removed (Stripe rejected app due to crypto relevance). Deposits are now **crypto only**: Deposit from wallet (Web3) and Deposit with crypto (platform address).

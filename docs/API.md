@@ -1,10 +1,42 @@
 # API Reference
 
-The platform is **virtual-first**: trading and fees use Credits; ledger/blockchain is used for **deposits and withdrawals** and for command submission on supported networks (Canton today; more chains planned). This section documents the ledger API and backend endpoints.
+## Cloudflare Pages API (production)
 
-## Ledger JSON API (e.g. Canton)
+The live product serves **`/api/*`** from **Cloudflare Pages Functions** with **D1** as the system of record. Base URL is your deployment (e.g. `https://dice.express` or `https://dice-express.pages.dev`). No separate backend host is required when D1 and bindings are configured.
 
-The application uses a ledger JSON API (currently Canton) for command submission and, where supported, queries. Other networks can be added via the provider system.
+### Core endpoints (summary)
+
+| Method | Path | Notes |
+|--------|------|--------|
+| `GET` | `/api/health` | Liveness. |
+| `GET` | `/api/markets` | Lists virtual markets. Query: `source`, `status`. **`sort=activity`** or **`sort=p2p`** sorts by open P2P limit-order count (skips KV cache for fresh counts). Each market includes **`openOrderCount`**. |
+| `POST` | `/api/markets` | Creates a market (**`source: 'user'`** is rejected). Automated creation uses **`/api/auto-markets`**. |
+| `GET` | `/api/pools?marketId=…` | Liquidity pool state (AMM). |
+| `POST` | `/api/trade` | AMM trade (may be disabled when pools have zero liquidity). |
+| `GET` / `POST` | `/api/orders` | P2P limit orders: list, place, cancel. |
+| `POST` | `/api/create-position` | P2P / structured positions. |
+| `GET` / `POST` | `/api/auto-markets` | **`action=events`**, **`probe`**, **`seed`**, **`seed_all`**. Seeding may require **`X-Cron-Secret`** if **`AUTO_MARKETS_CRON_SECRET`** is set on Pages. See **`PREDICTION_MARKETS.md`**. |
+| `POST` | `/api/prediction-maintenance` | Embedding / Vectorize ops: **`backfill_embeddings`**, **`prune_settled_embeddings`**, **`delete_embeddings_by_ids`**. Auth: **`X-Maintenance-Secret`** (**`PREDICTION_MAINTENANCE_SECRET`**) or shared cron secret. See **`PREDICTION_MARKETS.md`** (Maintenance). |
+| `POST` | `/api/resolve-markets` | Resolves due markets from oracle APIs; settles P2P winners (2% fee). |
+| `POST` | `/api/update-market-status` | Manual status / settlement updates. |
+| `POST` | `/api/deposit-crypto` | Credits Pips after on-chain verification (secret). |
+| `POST` | `/api/process-withdrawals` | Sends pending withdrawals (secret). |
+
+### Implementation pointers
+
+- Router: `functions/api/[[path]].js`
+- Storage: `functions/lib/cf-storage.mjs` (D1, KV, R2)
+- Auto-markets data: `functions/lib/data-sources.mjs` (**`AUTO_MARKET_SOURCES`**)
+- Dedupe: `functions/lib/market-dedupe.mjs` (lexical + semantic); **`functions/lib/market-embeddings.mjs`** (Workers AI + Vectorize)
+- Resolution: `functions/lib/resolve-markets.mjs`
+
+---
+
+## Historical: Canton / DAML ledger API (reference)
+
+The sections below describe a **ledger JSON API** (e.g. Canton) and DAML templates used in an earlier architecture. **Production dice.express does not expose these paths**; markets and balances live in **D1**. Kept for reference only.
+
+The application may still use a ledger JSON API for command submission on supported networks. Other networks can be added via the provider system.
 
 Base URL (example): `https://participant.dev.canton.wolfedgelabs.com`
 
@@ -207,7 +239,7 @@ data PositionType = Yes | No | Outcome Text
 data SettlementTrigger = TimeBased Time | EventBased Text | Manual
 ```
 
-## Example Queries
+## Example Queries (ledger; reference only)
 
 ### Get All Active Markets
 
@@ -275,4 +307,3 @@ ws.send(JSON.stringify({
   query: {}
 }))
 ```
-

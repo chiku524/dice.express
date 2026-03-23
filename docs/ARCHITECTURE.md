@@ -1,25 +1,28 @@
-# Architecture (Virtual-Only)
+# Architecture (Cloudflare + virtual markets)
 
-The application is a **virtual-only** prediction markets platform: all events and actions (markets, positions, AMM, balances) are handled by **files and algorithms** (APIs + database). There is **no blockchain or Canton**.
+dice.express is a **virtual** prediction markets platform: markets, balances, P2P orders, and (optional) AMM pools live in **Cloudflare D1**. Deposits and withdrawals use **on-chain verification** where configured; there is no user-facing Canton/DAML path in the production web app.
 
 ## Overview
 
-- **Frontend**: React; fetches markets from `GET /api/markets`, creates markets via `POST /api/markets`, trades via `POST /api/trade` or `POST /api/create-position`, balance from `GET /api/get-user-balance`.
-- **API**: Cloudflare Pages Functions; D1 for storage (`contracts`, `user_balances`); optional KV (cache), R2 (backup). AMM logic in `functions/lib/amm.mjs` (constant product, fees, max trade size).
-- **Data**: Markets and pools stored as rows in `contracts` (template_id: VirtualMarket, LiquidityPool, Position, etc.). Balances in `user_balances`.
+- **Frontend**: React (web + Tauri desktop). Calls **`GET /api/markets`** (often with **`sort=activity`** for P2P depth), limit orders via **`/api/orders`**, optional AMM via **`/api/trade`** when pools have liquidity.
+- **API**: Cloudflare **Pages Functions** (`functions/api/[[path]].js`). Bindings: **D1** (`DB`), **KV** (`KV`), **R2** (`R2`), **Workers AI** (`AI`), **Vectorize** (`VECTORIZE`). Config in **`wrangler.toml`**.
+- **Markets**: Rows in **`contracts`** (`template_id`: `VirtualMarket`, `LiquidityPool`, `Position`, …). Balances in **`user_balances`**. P2P orders in **`p2p_orders`**.
+- **Automated creation**: Only **`POST /api/auto-markets`** (cron Worker or manual). User-created markets via **`POST /api/markets`** with `source: 'user'` are **disabled**.
+- **Dedupe**: Lexical keys + semantic (Jaccard) in **`market-dedupe.mjs`**; paraphrase near-duplicates via **embeddings** (**`@cf/baai/bge-base-en-v1.5`**) + **Vectorize** in **`market-embeddings.mjs`**. Vectors removed when markets settle; maintenance API can backfill or prune. See **`PREDICTION_MARKETS.md`**.
+- **P2P-first ops**: **`AUTO_MARKETS_ZERO_LIQUIDITY=1`** (committed default) gives new markets **zero** AMM liquidity so matching is **limit-order / P2P** until you change that policy. See **`ALGORITHMS_AND_RISK.md`** and **`P2P_AND_GROWTH_STRATEGY.md`**.
 
 ## Core flows
 
-1. **Markets**: Created with `POST /api/markets` (no approval). Listed with `GET /api/markets`. Optional filter by `source` (global_events, industry, virtual_realities, user).
-2. **AMM**: Each market has an initial pool (created when market is created). `GET /api/pools?marketId=...` returns pool state. `POST /api/trade` executes a trade (updates pool reserves, user balance, creates position).
-3. **Positions**: Created by `/api/create-position` (fixed price) or by `/api/trade` (AMM). Stored in `contracts` with template_id Position.
-4. **Resolution**: `POST /api/update-market-status` with `marketId`, `status` (e.g. Resolving, Settled), optional `resolvedOutcome`.
+1. **Market creation (automated)**: Cron Worker **`dice-express-auto-markets-cron`** posts to **`https://dice.express/api/auto-markets`** with **`seed_all`** and the full **`AUTO_MARKET_SOURCES`** list every hour, then **`POST /api/resolve-markets`**. **`SITE_URL`** on the Worker should match production (custom domain).
+2. **Listing**: **`GET /api/markets`** returns markets with **`openOrderCount`**; Discover uses activity sort for fresh P2P signal. KV caches default list (~60s); **`sort=activity`** bypasses cache.
+3. **AMM**: **`functions/lib/amm.mjs`** — constant product, fees, max trade size. Pools may have **zero** reserves in P2P-only mode.
+4. **P2P**: **`POST /api/orders`**, **`POST /api/create-position`**; settlement **`POST /api/resolve-markets`** or **`POST /api/update-market-status`** (2% fee on P2P settlement path).
+5. **Resolution**: **`resolve-markets.mjs`** calls external oracles (Odds, FRED, weather, Finnhub, …) per market payload.
 
-## AMM (functions/lib/amm.mjs)
+## Observability
 
-- Constant product formula; configurable fee and platform fee share; max trade size as fraction of reserve (LP protection).
-- Functions: `getQuote`, `isTradeWithinLimit`, `applyTrade`, `addLiquidity`, `removeLiquidity`, `createPoolState`.
+Structured JSON logs for cron-friendly search: **`auto_markets.seed.complete`**, **`resolve_markets.complete`**, **`prediction_maintenance.*`** (`functions/lib/prediction-observability.mjs`).
 
-## Cloudflare-only
+## Cloudflare-only data plane
 
-- No blockchain, no Canton, no DAML. User identifies with account ID / display name; balance and state are in D1 only. Add Credits via `POST /api/add-credits`. For P2P-only mode, set `DISABLE_AMM_TRADE=1` and see `docs/P2P_AND_GROWTH_STRATEGY.md`.
+Primary persistence is **D1**. **R2** backs up contract JSON. **KV** caches light responses. **Vectorize** holds embedding index for dedupe; **Workers AI** runs the embedding model. No Supabase/Vercel requirement for the markets API when D1 is bound.

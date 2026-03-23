@@ -19,8 +19,8 @@
 
 ## API & Implementation
 
-- **[API.md](./API.md)** – API reference, query endpoints, contract interfaces
-- **[CLOUDFLARE.md](./CLOUDFLARE.md)** – Deploy to Cloudflare Pages, D1/R2/KV storage setup
+- **[API.md](./API.md)** – **Cloudflare `/api/*` reference** (current); Canton/DAML appendix (historical)
+- **[CLOUDFLARE.md](./CLOUDFLARE.md)** – Deploy to Cloudflare Pages; D1, R2, KV, Vectorize, Workers AI bindings
 
 ## Deployment & Ops
 

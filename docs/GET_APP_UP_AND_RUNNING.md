@@ -7,11 +7,13 @@ Checklist to deploy and operate dice.express in production. Do these after **cry
 ## 1. Deploy to Cloudflare Pages
 
 - **Deploy:** From repo root: `npm run pages:deploy` (builds frontend and deploys to project `dice-express`). Or connect Git to Cloudflare Pages for automatic deploys.
-- **Attach D1, R2, KV (required for API):** In **Cloudflare Dashboard** → **Pages** → **dice-express** → **Settings** → **Functions**:
+- **Attach D1, R2, KV, Vectorize, Workers AI (required for full API):** In **Cloudflare Dashboard** → **Pages** → **dice-express** → **Settings** → **Functions**:
   - **D1 database bindings:** Add binding, Variable name: `DB`, D1 database: select **dice-express-db** (create it first via Workers & Pages → D1 → Create database if needed; use the same `database_id` as in `wrangler.toml`).
   - **R2 bucket bindings:** Add binding, Variable name: `R2`, R2 bucket: select **dice-express-r2** (create via R2 → Create bucket if needed).
   - **KV namespace bindings:** Add binding, Variable name: `KV`, KV namespace: select your namespace (e.g. **DICE_KV**; create via Workers & Pages → KV if needed, use the same `id` as in `wrangler.toml`).
-- Without these bindings, the API (markets, balance, deposit, etc.) will not work.
+  - **Vectorize:** Binding **`VECTORIZE`**, index **dice-express-market-embeddings** (768 dimensions, cosine). Create the index with Wrangler if it does not exist (see **`CLOUDFLARE.md`**).
+  - **Workers AI:** Binding **`AI`** (Workers AI catalog) for embeddings used with Vectorize.
+- Without D1/R2/KV, core API breaks. Without AI/Vectorize, markets still seed but **embedding dedupe** is skipped (lexical + semantic dedupe still apply).
 
 ---
 
@@ -77,11 +79,12 @@ See **`CRYPTO_DEPOSITS.md`** for crypto-specific secrets.
 **Only automated creation; users cannot create markets.** See **`PREDICTION_MARKETS.md`** for full detail.
 
 - **No extra cost:** Market data comes from **free-tier** APIs (The Odds API, CoinGecko, Alpha Vantage, OpenWeather, WeatherAPI, GNews, etc.). Within their limits (e.g. 500 req/month for Odds, 25/day for Alpha Vantage), there is **no cost**.
-- **Cron Worker (recommended):** A Worker runs on a schedule and calls your site’s `POST /api/auto-markets` to seed markets.
-  - Deploy the cron Worker: `cd workers/auto-markets-cron && npx wrangler deploy`
-  - In Cloudflare Dashboard → Workers & Pages → **dice-express-auto-markets-cron** → Settings → Variables: set **SITE_URL** to your site (e.g. `https://dice-express.pages.dev` or your custom domain).
-  - Leave **AUTO_MARKETS_SOURCE** unset for full **seed_all** (all integrated lanes; sports on configurable UTC hours — see `workers/auto-markets-cron/README.md`). Set it only to debug a single source.
-  - Default schedule: **every hour** UTC. Edit `workers/auto-markets-cron/wrangler.toml` → `crons` to change.
+- **Cron Worker (recommended):** A Worker runs on a schedule and calls your site’s **`POST /api/auto-markets`** then **`POST /api/resolve-markets`**.
+  - Deploy: `cd workers/auto-markets-cron && npx wrangler deploy`
+  - **SITE_URL** (committed default **`https://dice.express`**) must be the exact production base URL (no trailing slash). Override in the Worker dashboard if needed.
+  - Leave **AUTO_MARKETS_SOURCE** unset for **`seed_all`** with **every** lane in **`AUTO_MARKET_SOURCES`** (including **sports**) on **each** run. Set **AUTO_MARKETS_SOURCE** only to debug a single source. **The Odds API** free tier (~500 req/month) is lower than hourly sports usage (~720/month); use a paid plan or a single-source Worker for testing.
+  - If **AUTO_MARKETS_CRON_SECRET** is set on **Pages**, set the **same** value on the Worker so **`X-Cron-Secret`** is sent on seed requests.
+  - Default schedule: **every hour** UTC (`workers/auto-markets-cron/wrangler.toml` → `crons`).
 - **API keys (on the Pages project):** For **sports** set **THE_ODDS_API_KEY** (free 500 req/month). For stocks: **ALPHA_VANTAGE_API_KEY**. For crypto, CoinGecko can work without a key (rate limited). See `workers/auto-markets-cron/README.md` and `docs/PREDICTION_MARKETS.md`.
 - **Manual seed:** You can also call `POST https://<your-site>/api/auto-markets` with body `{ "action": "seed", "source": "sports", "limit": 10 }` anytime (e.g. from Postman or a script).
 
@@ -104,7 +107,7 @@ See **`CRYPTO_DEPOSITS.md`** for crypto-specific secrets.
 2. Run D1 migrations (see §2; include `0005_deposit_reference_unique.sql`).
 3. Set secrets on the **Pages** project: **ALCHEMY_API_KEY**, **DEPOSIT_CRYPTO_SECRET**.
 4. (When you have crypto) Verify crypto deposit and run a deposit watcher; run a withdrawal processor.
-5. **Automated markets:** Deploy the cron Worker (`cd workers/auto-markets-cron && npx wrangler deploy`), set **SITE_URL** (and optional **THE_ODDS_API_KEY** on the Pages project for sports). Markets will seed on the cron schedule at no extra cost (free-tier APIs).
+5. **Automated markets:** Deploy the cron Worker (`cd workers/auto-markets-cron && npx wrangler deploy`); confirm **SITE_URL** is production (**`https://dice.express`** or your domain). Add API keys on **Pages** for each lane you need. After a **D1 wipe** of markets, align **Vectorize** (recreate index or **`POST /api/prediction-maintenance`**). See **`PREDICTION_MARKETS.md`**.
 6. Call **POST /api/resolve-markets** periodically (cron or manual) to resolve due markets.
 
 For more detail on deposit/withdraw and security, see **`PIPS_DEPOSIT_WITHDRAW_FLOW.md`**, **`CRYPTO_DEPOSITS.md`**, and **`NEXT_STEPS_AND_PROD_READINESS.md`**.

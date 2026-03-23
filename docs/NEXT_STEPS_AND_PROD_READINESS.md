@@ -26,8 +26,8 @@ Quick reference for what’s done, what’s not, and what controls behavior.
 
 **User-created markets are disabled.** Only API-driven (auto-markets) creation is allowed.
 
-- **Creation:** Something must call `POST /api/auto-markets` with body `{ "action": "seed", "source": "sports" }` (or stocks, crypto, weather, weatherapi, news, perigon). No UI for creating markets; `/create` explains that markets are automated.
-- **Scheduler:** There is no built-in cron. To create markets on a schedule, add an external cron or a Cloudflare Worker with a Cron Trigger that calls `POST /api/auto-markets` with the desired `source` and `limit`.
+- **Creation:** Call `POST /api/auto-markets` with **`{ "action": "seed_all", "sources": [...] }`** (or **`seed`** + **`source`**) using the keys in **`AUTO_MARKET_SOURCES`** (`functions/lib/data-sources.mjs`). No UI for end-user creation; `/create` explains automation.
+- **Scheduler:** **`workers/auto-markets-cron`** is a Cloudflare Worker with an hourly Cron Trigger; it posts **`seed_all`** to **`SITE_URL`** (default **`https://dice.express`**) then **`resolve-markets`**. Optional **`AUTO_MARKETS_CRON_SECRET`** on Pages + Worker protects seeding.
 - **Resolution:** Markets resolve when their underlying event has a verdict. Call `POST /api/resolve-markets` (from a cron or manually) to resolve all due markets: the handler fetches outcomes from the relevant APIs (Odds, Alpha Vantage, CoinGecko, weather, etc.) and settles winners (2% fee). See **§3** below.
 
 ---
@@ -59,7 +59,7 @@ Quick reference for what’s done, what’s not, and what controls behavior.
 | Question | Answer |
 |----------|--------|
 | Are deposit/withdraw ready for prod? | Crypto deposit: yes once you have a way to call the API. Crypto withdraw: yes once you have a process that sends from your wallet and updates DB. |
-| What creates a prediction market? | Only `POST /api/auto-markets` with `action: "seed"`. User creation is disabled. |
-| How do I get new auto-markets regularly? | Add a cron (or Worker Cron Trigger) that calls `POST /api/auto-markets` with `source` and `limit`. |
+| What creates a prediction market? | `POST /api/auto-markets` (`seed` / `seed_all`). User `source: 'user'` is disabled. |
+| How do I get new auto-markets regularly? | **dice-express-auto-markets-cron** Worker (hourly) or manual **`seed_all`**. |
 | How are markets resolved? | Call `POST /api/resolve-markets` (cron or manual). It resolves all due markets from oracle APIs and settles P2P winners. |
 | Pips vs USD? | 1:1. 1 PP = $1 USD. |

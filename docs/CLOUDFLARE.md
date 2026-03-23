@@ -46,7 +46,7 @@ If the zone is on Cloudflare, DNS is usually updated automatically. Otherwise ad
 
 | Item | Purpose |
 |------|--------|
-| **`wrangler.toml`** | Pages project config: name `dice-express`, build output `frontend/dist`, D1/R2/KV bindings, optional `BACKEND_URL`. |
+| **`wrangler.toml`** | Pages project config: name `dice-express`, build output `frontend/dist`, D1/R2/KV/**Vectorize**/**AI** bindings, `[vars]`, optional `BACKEND_URL`. |
 | **`functions/api/[[path]].js`** | Pages Function: serves `/api/*` from D1 when `DB` is bound, else proxies to `BACKEND_URL` if set. |
 | **`scripts/cloudflare-setup.sh`** | Idempotent: creates the Pages project via CLI if it doesn't exist. |
 | **`.github/workflows/deploy-cloudflare-pages.yml`** | Optional: build + deploy via GitHub Actions (Direct Upload). |
@@ -116,8 +116,12 @@ When **D1** is bound (`env.DB` in `wrangler.toml`):
 | Storage | Role |
 |--------|------|
 | **D1** | Primary: `contracts`, `user_balances`. All API reads/writes when bound. |
-| **KV** | Cache for GET `/api/markets`. |
+| **KV** | Cache for **`GET /api/markets`** (default sort). Requests with **`sort=activity`** or **`sort=p2p`** skip this cache so **`openOrderCount`** stays fresh. |
 | **R2** | Backup: contract payloads on store/update. |
+| **Vectorize** | Index **`dice-express-market-embeddings`** (768-dim cosine) for auto-seed embedding dedupe. Create once: `npx wrangler vectorize create dice-express-market-embeddings --dimensions=768 --metric=cosine`. |
+| **Workers AI** | Binding **`AI`** — model **`@cf/baai/bge-base-en-v1.5`** for market text embeddings (used with Vectorize). |
+
+**Vars (see `wrangler.toml`):** e.g. **`AUTO_MARKETS_ZERO_LIQUIDITY`**, **`MARKET_EMBED_SIMILARITY_MIN`**, optional **`MARKET_EMBED_BATCH_SIZE`**, **`PREDICTION_MAINTENANCE_SECRET`**. Secrets (API keys, cron secret) are set in the Pages dashboard.
 
 If **BACKEND_URL** is set and D1 is not bound, `/api/*` is proxied to that origin.
 
@@ -162,6 +166,17 @@ npx wrangler kv namespace create DICE_KV --preview
 ```
 
 Edit **`wrangler.toml`**: set `id` under `[[kv_namespaces]]`.
+
+---
+
+## 3b. Vectorize + Workers AI (automated market dedupe)
+
+1. Create the index (once per account):  
+   `npx wrangler vectorize create dice-express-market-embeddings --dimensions=768 --metric=cosine`
+2. Ensure **`wrangler.toml`** includes **`[[vectorize]]`** (`binding = "VECTORIZE"`, `index_name = "dice-express-market-embeddings"`) and **`[ai]`** (`binding = "AI"`).
+3. After wiping prediction markets in D1, clear or recreate the Vectorize index (or use **`POST /api/prediction-maintenance`**) so vectors stay aligned. See **`PREDICTION_MARKETS.md`** (Maintenance).
+
+Local **`wrangler pages dev`** may run without AI/Vectorize bindings; embedding steps no-op safely.
 
 ---
 
