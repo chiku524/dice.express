@@ -50,7 +50,7 @@ export default function MarketDetail() {
       try {
         setLoading(true)
         setError(null)
-        const list = await fetchMarkets()
+        const list = await fetchMarkets(null, { sort: 'activity' })
         const found = list.find(m => m.contractId === marketId || m.payload?.marketId === marketId)
         if (found) setMarket(found)
         else setError('Market not found')
@@ -163,7 +163,7 @@ export default function MarketDetail() {
       setTradeAmount('')
       const updatedPool = await fetchPool(market.payload.marketId)
       if (updatedPool) setPool(updatedPool)
-      const list = await fetchMarkets()
+      const list = await fetchMarkets(null, { sort: 'activity' })
       const found = list.find((m) => m.contractId === marketId || m.payload?.marketId === marketId)
       if (found) setMarket(found)
     } catch (err) {
@@ -308,6 +308,12 @@ export default function MarketDetail() {
           )}
 
           <div className="market-detail-volumes">
+            <div className="market-detail-volume-item">
+              <span className="market-detail-volume-label">Open P2P orders</span>
+              <span className="volume-display" title="Resting limit orders on the book">
+                {market.openOrderCount ?? 0}
+              </span>
+            </div>
             <div className="market-detail-volume-item">
               <span className="market-detail-volume-label">Total volume</span>
               <span className="volume-display">{formatPips(marketData.totalVolume ?? 0)}</span>

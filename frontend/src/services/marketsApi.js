@@ -5,9 +5,14 @@ import { apiUrl } from './apiBase'
 
 const MARKETS_API = apiUrl('markets')
 
-export async function fetchMarkets(source = null) {
+/**
+ * @param {string | null} [source] - API source filter (optional; Discover often filters client-side)
+ * @param {{ sort?: 'activity' | 'p2p' }} [options] - sort=activity hits API P2P ordering and fresh openOrderCount (skips KV cache server-side)
+ */
+export async function fetchMarkets(source = null, options = {}) {
   const params = new URLSearchParams()
   if (source && source !== 'all') params.set('source', source)
+  if (options.sort === 'activity' || options.sort === 'p2p') params.set('sort', 'activity')
   const url = params.toString() ? `${MARKETS_API}?${params}` : MARKETS_API
   let res
   try {
@@ -33,6 +38,7 @@ export async function fetchMarkets(source = null) {
     party: m.party,
     status: m.status,
     createdAt: m.createdAt,
+    openOrderCount: typeof m.openOrderCount === 'number' ? m.openOrderCount : 0,
   }))
 }
 

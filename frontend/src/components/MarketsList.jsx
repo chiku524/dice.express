@@ -27,7 +27,7 @@ export default function MarketsList({ source: sourceFromRoute }) {
   const [selectedTopic, setSelectedTopic] = useState('all')
   const [selectedType, setSelectedType] = useState('all')
   const [selectedStatus, setSelectedStatus] = useState('all')
-  const [sortBy, setSortBy] = useState('volume') // 'volume', 'newest', 'oldest', 'ending_soon'
+  const [sortBy, setSortBy] = useState('volume') // 'volume', 'p2p', 'newest', 'oldest', 'ending_soon'
   const [currentPage, setCurrentPage] = useState(1)
   const [retryCount, setRetryCount] = useState(0)
 
@@ -74,7 +74,7 @@ export default function MarketsList({ source: sourceFromRoute }) {
       if (!isMountedRef.current || !apiRoutesWorkingRef.current || document.hidden) return
 
       try {
-        const list = await fetchMarkets()
+        const list = await fetchMarkets(null, { sort: 'activity' })
         if (!isMountedRef.current) return
         setMarkets(list)
         setError(null)
@@ -219,8 +219,19 @@ export default function MarketsList({ source: sourceFromRoute }) {
       filtered = filtered.filter(market => market.payload.status === selectedStatus)
     }
     
-    const effectiveSort = selectedCategory === 'trending' ? 'volume' : sortBy
+    const effectiveSort = selectedCategory === 'trending' ? 'trending_blend' : sortBy
     filtered.sort((a, b) => {
+      if (effectiveSort === 'trending_blend') {
+        const aO = a.openOrderCount || 0
+        const bO = b.openOrderCount || 0
+        if (bO !== aO) return bO - aO
+        const aVol = a.payload.totalVolume || 0
+        const bVol = b.payload.totalVolume || 0
+        const aHas = aVol > 0 ? 1 : 0
+        const bHas = bVol > 0 ? 1 : 0
+        if (bHas !== aHas) return bHas - aHas
+        return bVol - aVol
+      }
       if (effectiveSort === 'volume') {
         const aVol = a.payload.totalVolume || 0
         const bVol = b.payload.totalVolume || 0
@@ -228,7 +239,14 @@ export default function MarketsList({ source: sourceFromRoute }) {
         const bHas = bVol > 0 ? 1 : 0
         if (bHas !== aHas) return bHas - aHas
         return bVol - aVol
-      } else if (effectiveSort === 'newest') {
+      }
+      if (effectiveSort === 'p2p') {
+        const aO = a.openOrderCount || 0
+        const bO = b.openOrderCount || 0
+        if (bO !== aO) return bO - aO
+        return (b.payload.totalVolume || 0) - (a.payload.totalVolume || 0)
+      }
+      if (effectiveSort === 'newest') {
         return b.contractId.localeCompare(a.contractId)
       } else if (effectiveSort === 'oldest') {
         return a.contractId.localeCompare(b.contractId)
@@ -262,8 +280,8 @@ export default function MarketsList({ source: sourceFromRoute }) {
 
   const pageTitle = sourceFromRoute ? getSourceLabel(sourceFromRoute) : 'Prediction Markets'
   const pageSubtitle = sourceFromRoute
-    ? `Markets from ${getSourceLabel(sourceFromRoute).toLowerCase()}. Trade with AMM-backed liquidity.`
-    : 'Trade with virtual Credits (Pips). No crypto required to browse.'
+    ? `Markets from ${getSourceLabel(sourceFromRoute).toLowerCase()}. P2P limit orders match peer-to-peer; pools may have zero liquidity.`
+    : 'Trade with virtual Credits (Pips). P2P limit orders; browse without crypto.'
 
   const scrollMarketsListToTop = () => {
     requestAnimationFrame(() => {
@@ -612,6 +630,14 @@ export default function MarketsList({ source: sourceFromRoute }) {
                           <span className="market-card-tag market-card-tag-category">
                             {getCategoryEmoji(categoryLabel)} {categoryLabel}
                           </span>
+                          {(market.openOrderCount || 0) > 0 && (
+                            <span
+                              className="market-card-tag market-card-tag-p2p"
+                              title="Open P2P limit orders on the book"
+                            >
+                              P2P · {market.openOrderCount} open
+                            </span>
+                          )}
                           {apiAttr.same ? (
                             <span
                               className="market-card-tag market-card-tag-api"
