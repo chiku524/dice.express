@@ -69,7 +69,9 @@ export function WalletProvider({ children }) {
           try {
             const normalized = normalizeStoredWallet(JSON.parse(e.newValue))
             if (normalized) setWallet(normalized)
-          } catch (err) {}
+          } catch {
+            // ignore invalid JSON in storage
+          }
         } else setWallet(null)
       }
     }

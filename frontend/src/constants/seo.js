@@ -3,27 +3,27 @@
  * Tailored to prediction markets, Pips, trading, deposit/withdraw.
  */
 const BASE_TITLE = 'dice.express'
-const BASE_DESCRIPTION = 'Trade on prediction markets with Pips. Deposit via card or crypto, trade on sports, markets, weather & more, withdraw earnings. Peer-to-peer. Your choice. Your chance.'
+const BASE_DESCRIPTION = 'Trade on prediction markets with Pips. Deposit via crypto, trade on sports, stocks, weather & more, withdraw earnings. Peer-to-peer. Your choice. Your chance.'
 
 export const SEO_PAGES = {
   '/': {
     title: `Prediction Markets — Trade on Real-World Outcomes | ${BASE_TITLE}`,
-    description: 'Trade on prediction markets: sports, crypto, stocks, weather & more. Deposit with card or crypto, get Pips, trade peer-to-peer, withdraw earnings. No bookmaker — you vs other traders.',
+    description: 'Trade on prediction markets: sports, crypto, stocks, weather & more. Deposit with crypto, get Pips, trade peer-to-peer, withdraw earnings. No bookmaker — you vs other traders.',
     keywords: 'prediction markets, trade outcomes, sports predictions, crypto markets, event trading, Pips, dice.express',
   },
   '/discover/active': {
     title: `Markets with volume — Prediction Markets | ${BASE_TITLE}`,
-    description: 'Browse prediction markets that have trading volume. Trade with Pips, deposit via card or crypto, withdraw earnings.',
+    description: 'Browse prediction markets that have trading volume. Trade with Pips, deposit via crypto, withdraw earnings.',
     keywords: 'prediction markets, active markets, volume, trade outcomes, Pips',
   },
   '/discover/sports': {
     title: `Sports — Prediction Markets | ${BASE_TITLE}`,
-    description: 'Browse and trade prediction markets on sports. NBA, NFL, soccer and more. Deposit Pips via card or crypto, trade peer-to-peer.',
+    description: 'Browse and trade prediction markets on sports. NBA, NFL, soccer and more. Deposit Pips via crypto, trade peer-to-peer.',
     keywords: 'sports prediction markets, NBA, NFL, sports betting, trade outcomes, Pips',
   },
   '/discover/global-events': {
     title: `Weather & News — Prediction Markets | ${BASE_TITLE}`,
-    description: 'Browse and trade prediction markets on weather and news. Weather forecasts, headlines, and global events. Deposit Pips via card or crypto, trade peer-to-peer.',
+    description: 'Browse and trade prediction markets on weather and news. Weather forecasts, headlines, and global events. Deposit Pips via crypto, trade peer-to-peer.',
     keywords: 'weather prediction markets, news prediction markets, global events, event trading',
   },
   '/discover/industry': {
@@ -38,7 +38,7 @@ export const SEO_PAGES = {
   },
   '/discover/politics': {
     title: `Politics — Prediction Markets | ${BASE_TITLE}`,
-    description: 'Prediction markets on elections, policy, and political outcomes. Trade with Pips. Deposit via card or crypto, peer-to-peer.',
+    description: 'Prediction markets on elections, policy, and political outcomes. Trade with Pips. Deposit via crypto, peer-to-peer.',
     keywords: 'political prediction markets, election predictions, policy outcomes',
   },
   '/discover/entertainment': {
@@ -53,17 +53,17 @@ export const SEO_PAGES = {
   },
   '/discover/virtual-realities': {
     title: `Virtual Realities — Prediction Markets | ${BASE_TITLE}`,
-    description: 'Prediction markets in virtual and digital realms. Trade on outcomes with Pips. Deposit via card or crypto, peer-to-peer trading.',
+    description: 'Prediction markets in virtual and digital realms. Trade on outcomes with Pips. Deposit via crypto, peer-to-peer trading.',
     keywords: 'virtual predictions, digital outcomes, prediction markets',
   },
   '/discover/user': {
     title: `Community Markets | ${BASE_TITLE}`,
-    description: 'Explore prediction markets. Trade with Pips, deposit by card or crypto, withdraw earnings. Your choice. Your chance.',
+    description: 'Explore prediction markets. Trade with Pips, deposit by crypto, withdraw earnings. Your choice. Your chance.',
     keywords: 'prediction markets, community, trade outcomes',
   },
   '/market': {
     title: `Market — Trade Yes/No | ${BASE_TITLE}`,
-    description: 'View and trade on a prediction market. Buy Yes or No with Pips. Peer-to-peer order book. Deposit via card or crypto to get started.',
+    description: 'View and trade on a prediction market. Buy Yes or No with Pips. Peer-to-peer order book. Deposit via crypto to get started.',
     keywords: 'prediction market, trade yes no, binary market, Pips',
   },
   '/create': {
@@ -91,10 +91,11 @@ export const SEO_PAGES = {
     description: 'Admin dashboard for prediction market management. dice.express platform administration.',
     keywords: 'admin, prediction markets',
   },
-  '/history': {
-    title: `Contract History | ${BASE_TITLE}`,
-    description: 'View your prediction market contract and transaction history. Trades, positions, and settlements.',
-    keywords: 'history, contracts, transactions, prediction markets',
+  '/activity': {
+    title: `Activity — Stored market records | ${BASE_TITLE}`,
+    description:
+      'View stored market records linked to your account: markets, requests, and positions (legacy contract-style storage).',
+    keywords: 'activity, history, prediction markets, dice.express',
   },
   '/download': {
     title: `Download desktop app | ${BASE_TITLE}`,
@@ -128,21 +129,13 @@ export const SEO_PAGES = {
   },
   '/register': {
     title: `Create Account | ${BASE_TITLE}`,
-    description: 'Create your dice.express account. Start trading prediction markets — deposit Pips via card or crypto and trade on real-world outcomes.',
+    description: 'Create your dice.express account. Start trading prediction markets — deposit Pips via crypto and trade on real-world outcomes.',
     keywords: 'register, create account, prediction markets',
   },
   '/account': {
     title: `Account | ${BASE_TITLE}`,
     description: 'Your dice.express account. Manage your profile and trade prediction markets with Pips.',
     keywords: 'account, dice.express',
-  },
-  '/test': {
-    title: `Test | ${BASE_TITLE}`,
-    description: 'Test contract and API tools for dice.express.',
-  },
-  '/test-active-contracts': {
-    title: `Active Contracts Test | ${BASE_TITLE}`,
-    description: 'Test active contracts on dice.express.',
   },
 }
 

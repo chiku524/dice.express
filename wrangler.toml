@@ -3,7 +3,7 @@
 # Docs: https://developers.cloudflare.com/pages/functions/
 
 name = "dice-express"
-compatibility_date = "2025-02-01"
+compatibility_date = "2026-03-23"
 compatibility_flags = ["nodejs_compat"]
 
 pages_build_output_dir = "frontend/dist"
@@ -53,7 +53,7 @@ MARKET_EMBED_SIMILARITY_MIN = "0.88"
 # PREDICTION_MAINTENANCE_SECRET = "..."
 
 # Platform deposit wallets (dice.express Coinbase wallet). EVM chains use the same 0x address.
-# Set secrets via Cloudflare Dashboard → Pages/Workers → Settings → Environment variables (see docs/CRYPTO_DEPOSITS.md).
+# Set secrets via Cloudflare Dashboard → Pages/Workers → Settings → Environment variables (see docs/PIPS_DEPOSIT_WITHDRAW_FLOW.md §9).
 PLATFORM_WALLET_ADDRESS = "0xf3f20aCeBDDD921bC21c8184490416109dE57ba3"
 PLATFORM_WALLET_SOL = "6aJHBVSm5cxbYjsjFudoP1gZ3Ni3oMJcaN3ni5fpz3kz"
 # BTC/LTC/DOGE use xpub for deriving addresses; store in secrets if needed for display/automation.
@@ -70,3 +70,5 @@ PLATFORM_WALLET_SOL = "6aJHBVSm5cxbYjsjFudoP1gZ3Ni3oMJcaN3ni5fpz3kz"
 # Deposits: ALCHEMY_API_KEY or DEPOSIT_VERIFICATION_RPC_URL, SOLANA_RPC_URL (SPL USDC), DEPOSIT_VERIFICATION_SOLANA_USDC_MINT (optional),
 # Solana withdrawals: SOLANA_WALLET_PRIVATE_KEY (secret; pubkey must match PLATFORM_WALLET_SOL),
 # AUTO_MARKETS_CRON_SECRET (optional; if set, same value required on Pages for POST seed — cron Worker sends X-Cron-Secret)
+# PRIVILEGED_API_SECRET (optional; if set with or without cron secret, POST add-credits, update-user-balance, store-contract,
+#   create-position, resolve-markets require X-Privileged-Secret or matching X-Cron-Secret — cron Worker sends both when configured)

@@ -35,7 +35,7 @@ export function lazyWithRetry(importFunc, maxRetries = 3, retryDelay = 1000) {
               if ('caches' in window) {
                 caches.keys().then(names => {
                   names.forEach(name => {
-                    if (name.includes('CreateMarket') || name.includes('assets')) {
+                    if (name.includes('vite') || name.includes('workbox') || name.includes('assets')) {
                       caches.delete(name)
                     }
                   })

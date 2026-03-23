@@ -1,4 +1,5 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
+import { Link } from 'react-router-dom'
 import { useWallet } from '../contexts/WalletContext'
 import { ContractStorage } from '../utils/contractStorage'
 import { SkeletonList } from './SkeletonLoader'
@@ -14,19 +15,7 @@ export default function AdminDashboard() {
   const isMountedRef = useRef(true)
   const apiRoutesWorkingRef = useRef(true)
 
-  useEffect(() => {
-    isMountedRef.current = true
-    fetchRequests()
-    const pollInterval = setInterval(() => {
-      if (apiRoutesWorkingRef.current && !document.hidden) fetchRequests()
-    }, 30000)
-    return () => {
-      isMountedRef.current = false
-      clearInterval(pollInterval)
-    }
-  }, [wallet])
-
-  const fetchRequests = async () => {
+  const fetchRequests = useCallback(async () => {
     if (!wallet) return
     try {
       setLoading(true)
@@ -47,9 +36,19 @@ export default function AdminDashboard() {
     } finally {
       if (isMountedRef.current) setLoading(false)
     }
-  }
+  }, [wallet])
 
-  const resolveContractId = async (contractId) => contractId
+  useEffect(() => {
+    isMountedRef.current = true
+    fetchRequests()
+    const pollInterval = setInterval(() => {
+      if (apiRoutesWorkingRef.current && !document.hidden) fetchRequests()
+    }, 30000)
+    return () => {
+      isMountedRef.current = false
+      clearInterval(pollInterval)
+    }
+  }, [fetchRequests])
 
   const approveMarket = async (contractId) => {
     if (!wallet || processing) return
@@ -82,7 +81,7 @@ export default function AdminDashboard() {
         try {
           const errorData = await updateResponse.json()
           errorMessage = errorData.message || errorData.error || errorMessage
-        } catch (parseError) {
+        } catch {
           const errorText = await updateResponse.text()
           errorMessage = errorText || errorMessage
         }
@@ -145,7 +144,7 @@ export default function AdminDashboard() {
         try {
           const errorData = await updateResponse.json()
           errorMessage = errorData.message || errorData.error || errorMessage
-        } catch (parseError) {
+        } catch {
           const errorText = await updateResponse.text()
           errorMessage = errorText || errorMessage
         }
@@ -225,13 +224,13 @@ export default function AdminDashboard() {
             </p>
             <ul>
               <li>✅ Approve/reject markets via command submission (when you have contract IDs)</li>
-              <li>✅ View created contracts in the <Link to="/history">History page</Link></li>
+              <li>✅ View created contracts on the <Link to="/activity">Activity</Link> page</li>
               <li>✅ Verify contracts on the <a href="https://devnet.ccexplorer.io/" target="_blank" rel="noopener noreferrer">block explorer</a></li>
               <li>✅ Use gRPC or WebSocket APIs for contract queries (requires different implementation)</li>
             </ul>
             <p>
               <strong>Note:</strong> Market creation requests are stored locally when created. 
-              Check the <Link to="/history">History page</Link> to see contracts you've created.
+              Check the <Link to="/activity">Activity</Link> page to see contracts you&apos;ve created.
             </p>
           </div>
         </div>

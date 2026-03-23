@@ -79,6 +79,37 @@ function checkPredictionMaintenanceAuth(request, env, body) {
   return false
 }
 
+/**
+ * When PRIVILEGED_API_SECRET and/or AUTO_MARKETS_CRON_SECRET is set on Pages, ops-only routes
+ * require a matching X-Privileged-Secret or X-Cron-Secret (or body.privilegedSecret / body.cronSecret).
+ * When neither env var is set, routes stay open (local dev / backward compatibility).
+ */
+function checkOpsSecret(request, body, env) {
+  const priv = (env.PRIVILEGED_API_SECRET || '').toString().trim()
+  const cron = (env.AUTO_MARKETS_CRON_SECRET || '').toString().trim()
+  if (!priv && !cron) return { ok: true }
+
+  const hPriv = (request.headers.get('X-Privileged-Secret') || '').trim()
+  const hCron = (request.headers.get('X-Cron-Secret') || '').trim()
+  const bPriv = body?.privilegedSecret != null ? String(body.privilegedSecret).trim() : ''
+  const bCron = body?.cronSecret != null ? String(body.cronSecret).trim() : ''
+
+  if (priv && (hPriv === priv || bPriv === priv)) return { ok: true }
+  if (cron && (hCron === cron || bCron === cron)) return { ok: true }
+
+  return {
+    ok: false,
+    response: jsonResponse(
+      {
+        error: 'Unauthorized',
+        message:
+          'This endpoint requires X-Privileged-Secret (when PRIVILEGED_API_SECRET is set) and/or X-Cron-Secret (when AUTO_MARKETS_CRON_SECRET is set) on Pages.',
+      },
+      401
+    ),
+  }
+}
+
 const USDC_ABI = parseAbi(['function transfer(address to, uint256 value) returns (bool)'])
 /** Send one withdrawal (EVM USDC/native or Solana SPL USDC). Returns { ok: true, txHash } or { ok: false, error }. */
 async function sendOneWithdrawal(env, db, w) {
@@ -863,6 +894,8 @@ async function handleWithD1(db, kv, r2, request, path, method, env = {}) {
 
   // POST /api/add-credits — virtual top-up (Pips added to balance; no blockchain)
   if (path === 'add-credits' && method === 'POST') {
+    const ops = checkOpsSecret(request, body, env)
+    if (!ops.ok) return ops.response
     const { userParty, accountId, amount } = body
     const party = userParty || accountId
     if (!party || amount === undefined) {
@@ -1062,6 +1095,8 @@ async function handleWithD1(db, kv, r2, request, path, method, env = {}) {
 
   // POST /api/store-contract
   if (path === 'store-contract' && method === 'POST') {
+    const ops = checkOpsSecret(request, body, env)
+    if (!ops.ok) return ops.response
     const { contractId, templateId, payload, party, updateId, completionOffset, explorerUrl, status } = body
     if (!contractId || !templateId || !party) {
       return jsonResponse({
@@ -1225,6 +1260,8 @@ async function handleWithD1(db, kv, r2, request, path, method, env = {}) {
 
   // POST /api/update-user-balance
   if (path === 'update-user-balance' && method === 'POST') {
+    const ops = checkOpsSecret(request, body, env)
+    if (!ops.ok) return ops.response
     const { userParty, amount, operation } = body
     if (!userParty || amount === undefined || !operation) {
       return jsonResponse({ error: 'Missing required fields', required: ['userParty', 'amount', 'operation'] }, 400)
@@ -1878,6 +1915,8 @@ async function handleWithD1(db, kv, r2, request, path, method, env = {}) {
 
   // POST /api/resolve-markets — resolve due markets from oracle APIs and settle (call from cron or manually)
   if (path === 'resolve-markets' && method === 'POST') {
+    const ops = checkOpsSecret(request, body, env)
+    if (!ops.ok) return ops.response
     const resolveStarted = Date.now()
     const all = await storage.getContracts(db, { limit: 500 })
     const marketRows = all.filter(
@@ -1975,6 +2014,8 @@ async function handleWithD1(db, kv, r2, request, path, method, env = {}) {
 
   // POST /api/create-position
   if (path === 'create-position' && method === 'POST') {
+    const ops = checkOpsSecret(request, body, env)
+    if (!ops.ok) return ops.response
     const { marketId, positionType, amount, price, owner } = body
     if (!marketId || !positionType || amount === undefined || price === undefined || !owner) {
       return jsonResponse({

@@ -11,7 +11,7 @@ The webapp is configured for search and social with page-specific titles, descri
 - **Titles** — Keyword-focused, e.g. “Prediction Markets — Trade on Real-World Outcomes | dice.express”, “Portfolio — Balance, Deposit & Withdraw Pips | dice.express”.
 - **Meta descriptions** — Unique per route, mentioning Pips, prediction markets, deposit/withdraw, sports/crypto/weather, peer-to-peer.
 - **Keywords** — Optional per-page keywords for main routes (home, discover, portfolio, market, docs, etc.).
-- **Routes covered** — `/`, `/discover/*`, `/market`, `/portfolio`, `/dashboard`, `/create`, `/docs`, `/privacy`, `/terms`, `/sign-in`, `/register`, and others.
+- **Routes covered** — `/`, `/discover/*`, `/market`, `/portfolio`, `/dashboard`, `/activity` (stored records; `/history` redirects), `/create`, `/docs`, `/privacy`, `/terms`, `/sign-in`, `/register`, and others.
 
 ### 2. `index.html` (default and fallback)
 

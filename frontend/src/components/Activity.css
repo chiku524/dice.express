@@ -1,4 +1,4 @@
-.contract-history {
+.activity-page {
   max-width: var(--container-max-width, 1200px);
   margin: 0 auto;
   width: 100%;
@@ -138,4 +138,3 @@
     flex-direction: column;
   }
 }
-

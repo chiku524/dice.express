@@ -112,7 +112,7 @@ See **VIRTUAL_CURRENCY_AND_MULTICHAIN.md** for flows, APIs, and security.
 - **Optional (later)**:
   - Market-making bots (provide liquidity), arbitrage detection, risk limits.
 
-See **AMM_AND_ALGORITHMS.md** for formulas and integration points.
+See **ALGORITHMS_AND_RISK.md** and **AMM.md** for formulas and integration points.
 
 ---
 
@@ -195,7 +195,7 @@ See **AMM_AND_ALGORITHMS.md** for formulas and integration points.
 - **docs/PLATFORM_VISION_AND_ROADMAP.md** (this file): Vision, principles, roadmap.
 - **docs/VIRTUAL_CURRENCY_AND_MULTICHAIN.md**: Virtual currency rules, multi-chain flows.
 - **docs/PREDICTION_MARKETS.md**: All market styles, data model, automated creation, UI.
-- **docs/AMM_AND_ALGORITHMS.md**: AMM formulas, fee model, algorithm hooks.
+- **docs/AMM.md**, **docs/ALGORITHMS_AND_RISK.md**: AMM formulas, fee model, algorithm hooks.
 - Keep **ORACLE_STRATEGY.md**, **ARCHITECTURE.md**, **BLOCKCHAIN_INTEGRATION.md** and link from here.
 
 ### 7.2 Code / Repo

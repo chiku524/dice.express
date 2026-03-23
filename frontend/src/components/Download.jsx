@@ -3,13 +3,6 @@ import { DESKTOP_APP_VERSION, DESKTOP_DOWNLOADS } from '../constants/downloads'
 import { fetchLatestRelease } from '../utils/latestRelease'
 import './Download.css'
 
-const FALLBACK_ENTRIES = [
-  DESKTOP_DOWNLOADS.windows,
-  DESKTOP_DOWNLOADS.macIntel,
-  DESKTOP_DOWNLOADS.macApple,
-  DESKTOP_DOWNLOADS.linux,
-]
-
 export default function Download() {
   const [release, setRelease] = useState(null)
   const [loading, setLoading] = useState(true)

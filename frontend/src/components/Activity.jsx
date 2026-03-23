@@ -2,9 +2,9 @@ import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { ContractStorage } from '../utils/contractStorage'
 import { useWallet } from '../contexts/WalletContext'
-import './ContractHistory.css'
+import './Activity.css'
 
-export default function ContractHistory() {
+export default function Activity() {
   const { wallet } = useWallet()
   const [contracts, setContracts] = useState([])
   const [filter, setFilter] = useState('all') // 'all', 'markets', 'requests'
@@ -15,25 +15,24 @@ export default function ContractHistory() {
       return
     }
 
-    // Get contracts for current party (async)
     const loadContracts = async () => {
       try {
         const allContracts = await ContractStorage.getContractsByParty(wallet.party)
-        
-        // Filter by type
+
         let filtered = allContracts
         if (filter === 'markets') {
-          filtered = allContracts.filter(c => 
-            c.templateId && c.templateId.includes('Market') && 
-            !c.templateId.includes('MarketCreationRequest')
+          filtered = allContracts.filter(
+            (c) =>
+              c.templateId &&
+              c.templateId.includes('Market') &&
+              !c.templateId.includes('MarketCreationRequest')
           )
         } else if (filter === 'requests') {
-          filtered = allContracts.filter(c => 
-            c.templateId && c.templateId.includes('MarketCreationRequest')
+          filtered = allContracts.filter(
+            (c) => c.templateId && c.templateId.includes('MarketCreationRequest')
           )
         }
 
-        // Sort by creation date (newest first)
         filtered.sort((a, b) => {
           const dateA = new Date(a.createdAt || 0)
           const dateB = new Date(b.createdAt || 0)
@@ -42,7 +41,7 @@ export default function ContractHistory() {
 
         setContracts(filtered)
       } catch (error) {
-        console.error('[ContractHistory] Error loading contracts:', error)
+        console.error('[Activity] Error loading records:', error)
         setContracts([])
       }
     }
@@ -50,13 +49,13 @@ export default function ContractHistory() {
     loadContracts()
   }, [wallet, filter])
 
-  const getContractTypeLabel = (templateId) => {
-    if (!templateId) return 'Unknown'
-    if (templateId.includes('MarketCreationRequest')) return 'Market Request'
+  const getRecordTypeLabel = (templateId) => {
+    if (!templateId) return 'Record'
+    if (templateId.includes('MarketCreationRequest')) return 'Market request'
     if (templateId.includes('Market')) return 'Market'
-    if (templateId.includes('TokenBalance')) return 'Token Balance'
+    if (templateId.includes('TokenBalance')) return 'Token balance'
     if (templateId.includes('Position')) return 'Position'
-    return 'Contract'
+    return 'Record'
   }
 
   const formatDate = (dateString) => {
@@ -77,29 +76,32 @@ export default function ContractHistory() {
   if (!wallet) {
     return (
       <div className="card">
-        <p>Please connect your wallet to view contract history.</p>
+        <p>Sign in to view stored market records and legacy contract activity.</p>
       </div>
     )
   }
 
   return (
-    <div className="contract-history">
+    <div className="activity-page">
       <div className="history-header">
-        <h2>Contract History</h2>
+        <h2>Activity</h2>
         <div className="filter-buttons">
           <button
+            type="button"
             className={filter === 'all' ? 'btn-primary' : 'btn-secondary'}
             onClick={() => setFilter('all')}
           >
             All
           </button>
           <button
+            type="button"
             className={filter === 'markets' ? 'btn-primary' : 'btn-secondary'}
             onClick={() => setFilter('markets')}
           >
             Markets
           </button>
           <button
+            type="button"
             className={filter === 'requests' ? 'btn-primary' : 'btn-secondary'}
             onClick={() => setFilter('requests')}
           >
@@ -110,9 +112,11 @@ export default function ContractHistory() {
 
       {contracts.length === 0 ? (
         <div className="card">
-          <p>No activity yet. Trade on a market to see your contract history here.</p>
+          <p>No stored records yet. Trade on a market or use admin tools to create entries.</p>
           <Link to="/">
-            <button className="btn-primary" style={{ marginTop: '1rem' }}>Browse markets</button>
+            <button type="button" className="btn-primary" style={{ marginTop: '1rem' }}>
+              Browse markets
+            </button>
           </Link>
         </div>
       ) : (
@@ -121,40 +125,40 @@ export default function ContractHistory() {
             <div key={contract.contractId} className="contract-item">
               <div className="contract-header">
                 <div>
-                  <h3>{getContractTypeLabel(contract.templateId)}</h3>
+                  <h3>{getRecordTypeLabel(contract.templateId)}</h3>
                   <p className="contract-time">{formatDate(contract.createdAt)}</p>
                 </div>
                 <span className="contract-id-badge">
                   {contract.contractId.substring(0, 16)}...
                 </span>
               </div>
-              
+
               {contract.payload && (
                 <div className="contract-details">
                   {contract.payload.title && (
-                    <p><strong>Title:</strong> {contract.payload.title}</p>
+                    <p>
+                      <strong>Title:</strong> {contract.payload.title}
+                    </p>
                   )}
                   {contract.payload.marketId && (
-                    <p><strong>Market ID:</strong> {contract.payload.marketId}</p>
+                    <p>
+                      <strong>Market ID:</strong> {contract.payload.marketId}
+                    </p>
                   )}
                   {contract.payload.status && (
-                    <p><strong>Status:</strong> {contract.payload.status}</p>
+                    <p>
+                      <strong>Status:</strong> {contract.payload.status}
+                    </p>
                   )}
                 </div>
               )}
 
               <div className="contract-actions">
-                <a
-                  href={`https://devnet.ccexplorer.io/?q=${encodeURIComponent(contract.contractId)}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="btn-link"
-                >
-                  View in Explorer →
-                </a>
                 {contract.payload && contract.payload.marketId && (
                   <Link to={`/market/${contract.payload.marketId}`}>
-                    <button className="btn-secondary">View Market</button>
+                    <button type="button" className="btn-secondary">
+                      View market
+                    </button>
                   </Link>
                 )}
               </div>
@@ -165,4 +169,3 @@ export default function ContractHistory() {
     </div>
   )
 }
-

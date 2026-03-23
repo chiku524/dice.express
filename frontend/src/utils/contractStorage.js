@@ -45,18 +45,17 @@ export const ContractStorage = {
 
       if (response.ok) {
         const result = await response.json()
-        console.log('[ContractStorage] ✅ Contract stored in cloud:', contractId)
         // Also store locally as backup
         this._storeLocal(contractId, templateId, payload, party, metadata)
         return result.contract || contractData
       } else {
         const error = await response.json()
-        console.warn('[ContractStorage] ⚠️ Cloud storage failed, using local storage:', error.message)
+        console.warn('[ContractStorage] Cloud storage failed, using local storage:', error.message)
         // Fall back to local storage
         return this._storeLocal(contractId, templateId, payload, party, metadata)
       }
     } catch (error) {
-      console.warn('[ContractStorage] ⚠️ Cloud storage error, using local storage:', error.message)
+      console.warn('[ContractStorage] Cloud storage error, using local storage:', error.message)
       // Fall back to local storage
       return this._storeLocal(contractId, templateId, payload, party, metadata)
     }
@@ -138,15 +137,12 @@ export const ContractStorage = {
 
       if (response.ok) {
         const result = await response.json()
-        console.log(`[ContractStorage] ✅ Retrieved ${result.contracts?.length || 0} contracts from cloud`)
         return result.contracts || []
-      } else {
-        console.warn('[ContractStorage] ⚠️ Cloud retrieval failed, using local storage')
-        // Fall back to local storage
-        return this._getLocalContractsByType(templateType, party, status)
       }
+      // Fall back to local storage
+      return this._getLocalContractsByType(templateType, party, status)
     } catch (error) {
-      console.warn('[ContractStorage] ⚠️ Cloud retrieval error, using local storage:', error.message)
+      console.warn('[ContractStorage] Cloud retrieval error, using local storage:', error?.message)
       // Fall back to local storage
       return this._getLocalContractsByType(templateType, party, status)
     }
@@ -188,15 +184,11 @@ export const ContractStorage = {
 
       if (response.ok) {
         const result = await response.json()
-        console.log(`[ContractStorage] ✅ Retrieved ${result.contracts?.length || 0} contracts from cloud`)
         return result.contracts || []
-      } else {
-        console.warn('[ContractStorage] ⚠️ Cloud retrieval failed, using local storage')
-        // Fall back to local storage
-        return this._getLocalContractsByParty(party, status)
       }
+      return this._getLocalContractsByParty(party, status)
     } catch (error) {
-      console.warn('[ContractStorage] ⚠️ Cloud retrieval error, using local storage:', error.message)
+      console.warn('[ContractStorage] Cloud retrieval error, using local storage:', error?.message)
       // Fall back to local storage
       return this._getLocalContractsByParty(party, status)
     }

@@ -22,6 +22,7 @@ export default {
     const siteUrl = (env.SITE_URL || 'https://dice.express').replace(/\/$/, '')
     const headers = { 'Content-Type': 'application/json' }
     if (env.AUTO_MARKETS_CRON_SECRET) headers['X-Cron-Secret'] = env.AUTO_MARKETS_CRON_SECRET
+    if (env.PRIVILEGED_API_SECRET) headers['X-Privileged-Secret'] = env.PRIVILEGED_API_SECRET
 
     const singleSource = env.AUTO_MARKETS_SOURCE
     const perSourceLimit = clampLimit(parseInt(env.AUTO_MARKETS_LIMIT || '25', 10) || 25)

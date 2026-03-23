@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { Link } from 'react-router-dom'
 import { encodeFunctionData } from 'viem'
 import { Connection, PublicKey, Transaction } from '@solana/web3.js'
@@ -43,7 +43,7 @@ function uint8ToBase64(u8) {
 export default function Portfolio() {
   const { wallet } = useWallet()
   const openAccountModal = useAccountModal()
-  const { address: web3Address, chainId: web3ChainId, client: web3Client, connect: web3Connect, disconnect: web3Disconnect, isConnected: web3Connected, error: web3Error } = useWeb3Wallet()
+  const { address: web3Address, chainId: web3ChainId, connect: web3Connect, disconnect: web3Disconnect, isConnected: web3Connected, error: web3Error } = useWeb3Wallet()
   const [positions, setPositions] = useState([])
   const [walletDepositAmount, setWalletDepositAmount] = useState('')
   const [walletDepositToken, setWalletDepositToken] = useState('usdc')
@@ -75,6 +75,35 @@ export default function Portfolio() {
   const isMountedRef = useRef(true)
   const depositCardRef = useRef(null)
 
+  const refreshUserBalance = useCallback(async () => {
+    if (!wallet) return
+
+    try {
+      const response = await fetch(apiUrl('get-user-balance'), {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          userParty: wallet.party,
+        }),
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        setUserBalance(data.balance || '0')
+      } else {
+        console.warn('[Portfolio] ⚠️ Failed to fetch user balance')
+        setUserBalance('0')
+      }
+    } catch (err) {
+      console.warn('[Portfolio] ⚠️ Error fetching user balance:', err)
+      setUserBalance('0')
+    } finally {
+      setBalanceLoading(false)
+    }
+  }, [wallet])
+
   useEffect(() => {
     const sol = typeof window !== 'undefined' && window.solana?.isPhantom ? window.solana : null
     if (!sol) return undefined
@@ -102,35 +131,6 @@ export default function Portfolio() {
       }
     }, 10000) // 10 second timeout
     
-    const fetchUserBalance = async () => {
-      if (!wallet) return
-
-      try {
-        const response = await fetch(apiUrl('get-user-balance'), {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            userParty: wallet.party
-          })
-        })
-
-        if (response.ok) {
-          const data = await response.json()
-          setUserBalance(data.balance || '0')
-        } else {
-          console.warn('[Portfolio] ⚠️ Failed to fetch user balance')
-          setUserBalance('0')
-        }
-      } catch (err) {
-        console.warn('[Portfolio] ⚠️ Error fetching user balance:', err)
-        setUserBalance('0')
-      } finally {
-        setBalanceLoading(false)
-      }
-    }
-
     const fetchMarketTitles = async (marketIds) => {
       if (!marketIds || marketIds.length === 0) return {}
 
@@ -239,8 +239,7 @@ export default function Portfolio() {
       }
     }
 
-    // Fetch user balance
-    fetchUserBalance()
+    refreshUserBalance()
 
     fetchPositions()
 
@@ -248,7 +247,7 @@ export default function Portfolio() {
       isMountedRef.current = false
       clearTimeout(loadingTimeout)
     }
-  }, [wallet, retryCount])
+  }, [wallet, retryCount, refreshUserBalance])
 
   // Scroll to deposit section when landing with ?deposit=1 (e.g. after registration)
   useEffect(() => {
@@ -264,7 +263,7 @@ export default function Portfolio() {
   }, [wallet])
 
   // Fetch withdrawal requests and deposit records when on balance tab (must run before any early return so hook count is stable)
-  const fetchWithdrawalRequests = async () => {
+  const fetchWithdrawalRequests = useCallback(async () => {
     if (!wallet) return
     try {
       const res = await fetch(`${apiUrl('withdrawal-requests')}?userParty=${encodeURIComponent(wallet.party)}`)
@@ -273,8 +272,9 @@ export default function Portfolio() {
     } catch {
       setWithdrawalRequests([])
     }
-  }
-  const fetchDepositRecords = async () => {
+  }, [wallet])
+
+  const fetchDepositRecords = useCallback(async () => {
     if (!wallet) return
     try {
       const res = await fetch(`${apiUrl('deposit-records')}?userParty=${encodeURIComponent(wallet.party)}&limit=20`)
@@ -283,8 +283,9 @@ export default function Portfolio() {
     } catch {
       setDepositRecords([])
     }
-  }
-  const fetchDepositAddresses = async () => {
+  }, [wallet])
+
+  const fetchDepositAddresses = useCallback(async () => {
     try {
       const res = await fetch(apiUrl('deposit-addresses'))
       const data = await res.json()
@@ -292,14 +293,15 @@ export default function Portfolio() {
     } catch {
       setDepositAddresses(null)
     }
-  }
+  }, [])
+
   useEffect(() => {
     if (activeTab === 'balance' && wallet) {
       fetchWithdrawalRequests()
       fetchDepositRecords()
       fetchDepositAddresses()
     }
-  }, [activeTab, wallet])
+  }, [activeTab, wallet, fetchWithdrawalRequests, fetchDepositRecords, fetchDepositAddresses])
 
   if (!wallet) {
     return (
@@ -392,8 +394,8 @@ export default function Portfolio() {
     try {
       const sol = typeof window !== 'undefined' && window.solana?.isPhantom ? window.solana : null
       await sol?.disconnect?.()
-    } catch (_) {
-      /* ignore */
+    } catch {
+      /* ignore disconnect errors */
     }
     setPhantomPub(null)
   }
@@ -447,7 +449,7 @@ export default function Portfolio() {
       }
       setWithdrawAmount('')
       setWithdrawAddress('')
-      await fetchUserBalance()
+      await refreshUserBalance()
       await fetchWithdrawalRequests()
     } catch (err) {
       setWithdrawError(err.message)
@@ -530,7 +532,7 @@ export default function Portfolio() {
         if (!res.ok) throw new Error(result.error || result.message || 'Deposit failed')
         setWalletDepositSuccess(true)
         setWalletDepositAmount('')
-        await fetchUserBalance()
+        await refreshUserBalance()
         await fetchDepositRecords()
       } catch (err) {
         setWalletDepositError(err?.message || 'Deposit failed')
@@ -638,7 +640,7 @@ export default function Portfolio() {
       if (!res.ok) throw new Error(result.error || result.message || 'Deposit failed')
       setWalletDepositSuccess(true)
       setWalletDepositAmount('')
-      await fetchUserBalance()
+      await refreshUserBalance()
       await fetchDepositRecords()
     } catch (err) {
       setWalletDepositError(err?.message || 'Deposit failed')
@@ -653,8 +655,6 @@ export default function Portfolio() {
     { id: 'positions', label: 'Positions', count: positions.length },
     { id: 'activity', label: 'Activity', count: activityLog.length },
   ]
-
-  const tabLabels = { balance: 'Balance', positions: 'Positions', activity: 'Activity' }
 
   return (
     <div className="portfolio-page">

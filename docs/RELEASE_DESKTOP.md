@@ -42,20 +42,13 @@ The [Download](/download) page fetches the latest release from the GitHub API an
 
 ## Updater (optional)
 
-The app includes the Tauri updater plugin. To ship updates:
-
-**Full step-by-step (keys, GitHub secrets, pubkey in repo):** see **[TAURI_UPDATER_SIGNING.md](./TAURI_UPDATER_SIGNING.md)**.
-
-1. Generate keys locally: `npm run tauri:signer-generate -- -w ~/.tauri/dice-express.key` (see doc for Windows paths)
-2. In `src-tauri/tauri.conf.json`, under `plugins.updater`, set `pubkey` to the **contents** of the generated `.pub` file, and set `endpoints` to an array of URLs (e.g. `["https://github.com/owner/repo/releases/latest/download/latest.json"]`).
-3. When building installers, set `TAURI_SIGNING_PRIVATE_KEY` (path or content of the private key) so Tauri can sign update artifacts. In **GitHub Actions**, add the same value as a repository secret named `TAURI_SIGNING_PRIVATE_KEY` (and optionally `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` if the key is encrypted).
-4. Enable artifact creation: in `tauri.conf.json` under `bundle`, add `"createUpdaterArtifacts": true`.
-
-**CI without signing:** Leave `createUpdaterArtifacts` **out** of `bundle` (or `false`). If it is `true` while a `pubkey` is configured but `TAURI_SIGNING_PRIVATE_KEY` is missing in CI, the build fails with *"A public key has been found, but no private key"*.
+The app includes the Tauri updater plugin. **Windows silent install:** `plugins.updater.windows.installMode: "quiet"` so the installer runs silently and only the in-app splash progress is shown (per-user install; no admin elevation prompt in quiet mode).
 
 If `pubkey` or `endpoints` are left empty, the splash still runs but skips the update check and goes straight to the app.
 
-**Windows silent install**: The updater is configured with `plugins.updater.windows.installMode: "quiet"` so the Windows installer runs silently and only the in-app splash progress is shown. This requires a user-wide (per-user) installation; the installer will not prompt for admin elevation in quiet mode.
+**CI without signing:** Leave `createUpdaterArtifacts` **out** of `bundle` (or `false`). If it is `true` while a `pubkey` is configured but `TAURI_SIGNING_PRIVATE_KEY` is missing in CI, the build fails with *"A public key has been found, but no private key"*.
+
+Full key generation, GitHub secrets, and `latest.json` behavior: see **Tauri updater signing** below.
 
 ## Artifacts produced
 
@@ -71,3 +64,87 @@ Direct download URL pattern:
 ## Why tag and asset filenames must match
 
 Tauri uses the version in `src-tauri/tauri.conf.json` when naming bundle outputs (e.g. `dice.express_1.0.3_x64-setup.exe`). The release *tag* (e.g. `v1.0.3`) is set when you push the tag or when the workflow runs. If you created the tag from a commit where `tauri.conf.json` still said `1.0.2`, the workflow would build installers named with 1.0.2, upload them to the release `v1.0.3`, and any link pointing at `dice.express_1.0.3_*.exe` would 404. The workflow now validates that the tag version matches `tauri.conf.json` and fails early if not, so you bump the version first and re-tag.
+
+---
+
+## Tauri updater signing (private key + CI)
+
+You **cannot “retrieve”** a Tauri signing private key from anywhere—it is **created once** with the Tauri CLI. **Do not share the private key** or commit it to git. Only the **public** key (`.pub` file contents) belongs in the repo.
+
+### 1. Generate a keypair (on your computer)
+
+From the **repo root** (with dev dependencies installed):
+
+```bash
+npm ci
+```
+
+Pick a path **outside the repo** (recommended) so you never commit the key:
+
+**macOS / Linux**
+
+```bash
+mkdir -p ~/.tauri
+npx tauri signer generate -w ~/.tauri/dice-express.key
+```
+
+**Windows (PowerShell)**
+
+```powershell
+New-Item -ItemType Directory -Force -Path "$env:USERPROFILE\.tauri" | Out-Null
+npx tauri signer generate -w "$env:USERPROFILE\.tauri\dice-express.key"
+```
+
+The CLI will prompt for an optional **password** to encrypt the private key. If you set one, you must also store that password as the `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` GitHub secret (see below).
+
+This creates:
+
+- **Private key file** — e.g. `~/.tauri/dice-express.key` — **secret**; used only for signing builds.
+- **Public key file** — same name with `.pub` — e.g. `dice-express.key.pub` — **safe to commit** into `tauri.conf.json`.
+
+Open the `.pub` file in a text editor. It should be a **single base64 line** (Tauri’s `pubkey` field expects that base64 string, not the decoded “untrusted comment…” text). Paste that entire line into `src-tauri/tauri.conf.json` → `plugins.updater.pubkey`.
+
+### 2. Put the public key in the repo
+
+This repo already has `pubkey` and `endpoints` set in `src-tauri/tauri.conf.json`, plus `bundle.createUpdaterArtifacts: true`.
+
+If you rotate keys: set `plugins.updater.pubkey` to the **exact single-line base64 string** from your `.pub` file (open `dice-express.key.pub` in a text editor—it is one long line). Tauri decodes this as base64; do **not** paste the decoded “untrusted comment…” plaintext into `tauri.conf.json` (that causes `Invalid symbol 32` / base64 decode errors).
+
+Commit and push. **Never** commit the `.key` file.
+
+### 3. Add GitHub Actions secrets
+
+Repo → **Settings** → **Secrets and variables** → **Actions** → **New repository secret**:
+
+| Name | Value |
+|------|--------|
+| `TAURI_SIGNING_PRIVATE_KEY` | **Entire contents** of the private key file (`dice-express.key`), as plain text (open in editor, copy all). |
+| `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` | Only if you set a password when generating; otherwise omit. |
+
+The workflow `.github/workflows/release-desktop.yml` passes these into `tauri build` automatically.
+
+**macOS bundle identifier:** Use **`com.dice.express`** in `tauri.conf.json` → `identifier`; it must **not** end with `.app`. Changing the identifier after release creates a **new app identity** on macOS (Keychain / “Open at login” from an older ID may not carry over). See **Bundle identifier (macOS)** earlier in this document.
+
+### 4. Enable updater artifacts in config
+
+In `src-tauri/tauri.conf.json`, under `bundle`, ensure:
+
+```json
+"createUpdaterArtifacts": true
+```
+
+Then cut a new release tag (version must match `tauri.conf.json`). CI will produce signed updater bundles (e.g. `.tar.gz` on macOS) in addition to installers.
+
+### 5. `latest.json` on each release
+
+The **Release desktop app** workflow runs `scripts/generate-updater-latest.mjs` after collecting all platform bundles and `.sig` files, then uploads **`latest.json`** with the release. No manual step needed once CI is green.
+
+### Summary
+
+| Item | Where it lives |
+|------|----------------|
+| Private key | Your machine + GitHub secret `TAURI_SIGNING_PRIVATE_KEY` |
+| Public key | `tauri.conf.json` → `plugins.updater.pubkey` (in git) |
+| Optional password | GitHub secret `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` |
+
+**No one can generate a production key for you in chat**—anything generated outside your machine would be compromised. Generate locally with the commands above.

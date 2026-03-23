@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { useParams, useNavigate, Link } from 'react-router-dom'
+import { useParams, Link } from 'react-router-dom'
 import { useWallet } from '../contexts/WalletContext'
 import { useToastContext } from '../contexts/ToastContext'
 import { useAccountModal } from '../contexts/AccountModalContext'
@@ -15,7 +15,6 @@ import './MarketDetail.css'
 
 export default function MarketDetail() {
   const { marketId } = useParams()
-  const navigate = useNavigate()
   const { wallet } = useWallet()
   const { showToast } = useToastContext()
   const openAccountModal = useAccountModal()
@@ -266,7 +265,7 @@ export default function MarketDetail() {
           </span>
 
           <section className="market-detail-about" aria-label="About this market">
-            <p className="market-detail-oneliner-text"><strong>What you're buying:</strong> {oneLiner}</p>
+            <p className="market-detail-oneliner-text"><strong>What you&apos;re buying:</strong> {oneLiner}</p>
             {displayDescription && <p className="market-detail-desc">{displayDescription}</p>}
           </section>
 

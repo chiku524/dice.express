@@ -4,7 +4,7 @@
 # Optional: For signed updater artifacts (createUpdaterArtifacts: true in tauri.conf.json):
 #   TAURI_SIGNING_PRIVATE_KEY — full contents of the .key file from `tauri signer generate`
 #   TAURI_SIGNING_PRIVATE_KEY_PASSWORD — only if the key was generated with a password
-# See docs/TAURI_UPDATER_SIGNING.md
+# See docs/RELEASE_DESKTOP.md (Tauri updater signing)
 #
 # Then trigger via "Run workflow" (Actions tab) or push a version tag (e.g. v1.0.1).
 

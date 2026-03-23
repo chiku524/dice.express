@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react'
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useWallet } from '../contexts/WalletContext'
 import { useAccountModal } from '../contexts/AccountModalContext'
@@ -25,7 +25,6 @@ export default function Dashboard() {
   const [tipStatus, setTipStatus] = useState(null)
   const [tipLoading, setTipLoading] = useState(false)
   const [copiedId, setCopiedId] = useState(false)
-  const isMountedRef = useRef(true)
 
   const refreshBalance = async () => {
     if (!wallet?.party) return

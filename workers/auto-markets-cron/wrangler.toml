@@ -1,12 +1,13 @@
 # Cron Worker: seeds automated prediction markets by calling the Pages API.
 # Deploy: npx wrangler deploy (from this directory)
 # Set secrets: npx wrangler secret put SITE_URL  (or in Dashboard)
-# Optional: AUTO_MARKETS_CRON_SECRET, AUTO_MARKETS_SOURCE, AUTO_MARKETS_LIMIT (default 25),
+# Optional: AUTO_MARKETS_CRON_SECRET, PRIVILEGED_API_SECRET (send on resolve-markets if Pages requires it),
+# AUTO_MARKETS_SOURCE, AUTO_MARKETS_LIMIT (default 25),
 # AUTO_MARKETS_NEWS_LIMIT (default 50, for news / enriched headline sources)
 
 name = "dice-express-auto-markets-cron"
 main = "index.js"
-compatibility_date = "2025-02-01"
+compatibility_date = "2026-03-23"
 
 [triggers]
 # Run every hour so new events (games, etc.) get markets soon after they appear in the APIs

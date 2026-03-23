@@ -240,7 +240,7 @@ export default function DesktopSidebar() {
           </li>
           <li>
             <NavLink
-              to="/history"
+              to="/activity"
               className={({ isActive }) =>
                 `desktop-sidebar__link ${isActive ? 'desktop-sidebar__link--active' : ''}`
               }

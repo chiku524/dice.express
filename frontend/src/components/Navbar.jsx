@@ -7,7 +7,7 @@ import { BRAND_NAME, BRAND_TAGLINE } from '../constants/brand'
 import { MARKET_SOURCES, getDiscoverPathForSource } from '../constants/marketConfig'
 import './Navbar.css'
 
-export default function Navbar({ setShowWalletModal }) {
+export default function Navbar() {
   const { wallet, disconnectWallet } = useWallet()
   const { showToast } = useToastContext()
   const location = useLocation()
@@ -107,7 +107,7 @@ export default function Navbar({ setShowWalletModal }) {
           {/* Resources */}
           <div className="nav-dropdown nav-dropdown-resources" ref={resourcesMenuRef}>
             <button
-              className={`nav-dropdown-toggle ${isActive('/history') || isActive('/docs') || isActive('/documentation') || isActive('/download') ? 'active' : ''}`}
+              className={`nav-dropdown-toggle ${isActive('/activity') || isActive('/history') || isActive('/docs') || isActive('/documentation') || isActive('/download') ? 'active' : ''}`}
               onClick={() => {
                 setShowResourcesMenu(!showResourcesMenu)
                 setShowDiscoverMenu(false)
@@ -124,7 +124,10 @@ export default function Navbar({ setShowWalletModal }) {
                 <Link to="/docs" className={isActive('/docs') || isActive('/documentation') ? 'active' : ''}>
                   Documentation
                 </Link>
-                <Link to="/history" className={isActive('/history') ? 'active' : ''}>
+                <Link
+                  to="/activity"
+                  className={isActive('/activity') || isActive('/history') ? 'active' : ''}
+                >
                   Activity
                 </Link>
               </div>

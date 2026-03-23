@@ -106,7 +106,7 @@ export default function Profile() {
                 try {
                   navigator.clipboard.writeText(wallet.accountId)
                   showToast('Account ID copied to clipboard', 'success')
-                } catch (_) {
+                } catch {
                   showToast('Copy failed', 'error')
                 }
               }}

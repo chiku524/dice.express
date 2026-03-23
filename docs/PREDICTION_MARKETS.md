@@ -86,7 +86,7 @@ Election results: prefer **official election APIs** (e.g. government or FEC) whe
 
 | Trigger | What it does | When |
 |--------|----------------|------|
-| **Cron Worker** (`dice-express-auto-markets-cron`) | Calls `POST /api/auto-markets` with **seed_all** and an explicit `sources` list equal to **`AUTO_MARKET_SOURCES`** (including **sports**) on **every** run, then `POST /api/resolve-markets`. Only new stable market IDs create rows; duplicates are skipped. | **Every hour** by default (`workers/auto-markets-cron/wrangler.toml` → `crons`). See **`workers/auto-markets-cron/README.md`** for Odds API quota notes. |
+| **Cron Worker** (`dice-express-auto-markets-cron`) | Calls `POST /api/auto-markets` with **seed_all** and an explicit `sources` list equal to **`AUTO_MARKET_SOURCES`** (including **sports**) on **every** run, then `POST /api/resolve-markets`. Only new stable market IDs create rows; duplicates are skipped. | **Every hour** by default (`workers/auto-markets-cron/wrangler.toml` → `crons`). See **`AUTO_MARKETS.md`** for Odds API quota notes and ops. |
 | **Manual API call** | You call `POST /api/auto-markets` with `action: "seed"` + `source`, or `action: "seed_all"`, or `sources: ["sports", "stocks", ...]`. | Whenever you want. |
 
 There is **no UI** and **no public API** for users to create markets. The route `/create` shows that markets are automated and links to "Browse markets".

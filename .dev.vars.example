@@ -59,6 +59,13 @@
 # Set only if you want “headline still in feed” markets back:
 # AUTO_MARKETS_ALLOW_FEED_TOPIC=1
 
+# ----- Ops-only API (optional hardening) -----
+# When set on Pages, POST /api/add-credits, /api/update-user-balance, /api/store-contract, /api/create-position,
+# and /api/resolve-markets require header X-Privileged-Secret: <value> (or body.privilegedSecret).
+# If AUTO_MARKETS_CRON_SECRET is also set, X-Cron-Secret satisfies the same check for those routes.
+# The auto-markets cron Worker should set PRIVILEGED_API_SECRET in its env if you use it on Pages.
+# PRIVILEGED_API_SECRET=long-random-string
+
 # ----- Auto-markets (optional; set in Cloudflare Pages env for cron) -----
 # THE_ODDS_API_KEY=...
 # ALPHA_VANTAGE_API_KEY=...

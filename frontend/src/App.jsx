@@ -18,7 +18,7 @@ const AutomatedMarketsInfo = lazyWithRetry(() => import('./components/AutomatedM
 const Portfolio = lazyWithRetry(() => import('./components/Portfolio'))
 const Documentation = lazyWithRetry(() => import('./components/Documentation'))
 const AdminDashboard = lazyWithRetry(() => import('./components/AdminDashboard'))
-const ContractHistory = lazyWithRetry(() => import('./components/ContractHistory'))
+const Activity = lazyWithRetry(() => import('./components/Activity'))
 const Dashboard = lazyWithRetry(() => import('./components/Dashboard'))
 const Profile = lazyWithRetry(() => import('./components/Profile'))
 const SignIn = lazyWithRetry(() => import('./components/SignIn'))
@@ -28,7 +28,6 @@ const DesktopLaunch = lazyWithRetry(() => import('./components/DesktopLaunch'))
 const Download = lazyWithRetry(() => import('./components/Download'))
 const PrivacyPolicy = lazyWithRetry(() => import('./components/PrivacyPolicy'))
 const TermsOfService = lazyWithRetry(() => import('./components/TermsOfService'))
-const PitchDeck = lazyWithRetry(() => import('./components/PitchDeck'))
 import { analytics } from './utils/analytics'
 import AnimatedBackground from './components/AnimatedBackground'
 import WalletModal from './components/WalletModal'
@@ -134,7 +133,7 @@ function RootLayout({ showWalletModal, setShowWalletModal }) {
     <>
       <AnimatedBackground />
       <div className="app">
-        <Navbar setShowWalletModal={setShowWalletModal} />
+        <Navbar />
         <main className="app-main">
           <div className="container">{outlet}</div>
         </main>
@@ -245,14 +244,13 @@ function AppContent() {
             }
           />
           <Route path="/admin" element={<AdminDashboard />} />
-          <Route path="/history" element={<ContractHistory />} />
+          <Route path="/activity" element={<Activity />} />
+          <Route path="/history" element={<Navigate to="/activity" replace />} />
           <Route path="/download" element={<Download />} />
           <Route path="/docs" element={<Documentation />} />
           <Route path="/documentation" element={<Documentation />} />
           <Route path="/privacy" element={<PrivacyPolicy />} />
           <Route path="/terms" element={<TermsOfService />} />
-          <Route path="/pitch" element={<PitchDeck />} />
-          <Route path="/investors" element={<PitchDeck />} />
           </Route>
         </Route>
       </Routes>

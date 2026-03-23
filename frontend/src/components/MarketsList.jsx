@@ -114,9 +114,8 @@ export default function MarketsList({ source: sourceFromRoute }) {
     // Delay polling setup to allow initial fetch to complete and check if it succeeded
     // Only start polling if we got a successful response (even if empty)
     const pollingTimeout = setTimeout(() => {
-      // Only start polling if we haven't detected that API routes are broken
-      // and if we have markets or if we got a successful empty response
-      if (apiRoutesWorkingRef.current && markets.length >= 0) {
+      // Start polling once initial fetch path is known working (empty list is valid).
+      if (apiRoutesWorkingRef.current) {
         setupPolling()
       }
     }, 3000) // Wait 3 seconds before starting to poll
@@ -563,7 +562,7 @@ export default function MarketsList({ source: sourceFromRoute }) {
               <button type="button" className="btn-primary" onClick={handleRetry}>
                 Try again
               </button>
-              <Link to="/history">
+              <Link to="/activity">
                 <button className="btn-secondary">View History</button>
               </Link>
             </div>

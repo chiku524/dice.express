@@ -46,7 +46,9 @@ export default function SplashScreen() {
         const raw = localStorage.getItem(WALLET_STORAGE_KEY)
         const data = raw ? JSON.parse(raw) : null
         if (data?.party) return '/'
-      } catch (_) {}
+      } catch {
+        // ignore invalid stored wallet
+      }
       return '/sign-in'
     }
 
@@ -74,7 +76,7 @@ export default function SplashScreen() {
           await relaunch()
           return
         }
-      } catch (_) {
+      } catch {
         // No updater config or network error: continue to app
       }
 
@@ -84,7 +86,9 @@ export default function SplashScreen() {
       const path = getInitialPath()
       try {
         localStorage.setItem('desktop_initial_path', path)
-      } catch (_) {}
+      } catch {
+        // localStorage may be unavailable
+      }
 
       const tauri = window.__TAURI__
       if (tauri?.core?.invoke) {

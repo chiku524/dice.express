@@ -1,44 +1,8 @@
-# dice.express Desktop (Tauri 2)
+# dice.express desktop (Tauri 2)
 
-The desktop app opens with a **frameless splash window** (intro animation), then transitions to the **main window** (with title bar) on the sign-in screen.
+From the **repository root**:
 
-## Development
+- **Dev:** `npm run tauri:dev` — frontend dev server plus Tauri (splash + main window).
+- **Build:** `npm run tauri:build` — runs `npm run build:frontend:tauri` then bundles installers.
 
-From repo root:
-
-```bash
-npm run tauri:dev
-```
-
-This starts the frontend dev server and opens two windows: the splash (frameless, 420×320) and the main (hidden until splash finishes). After ~2.2s the splash closes and the main window shows at `/sign-in`.
-
-## Build
-
-From repo root:
-
-```bash
-npm run tauri:build
-```
-
-Production builds run **`npm run build:frontend:tauri`** before bundling (see `scripts/build-frontend-for-tauri.mjs`): Vite runs with `CI=false` in that subprocess only, while the outer `tauri build` keeps `CI=true` on CI hosts so macOS DMG creation does not invoke Finder/AppleScript.
-
-**macOS bundle ID:** `com.dice.express` (`tauri.conf.json` → `identifier`). Do not use an identifier ending in `.app`.
-
-**System tray:** Closing the **main** window (✕) hides the app to the tray; use the tray icon to **Show**, **Sign out** (clears the local account and opens sign-in), or **Quit**. Left-click the tray icon shows the main window; the menu opens on right-click (Windows/Linux) or secondary click (macOS). The splash window uses **destroy** (not **close**) when handing off to main so programmatic startup does not trigger a user-close exit.
-
-Output: `src-tauri/target/release/` (and installer in `target/release/bundle/`).
-
-## Icons
-
-Icons are in `src-tauri/icons/`. To regenerate from a new image:
-
-```bash
-npx tauri icon path/to/1024x1024.png
-```
-
-## Splash flow
-
-1. App starts → splash window visible (frameless), main window hidden.
-2. Splash loads `/splashscreen` (React route) and runs a short animation.
-3. Frontend calls `close_splash_and_show_main` when done (or `set_splash_complete` with task `frontend`); backend also signals when a minimal setup is done.
-4. Splash closes, main window is shown and focused at `/sign-in`.
+Release workflow, GitHub Actions, macOS DMG/CI notes, system tray, splash flow, icons, and **Tauri updater signing**: **[../docs/RELEASE_DESKTOP.md](../docs/RELEASE_DESKTOP.md)**.

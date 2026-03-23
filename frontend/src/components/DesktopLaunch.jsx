@@ -34,13 +34,17 @@ export default function DesktopLaunch() {
           localStorage.removeItem(INITIAL_PATH_KEY)
           return stored
         }
-      } catch (_) {}
+      } catch {
+        // localStorage may be unavailable
+      }
       if (wallet?.party) return '/'
       try {
         const raw = localStorage.getItem(WALLET_STORAGE_KEY)
         const data = raw ? JSON.parse(raw) : null
         if (data?.party) return '/'
-      } catch (_) {}
+      } catch {
+        // ignore invalid stored wallet
+      }
       return '/sign-in'
     }
 

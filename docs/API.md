@@ -4,6 +4,16 @@
 
 The live product serves **`/api/*`** from **Cloudflare Pages Functions** with **D1** as the system of record. Base URL is your deployment (e.g. `https://dice.express` or `https://dice-express.pages.dev`). No separate backend host is required when D1 and bindings are configured.
 
+### Ops-only routes (optional secret)
+
+If **`PRIVILEGED_API_SECRET`** and/or **`AUTO_MARKETS_CRON_SECRET`** is set in the Pages environment, the following **`POST`** handlers require a matching secret (otherwise they return **401**):
+
+- **`/api/add-credits`**, **`/api/update-user-balance`**, **`/api/store-contract`**, **`/api/create-position`**, **`/api/resolve-markets`**
+
+Send **`X-Privileged-Secret`** (for `PRIVILEGED_API_SECRET`) and/or **`X-Cron-Secret`** (for `AUTO_MARKETS_CRON_SECRET`). Body fields **`privilegedSecret`** / **`cronSecret`** are accepted as alternates. If **neither** env var is set, these routes stay **open** (typical local dev).
+
+The **auto-markets cron Worker** should define **`PRIVILEGED_API_SECRET`** in its Worker env when Pages has it set, so **`POST /api/resolve-markets`** succeeds after seeding. **`update-market-status`** and **`update-contract-status`** are not gated by this helper (browser/admin flows); restrict access at the edge (e.g. admin-only routes) if needed.
+
 ### Core endpoints (summary)
 
 | Method | Path | Notes |
@@ -14,10 +24,10 @@ The live product serves **`/api/*`** from **Cloudflare Pages Functions** with **
 | `GET` | `/api/pools?marketId=…` | Liquidity pool state (AMM). |
 | `POST` | `/api/trade` | AMM trade (may be disabled when pools have zero liquidity). |
 | `GET` / `POST` | `/api/orders` | P2P limit orders: list, place, cancel. |
-| `POST` | `/api/create-position` | P2P / structured positions. |
+| `POST` | `/api/create-position` | P2P / structured positions. **Ops secret** if configured (see above). |
 | `GET` / `POST` | `/api/auto-markets` | **`action=events`**, **`probe`**, **`seed`**, **`seed_all`**. Seeding may require **`X-Cron-Secret`** if **`AUTO_MARKETS_CRON_SECRET`** is set on Pages. See **`PREDICTION_MARKETS.md`**. |
 | `POST` | `/api/prediction-maintenance` | Embedding / Vectorize ops: **`backfill_embeddings`**, **`prune_settled_embeddings`**, **`delete_embeddings_by_ids`**. Auth: **`X-Maintenance-Secret`** (**`PREDICTION_MAINTENANCE_SECRET`**) or shared cron secret. See **`PREDICTION_MARKETS.md`** (Maintenance). |
-| `POST` | `/api/resolve-markets` | Resolves due markets from oracle APIs; settles P2P winners (2% fee). |
+| `POST` | `/api/resolve-markets` | Resolves due markets from oracle APIs; settles P2P winners (2% fee). **Ops secret** if configured. |
 | `POST` | `/api/update-market-status` | Manual status / settlement updates. |
 | `POST` | `/api/deposit-crypto` | Credits Pips after on-chain verification (secret). |
 | `POST` | `/api/process-withdrawals` | Sends pending withdrawals (secret). |

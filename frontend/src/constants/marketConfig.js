@@ -1,6 +1,6 @@
 /**
  * Market categories and prediction styles for the platform.
- * Used in Create Market and for filtering/browsing.
+ * Used for filtering/browsing discover routes and market lists.
  */
 
 export const MARKET_CATEGORIES = [

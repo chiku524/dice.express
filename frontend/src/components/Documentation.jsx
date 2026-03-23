@@ -170,13 +170,13 @@ function ProductMapContent() {
 
       <h2>Web app (browser)</h2>
       <ul>
-        <li><strong>Top navigation:</strong> Logo → home (<code>/</code>). <strong>Discover</strong> dropdown lists every public browse path (see table). <strong>Resources</strong> → Download desktop, Documentation (<code>/docs</code>), Activity (<code>/history</code>). When signed in: Pips balance → Portfolio, display name → Dashboard, copy button, Disconnect.</li>
+        <li><strong>Top navigation:</strong> Logo → home (<code>/</code>). <strong>Discover</strong> dropdown lists every public browse path (see table). <strong>Resources</strong> → Download desktop, Documentation (<code>/docs</code>), Activity (<code>/activity</code>; <code>/history</code> redirects here). When signed in: Pips balance → Portfolio, display name → Dashboard, copy button, Disconnect.</li>
         <li><strong>Auth:</strong> <code>/register</code> (wizard), <code>/sign-in</code> — full-page flows without main chrome.</li>
         <li><strong>Markets:</strong> <code>/market/:marketId</code> — resolution details, AMM trade, limit orders (binary active markets), volumes.</li>
         <li><strong>Account hub (signed in):</strong> <code>/dashboard</code> (summary, account ID copy, links to Profile and Portfolio, <strong>Tip Pips</strong> to another display name). <code>/profile</code> — edit display name, account metadata, sign out. <code>/portfolio</code> — Balance, Positions, Activity tabs; crypto deposit and withdraw.</li>
         <li><strong>Create market:</strong> <code>/create</code> — explains that markets are automated; link back to browse (no builder).</li>
         <li><strong>Admin:</strong> <code>/admin</code> — for deployments using legacy <strong>Market creation requests</strong>: lists pending requests where you are the designated admin; approve/reject updates contract status via API.</li>
-        <li><strong>Marketing / legal:</strong> <code>/download</code> — desktop installers. <code>/privacy</code>, <code>/terms</code>. <code>/pitch</code> and <code>/investors</code> — pitch / investor brief (CyreneAI Solana fundraise).</li>
+        <li><strong>Marketing / legal:</strong> <code>/download</code> — desktop installers. <code>/privacy</code>, <code>/terms</code>.</li>
       </ul>
 
       <h2>Desktop app (Tauri)</h2>
@@ -220,7 +220,7 @@ function ProductMapContent() {
       <h2>Activity vs Portfolio</h2>
       <ul>
         <li><strong>Portfolio → Activity:</strong> Your in-app activity log (positions, deposits, etc.).</li>
-        <li><strong>Resources → Activity (<code>/history</code>):</strong> <strong>Contract history</strong> — markets, market requests, positions, and related contract records stored for your party (filter: All / Markets / Requests).</li>
+        <li><strong>Resources → Activity (<code>/activity</code>):</strong> Stored <strong>market records</strong> (legacy contract-style rows) for your account: markets, market requests, positions (filter: All / Markets / Requests).</li>
       </ul>
     </div>
   )
@@ -413,7 +413,7 @@ function DepositWithdrawContent() {
         <li><code>GET /api/deposit-addresses</code> — platform deposit addresses for the UI.</li>
         <li><code>POST /api/process-withdrawals</code> — send queued withdrawals from the platform wallet (server-side).</li>
         <li><code>GET|POST /api/get-user-balance</code> — balance for a party (query or JSON body <code>userParty</code>).</li>
-        <li><code>POST /api/add-credits</code> — testing / admin: add Pips (protect or disable in production).</li>
+        <li><code>POST /api/add-credits</code> — testing / admin: add Pips. When <code>PRIVILEGED_API_SECRET</code> or <code>AUTO_MARKETS_CRON_SECRET</code> is set on Pages, requires <code>X-Privileged-Secret</code> / <code>X-Cron-Secret</code> (see <code>docs/API.md</code>).</li>
       </ul>
     </div>
   )
@@ -425,7 +425,7 @@ function PortfolioContent() {
       <h1>Portfolio</h1>
 
       <p>
-        Your hub for <strong>balance</strong>, <strong>deposits</strong>, <strong>withdrawals</strong>, and <strong>positions</strong>. Tabs: <strong>Balance</strong>, <strong>Positions</strong>, <strong>Activity</strong> (in-app activity). For raw <strong>contract history</strong> across templates, use <strong>Resources → Activity</strong> (<code>/history</code>).
+        Your hub for <strong>balance</strong>, <strong>deposits</strong>, <strong>withdrawals</strong>, and <strong>positions</strong>. Tabs: <strong>Balance</strong>, <strong>Positions</strong>, <strong>Activity</strong> (in-app activity). For stored records across templates (legacy contract list), use <strong>Resources → Activity</strong> (<code>/activity</code>).
       </p>
 
       <h2>Balance tab</h2>
@@ -549,7 +549,7 @@ function APIsAndOraclesContent() {
         <li><strong>Official Election APIs</strong> - Government election results</li>
         <li><strong>RealClearPolitics API</strong> - Political polling data</li>
       </ul>
-      <p><strong>Use Cases:</strong> "Will Candidate X win the election?" markets</p>
+      <p><strong>Use Cases:</strong> &quot;Will Candidate X win the election?&quot; markets</p>
       <p><strong>Trust Level:</strong> Very High for official results, Medium for polling</p>
       <p><strong>Priority:</strong> Medium</p>
 
@@ -613,7 +613,7 @@ function APIsAndOraclesContent() {
 
       <h2>Oracle expansion</h2>
       <p>
-        <strong>Shipped today:</strong> sports, stocks/crypto trends, weather, and multi-provider news seeding + resolution paths wired in the worker. <strong>Next wave:</strong> first-class political/election resolution (official results providers, dedicated event builders) — see <code>docs/ORACLE_PHASE2.md</code>. Market rows already carry <code>oracleSource</code> and <code>oracleConfig</code> for adding types without breaking older markets.
+        <strong>Shipped today:</strong> sports, stocks/crypto trends, weather, and multi-provider news seeding + resolution paths wired in the worker. <strong>Next wave:</strong> first-class political/election resolution (official results providers, dedicated event builders) — see <code>docs/ORACLE_STRATEGY.md (Phase 2)</code>. Market rows already carry <code>oracleSource</code> and <code>oracleConfig</code> for adding types without breaking older markets.
       </p>
 
       <h2>Oracle Requirements</h2>
@@ -679,11 +679,11 @@ function ArchitectureContent() {
       <h2>API overview</h2>
       <ul>
         <li><strong>Auth &amp; account:</strong> <code>register</code>, <code>sign-in</code>, <code>account</code></li>
-        <li><strong>Balance &amp; tips:</strong> <code>get-user-balance</code>, <code>update-user-balance</code>, <code>transfer-pips</code>, <code>add-credits</code> (guard in prod)</li>
+        <li><strong>Balance &amp; tips:</strong> <code>get-user-balance</code>, <code>update-user-balance</code>, <code>transfer-pips</code>, <code>add-credits</code> (<code>update-user-balance</code> / <code>add-credits</code> require ops secret headers when configured on Pages)</li>
         <li><strong>Markets:</strong> <code>markets</code>, <code>pools</code>, <code>trade</code>, <code>auto-markets</code>, <code>resolve-markets</code>, <code>update-market-status</code></li>
         <li><strong>Orders:</strong> <code>orders</code> (GET list, POST create/cancel)</li>
         <li><strong>Deposits &amp; withdrawals:</strong> <code>deposit-addresses</code>, <code>deposit-with-tx</code>, <code>deposit-crypto</code>, <code>deposit-records</code>, <code>withdraw-request</code>, <code>withdrawal-requests</code>, <code>process-withdrawals</code></li>
-        <li><strong>Legacy contracts UI:</strong> <code>get-contracts</code>, <code>store-contract</code>, <code>update-contract-status</code>, <code>create-position</code></li>
+        <li><strong>Legacy contracts:</strong> <code>get-contracts</code>, <code>store-contract</code>, <code>update-contract-status</code>, <code>create-position</code> (<code>store-contract</code> / <code>create-position</code> / <code>resolve-markets</code> use ops secret headers when configured)</li>
         <li><strong>Health &amp; oracle:</strong> <code>health</code>, <code>oracle?symbol=</code></li>
       </ul>
 
@@ -759,7 +759,7 @@ function RoadmapContent() {
             <ul>
               <li>Scheduled cron (or Worker trigger) for <code>auto-markets</code> and <code>resolve-markets</code></li>
               <li>Lock down privileged routes (<code>add-credits</code>, bulk seed) behind auth or secrets</li>
-              <li>Monitoring, alerts, and withdrawal queue runbooks (<code>docs/NEXT_STEPS_AND_PROD_READINESS.md</code>)</li>
+              <li>Monitoring, alerts, and withdrawal queue runbooks (<code>docs/GET_APP_UP_AND_RUNNING.md</code>)</li>
             </ul>
           </article>
 
@@ -767,7 +767,7 @@ function RoadmapContent() {
             <span className="docs-roadmap-badge">Exploring</span>
             <h2 className="docs-roadmap-card-title">Markets &amp; rails</h2>
             <ul>
-              <li>Political / election oracles and richer news verification (<code>docs/ORACLE_PHASE2.md</code>)</li>
+              <li>Political / election oracles and richer news verification (<code>docs/ORACLE_STRATEGY.md (Phase 2)</code>)</li>
               <li>Additional EVM chains or assets for deposit/withdraw</li>
               <li>AMM upgrades (e.g. alternative curves, LP incentives) per vision doc</li>
               <li>Scalar (range buckets) and conditional (linked market id) in create flow; deeper analytics</li>
@@ -806,9 +806,9 @@ function APIReferenceContent() {
       <h2>Balance &amp; P2P</h2>
       <ul>
         <li><code>GET|POST /api/get-user-balance</code> — <code>userParty</code> in query or JSON body; returns <code>{'{ success, balance }'}</code> with <code>balance</code> as a decimal string.</li>
-        <li><code>POST /api/update-user-balance</code> — admin-style add/subtract with <code>userParty</code>, <code>amount</code>, <code>operation</code> (<code>add</code> | <code>subtract</code>).</li>
+        <li><code>POST /api/update-user-balance</code> — admin-style add/subtract with <code>userParty</code>, <code>amount</code>, <code>operation</code> (<code>add</code> | <code>subtract</code>). Ops secret headers when <code>PRIVILEGED_API_SECRET</code> / cron secret is set on Pages.</li>
         <li><code>POST /api/transfer-pips</code> — body <code>{'{ fromParty, toParty, amount }'}</code>; moves Pips between parties.</li>
-        <li><code>POST /api/add-credits</code> — add Pips (dev/test; restrict in production).</li>
+        <li><code>POST /api/add-credits</code> — add Pips (dev/test); ops secret headers when configured on Pages.</li>
       </ul>
 
       <h2>Markets, pools, AMM</h2>
@@ -817,9 +817,9 @@ function APIReferenceContent() {
         <li><code>GET /api/pools?marketId=…</code> — pool state for AMM quotes.</li>
         <li><code>POST /api/trade</code> — execute pool trade (spend Pips for shares).</li>
         <li><code>GET|POST /api/auto-markets</code> — list events, probe env, or <code>seed</code> / <code>seed_all</code> markets from configured APIs.</li>
-        <li><code>POST /api/resolve-markets</code> — resolve due markets from oracle data.</li>
+        <li><code>POST /api/resolve-markets</code> — resolve due markets from oracle data. Ops secret headers when configured; cron Worker sends them.</li>
         <li><code>POST /api/update-market-status</code> — administrative status changes.</li>
-        <li><code>POST /api/create-position</code> — legacy/helper position creation when needed.</li>
+        <li><code>POST /api/create-position</code> — legacy/helper position creation; ops secret when configured.</li>
       </ul>
 
       <h2>Limit orders</h2>
@@ -842,7 +842,7 @@ function APIReferenceContent() {
       <h2>Legacy contract storage (admin / history UI)</h2>
       <ul>
         <li><code>GET|POST /api/get-contracts</code> — filter by <code>party</code>, <code>templateType</code>, <code>status</code>.</li>
-        <li><code>POST /api/store-contract</code> — persist a contract payload.</li>
+        <li><code>POST /api/store-contract</code> — persist a contract payload; ops secret when configured.</li>
         <li><code>PUT|PATCH /api/update-contract-status</code> — approve/reject flows.</li>
       </ul>
 
