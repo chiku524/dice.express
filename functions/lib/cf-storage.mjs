@@ -22,9 +22,8 @@ function safeJsonParse(str, fallback = {}) {
 
 /** @param {D1Database} db */
 export async function getContracts(db, { party, templateType, status, limit = 100 } = {}) {
-  let query = `SELECT * FROM ${CONTRACTS_TABLE} ORDER BY created_at DESC LIMIT ?`
-  const params = [limit]
   const conditions = []
+  const params = []
   if (party) {
     conditions.push('party = ?')
     params.push(party)
@@ -37,10 +36,9 @@ export async function getContracts(db, { party, templateType, status, limit = 10
     conditions.push('status = ?')
     params.push(status)
   }
-  if (conditions.length) {
-    query = `SELECT * FROM ${CONTRACTS_TABLE} WHERE ${conditions.join(' AND ')} ORDER BY created_at DESC LIMIT ?`
-    params.push(limit)
-  }
+  const whereClause = conditions.length ? `WHERE ${conditions.join(' AND ')}` : ''
+  const query = `SELECT * FROM ${CONTRACTS_TABLE} ${whereClause} ORDER BY created_at DESC LIMIT ?`
+  params.push(limit)
   const stmt = db.prepare(query).bind(...params)
   const { results } = await stmt.all()
   return (results || []).map((row) => ({
