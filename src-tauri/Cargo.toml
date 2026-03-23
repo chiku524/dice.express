@@ -1,6 +1,6 @@
 [package]
 name = "dice-express"
-version = "1.0.22"
+version = "1.0.23"
 description = "dice.express — prediction markets desktop app"
 authors = ["dice.express"]
 license = "MIT"
