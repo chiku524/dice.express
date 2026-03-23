@@ -10,9 +10,11 @@ If **`PRIVILEGED_API_SECRET`** and/or **`AUTO_MARKETS_CRON_SECRET`** is set in t
 
 - **`/api/add-credits`**, **`/api/update-user-balance`**, **`/api/store-contract`**, **`/api/create-position`**, **`/api/resolve-markets`**
 
-Send **`X-Privileged-Secret`** (for `PRIVILEGED_API_SECRET`) and/or **`X-Cron-Secret`** (for `AUTO_MARKETS_CRON_SECRET`). Body fields **`privilegedSecret`** / **`cronSecret`** are accepted as alternates. If **neither** env var is set, these routes stay **open** (typical local dev).
+Send **`X-Privileged-Secret`** (for `PRIVILEGED_API_SECRET`) and/or **`X-Cron-Secret`** (for `AUTO_MARKETS_CRON_SECRET`). Body fields **`privilegedSecret`** / **`cronSecret`** are accepted as alternates. If **neither** env var is set, these routes stay **open** — no secret headers required — which is fine for many deployments (local dev and production until you opt in to locking them down). The **auto-markets cron Worker** then does **not** need matching secrets on the Worker for **`POST /api/resolve-markets`** to succeed.
 
-The **auto-markets cron Worker** should define **`PRIVILEGED_API_SECRET`** in its Worker env when Pages has it set, so **`POST /api/resolve-markets`** succeeds after seeding. **`update-market-status`** and **`update-contract-status`** are not gated by this helper (browser/admin flows); restrict access at the edge (e.g. admin-only routes) if needed.
+When you **do** set **`PRIVILEGED_API_SECRET`** on Pages, set the **same** value on the Worker so scheduled **`resolve-markets`** calls include **`X-Privileged-Secret`**.
+
+**`update-market-status`** and **`update-contract-status`** are not gated by this helper; restrict or authenticate those callers separately if you use them from scripts or tools.
 
 ### Core endpoints (summary)
 

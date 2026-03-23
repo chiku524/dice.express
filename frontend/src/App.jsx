@@ -17,7 +17,6 @@ const MarketDetail = lazyWithRetry(() => import('./components/MarketDetail'))
 const AutomatedMarketsInfo = lazyWithRetry(() => import('./components/AutomatedMarketsInfo'))
 const Portfolio = lazyWithRetry(() => import('./components/Portfolio'))
 const Documentation = lazyWithRetry(() => import('./components/Documentation'))
-const AdminDashboard = lazyWithRetry(() => import('./components/AdminDashboard'))
 const Activity = lazyWithRetry(() => import('./components/Activity'))
 const Dashboard = lazyWithRetry(() => import('./components/Dashboard'))
 const Profile = lazyWithRetry(() => import('./components/Profile'))
@@ -243,7 +242,7 @@ function AppContent() {
               </ProtectedRoute>
             }
           />
-          <Route path="/admin" element={<AdminDashboard />} />
+          <Route path="/admin" element={<Navigate to="/" replace />} />
           <Route path="/activity" element={<Activity />} />
           <Route path="/history" element={<Navigate to="/activity" replace />} />
           <Route path="/download" element={<Download />} />

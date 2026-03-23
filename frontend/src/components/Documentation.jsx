@@ -10,7 +10,6 @@ const SECTIONS = [
   { id: 'position-creation', title: 'Trading & positions' },
   { id: 'deposit-withdraw', title: 'Deposit & withdraw' },
   { id: 'portfolio', title: 'Portfolio' },
-  { id: 'admin-dashboard', title: 'Admin dashboard' },
   { id: 'blockchain', title: 'Infrastructure' },
   { id: 'apis-oracles', title: 'APIs & oracles' },
   { id: 'architecture', title: 'Architecture' },
@@ -61,8 +60,6 @@ export default function Documentation() {
         return <DepositWithdrawContent />
       case 'portfolio':
         return <PortfolioContent />
-      case 'admin-dashboard':
-        return <AdminDashboardContent />
       case 'blockchain':
         return <BlockchainContent />
       case 'apis-oracles':
@@ -175,7 +172,6 @@ function ProductMapContent() {
         <li><strong>Markets:</strong> <code>/market/:marketId</code> — resolution details, AMM trade, limit orders (binary active markets), volumes.</li>
         <li><strong>Account hub (signed in):</strong> <code>/dashboard</code> (summary, account ID copy, links to Profile and Portfolio, <strong>Tip Pips</strong> to another display name). <code>/profile</code> — edit display name, account metadata, sign out. <code>/portfolio</code> — Balance, Positions, Activity tabs; crypto deposit and withdraw.</li>
         <li><strong>Create market:</strong> <code>/create</code> — explains that markets are automated; link back to browse (no builder).</li>
-        <li><strong>Admin:</strong> <code>/admin</code> — for deployments using legacy <strong>Market creation requests</strong>: lists pending requests where you are the designated admin; approve/reject updates contract status via API.</li>
         <li><strong>Marketing / legal:</strong> <code>/download</code> — desktop installers. <code>/privacy</code>, <code>/terms</code>.</li>
       </ul>
 
@@ -448,26 +444,6 @@ function PortfolioContent() {
   )
 }
 
-function AdminDashboardContent() {
-  return (
-    <div className="doc-section">
-      <h1>Admin dashboard</h1>
-
-      <p>
-        The <code>/admin</code> page is for deployments that still surface <strong>MarketCreationRequest</strong> contracts. It loads pending requests for the signed-in party when that party matches the request&apos;s <strong>admin</strong> field, then <strong>approve</strong> or <strong>reject</strong> by updating status through <code>PUT /api/update-contract-status</code>.
-      </p>
-
-      <h2>Default product behavior</h2>
-      <p>
-        Today&apos;s public product is <strong>auto-markets only</strong> (no user builder). This screen is legacy/optional. If you never create market requests, the list may stay empty.
-      </p>
-
-      <h2>Data</h2>
-      <p>Contract rows are read from D1 via <code>get-contracts</code>-style storage helpers in the API worker.</p>
-    </div>
-  )
-}
-
 function BlockchainContent() {
   return (
     <div className="doc-section">
@@ -718,7 +694,7 @@ function SecurityContent() {
 
       <h2>Authorization model</h2>
       <p>
-        API calls from the UI send your <strong>party</strong> (display name) for balance, trade, and withdraw actions. Production deployments should continue to harden this (session tokens, CSRF, rate limits, role checks for admin routes). Wallet signatures are used where deposit verification requires them.
+        API calls from the UI send your <strong>party</strong> (display name) for balance, trade, and withdraw actions. Production deployments should continue to harden this (session tokens, CSRF, rate limits, server-side authorization where needed). Wallet signatures are used where deposit verification requires them.
       </p>
 
       <h2>Data security</h2>

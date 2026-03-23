@@ -9,6 +9,11 @@ Summary of major cleanups and improvements. For current structure see [README](.
 - **Release:** Version bump across **`package.json`**, **`frontend/`**, **`src-tauri/`**, download fallbacks (`constants/downloads.js`). Tag **`v1.0.24`** triggers desktop build workflow.
 - See **Stack upgrade** and prior **Documentation consolidation** / **Fourth pass** entries below for detail.
 
+## Remove `/admin` UI (March 2026)
+
+- **Product:** Markets are **auto-seeded** (`/api/auto-markets` + cron); the old **`/admin`** screen only approved legacy **`MarketCreationRequest`** rows in D1 and is redundant for the current flow.
+- **App:** Deleted **`AdminDashboard`**; **`/admin`** redirects to **`/`**. Docs TOC, product map, SEO entry, and Activity empty-state copy updated. **`docs/API.md`** clarifies that without **`PRIVILEGED_API_SECRET`** / cron secret on Pages, privileged **`POST`** routes (including **`resolve-markets`**) stay **open** and the Worker needs **no** matching secret.
+
 ## Stack upgrade (March 2026)
 
 - **Frontend:** **React 19**, **Vite 8**, **React Router 7**, **ESLint 9** with flat config (`frontend/eslint.config.js`). **`manualChunks`** in Vite is a **function** (Rolldown requirement in Vite 8). **`react-hooks/exhaustive-deps`** is **enabled** (`warn`, CI treats warnings as errors via **`--max-warnings 0`**): **`fetchRequests`** / balance-tab fetchers use **`useCallback`**; **`MarketsList`** polling gate no longer references redundant **`markets.length >= 0`**.

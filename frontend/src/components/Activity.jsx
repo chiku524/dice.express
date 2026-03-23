@@ -112,7 +112,7 @@ export default function Activity() {
 
       {contracts.length === 0 ? (
         <div className="card">
-          <p>No stored records yet. Trade on a market or use admin tools to create entries.</p>
+          <p>No stored records yet. Trade on a market — your positions and related entries will show here.</p>
           <Link to="/">
             <button type="button" className="btn-primary" style={{ marginTop: '1rem' }}>
               Browse markets

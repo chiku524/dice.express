@@ -86,11 +86,6 @@ export const SEO_PAGES = {
     description: 'Manage your Pips balance: deposit with crypto (wallet or platform address), withdraw to crypto (fee applies), view positions and withdrawal history.',
     keywords: 'portfolio, Pips balance, deposit, withdraw, prediction market funds',
   },
-  '/admin': {
-    title: `Admin | ${BASE_TITLE}`,
-    description: 'Admin dashboard for prediction market management. dice.express platform administration.',
-    keywords: 'admin, prediction markets',
-  },
   '/activity': {
     title: `Activity — Stored market records | ${BASE_TITLE}`,
     description:
