@@ -202,7 +202,7 @@ export function outcomeTextBundle(p) {
   return `${titleTrim} ${crit} ${settle}`
 }
 
-function isFeedTopicPayload(p) {
+export function isFeedTopicPayload(p) {
   const oc = p?.oracleConfig && typeof p.oracleConfig === 'object' ? p.oracleConfig : {}
   return oc.newsResolutionMode === 'feed_topic_continuation'
 }

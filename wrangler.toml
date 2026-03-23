@@ -26,6 +26,17 @@ bucket_name = "dice-express-r2"
 binding = "KV"
 id = "bf88f3a357f640ccb3173da7e163570d"
 
+# Vectorize (768-dim cosine) for embedding dedupe of auto-seeded markets. Create index once:
+#   npx wrangler vectorize create dice-express-market-embeddings --dimensions=768 --metric=cosine
+# After wiping D1 prediction markets, delete vectors (Dashboard) or delete/recreate the index so Vectorize stays aligned.
+[[vectorize]]
+binding = "VECTORIZE"
+index_name = "dice-express-market-embeddings"
+
+# Workers AI — required for @cf/baai/bge-base-en-v1.5 embeddings used with VECTORIZE above.
+[ai]
+binding = "AI"
+
 [vars]
 # P2P-only: new markets get zero liquidity so platform never seeds capital. Trading requires matched orders (P2P).
 # Set to "0" or remove when you want to enable AMM with platform liquidity. See docs/ALGORITHMS_AND_RISK.md.
@@ -34,6 +45,8 @@ AUTO_MARKETS_ZERO_LIQUIDITY = "1"
 # Default API behavior also skips them without any var; this flag is committed so Pages/Workers always see it.
 AUTO_MARKETS_OUTCOME_ONLY = "1"
 # Set AUTO_MARKETS_ALLOW_FEED_TOPIC=1 to create feed-topic headline markets again.
+# Embedding dedupe (Vectorize + Workers AI): cosine threshold 0–1; 0.88 catches paraphrases while avoiding over-merging distinct questions.
+MARKET_EMBED_SIMILARITY_MIN = "0.88"
 
 # Platform deposit wallets (dice.express Coinbase wallet). EVM chains use the same 0x address.
 # Set secrets via Cloudflare Dashboard → Pages/Workers → Settings → Environment variables (see docs/CRYPTO_DEPOSITS.md).

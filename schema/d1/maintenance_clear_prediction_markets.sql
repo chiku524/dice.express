@@ -8,6 +8,9 @@
 -- Apply locally (pages dev / wrangler d1 local):
 --   npm run d1:clear-prediction-markets:local
 --   (or: npx wrangler d1 execute dice-express-db --local --file=./schema/d1/maintenance_clear_prediction_markets.sql)
+--
+-- Embedding dedupe (Vectorize): D1 DELETE does not remove vectors. After a full wipe, clear the
+-- Vectorize index for `dice-express-market-embeddings` in the dashboard or delete/recreate the index.
 
 DELETE FROM p2p_orders;
 

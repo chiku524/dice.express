@@ -11,6 +11,14 @@ import { enrichNewsEvent } from '../lib/custom-news-markets.mjs'
 import { finalizeNewsFeedTopicMarket, isFeedTopicOnlyNewsCandidate } from '../lib/news-market-topic.mjs'
 import { promoteNewsArticleToOutcomeMarket } from '../lib/outcome-news-markets.mjs'
 import * as marketDedupe from '../lib/market-dedupe.mjs'
+import {
+  embedText,
+  embeddingDocumentFromPayload,
+  findParaphraseDuplicate,
+  isNearDuplicateInBatch,
+  marketEmbedMinScore,
+  upsertMarketEmbedding,
+} from '../lib/market-embeddings.mjs'
 import * as resolveMarkets from '../lib/resolve-markets.mjs'
 import { addPips, pipsToCents, centsToPipsStr, cryptoAmountToPipsStr } from '../lib/pips-precision.mjs'
 import { verifyErc20Deposit, verifyNativeDeposit } from '../lib/verify-deposit-rpc.mjs'
@@ -1354,6 +1362,9 @@ async function handleWithD1(db, kv, r2, request, path, method, env = {}) {
       let skippedFeedTopicNews = 0
       let skippedDedupe = 0
       let skippedNearDuplicate = 0
+      let skippedEmbeddingDuplicate = 0
+      /** @type {Array<{ vec: number[], resolutionDay: string, outcomesFp: string }>} */
+      const embeddingBatchScratch = []
       const existingVirtualRows = await storage.getContracts(db, { templateType: 'VirtualMarket', limit: 1500 })
       const occupiedDedupeKeys = await marketDedupe.buildOccupiedDedupeKeySet(existingVirtualRows)
       const semanticIndex = marketDedupe.buildSemanticIndex(existingVirtualRows)
@@ -1430,6 +1441,26 @@ async function handleWithD1(db, kv, r2, request, path, method, env = {}) {
           skippedNearDuplicate += 1
           continue
         }
+        /** @type {number[] | null} */
+        let embeddingVecForUpsert = null
+        if (!marketDedupe.isFeedTopicPayload(payload) && env?.VECTORIZE && env?.AI) {
+          const minSc = marketEmbedMinScore(env)
+          const rd = marketDedupe.resolutionDateKey(payload)
+          const ofp = marketDedupe.outcomesFingerprint(payload)
+          const vec = await embedText(env, embeddingDocumentFromPayload(payload))
+          if (vec) {
+            if (isNearDuplicateInBatch(vec, embeddingBatchScratch, rd, ofp, minSc)) {
+              skippedEmbeddingDuplicate += 1
+              continue
+            }
+            const embedDup = await findParaphraseDuplicate(env, payload, { precomputedVec: vec })
+            if (embedDup.duplicate) {
+              skippedEmbeddingDuplicate += 1
+              continue
+            }
+            embeddingVecForUpsert = vec
+          }
+        }
         await storage.upsertContract(db, {
           contract_id: id,
           template_id: TEMPLATE_VIRTUAL_MARKET,
@@ -1456,6 +1487,14 @@ async function handleWithD1(db, kv, r2, request, path, method, env = {}) {
           }
         }
         marketDedupe.appendSemanticIndexEntry(semanticIndex, payload)
+        if (embeddingVecForUpsert) {
+          embeddingBatchScratch.push({
+            vec: embeddingVecForUpsert,
+            resolutionDay: marketDedupe.resolutionDateKey(payload),
+            outcomesFp: marketDedupe.outcomesFingerprint(payload),
+          })
+        }
+        await upsertMarketEmbedding(env, id, payload, { precomputedVec: embeddingVecForUpsert })
         created.push({ marketId: id, title: evFinal.title, source: evFinal.source })
       }
       // Markets list cache will refresh on next GET (TTL)
@@ -1468,6 +1507,7 @@ async function handleWithD1(db, kv, r2, request, path, method, env = {}) {
         ...(skipFeedTopicOnlyNews && skippedFeedTopicNews > 0 ? { skippedFeedTopicNews } : {}),
         ...(skippedDedupe > 0 ? { skippedDedupe } : {}),
         ...(skippedNearDuplicate > 0 ? { skippedNearDuplicate } : {}),
+        ...(skippedEmbeddingDuplicate > 0 ? { skippedEmbeddingDuplicate } : {}),
       }
       if (bySource) res.bySource = bySource
       if (limitsBySource) res.limitsBySource = limitsBySource
