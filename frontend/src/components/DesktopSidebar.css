@@ -126,6 +126,20 @@
   opacity: 0.85;
 }
 
+.desktop-sidebar__docs-block {
+  width: 100%;
+}
+
+.desktop-sidebar__docs-item {
+  list-style: none;
+}
+
+.desktop-sidebar__docs-flyout {
+  min-width: 240px;
+  max-width: min(340px, calc(100vw - 260px));
+  max-height: min(560px, calc(100vh - 16px));
+}
+
 .desktop-sidebar__markets-flyout {
   /* Portal to body: above main column (incl. docs ~102); below WalletModal / app-header (~1000) and toasts (10000) */
   z-index: 999;

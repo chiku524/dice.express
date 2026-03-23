@@ -55,10 +55,37 @@
 }
 
 .nav-dropdown-account .nav-dropdown-toggle.active,
-.nav-dropdown-resources .nav-dropdown-toggle.active {
+.nav-dropdown-resources .nav-dropdown-toggle.active,
+.nav-dropdown-docs .nav-dropdown-toggle.active {
   background: rgba(20, 184, 166, 0.15);
   border-color: rgba(20, 184, 166, 0.4);
   color: #2dd4bf;
+}
+
+.nav-dropdown-docs .nav-dropdown-toggle {
+  background: rgba(30, 41, 59, 0.6);
+  border-color: rgba(71, 85, 105, 0.5);
+  color: #94a3b8;
+}
+
+.nav-dropdown-docs .nav-dropdown-toggle:hover {
+  background: rgba(51, 65, 85, 0.7);
+  border-color: rgba(100, 116, 139, 0.5);
+  color: #cbd5e1;
+}
+
+.nav-dropdown-menu--docs {
+  min-width: min(320px, calc(100vw - 2rem));
+  max-width: 360px;
+  max-height: min(70vh, 520px);
+  overflow-y: auto;
+  padding: var(--spacing-xs) 0;
+}
+
+.nav-dropdown-menu--docs a {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* Disconnect — slate/gray (not purple) */

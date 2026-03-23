@@ -1,39 +1,14 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect } from 'react'
+import { documentationHashToSectionId } from '../constants/documentationSections'
 import './Documentation.css'
-
-const SECTIONS = [
-  { id: 'getting-started', title: 'Getting Started' },
-  { id: 'product-map', title: 'Product map' },
-  { id: 'wallet-authentication', title: 'Account & sign-in' },
-  { id: 'market-creation', title: 'Markets & discovery' },
-  { id: 'amm-fees', title: 'AMM, fees & limit orders' },
-  { id: 'position-creation', title: 'Trading & positions' },
-  { id: 'deposit-withdraw', title: 'Deposit & withdraw' },
-  { id: 'portfolio', title: 'Portfolio' },
-  { id: 'blockchain', title: 'Infrastructure' },
-  { id: 'apis-oracles', title: 'APIs & oracles' },
-  { id: 'architecture', title: 'Architecture' },
-  { id: 'security', title: 'Security' },
-  { id: 'roadmap', title: 'Roadmap' },
-  { id: 'api-reference', title: 'API reference' },
-]
 
 function getSectionFromHash() {
   const hash = typeof window !== 'undefined' ? window.location.hash.slice(1) : ''
-  return SECTIONS.some((s) => s.id === hash) ? hash : 'getting-started'
+  return documentationHashToSectionId(hash)
 }
 
 export default function Documentation() {
   const [activeSection, setActiveSection] = useState(() => getSectionFromHash())
-  const [sidebarOpen, setSidebarOpen] = useState(false)
-
-  const setSection = useCallback((id) => {
-    setActiveSection(id)
-    setSidebarOpen(false)
-    if (typeof window !== 'undefined') {
-      window.history.replaceState(null, '', `#${id}`)
-    }
-  }, [])
 
   useEffect(() => {
     setActiveSection(getSectionFromHash())
@@ -79,41 +54,10 @@ export default function Documentation() {
 
   return (
     <div className="docs-page">
-      <button
-        type="button"
-        className="docs-sidebar-toggle"
-        onClick={() => setSidebarOpen((o) => !o)}
-        aria-expanded={sidebarOpen}
-        aria-label="Toggle documentation menu"
-      >
-        <span className="docs-sidebar-toggle-icon">{sidebarOpen ? '✕' : '☰'}</span>
-        <span className="docs-sidebar-toggle-label">Sections</span>
-      </button>
-      <aside className={`docs-sidebar ${sidebarOpen ? 'docs-sidebar-open' : ''}`} aria-label="Table of contents">
-        <nav className="docs-toc">
-          <h2 className="docs-toc-title">Contents</h2>
-          <ul className="docs-toc-list">
-            {SECTIONS.map((section) => (
-              <li key={section.id}>
-                <button
-                  type="button"
-                  className={`docs-toc-link ${activeSection === section.id ? 'active' : ''}`}
-                  onClick={() => setSection(section.id)}
-                >
-                  {section.title}
-                </button>
-              </li>
-            ))}
-          </ul>
-        </nav>
-      </aside>
-      <div
-        className="docs-overlay"
-        role="presentation"
-        aria-hidden={!sidebarOpen}
-        onClick={() => setSidebarOpen(false)}
-      />
       <main className="docs-main" role="region" aria-label="Documentation content">
+        <p className="docs-nav-hint">
+          Open <strong>Documentation</strong> in the header (hover to see all sections) or, in the desktop app, use the sidebar <strong>Documentation</strong> flyout — then pick a section to load here.
+        </p>
         <div className="docs-content-inner">
           {renderContent()}
         </div>
@@ -167,7 +111,7 @@ function ProductMapContent() {
 
       <h2>Web app (browser)</h2>
       <ul>
-        <li><strong>Top navigation:</strong> Logo → home (<code>/</code>). <strong>Discover</strong> dropdown lists every public browse path (see table). <strong>Resources</strong> → Download desktop, Documentation (<code>/docs</code>), Activity (<code>/activity</code>; <code>/history</code> redirects here). When signed in: Pips balance → Portfolio, display name → Dashboard, copy button, Disconnect.</li>
+        <li><strong>Top navigation:</strong> Logo → home (<code>/</code>). <strong>Discover</strong> dropdown lists every public browse path (see table). <strong>Documentation</strong> (hover) opens the full section list; <strong>Resources</strong> → Download desktop, Activity (<code>/activity</code>; <code>/history</code> redirects here). When signed in: Pips balance → Portfolio, display name → Dashboard, copy button, Disconnect.</li>
         <li><strong>Auth:</strong> <code>/register</code> (wizard), <code>/sign-in</code> — full-page flows without main chrome.</li>
         <li><strong>Markets:</strong> <code>/market/:marketId</code> — resolution details, AMM trade, limit orders (binary active markets), volumes.</li>
         <li><strong>Account hub (signed in):</strong> <code>/dashboard</code> (summary, account ID copy, links to Profile and Portfolio, <strong>Tip Pips</strong> to another display name). <code>/profile</code> — edit display name, account metadata, sign out. <code>/portfolio</code> — Balance, Positions, Activity tabs; crypto deposit and withdraw.</li>
@@ -177,7 +121,7 @@ function ProductMapContent() {
 
       <h2>Desktop app (Tauri)</h2>
       <p>
-        Same React app inside a native shell. <code>/splashscreen</code> and <code>/launch</code> are intro/onboarding routes. The main shell uses a <strong>left sidebar</strong> (Markets flyout, Account: Dashboard / Portfolio / Profile, More: Create market, Documentation, Activity) instead of the top nav + footer. There is no Download link in the sidebar — open <code>/download</code> directly if you need installers inside the app. The system tray can trigger <strong>Sign out</strong> (clears session and navigates to sign-in).
+        Same React app inside a native shell. <code>/splashscreen</code> and <code>/launch</code> are intro/onboarding routes. The main shell uses a <strong>left sidebar</strong> (Markets flyout, Account: Dashboard / Portfolio / Profile, More: Create market, <strong>Documentation</strong> flyout with all sections, Activity) instead of the top nav + footer. There is no Download link in the sidebar — open <code>/download</code> directly if you need installers inside the app. The system tray can trigger <strong>Sign out</strong> (clears session and navigates to sign-in).
       </p>
 
       <h2>Discover categories</h2>

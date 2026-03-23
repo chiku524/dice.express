@@ -9,6 +9,15 @@ Summary of major cleanups and improvements. For current structure see [README](.
 - **Release:** Version bump across **`package.json`**, **`frontend/`**, **`src-tauri/`**, download fallbacks (`constants/downloads.js`). Tag **`v1.0.24`** triggers desktop build workflow.
 - See **Stack upgrade** and prior **Documentation consolidation** / **Fourth pass** entries below for detail.
 
+## 1.0.25 — Docs nav flyout, desktop icons from logo (March 2026)
+
+- **Release:** Version **1.0.25**; tag **`v1.0.25`** for desktop CI. Documentation sections live in the **Documentation** navbar dropdown (hover/click) and desktop sidebar flyout; **`/docs`** is full-width. **Tauri** bundle icons regenerated from **`frontend/public/logo.svg`**.
+
+## Documentation TOC in nav + desktop icons (March 2026)
+
+- **Docs UX:** Section list moved out of the `/docs` page into a **Documentation** dropdown in the web navbar (hover or click) and a **Documentation** flyout in the desktop sidebar. `/docs` content is full-width with a short hint line.
+- **Desktop app icons:** Regenerated **`src-tauri/icons/*`** from **`frontend/public/logo.svg`** via `tauri icon` (taskbar, shortcuts, Start menu, macOS/Linux bundles).
+
 ## Remove `/admin` UI (March 2026)
 
 - **Product:** Markets are **auto-seeded** (`/api/auto-markets` + cron); the old **`/admin`** screen only approved legacy **`MarketCreationRequest`** rows in D1 and is redundant for the current flow.

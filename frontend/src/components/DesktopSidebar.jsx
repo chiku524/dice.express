@@ -6,6 +6,7 @@ import { useToastContext } from '../contexts/ToastContext'
 import { getVirtualBalance } from '../services/balance'
 import { BRAND_NAME, BRAND_TAGLINE } from '../constants/brand'
 import { MARKET_SOURCES, getDiscoverPathForSource } from '../constants/marketConfig'
+import { DOCUMENTATION_SECTIONS } from '../constants/documentationSections'
 import './DesktopSidebar.css'
 
 const discoverSources = MARKET_SOURCES.filter(
@@ -25,12 +26,19 @@ export default function DesktopSidebar() {
   const location = useLocation()
   const [balanceFormatted, setBalanceFormatted] = useState(null)
   const [marketsMenuOpen, setMarketsMenuOpen] = useState(false)
+  const [docsMenuOpen, setDocsMenuOpen] = useState(false)
   const [flyoutPos, setFlyoutPos] = useState({ top: 0, left: 0 })
+  const [docsFlyoutPos, setDocsFlyoutPos] = useState({ top: 0, left: 0 })
   const marketsBlockRef = useRef(null)
   const flyoutRef = useRef(null)
   const triggerRef = useRef(null)
+  const docsBlockRef = useRef(null)
+  const docsFlyoutRef = useRef(null)
+  const docsTriggerRef = useRef(null)
 
   const discoverActive = isDiscoverRoute(location.pathname)
+  const docsRouteActive =
+    location.pathname === '/docs' || location.pathname === '/documentation'
 
   useEffect(() => {
     if (!wallet?.party) {
@@ -64,6 +72,24 @@ export default function DesktopSidebar() {
     setFlyoutPos({ top, left })
   }
 
+  const updateDocsFlyoutPosition = () => {
+    const el = docsTriggerRef.current
+    if (!el) return
+    const r = el.getBoundingClientRect()
+    const gap = 8
+    const flyoutW = 320
+    const maxH = Math.min(window.innerHeight - 16, 560)
+    let top = r.top
+    if (top + maxH > window.innerHeight - 8) {
+      top = Math.max(8, window.innerHeight - 8 - maxH)
+    }
+    let left = r.right + gap
+    if (left + flyoutW > window.innerWidth - 8) {
+      left = Math.max(8, r.left - gap - flyoutW)
+    }
+    setDocsFlyoutPos({ top, left })
+  }
+
   useLayoutEffect(() => {
     if (!marketsMenuOpen) return
     updateFlyoutPosition()
@@ -72,17 +98,31 @@ export default function DesktopSidebar() {
     return () => window.removeEventListener('resize', onResize)
   }, [marketsMenuOpen])
 
+  useLayoutEffect(() => {
+    if (!docsMenuOpen) return
+    updateDocsFlyoutPosition()
+    const onResize = () => updateDocsFlyoutPosition()
+    window.addEventListener('resize', onResize)
+    return () => window.removeEventListener('resize', onResize)
+  }, [docsMenuOpen])
+
   useEffect(() => {
-    if (!marketsMenuOpen) return
+    if (!marketsMenuOpen && !docsMenuOpen) return
     const onKey = (e) => {
-      if (e.key === 'Escape') setMarketsMenuOpen(false)
+      if (e.key === 'Escape') {
+        setMarketsMenuOpen(false)
+        setDocsMenuOpen(false)
+      }
     }
     const onPointerDown = (e) => {
-      const block = marketsBlockRef.current
-      const flyout = flyoutRef.current
-      const insideTrigger = block?.contains(e.target)
-      const insideFlyout = flyout?.contains(e.target)
-      if (!insideTrigger && !insideFlyout) setMarketsMenuOpen(false)
+      const mBlock = marketsBlockRef.current
+      const mFlyout = flyoutRef.current
+      const dBlock = docsBlockRef.current
+      const dFlyout = docsFlyoutRef.current
+      const insideMarkets = mBlock?.contains(e.target) || mFlyout?.contains(e.target)
+      const insideDocs = dBlock?.contains(e.target) || dFlyout?.contains(e.target)
+      if (marketsMenuOpen && !insideMarkets) setMarketsMenuOpen(false)
+      if (docsMenuOpen && !insideDocs) setDocsMenuOpen(false)
     }
     document.addEventListener('keydown', onKey)
     document.addEventListener('mousedown', onPointerDown)
@@ -92,11 +132,12 @@ export default function DesktopSidebar() {
       document.removeEventListener('mousedown', onPointerDown)
       document.removeEventListener('touchstart', onPointerDown)
     }
-  }, [marketsMenuOpen])
+  }, [marketsMenuOpen, docsMenuOpen])
 
   useEffect(() => {
     setMarketsMenuOpen(false)
-  }, [location.pathname])
+    setDocsMenuOpen(false)
+  }, [location.pathname, location.hash])
 
   const copyDisplayName = () => {
     if (!wallet?.party) return
@@ -228,15 +269,62 @@ export default function DesktopSidebar() {
               Create market
             </NavLink>
           </li>
-          <li>
-            <NavLink
-              to="/docs"
-              className={({ isActive }) =>
-                `desktop-sidebar__link ${isActive ? 'desktop-sidebar__link--active' : ''}`
-              }
-            >
-              Documentation
-            </NavLink>
+          <li className="desktop-sidebar__docs-item">
+            <div className="desktop-sidebar__docs-block" ref={docsBlockRef}>
+              <button
+                ref={docsTriggerRef}
+                type="button"
+                className={`desktop-sidebar__markets-trigger desktop-sidebar__docs-trigger${docsRouteActive ? ' desktop-sidebar__markets-trigger--active' : ''}`}
+                aria-expanded={docsMenuOpen}
+                aria-haspopup="true"
+                aria-controls="desktop-docs-flyout"
+                id="desktop-docs-trigger"
+                onClick={() => setDocsMenuOpen((o) => !o)}
+              >
+                <span className="desktop-sidebar__markets-trigger-label">Documentation</span>
+                <span className="desktop-sidebar__markets-trigger-chevron" aria-hidden>
+                  {docsMenuOpen ? '▾' : '▸'}
+                </span>
+              </button>
+              {docsMenuOpen &&
+                createPortal(
+                  <div
+                    id="desktop-docs-flyout"
+                    ref={docsFlyoutRef}
+                    className="desktop-sidebar__markets-flyout desktop-sidebar__docs-flyout"
+                    role="menu"
+                    aria-labelledby="desktop-docs-trigger"
+                    style={{
+                      position: 'fixed',
+                      top: docsFlyoutPos.top,
+                      left: docsFlyoutPos.left,
+                    }}
+                  >
+                    <p className="desktop-sidebar__flyout-title">Documentation</p>
+                    <ul className="desktop-sidebar__flyout-list">
+                      {DOCUMENTATION_SECTIONS.map((section) => {
+                        const hash = location.hash.replace(/^#/, '')
+                        const isActiveSection =
+                          docsRouteActive &&
+                          (hash === section.id || (!hash && section.id === 'getting-started'))
+                        return (
+                          <li key={section.id} role="none">
+                            <NavLink
+                              role="menuitem"
+                              to={`/docs#${section.id}`}
+                              className={`desktop-sidebar__flyout-link${isActiveSection ? ' desktop-sidebar__flyout-link--active' : ''}`}
+                              onClick={() => setDocsMenuOpen(false)}
+                            >
+                              {section.title}
+                            </NavLink>
+                          </li>
+                        )
+                      })}
+                    </ul>
+                  </div>,
+                  document.body
+                )}
+            </div>
           </li>
           <li>
             <NavLink
