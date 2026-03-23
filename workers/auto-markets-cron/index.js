@@ -4,42 +4,12 @@
  * Set env: SITE_URL. Optional: AUTO_MARKETS_CRON_SECRET, AUTO_MARKETS_LIMIT (default 25),
  * AUTO_MARKETS_NEWS_LIMIT (default 50), AUTO_MARKETS_SOURCE (single-source override).
  *
- * Non-sports sources match `AUTO_MARKET_SOURCES` in functions/lib/data-sources.mjs (including massive).
- * Sports (The Odds API, ~500 req/month): default 4 UTC slots/day; override with AUTO_MARKETS_SPORTS_HOURS_UTC
- * or set AUTO_MARKETS_SPORTS_EVERY_RUN=1 to run every cron tick (high quota use).
+ * Default seed_all uses every entry in `AUTO_MARKET_SOURCES` (including **sports**) on each tick.
+ * The Odds API free tier is ~500 req/month; at hourly cron that is roughly one sports request per hour
+ * (~720/month) — use a paid Odds plan or set AUTO_MARKETS_SOURCE to a single non-sports source if needed.
  */
 
-import { AUTO_MARKET_SOURCES_WITHOUT_SPORTS } from '../../functions/lib/data-sources.mjs'
-
-/** Default Odds API cadence: four seeds/day (~124/mo at hourly cron). */
-const DEFAULT_SPORTS_HOURS_UTC = [2, 8, 14, 20]
-
-/**
- * @param {Record<string, unknown>} env
- * @returns {number[]}
- */
-function parseSportsHoursUTC(env) {
-  const raw = env.AUTO_MARKETS_SPORTS_HOURS_UTC
-  if (raw == null || String(raw).trim() === '') return DEFAULT_SPORTS_HOURS_UTC
-  const parts = String(raw)
-    .split(',')
-    .map((s) => parseInt(s.trim(), 10))
-    .filter((h) => !Number.isNaN(h) && h >= 0 && h <= 23)
-  return parts.length > 0 ? parts : DEFAULT_SPORTS_HOURS_UTC
-}
-
-/**
- * @param {Record<string, unknown>} env
- * @param {number} hourUtc
- */
-function shouldSeedSportsThisRun(env, hourUtc) {
-  const every =
-    env.AUTO_MARKETS_SPORTS_EVERY_RUN === '1' ||
-    env.AUTO_MARKETS_SPORTS_EVERY_RUN === 'true' ||
-    String(env.AUTO_MARKETS_SPORTS_EVERY_RUN || '').toLowerCase() === 'yes'
-  if (every) return true
-  return parseSportsHoursUTC(env).includes(hourUtc)
-}
+import { AUTO_MARKET_SOURCES } from '../../functions/lib/data-sources.mjs'
 
 function clampLimit(n, max = 100) {
   const x = parseInt(String(n), 10)
@@ -66,10 +36,12 @@ export default {
         newsEnrichedPerSourceLimit,
       }
     } else {
-      const hourUtc = new Date().getUTCHours()
-      const nonSports = [...AUTO_MARKET_SOURCES_WITHOUT_SPORTS]
-      const sources = shouldSeedSportsThisRun(env, hourUtc) ? ['sports', ...nonSports] : nonSports
-      body = { action: 'seed_all', perSourceLimit, newsEnrichedPerSourceLimit, sources }
+      body = {
+        action: 'seed_all',
+        perSourceLimit,
+        newsEnrichedPerSourceLimit,
+        sources: [...AUTO_MARKET_SOURCES],
+      }
     }
 
     try {

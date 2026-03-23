@@ -86,7 +86,7 @@ Election results: prefer **official election APIs** (e.g. government or FEC) whe
 
 | Trigger | What it does | When |
 |--------|----------------|------|
-| **Cron Worker** (`dice-express-auto-markets-cron`) | Calls `POST /api/auto-markets` with **seed_all** and an explicit `sources` list: all lanes in **`AUTO_MARKET_SOURCES`** except **sports** every run, plus **sports** on configurable UTC hours (default **02,08,14,20**). Then `POST /api/resolve-markets`. Only new stable market IDs create rows; duplicates are skipped. | **Every hour** by default (`workers/auto-markets-cron/wrangler.toml` → `crons`). See **`workers/auto-markets-cron/README.md`** for **AUTO_MARKETS_SPORTS_HOURS_UTC** / **AUTO_MARKETS_SPORTS_EVERY_RUN**. |
+| **Cron Worker** (`dice-express-auto-markets-cron`) | Calls `POST /api/auto-markets` with **seed_all** and an explicit `sources` list equal to **`AUTO_MARKET_SOURCES`** (including **sports**) on **every** run, then `POST /api/resolve-markets`. Only new stable market IDs create rows; duplicates are skipped. | **Every hour** by default (`workers/auto-markets-cron/wrangler.toml` → `crons`). See **`workers/auto-markets-cron/README.md`** for Odds API quota notes. |
 | **Manual API call** | You call `POST /api/auto-markets` with `action: "seed"` + `source`, or `action: "seed_all"`, or `sources: ["sports", "stocks", ...]`. | Whenever you want. |
 
 There is **no UI** and **no public API** for users to create markets. The route `/create` shows that markets are automated and links to "Browse markets".
@@ -94,7 +94,7 @@ There is **no UI** and **no public API** for users to create markets. The route 
 ## How creation works
 
 1. Cron Worker runs and sends **POST** to **/api/auto-markets**:
-   - **Default:** `{ "action": "seed_all", "sources": [...], "perSourceLimit": 25, "newsEnrichedPerSourceLimit": 50 }` — **`sources`** matches **`AUTO_MARKET_SOURCES`** in `functions/lib/data-sources.mjs` (includes **massive**; excludes **stocks_trend** to protect Alpha Vantage). **Sports** is only in the list on the cron’s sports UTC hours unless you set **AUTO_MARKETS_SPORTS_EVERY_RUN** on the Worker. Sources without an API key still run but return no events.
+   - **Default:** `{ "action": "seed_all", "sources": [...], "perSourceLimit": 25, "newsEnrichedPerSourceLimit": 50 }` — **`sources`** matches **`AUTO_MARKET_SOURCES`** in `functions/lib/data-sources.mjs` (includes **sports** and **massive**; excludes **stocks_trend** to protect Alpha Vantage). The cron Worker sends this full list **every** tick. Sources without an API key still run but return no events.
    - **Single source:** If **AUTO_MARKETS_SOURCE** is set (e.g. `sports`), body is `{ "action": "seed", "source": "sports", ... }`.
 2. API loads **events** from the chosen source(s). For each event it uses a stable **market ID**. It **only creates a market if that ID doesn't already exist**. New events → new markets; existing → skipped.
 3. For each *new* event the API creates a **market** and **liquidity pool**, stores them in D1 and backs up to R2. Automated markets use **`settlementTrigger: { tag: "EventBased", value: "<summary>" }`** (outcome/event-driven), not time-only or manual; **`resolutionDeadline`** still reflects the oracle window (e.g. game time or last trading day).
