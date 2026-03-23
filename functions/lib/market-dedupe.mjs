@@ -2,7 +2,7 @@
  * Cross-market dedupe for auto-seed: same logical outcome + resolution time + outcomes → one contract.
  * - Oracle-specific keys (conflict, FRED, prices, …) when available
  * - General: out2:{outcomes}:{instant}:{sha256} + legacy out:{outcomes}:{date}:{fnv} for DB migration
- * - Semantic: Jaccard similarity on enriched token sets (same calendar day + same outcomes)
+ * - Semantic: unigram + word-bigram Jaccard, overlap coefficient (same calendar day + outcomes)
  */
 
 /** @param {string | null | undefined} iso */
@@ -86,6 +86,18 @@ const PHRASE_SYNONYMS = [
   [/\bwall street\b/gi, ' wallstreet '],
   [/\bchief executive\b/gi, ' ceo '],
   [/\bartificial intelligence\b/gi, ' ai '],
+  [/\bcease[- ]?fire\b/gi, ' ceasefire '],
+  [/\bpeace (talk|deal|plan)s?\b/gi, ' peacedeal '],
+  [/\bs&p\s*500\b/gi, ' sp500 '],
+  [/\bs\s*&\s*p\b/gi, ' sp500 '],
+  [/\bnasdaq\b/gi, ' nasdaq '],
+  [/\bdow jones\b/gi, ' dowjones '],
+  [/\bconsumer price index\b/gi, ' cpi '],
+  [/\bgross domestic product\b/gi, ' gdp '],
+  [/\bnon[- ]?farm payrolls?\b/gi, ' nfp '],
+  [/\binitial public offering\b/gi, ' ipo '],
+  [/\bgoing public\b/gi, ' ipo '],
+  [/\bclimate change\b/gi, ' climatechange '],
 ]
 
 const TOKEN_ALIASES = new Map([
@@ -96,6 +108,23 @@ const TOKEN_ALIASES = new Map([
   ['btc', 'bitcoin'],
   ['eth', 'ethereum'],
 ])
+
+/** Normalize money and dates so "by $200" / "by 200 dollars" / "2026-03-15" align. */
+function canonNumericAndDates(text) {
+  let t = String(text || '').toLowerCase()
+  t = t.replace(/\$[\d,]+(?:\.\d+)?\b/g, (m) => {
+    const n = m.replace(/[$,]/g, '').replace(/\./g, 'p')
+    return ` cur${n} `
+  })
+  t = t.replace(/\b(\d+)\s+dollars?\b/g, ' cur$1 ')
+  t = t.replace(/\b(20\d{2})-(\d{2})-(\d{2})\b/g, ' d$1$2$3 ')
+  t = t.replace(/\b(\d{1,2})[\/\-](\d{1,2})[\/\-](20\d{2})\b/g, (_, a, b, y) => {
+    const mm = String(a).padStart(2, '0')
+    const dd = String(b).padStart(2, '0')
+    return ` d${y}${mm}${dd} `
+  })
+  return t
+}
 
 function applyPhraseSynonyms(text) {
   let s = String(text || '').toLowerCase()
@@ -142,7 +171,8 @@ export function normalizeForOutcomeFingerprintLegacy(text) {
  * Word-order invariant fingerprint: phrases → tokens → aliases → stem → unique → sort.
  */
 export function normalizeForOutcomeFingerprint(text) {
-  const afterPhrase = applyPhraseSynonyms(text)
+  const afterCanon = canonNumericAndDates(text)
+  const afterPhrase = applyPhraseSynonyms(afterCanon)
   const raw = afterPhrase
     .replace(/[^a-z0-9$%.]+/g, ' ')
     .split(/\s+/)
@@ -405,11 +435,68 @@ function jaccard(a, b) {
   return u === 0 ? 0 : inter / u
 }
 
-/** Token set for semantic similarity (enriched pipeline; order-free). */
+/** |A∩B| / min(|A|,|B|) — catches when one title is almost a subset of the other. */
+function overlapCoefficient(a, b) {
+  let inter = 0
+  for (const t of a) {
+    if (b.has(t)) inter += 1
+  }
+  const den = Math.min(a.size, b.size)
+  return den === 0 ? 0 : inter / den
+}
+
+/**
+ * Ordered token sequence (phrase + canon + stem) for bigrams; word order preserved.
+ */
+function semanticTokenSequenceFromText(fullText) {
+  const afterCanon = canonNumericAndDates(fullText)
+  const afterPhrase = applyPhraseSynonyms(afterCanon)
+  const raw = afterPhrase
+    .replace(/[^a-z0-9$%.]+/g, ' ')
+    .split(/\s+/)
+    .filter(Boolean)
+  const seq = []
+  for (let w of raw) {
+    w = aliasToken(lightStem(w))
+    if (w.length < 2 && !/^\d/.test(w)) continue
+    if (STOPWORDS.has(w)) continue
+    seq.push(w)
+  }
+  return seq
+}
+
+/**
+ * Unigram set + word-bigram set for fuzzy paraphrase detection (no embeddings).
+ * @returns {{ unigrams: Set<string>, bigrams: Set<string> }}
+ */
+export function semanticFeaturesFromPayload(p) {
+  const seq = semanticTokenSequenceFromText(outcomeTextBundle(p))
+  const unigrams = new Set(seq)
+  const bigrams = new Set()
+  for (let i = 0; i < seq.length - 1; i++) {
+    bigrams.add(`${seq[i]}__${seq[i + 1]}`)
+  }
+  return { unigrams, bigrams }
+}
+
+/** @deprecated use semanticFeaturesFromPayload(p).unigrams */
 export function semanticTokenSetFromPayload(p) {
-  const bundle = normalizeForOutcomeFingerprint(outcomeTextBundle(p))
-  const tokens = bundle.split(/\s+/).filter(Boolean)
-  return new Set(tokens)
+  return semanticFeaturesFromPayload(p).unigrams
+}
+
+/**
+ * True if candidate matches existing entry (tuned lexical “near-duplicate”).
+ */
+function textSimilarityMatch(cUni, cBi, eUni, eBi) {
+  const ju = jaccard(cUni, eUni)
+  const hasBi = cBi.size > 0 && eBi.size > 0
+  const jb = hasBi ? jaccard(cBi, eBi) : 0
+  const ov = overlapCoefficient(cUni, eUni)
+  if (ju >= 0.78) return true
+  if (hasBi && ju >= 0.62 && jb >= 0.5) return true
+  if (ov >= 0.88 && ju >= 0.48) return true
+  if (hasBi && jb >= 0.65 && ju >= 0.42) return true
+  return false
 }
 
 export function buildSemanticIndex(rows) {
@@ -420,44 +507,43 @@ export function buildSemanticIndex(rows) {
     const day = resolutionDateKey(p)
     const out = outcomesFingerprint(p)
     if (!day || day.length < 10) continue
-    const set = semanticTokenSetFromPayload(p)
+    const { unigrams: set, bigrams } = semanticFeaturesFromPayload(p)
     if (set.size < 4) continue
-    entries.push({ day, out, set })
+    entries.push({ day, out, unigrams: set, bigrams })
   }
   return entries
 }
 
 /**
  * @param {Record<string, unknown>} candidatePayload
- * @param {Array<{ day: string, out: string, set: Set<string> }>} index
- * @param {{ minJaccard?: number, minTokens?: number }} [opts]
+ * @param {Array<{ day: string, out: string, unigrams: Set<string>, bigrams: Set<string> }>} index
+ * @param {{ minTokens?: number }} [opts]
  */
 export function isSemanticNearDuplicateIndexed(candidatePayload, index, opts = {}) {
-  const minJaccard = opts.minJaccard ?? 0.76
   const minTokens = opts.minTokens ?? 5
   if (isFeedTopicPayload(candidatePayload)) return false
   const cDay = resolutionDateKey(candidatePayload)
   const cOut = outcomesFingerprint(candidatePayload)
-  const cSet = semanticTokenSetFromPayload(candidatePayload)
-  if (!cDay || cDay.length < 10 || cSet.size < minTokens) return false
+  const { unigrams: cUni, bigrams: cBi } = semanticFeaturesFromPayload(candidatePayload)
+  if (!cDay || cDay.length < 10 || cUni.size < minTokens) return false
 
   for (const e of index) {
     if (e.day !== cDay || e.out !== cOut) continue
-    if (jaccard(cSet, e.set) >= minJaccard) return true
+    if (textSimilarityMatch(cUni, cBi, e.unigrams, e.bigrams)) return true
   }
   return false
 }
 
 /**
  * Push a newly created market into the semantic index (same batch dedupe).
- * @param {Array<{ day: string, out: string, set: Set<string> }>} index
+ * @param {Array<{ day: string, out: string, unigrams: Set<string>, bigrams: Set<string> }>} index
  * @param {Record<string, unknown>} payload
  */
 export function appendSemanticIndexEntry(index, payload) {
   if (!index || !payload || isFeedTopicPayload(payload)) return
   const day = resolutionDateKey(payload)
   const out = outcomesFingerprint(payload)
-  const set = semanticTokenSetFromPayload(payload)
-  if (!day || day.length < 10 || set.size < 4) return
-  index.push({ day, out, set })
+  const { unigrams, bigrams } = semanticFeaturesFromPayload(payload)
+  if (!day || day.length < 10 || unigrams.size < 4) return
+  index.push({ day, out, unigrams, bigrams })
 }

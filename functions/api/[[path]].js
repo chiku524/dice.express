@@ -1426,7 +1426,7 @@ async function handleWithD1(db, kv, r2, request, path, method, env = {}) {
           skippedDedupe += 1
           continue
         }
-        if (marketDedupe.isSemanticNearDuplicateIndexed(payload, semanticIndex, { minJaccard: 0.76, minTokens: 5 })) {
+        if (marketDedupe.isSemanticNearDuplicateIndexed(payload, semanticIndex, { minTokens: 5 })) {
           skippedNearDuplicate += 1
           continue
         }
