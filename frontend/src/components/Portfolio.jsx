@@ -13,6 +13,8 @@ import { useAccountModal } from '../contexts/AccountModalContext'
 import { useWeb3Wallet } from '../contexts/Web3WalletContext'
 import { ContractStorage } from '../utils/contractStorage'
 import { SkeletonList } from './SkeletonLoader'
+import DiceLoader from './DiceLoader'
+import SubmitDiceLabel from './SubmitDiceLabel'
 import UserHubNav from './UserHubNav'
 import ErrorState from './ErrorState'
 import { formatPips, PLATFORM_CURRENCY_SYMBOL } from '../constants/currency'
@@ -323,6 +325,9 @@ export default function Portfolio() {
           <h1>Portfolio</h1>
           <p className="portfolio-header-desc">Balance, positions, deposit & withdraw.</p>
         </header>
+        <div className="portfolio-loading-dice">
+          <DiceLoader size="md" label="Loading portfolio…" sublabel="Balance, positions, and activity." />
+        </div>
         <SkeletonList count={3} />
       </div>
     )
@@ -693,8 +698,15 @@ export default function Portfolio() {
       {/* Balance (Pips) */}
       <div className="card balance-card mb-xl">
         <h2 className="mb-sm">Balance ({PLATFORM_CURRENCY_SYMBOL})</h2>
-        <p className="balance-amount">
-          {balanceLoading ? 'Loading...' : formatPips(userBalance)}
+        <p className="balance-amount balance-amount--with-loader">
+          {balanceLoading ? (
+            <span className="balance-loading-inline">
+              <DiceLoader size="xs" decorative />
+              <span className="balance-loading-text">Loading…</span>
+            </span>
+          ) : (
+            formatPips(userBalance)
+          )}
         </p>
         <p className="balance-hint">
           Add credits (deposit via wallet or crypto); withdraw earnings when ready (fee applies).
@@ -820,13 +832,15 @@ export default function Portfolio() {
           }
           style={{ marginTop: 'var(--spacing-sm)' }}
         >
-          {walletDepositLoading
-            ? 'Sending & verifying…'
-            : walletDepositToken === 'usdc_solana'
-              ? 'Send Solana USDC'
-              : walletDepositToken === 'native'
-                ? 'Send native token'
-                : 'Send USDC'}
+          {walletDepositLoading ? (
+            <SubmitDiceLabel busyLabel="Sending & verifying…" />
+          ) : walletDepositToken === 'usdc_solana' ? (
+            'Send Solana USDC'
+          ) : walletDepositToken === 'native' ? (
+            'Send native token'
+          ) : (
+            'Send USDC'
+          )}
         </button>
       </div>
 
@@ -962,7 +976,7 @@ export default function Portfolio() {
           disabled={withdrawLoading || !withdrawAmount || parseFloat(withdrawAmount) <= 0 || !withdrawAddress?.trim()}
           style={{ marginTop: 'var(--spacing-sm)' }}
         >
-          {withdrawLoading ? 'Sending…' : 'Withdraw'}
+          {withdrawLoading ? <SubmitDiceLabel busyLabel="Sending…" /> : 'Withdraw'}
         </button>
         {withdrawalRequests.length > 0 && (
           <div className="mt-xl">

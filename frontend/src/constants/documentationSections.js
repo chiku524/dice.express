@@ -2,6 +2,11 @@
  * Single source of truth for in-app documentation sections.
  * Used by the Documentation page (hash routing) and nav flyouts (Navbar / desktop sidebar).
  */
+/** `/docs` vs `/documentation` — both mount the same page; preserve whichever the user is on. */
+export function documentationBasePath(pathname) {
+  return pathname === '/documentation' ? '/documentation' : '/docs'
+}
+
 export const DOCUMENTATION_SECTIONS = [
   { id: 'getting-started', title: 'Getting Started' },
   { id: 'product-map', title: 'Product map' },

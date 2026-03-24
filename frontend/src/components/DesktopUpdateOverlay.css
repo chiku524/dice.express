@@ -87,20 +87,8 @@
   }
 }
 
-.desktop-update-overlay__spinner {
-  width: 28px;
-  height: 28px;
+.desktop-update-overlay__dice {
   margin-top: 1rem;
-  border: 2px solid var(--color-primary, #8b5cf6);
-  border-top-color: transparent;
-  border-radius: 50%;
-  animation: desktopUpdateSpinner 0.8s linear infinite;
-}
-
-@keyframes desktopUpdateSpinner {
-  to {
-    transform: rotate(360deg);
-  }
 }
 
 .desktop-update-overlay__message {

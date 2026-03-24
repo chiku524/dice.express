@@ -6,6 +6,8 @@ import { useAccountModal } from '../contexts/AccountModalContext'
 import { fetchMarkets, fetchPool, executeTrade } from '../services/marketsApi'
 import { fetchOpenOrders, placeOrder } from '../services/ordersApi'
 import MarketResolution from './MarketResolution'
+import DiceLoader from './DiceLoader'
+import SubmitDiceLabel from './SubmitDiceLabel'
 import ErrorState from './ErrorState'
 import { formatPips, PLATFORM_CURRENCY_SYMBOL } from '../constants/currency'
 import { PREDICTION_STYLES, getCategoryDisplay, formatResolutionDeadline, getCategoryEmoji, getMarketOneLiner, getResolutionOutcomeSummaries, getDisplayDescription, getResolutionSummary, getNewsMarketMeta, getMarketApiAttribution } from '../constants/marketConfig'
@@ -175,10 +177,11 @@ export default function MarketDetail() {
   if (loading) {
     return (
       <div className="loading">
-        <p>Loading market...</p>
-        <p className="text-secondary mt-sm" style={{ fontSize: 'var(--font-size-sm)' }}>
-          Fetching market details...
-        </p>
+        <DiceLoader
+          size="lg"
+          label="Loading market…"
+          sublabel="Fetching market details…"
+        />
       </div>
     )
   }
@@ -406,7 +409,7 @@ export default function MarketDetail() {
                 onClick={handleTrade}
                 disabled={tradeLoading || !tradeAmount || parseFloat(tradeAmount) <= 0}
               >
-                {tradeLoading ? 'Trading…' : 'Confirm trade'}
+                {tradeLoading ? <SubmitDiceLabel busyLabel="Trading…" /> : 'Confirm trade'}
               </button>
             </div>
           )}
@@ -416,7 +419,10 @@ export default function MarketDetail() {
               <h2 className="market-detail-orders-title">Limit orders</h2>
               <p className="market-detail-orders-hint">Place a limit order. Fills when someone takes the other side (2% fee on settlement).</p>
               {ordersLoading ? (
-                <p className="text-secondary">Loading orders…</p>
+                <p className="text-secondary market-detail-orders-loading">
+                  <DiceLoader size="xs" decorative className="market-detail-orders-loading__dice" />
+                  <span>Loading orders…</span>
+                </p>
               ) : (
                 <>
                   {openOrders.length > 0 && (
@@ -473,7 +479,7 @@ export default function MarketDetail() {
                       onClick={handlePlaceOrder}
                       disabled={orderLoading || !wallet || !orderAmount || parseFloat(orderAmount) <= 0}
                     >
-                      {orderLoading ? 'Placing…' : 'Place order'}
+                      {orderLoading ? <SubmitDiceLabel busyLabel="Placing…" /> : 'Place order'}
                     </button>
                   </div>
                 </>

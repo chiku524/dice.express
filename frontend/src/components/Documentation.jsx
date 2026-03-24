@@ -1,31 +1,23 @@
-import { useState, useEffect, useLayoutEffect, useRef } from 'react'
+import { useEffect, useLayoutEffect, useReducer, useRef } from 'react'
 import { useLocation } from 'react-router-dom'
 import { documentationHashToSectionId } from '../constants/documentationSections'
 import './Documentation.css'
 
-function sectionIdFromWindowHash() {
-  const hash = typeof window !== 'undefined' ? window.location.hash : ''
-  return documentationHashToSectionId(hash)
-}
-
 export default function Documentation() {
   const location = useLocation()
   const mainRef = useRef(null)
-  const [activeSection, setActiveSection] = useState(() => sectionIdFromWindowHash())
+  /** Plain <a href="#..."> in doc body: hash updates without Router; hashchange fires (unlike Router pushState). */
+  const [, bumpFromHashAnchors] = useReducer((n) => n + 1, 0)
 
-  // React Router uses pushState for same-route hash changes — hashchange does NOT fire (HTML5 spec).
-  // Always read window.location.hash (address bar) so we stay in sync; depend on location.key so we
-  // run on every navigation even if a host/Router edge case leaves hash stale for one frame.
-  useLayoutEffect(() => {
-    setActiveSection(sectionIdFromWindowHash())
-  }, [location.pathname, location.hash, location.key])
-
-  // Plain <a href="#..."> links in doc content update the URL without always going through Router.
   useEffect(() => {
-    const onHashChange = () => setActiveSection(sectionIdFromWindowHash())
+    const onHashChange = () => bumpFromHashAnchors()
     window.addEventListener('hashchange', onHashChange)
     return () => window.removeEventListener('hashchange', onHashChange)
   }, [])
+
+  const activeSection = documentationHashToSectionId(
+    typeof window !== 'undefined' ? window.location.hash : location.hash
+  )
 
   // .docs-main is overflow-y: auto — window scroll alone does not reset it, so section switches
   // looked like "nothing changed" when the user had scrolled down the previous section.

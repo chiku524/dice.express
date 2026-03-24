@@ -2,27 +2,29 @@ import { useState } from 'react'
 import { useWallet } from '../contexts/WalletContext'
 import { oracleService } from '../services/oracleService'
 import { apiUrl } from '../services/apiBase'
+import SubmitDiceLabel from './SubmitDiceLabel'
 
 /**
  * Virtual market resolution: update market status via API (no blockchain).
  */
 export default function MarketResolution({ market, onResolved }) {
   const { wallet } = useWallet()
-  const [loading, setLoading] = useState(false)
+  const [fetchLoading, setFetchLoading] = useState(false)
+  const [resolveLoading, setResolveLoading] = useState(false)
   const [error, setError] = useState(null)
   const [oracleSymbol, setOracleSymbol] = useState('BTC')
   const [oracleData, setOracleData] = useState(null)
 
   const fetchOracleData = async () => {
     try {
-      setLoading(true)
+      setFetchLoading(true)
       setError(null)
       const data = await oracleService.fetchPrice(oracleSymbol)
       setOracleData(data)
     } catch (err) {
       setError(err.message)
     } finally {
-      setLoading(false)
+      setFetchLoading(false)
     }
   }
 
@@ -30,7 +32,7 @@ export default function MarketResolution({ market, onResolved }) {
     if (!market?.contractId || !wallet) return
 
     try {
-      setLoading(true)
+      setResolveLoading(true)
       setError(null)
       const marketId = market.payload?.marketId || market.contractId
       const res = await fetch(apiUrl('update-market-status'), {
@@ -43,7 +45,7 @@ export default function MarketResolution({ market, onResolved }) {
     } catch (err) {
       setError(err.message)
     } finally {
-      setLoading(false)
+      setResolveLoading(false)
     }
   }
 
@@ -70,12 +72,12 @@ export default function MarketResolution({ market, onResolved }) {
             placeholder="BTC"
             style={{ flex: 1 }}
           />
-          <button 
-            className="btn-secondary" 
+          <button
+            className="btn-secondary"
             onClick={fetchOracleData}
-            disabled={loading}
+            disabled={fetchLoading || resolveLoading}
           >
-            {loading ? 'Fetching...' : 'Fetch Oracle Data'}
+            {fetchLoading ? <SubmitDiceLabel busyLabel="Fetching…" /> : 'Fetch Oracle Data'}
           </button>
         </div>
       </div>
@@ -99,10 +101,14 @@ export default function MarketResolution({ market, onResolved }) {
         <button
           className="btn-primary"
           onClick={startResolution}
-          disabled={loading || !oracleData.price}
+          disabled={resolveLoading || fetchLoading || !oracleData.price}
           style={{ marginTop: '1rem', width: '100%' }}
         >
-          {loading ? 'Resolving Market...' : 'Start Market Resolution'}
+          {resolveLoading ? (
+            <SubmitDiceLabel busyLabel="Resolving market…" />
+          ) : (
+            'Start Market Resolution'
+          )}
         </button>
       )}
     </div>

@@ -74,6 +74,27 @@
   animation: splashTaglineFade 0.5s ease-out 0.3s both;
 }
 
+.splash-screen__dice {
+  margin-top: 1.75rem;
+  animation: splashDiceFade 0.45s ease-out 0.2s both;
+}
+
+.splash-screen__dice .dice-loader__label {
+  color: var(--color-text-muted, rgba(255, 255, 255, 0.55));
+  font-size: 0.8rem;
+}
+
+@keyframes splashDiceFade {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 @keyframes splashTaglineFade {
   from {
     opacity: 0;

@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react'
+import DiceLoader from './DiceLoader'
 import './DesktopUpdateOverlay.css'
 
 /**
  * Full-screen overlay shown during update download/install in the desktop app.
- * Similar to VibeMiner's approach: clean, centered card with spinner and message.
+ * Clean, centered card with rolling die and message.
  */
 export default function DesktopUpdateOverlay({ phase, version }) {
   const [visible, setVisible] = useState(false)
@@ -32,7 +33,7 @@ export default function DesktopUpdateOverlay({ phase, version }) {
           <img src="/logo.svg" alt="" width={56} height={56} />
         </div>
         <p className="desktop-update-overlay__name">dice.express</p>
-        <div className="desktop-update-overlay__spinner" aria-hidden />
+        <DiceLoader size="sm" className="desktop-update-overlay__dice" />
         <p className="desktop-update-overlay__message">{label}</p>
       </div>
     </div>

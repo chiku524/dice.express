@@ -35,6 +35,17 @@
   margin: 0;
 }
 
+.download-version-loading {
+  display: inline-flex;
+  justify-content: center;
+  width: 100%;
+}
+
+.download-version-loading .dice-loader__label {
+  font-size: 0.875rem;
+  color: var(--color-text-muted);
+}
+
 .download-section {
   margin-bottom: 2rem;
 }

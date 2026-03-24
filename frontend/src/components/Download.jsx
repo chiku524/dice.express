@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { DESKTOP_APP_VERSION, DESKTOP_DOWNLOADS } from '../constants/downloads'
 import { fetchLatestRelease } from '../utils/latestRelease'
+import DiceLoader from './DiceLoader'
 import './Download.css'
 
 export default function Download() {
@@ -35,7 +36,13 @@ export default function Download() {
           Desktop app for Windows and macOS. Same prediction markets, native experience — with a quick intro and a focused sign-in.
         </p>
         <p className="download-version">
-          {loading ? 'Loading…' : `Version ${version}`}
+          {loading ? (
+            <span className="download-version-loading">
+              <DiceLoader size="sm" inline label="Loading version…" />
+            </span>
+          ) : (
+            `Version ${version}`
+          )}
         </p>
       </div>
 
@@ -43,7 +50,9 @@ export default function Download() {
         <h2 id="downloads-heading" className="download-heading">Direct downloads</h2>
         <p className="download-note">These links download the installer directly (no redirect to GitHub).</p>
         {loading ? (
-          <p className="download-note">Loading latest release…</p>
+          <div className="download-loading-dice">
+            <DiceLoader size="sm" inline label="Loading latest release…" />
+          </div>
         ) : (
         <ul className="download-list">
           {entries.map((item) => (

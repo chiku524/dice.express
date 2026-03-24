@@ -5,6 +5,7 @@ import { useAccountModal } from '../contexts/AccountModalContext'
 import { getVirtualBalance, transferPips } from '../services/balance'
 import { BRAND_TAGLINE } from '../constants/brand'
 import UserHubNav from './UserHubNav'
+import SubmitDiceLabel from './SubmitDiceLabel'
 import './Dashboard.css'
 
 function formatMemberSince(isoString) {
@@ -150,7 +151,7 @@ export default function Dashboard() {
               disabled={tipLoading}
             />
             <button type="submit" className="btn-primary dashboard-tip-submit" disabled={tipLoading}>
-              {tipLoading ? 'Sending…' : 'Send tip'}
+              {tipLoading ? <SubmitDiceLabel busyLabel="Sending…" /> : 'Send tip'}
             </button>
           </form>
           {tipStatus?.error && <p className="dashboard-tip-error">{tipStatus.error}</p>}

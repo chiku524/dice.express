@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef } from 'react'
 import { BRAND_NAME, BRAND_TAGLINE } from '../constants/brand'
 import DesktopUpdateOverlay from './DesktopUpdateOverlay'
+import DiceLoader from './DiceLoader'
 import './SplashScreen.css'
 
 const WALLET_STORAGE_KEY = 'virtual_account'
@@ -113,6 +114,11 @@ export default function SplashScreen() {
           </div>
           <h1 className="splash-screen__name">{BRAND_NAME}</h1>
           <p className="splash-screen__tagline">{BRAND_TAGLINE}</p>
+          {phase === PHASE.CHECKING && (
+            <div className="splash-screen__dice">
+              <DiceLoader size="sm" label="Checking for updates…" />
+            </div>
+          )}
         </div>
       </div>
       {showUpdateOverlay && (

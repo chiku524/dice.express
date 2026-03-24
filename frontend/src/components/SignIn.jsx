@@ -3,6 +3,7 @@ import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { useWallet } from '../contexts/WalletContext'
 import { signIn as apiSignIn } from '../services/accountApi'
 import { BRAND_NAME } from '../constants/brand'
+import SubmitDiceLabel from './SubmitDiceLabel'
 import './AuthPages.css'
 
 export default function SignIn() {
@@ -102,7 +103,7 @@ export default function SignIn() {
             disabled={loading}
           />
           <button type="submit" className="auth-submit" disabled={loading}>
-            {loading ? 'Signing in…' : 'Sign in'}
+            {loading ? <SubmitDiceLabel busyLabel="Signing in…" /> : 'Sign in'}
           </button>
         </form>
           <p className="auth-footer">

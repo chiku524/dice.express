@@ -1,17 +1,21 @@
 import { useState, useRef, useEffect } from 'react'
-import { Link, useLocation } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useWallet } from '../contexts/WalletContext'
 import { useToastContext } from '../contexts/ToastContext'
 import { getVirtualBalance } from '../services/balance'
 import { BRAND_NAME, BRAND_TAGLINE } from '../constants/brand'
 import { MARKET_SOURCES, getDiscoverPathForSource } from '../constants/marketConfig'
-import { DOCUMENTATION_SECTIONS } from '../constants/documentationSections'
+import {
+  DOCUMENTATION_SECTIONS,
+  documentationBasePath,
+} from '../constants/documentationSections'
 import './Navbar.css'
 
 export default function Navbar() {
   const { wallet, disconnectWallet } = useWallet()
   const { showToast } = useToastContext()
   const location = useLocation()
+  const navigate = useNavigate()
   const [showDiscoverMenu, setShowDiscoverMenu] = useState(false)
   const [showResourcesMenu, setShowResourcesMenu] = useState(false)
   const [showDocsMenu, setShowDocsMenu] = useState(false)
@@ -142,17 +146,25 @@ export default function Navbar() {
             </button>
             {showDocsMenu && (
               <div className="nav-dropdown-menu nav-dropdown-menu--docs" role="menu">
-                {DOCUMENTATION_SECTIONS.map((section) => (
-                  <Link
-                    key={section.id}
-                    role="menuitem"
-                    to={`/docs#${section.id}`}
-                    className={docsSectionIsActive(section.id) ? 'active' : ''}
-                    onClick={() => setShowDocsMenu(false)}
-                  >
-                    {section.title}
-                  </Link>
-                ))}
+                {DOCUMENTATION_SECTIONS.map((section) => {
+                  const docsPath = documentationBasePath(location.pathname)
+                  const to = `${docsPath}#${section.id}`
+                  return (
+                    <Link
+                      key={section.id}
+                      role="menuitem"
+                      to={to}
+                      className={docsSectionIsActive(section.id) ? 'active' : ''}
+                      onClick={(e) => {
+                        e.preventDefault()
+                        navigate({ pathname: docsPath, hash: `#${section.id}` })
+                        setShowDocsMenu(false)
+                      }}
+                    >
+                      {section.title}
+                    </Link>
+                  )
+                })}
               </div>
             )}
           </div>

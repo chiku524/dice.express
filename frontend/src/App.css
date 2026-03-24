@@ -744,6 +744,56 @@
   justify-content: center;
 }
 
+.markets-list-loading-dice,
+.portfolio-loading-dice {
+  display: flex;
+  justify-content: center;
+  margin: 1rem 0 1.5rem;
+}
+
+.download-loading-dice {
+  margin: 0.35rem 0 1rem;
+}
+
+.balance-loading-inline {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.balance-loading-inline .dice-loader {
+  flex-direction: row;
+  gap: 0;
+}
+
+.balance-loading-inline .dice-loader__scene {
+  flex-shrink: 0;
+}
+
+.balance-loading-text {
+  font-size: 1.25rem;
+  font-weight: var(--font-weight-bold, 700);
+  color: var(--color-text-secondary, rgba(255, 255, 255, 0.75));
+}
+
+/* Inline die + label inside buttons (auth, primary actions) */
+.submit-dice-label {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+}
+
+.submit-dice-label__dice.dice-loader {
+  flex-direction: row;
+  gap: 0;
+}
+
+.submit-dice-label__dice .dice-loader__scene {
+  flex-shrink: 0;
+  line-height: 0;
+}
+
 .error {
   background-color: rgba(239, 68, 68, 0.15);
   color: var(--color-text-primary);

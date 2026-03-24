@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { useWallet } from '../contexts/WalletContext'
 import { register as apiRegister } from '../services/accountApi'
 import { BRAND_NAME } from '../constants/brand'
+import SubmitDiceLabel from './SubmitDiceLabel'
 import './AuthPages.css'
 
 const STEPS = [
@@ -239,7 +240,7 @@ export default function Register() {
             <div className="wizard-actions">
               <button type="button" className="auth-secondary" onClick={() => setStep(2)}>Back</button>
               <button type="button" className="auth-submit" onClick={handleComplete} disabled={loading}>
-                {loading ? 'Creating account…' : 'Create account'}
+                {loading ? <SubmitDiceLabel busyLabel="Creating account…" /> : 'Create account'}
               </button>
             </div>
           </div>

@@ -1,12 +1,15 @@
 import { useEffect, useState, useRef, useLayoutEffect } from 'react'
 import { createPortal } from 'react-dom'
-import { Link, NavLink, useLocation } from 'react-router-dom'
+import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom'
 import { useWallet } from '../contexts/WalletContext'
 import { useToastContext } from '../contexts/ToastContext'
 import { getVirtualBalance } from '../services/balance'
 import { BRAND_NAME, BRAND_TAGLINE } from '../constants/brand'
 import { MARKET_SOURCES, getDiscoverPathForSource } from '../constants/marketConfig'
-import { DOCUMENTATION_SECTIONS } from '../constants/documentationSections'
+import {
+  DOCUMENTATION_SECTIONS,
+  documentationBasePath,
+} from '../constants/documentationSections'
 import './DesktopSidebar.css'
 
 const discoverSources = MARKET_SOURCES.filter(
@@ -24,6 +27,7 @@ export default function DesktopSidebar() {
   const { wallet, disconnectWallet } = useWallet()
   const { showToast } = useToastContext()
   const location = useLocation()
+  const navigate = useNavigate()
   const [balanceFormatted, setBalanceFormatted] = useState(null)
   const [marketsMenuOpen, setMarketsMenuOpen] = useState(false)
   const [docsMenuOpen, setDocsMenuOpen] = useState(false)
@@ -307,13 +311,19 @@ export default function DesktopSidebar() {
                         const isActiveSection =
                           docsRouteActive &&
                           (hash === section.id || (!hash && section.id === 'getting-started'))
+                        const docsPath = documentationBasePath(location.pathname)
+                        const to = `${docsPath}#${section.id}`
                         return (
                           <li key={section.id} role="none">
                             <NavLink
                               role="menuitem"
-                              to={`/docs#${section.id}`}
+                              to={to}
                               className={`desktop-sidebar__flyout-link${isActiveSection ? ' desktop-sidebar__flyout-link--active' : ''}`}
-                              onClick={() => setDocsMenuOpen(false)}
+                              onClick={(e) => {
+                                e.preventDefault()
+                                navigate({ pathname: docsPath, hash: `#${section.id}` })
+                                setDocsMenuOpen(false)
+                              }}
                             >
                               {section.title}
                             </NavLink>
