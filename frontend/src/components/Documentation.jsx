@@ -1,25 +1,24 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useLayoutEffect, useRef } from 'react'
 import { useLocation } from 'react-router-dom'
 import { documentationHashToSectionId } from '../constants/documentationSections'
 import './Documentation.css'
 
 function sectionIdFromWindowHash() {
-  const hash = typeof window !== 'undefined' ? window.location.hash.slice(1) : ''
+  const hash = typeof window !== 'undefined' ? window.location.hash : ''
   return documentationHashToSectionId(hash)
 }
 
 export default function Documentation() {
   const location = useLocation()
+  const mainRef = useRef(null)
   const [activeSection, setActiveSection] = useState(() => sectionIdFromWindowHash())
 
   // React Router uses pushState for same-route hash changes — hashchange does NOT fire (HTML5 spec).
-  useEffect(() => {
-    setActiveSection(documentationHashToSectionId(location.hash))
-  }, [location.hash, location.pathname])
-
-  useEffect(() => {
-    window.scrollTo(0, 0)
-  }, [activeSection])
+  // Always read window.location.hash (address bar) so we stay in sync; depend on location.key so we
+  // run on every navigation even if a host/Router edge case leaves hash stale for one frame.
+  useLayoutEffect(() => {
+    setActiveSection(sectionIdFromWindowHash())
+  }, [location.pathname, location.hash, location.key])
 
   // Plain <a href="#..."> links in doc content update the URL without always going through Router.
   useEffect(() => {
@@ -27,6 +26,13 @@ export default function Documentation() {
     window.addEventListener('hashchange', onHashChange)
     return () => window.removeEventListener('hashchange', onHashChange)
   }, [])
+
+  // .docs-main is overflow-y: auto — window scroll alone does not reset it, so section switches
+  // looked like "nothing changed" when the user had scrolled down the previous section.
+  useLayoutEffect(() => {
+    mainRef.current?.scrollTo(0, 0)
+    window.scrollTo(0, 0)
+  }, [activeSection])
 
   const renderContent = () => {
     switch (activeSection) {
@@ -65,7 +71,7 @@ export default function Documentation() {
 
   return (
     <div className="docs-page">
-      <main className="docs-main" role="region" aria-label="Documentation content">
+      <main ref={mainRef} className="docs-main" role="region" aria-label="Documentation content">
         <p className="docs-nav-hint">
           Open <strong>Documentation</strong> in the header (hover to see all sections) or, in the desktop app, use the sidebar <strong>Documentation</strong> flyout — then pick a section to load here.
         </p>

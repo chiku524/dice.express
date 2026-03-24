@@ -13,6 +13,61 @@ struct SplashState {
 /// Tray icon: load the **same** bundle files Windows uses for the exe / shortcuts / taskbar
 /// (`icon.ico` on Windows). `default_window_icon()` can differ (embedded raster choice), which
 /// made the notification area look unlike the taskbar.
+/// Tauri winres embeds `icons/icon.ico` as the default executable icon under ID **32512**
+/// (same resource shortcuts and the Start menu use). Wry only forwards the window icon to Tao as
+/// `ICON_SMALL`; Tao then clears `ICON_BIG`, so the taskbar button does not match the `.exe`.
+/// Reload both from the embedded ICO so title bar, alt-tab, and taskbar stay consistent.
+#[cfg(windows)]
+fn apply_windows_taskbar_icons_from_exe(app: &tauri::AppHandle) {
+    use windows::Win32::Foundation::{HINSTANCE, LPARAM, WPARAM};
+    use windows::Win32::System::LibraryLoader::GetModuleHandleW;
+    use windows::Win32::UI::WindowsAndMessaging::{
+        LoadImageW, SendMessageW, ICON_BIG, ICON_SMALL, IMAGE_ICON, LR_DEFAULTCOLOR, LR_DEFAULTSIZE,
+        WM_SETICON,
+    };
+    use windows::core::PCWSTR;
+
+    const WIN_EXE_ICON_RESOURCE_ID: usize = 32512;
+    let load_flags = LR_DEFAULTCOLOR | LR_DEFAULTSIZE;
+
+    for label in ["splashscreen", "main"] {
+        let Some(win) = app.get_webview_window(label) else {
+            continue;
+        };
+        let Ok(hwnd) = win.hwnd() else {
+            continue;
+        };
+
+        unsafe {
+            let Ok(hmodule) = GetModuleHandleW(PCWSTR::null()) else {
+                continue;
+            };
+            let hinst = HINSTANCE(hmodule.0);
+            let name = PCWSTR(WIN_EXE_ICON_RESOURCE_ID as *const u16);
+
+            if let Ok(big) = LoadImageW(Some(hinst), name, IMAGE_ICON, 32, 32, load_flags) {
+                let _ = SendMessageW(
+                    hwnd,
+                    WM_SETICON,
+                    Some(WPARAM(ICON_BIG as usize)),
+                    Some(LPARAM(big.0 as isize)),
+                );
+            }
+            if let Ok(small) = LoadImageW(Some(hinst), name, IMAGE_ICON, 16, 16, load_flags) {
+                let _ = SendMessageW(
+                    hwnd,
+                    WM_SETICON,
+                    Some(WPARAM(ICON_SMALL as usize)),
+                    Some(LPARAM(small.0 as isize)),
+                );
+            }
+        }
+    }
+}
+
+#[cfg(not(windows))]
+fn apply_windows_taskbar_icons_from_exe(_app: &tauri::AppHandle) {}
+
 fn load_tray_icon() -> tauri::image::Image<'static> {
     #[cfg(windows)]
     {
@@ -131,6 +186,7 @@ pub fn run() {
             spawn(backend_setup(app.handle().clone()));
             create_tray(app.handle())?;
             attach_window_close_handlers(app)?;
+            apply_windows_taskbar_icons_from_exe(app.handle());
             Ok(())
         })
         .build(tauri::generate_context!())

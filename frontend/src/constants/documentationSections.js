@@ -20,6 +20,12 @@ export const DOCUMENTATION_SECTIONS = [
 ]
 
 export function documentationHashToSectionId(hash) {
-  const id = typeof hash === 'string' ? hash.replace(/^#/, '') : ''
-  return DOCUMENTATION_SECTIONS.some((s) => s.id === id) ? id : 'getting-started'
+  let raw = typeof hash === 'string' ? hash.replace(/^#/, '').trim() : ''
+  if (!raw) return 'getting-started'
+  try {
+    raw = decodeURIComponent(raw)
+  } catch {
+    /* keep raw */
+  }
+  return DOCUMENTATION_SECTIONS.some((s) => s.id === raw) ? raw : 'getting-started'
 }
