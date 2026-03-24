@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import { SkeletonMarketGrid } from './SkeletonLoader'
-import DiceLoader from './DiceLoader'
+import LoadingSpinner from './LoadingSpinner'
 import ErrorState from './ErrorState'
 import { fetchMarkets } from '../services/marketsApi'
 import { useDebounce } from '../utils/useDebounce'
@@ -294,7 +294,7 @@ export default function MarketsList({ source: sourceFromRoute }) {
       <div>
         <h1>{pageTitle}</h1>
         <div className="markets-list-loading-dice">
-          <DiceLoader size="md" label="Loading markets…" sublabel="Fetching the latest markets." />
+          <LoadingSpinner message="Loading markets…" sublabel="Fetching the latest markets." />
         </div>
         <SkeletonMarketGrid count={6} />
       </div>

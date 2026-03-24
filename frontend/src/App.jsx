@@ -106,7 +106,7 @@ function RootLayout({ showWalletModal, setShowWalletModal }) {
     <AccountModalProvider open={() => setShowWalletModal(true)}>
       <Suspense fallback={<LoadingSpinner message="Loading..." />}>
         <div
-          key={`${location.pathname}${location.hash ?? ''}`}
+          key={location.pathname}
           className={isTauri ? 'desktop-main-inner desktop-route-enter' : undefined}
         >
           <Outlet />

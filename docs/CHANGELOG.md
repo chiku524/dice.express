@@ -4,6 +4,12 @@ Summary of major cleanups and improvements. For current structure see [README](.
 
 ---
 
+## 1.0.26 — Docs TOC section sync, markets loading spinner (March 2026)
+
+- **Release:** Version **1.0.26**; tag **`v1.0.26`** for desktop CI.
+- **Documentation:** TOC and in-app hash navigation now drive the active section via React Router `location` plus `hashchange`/`popstate`, with the main outlet keyed by pathname only so hash changes no longer remount the lazy docs chunk incorrectly.
+- **Markets:** Initial markets load uses the shared **`LoadingSpinner`** (dice loader) with optional sublabel; **`LoadingSpinner`** accepts **`sublabel`** for richer copy.
+
 ## 1.0.24 — Stack upgrade, cleanup, ops hardening (March 2026)
 
 - **Release:** Version bump across **`package.json`**, **`frontend/`**, **`src-tauri/`**, download fallbacks (`constants/downloads.js`). Tag **`v1.0.24`** triggers desktop build workflow.

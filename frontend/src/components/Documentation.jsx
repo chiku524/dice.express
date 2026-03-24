@@ -1,23 +1,39 @@
-import { useEffect, useLayoutEffect, useReducer, useRef } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { useLocation } from 'react-router-dom'
 import { documentationHashToSectionId } from '../constants/documentationSections'
 import './Documentation.css'
 
+function hashForDocsSection(location) {
+  const router = location.hash || ''
+  const win = typeof window !== 'undefined' ? window.location.hash || '' : ''
+  // SPA navigations: prefer Router’s hash. Plain <a href="#..."> / back-forward: hashchange syncs window.
+  if (router.length > 1) return router
+  return win
+}
+
 export default function Documentation() {
   const location = useLocation()
   const mainRef = useRef(null)
-  /** Plain <a href="#..."> in doc body: hash updates without Router; hashchange fires (unlike Router pushState). */
-  const [, bumpFromHashAnchors] = useReducer((n) => n + 1, 0)
+  const [activeSection, setActiveSection] = useState(() => {
+    if (typeof window === 'undefined') return 'getting-started'
+    return documentationHashToSectionId(window.location.hash)
+  })
+
+  useLayoutEffect(() => {
+    setActiveSection(documentationHashToSectionId(hashForDocsSection(location)))
+  }, [location])
 
   useEffect(() => {
-    const onHashChange = () => bumpFromHashAnchors()
-    window.addEventListener('hashchange', onHashChange)
-    return () => window.removeEventListener('hashchange', onHashChange)
+    const syncFromWindow = () => {
+      setActiveSection(documentationHashToSectionId(window.location.hash))
+    }
+    window.addEventListener('hashchange', syncFromWindow)
+    window.addEventListener('popstate', syncFromWindow)
+    return () => {
+      window.removeEventListener('hashchange', syncFromWindow)
+      window.removeEventListener('popstate', syncFromWindow)
+    }
   }, [])
-
-  const activeSection = documentationHashToSectionId(
-    typeof window !== 'undefined' ? window.location.hash : location.hash
-  )
 
   // .docs-main is overflow-y: auto — window scroll alone does not reset it, so section switches
   // looked like "nothing changed" when the user had scrolled down the previous section.
