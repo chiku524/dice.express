@@ -62,6 +62,25 @@ export async function fetchPool(marketId) {
   return data.pool || null
 }
 
+/** Public feature flags for UI (AMM vs P2P-only, optional SMS backend). */
+export async function fetchPublicConfig() {
+  const res = await fetch(apiUrl('public-config'), {
+    method: 'GET',
+    headers: { Accept: 'application/json' },
+  })
+  if (!res.ok) {
+    return { ammTradeEnabled: true, tradingMode: 'amm_and_p2p', smsAlertsAvailable: false }
+  }
+  return res.json().catch(() => ({}))
+}
+
+/** Public automation / policy probe (no secrets). */
+export async function fetchAutoMarketsProbe() {
+  const res = await fetch(`${apiUrl('auto-markets')}?action=probe`)
+  if (!res.ok) throw new Error('Probe failed')
+  return res.json()
+}
+
 export async function executeTrade({ marketId, side, amount, minOut = 0, userId }) {
   const res = await fetch(apiUrl('trade'), {
     method: 'POST',

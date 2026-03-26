@@ -4,6 +4,7 @@
   "windows": ["main", "splashscreen"],
   "permissions": [
     "core:event:default",
+    "notification:default",
     "updater:default",
     "process:default"
   ]

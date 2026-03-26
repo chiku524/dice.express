@@ -87,6 +87,9 @@ export async function resolveOutcome(env, market) {
   const cfg = payload.oracleConfig || {}
   const source = payload.oracleSource || payload.source
 
+  /** Automated oracle path is binary-oriented; multi-outcome markets settle via ops (e.g. update-market-status). */
+  if (payload.marketType === 'MultiOutcome') return { resolved: false }
+
   if (source === 'operator_manual') return { resolved: false }
 
   if (source === 'fred') {

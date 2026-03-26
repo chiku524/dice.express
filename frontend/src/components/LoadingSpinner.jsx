@@ -1,10 +1,10 @@
-import DiceLoader from './DiceLoader'
+import MultiDiceLoader from './MultiDiceLoader'
 
 /** Full-width loading block for Suspense and full-page waits. */
 export default function LoadingSpinner({ message = 'Loading...', sublabel }) {
   return (
     <div className="loading">
-      <DiceLoader size="md" label={message} sublabel={sublabel} />
+      <MultiDiceLoader size="md" label={message} sublabel={sublabel} />
     </div>
   )
 }

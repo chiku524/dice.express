@@ -562,7 +562,7 @@
   color: var(--color-info);
 }
 
-/* Loading: use <DiceLoader /> or <LoadingSpinner /> (see components/DiceLoader.jsx) */
+/* Loading: use <MultiDiceLoader /> or <LoadingSpinner /> (see components/MultiDiceLoader.jsx) */
 
 /* Smooth Scroll */
 html {

@@ -338,6 +338,16 @@ export default function DesktopSidebar() {
           </li>
           <li>
             <NavLink
+              to="/automation"
+              className={({ isActive }) =>
+                `desktop-sidebar__link ${isActive ? 'desktop-sidebar__link--active' : ''}`
+              }
+            >
+              Automation status
+            </NavLink>
+          </li>
+          <li>
+            <NavLink
               to="/activity"
               className={({ isActive }) =>
                 `desktop-sidebar__link ${isActive ? 'desktop-sidebar__link--active' : ''}`

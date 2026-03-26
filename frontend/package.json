@@ -1,6 +1,6 @@
 {
   "name": "dice-express-frontend",
-  "version": "1.0.26",
+  "version": "1.0.27",
   "private": true,
   "type": "module",
   "scripts": {
@@ -13,6 +13,7 @@
     "@solana/spl-token": "^0.4.14",
     "@solana/web3.js": "^1.98.4",
     "@tauri-apps/api": "^2",
+    "@tauri-apps/plugin-notification": "^2.3.3",
     "@tauri-apps/plugin-process": "^2",
     "@tauri-apps/plugin-updater": "^2",
     "react": "^19.2.0",

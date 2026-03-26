@@ -4,7 +4,17 @@
  * If BACKEND_URL is set and DB is not bound: proxy to external origin (optional).
  */
 import * as storage from '../lib/cf-storage.mjs'
-import { getQuote, isTradeWithinLimit, applyTrade, createPoolState } from '../lib/amm.mjs'
+import {
+  getQuote,
+  isTradeWithinLimit,
+  applyTrade,
+  createPoolState,
+  createPoolStateMulti,
+  getQuoteMulti,
+  isTradeWithinLimitMulti,
+  applyTradeMulti,
+  outcomeProbabilityMulti,
+} from '../lib/amm.mjs'
 import { hashPassword, verifyPassword } from '../lib/auth.mjs'
 import * as dataSources from '../lib/data-sources.mjs'
 import { enrichNewsEvent } from '../lib/custom-news-markets.mjs'
@@ -45,7 +55,23 @@ const CORS = {
 }
 
 const TEMPLATE_VIRTUAL_MARKET = 'VirtualMarket'
+const CRON_HEARTBEAT_CONTRACT_ID = 'system-cron-heartbeat-v1'
+const TEMPLATE_CRON_HEARTBEAT = 'CronHeartbeat'
 const R2_BUCKET_NAME = 'dice-express-r2'
+
+async function upsertAutomationHeartbeat(db, r2, patch) {
+  const row = await storage.getContractById(db, CRON_HEARTBEAT_CONTRACT_ID)
+  const prev = row?.payload && typeof row.payload === 'object' ? row.payload : {}
+  const next = { ...prev, ...patch, updatedAt: new Date().toISOString() }
+  await storage.upsertContract(db, {
+    contract_id: CRON_HEARTBEAT_CONTRACT_ID,
+    template_id: TEMPLATE_CRON_HEARTBEAT,
+    payload: next,
+    party: 'platform',
+    status: 'Active',
+  })
+  if (r2) backupToR2(r2, undefined, CRON_HEARTBEAT_CONTRACT_ID, next).catch(() => {})
+}
 
 function envFlagTrue(env, key) {
   const v = (env[key] ?? '').toString().trim().toLowerCase()
@@ -330,6 +356,20 @@ async function handleWithD1(db, kv, r2, request, path, method, env = {}) {
   // GET /api/health
   if (path === 'health' && method === 'GET') {
     return jsonResponse({ ok: true, provider: 'cloudflare' })
+  }
+
+  // GET /api/public-config — client UX flags (no secrets)
+  if (path === 'public-config' && method === 'GET') {
+    const ammDisabled = envFlagTrue(env, 'DISABLE_AMM_TRADE')
+    return jsonResponse({
+      success: true,
+      ammTradeEnabled: !ammDisabled,
+      tradingMode: ammDisabled ? 'p2p_only' : 'amm_and_p2p',
+      /** SMS/push-to-phone requires operator Twilio (or similar) env; not wired until configured. */
+      smsAlertsAvailable: Boolean(
+        (env.TWILIO_ACCOUNT_SID || '').toString().trim() && (env.TWILIO_AUTH_TOKEN || '').toString().trim()
+      ),
+    })
   }
 
   // GET /api/oracle?symbol= — proxy to RedStone (e.g. for price oracles)
@@ -1392,6 +1432,11 @@ async function handleWithD1(db, kv, r2, request, path, method, env = {}) {
           if (raw) lastSeed = JSON.parse(raw)
         } catch (_) {}
       }
+      let automationHeartbeat = null
+      try {
+        const hb = await storage.getContractById(db, CRON_HEARTBEAT_CONTRACT_ID)
+        if (hb?.payload && typeof hb.payload === 'object') automationHeartbeat = hb.payload
+      } catch (_) {}
       return jsonResponse({
         success: true,
         action: 'probe',
@@ -1408,6 +1453,7 @@ async function handleWithD1(db, kv, r2, request, path, method, env = {}) {
           maxPerRequest: dataSources.MAX_SEED_EVENT_LIMIT,
         },
         ...(lastSeed && { lastSeed }),
+        ...(automationHeartbeat && { automationHeartbeat }),
       })
     }
 
@@ -1542,12 +1588,17 @@ async function handleWithD1(db, kv, r2, request, path, method, env = {}) {
           (evFinal.oneLiner && String(evFinal.oneLiner).trim()) ||
           (evFinal.resolutionCriteria && String(evFinal.resolutionCriteria).trim().slice(0, 500)) ||
           evFinal.title
+        const multiOutcomesRaw =
+          evFinal.marketType === 'MultiOutcome' && Array.isArray(evFinal.outcomes)
+            ? [...new Set(evFinal.outcomes.map((o) => String(o).trim()).filter(Boolean))].slice(0, 8)
+            : null
+        const isMulti = multiOutcomesRaw && multiOutcomesRaw.length >= 2
         const payload = {
           marketId: id,
           title: evFinal.title,
           description: evFinal.description || evFinal.title,
-          marketType: 'Binary',
-          outcomes: ['Yes', 'No'],
+          marketType: isMulti ? 'MultiOutcome' : 'Binary',
+          outcomes: isMulti ? multiOutcomesRaw : ['Yes', 'No'],
           settlementTrigger: { tag: 'EventBased', value: eventSettlementSummary },
           resolutionCriteria: evFinal.resolutionCriteria || evFinal.title,
           resolutionDeadline: resolutionDeadline || null,
@@ -1610,7 +1661,10 @@ async function handleWithD1(db, kv, r2, request, path, method, env = {}) {
         await backupToR2(r2, undefined, id, payload)
         const useZeroLiquidity = env.AUTO_MARKETS_ZERO_LIQUIDITY === '1' || env.AUTO_MARKETS_ZERO_LIQUIDITY === 'true' || String(env.INITIAL_POOL_LIQUIDITY || '').trim() === '0'
         const initialLiquidity = useZeroLiquidity ? 0 : 1000
-        const poolState = createPoolState(id, initialLiquidity, initialLiquidity)
+        const poolState =
+          payload.marketType === 'MultiOutcome' && Array.isArray(payload.outcomes) && payload.outcomes.length >= 2
+            ? createPoolStateMulti(id, payload.outcomes, initialLiquidity, {})
+            : createPoolState(id, initialLiquidity, initialLiquidity)
         await storage.upsertContract(db, {
           contract_id: poolState.poolId,
           template_id: 'LiquidityPool',
@@ -1674,6 +1728,15 @@ async function handleWithD1(db, kv, r2, request, path, method, env = {}) {
           await kv.put('auto_markets:last_seed', JSON.stringify({ at: lastSeedAt, count: res.count, bySource: res.bySource ?? null }))
         } catch (_) {}
       }
+      try {
+        await upsertAutomationHeartbeat(db, r2, {
+          lastSeedAt,
+          lastSeedCreated: res.count,
+          lastSeedBySource: res.bySource ?? null,
+        })
+      } catch (hbErr) {
+        console.error('[auto-markets] heartbeat', hbErr?.message)
+      }
       return jsonResponse(res)
     }
 
@@ -1693,7 +1756,9 @@ async function handleWithD1(db, kv, r2, request, path, method, env = {}) {
       const all = await storage.getContracts(db, { limit: 500 })
       const orderCounts = await storage.getOpenP2pOrderCountsByMarket(db)
       const marketRows = all.filter(
-        (r) => r.templateId === TEMPLATE_VIRTUAL_MARKET || (r.templateId && r.templateId.includes('Market'))
+        (r) =>
+          r.contractId !== CRON_HEARTBEAT_CONTRACT_ID &&
+          (r.templateId === TEMPLATE_VIRTUAL_MARKET || (r.templateId && r.templateId.includes('Market')))
       )
       const statusFilter = status ? [status] : ['Active', 'Approved']
       let markets = marketRows
@@ -1743,12 +1808,25 @@ async function handleWithD1(db, kv, r2, request, path, method, env = {}) {
       }
       const id = marketId || `market-${Date.now()}`
       const party = creator || 'platform'
+      let mt = String(marketType || 'Binary')
+      if (mt !== 'MultiOutcome') mt = 'Binary'
+      let normalizedOutcomes = ['Yes', 'No']
+      if (mt === 'MultiOutcome') {
+        const raw = Array.isArray(outcomes) ? outcomes : []
+        const cleaned = [...new Set(raw.map((o) => String(o).trim()).filter(Boolean))].slice(0, 8)
+        if (cleaned.length < 2) {
+          return jsonResponse({ error: 'Multi-outcome markets require at least 2 unique outcome labels (max 8).' }, 400)
+        }
+        normalizedOutcomes = cleaned
+      } else if (Array.isArray(outcomes) && outcomes.length === 2) {
+        normalizedOutcomes = outcomes.map((o) => String(o).trim())
+      }
       const payload = {
         marketId: id,
         title,
         description,
-        marketType,
-        outcomes: Array.isArray(outcomes) ? outcomes : ['Yes', 'No'],
+        marketType: mt,
+        outcomes: normalizedOutcomes,
         settlementTrigger: typeof settlementTrigger === 'object' ? settlementTrigger : { tag: settlementTrigger },
         resolutionCriteria,
         status: 'Active',
@@ -1781,7 +1859,10 @@ async function handleWithD1(db, kv, r2, request, path, method, env = {}) {
       }
       const useZeroLiquidity = env.AUTO_MARKETS_ZERO_LIQUIDITY === '1' || env.AUTO_MARKETS_ZERO_LIQUIDITY === 'true' || String(env.INITIAL_POOL_LIQUIDITY || '').trim() === '0'
       const initialLiquidity = useZeroLiquidity ? 0 : 1000
-      const poolState = createPoolState(id, initialLiquidity, initialLiquidity)
+      const poolState =
+        mt === 'MultiOutcome'
+          ? createPoolStateMulti(id, normalizedOutcomes, initialLiquidity, {})
+          : createPoolState(id, initialLiquidity, initialLiquidity)
       await storage.upsertContract(db, {
         contract_id: poolState.poolId,
         template_id: 'LiquidityPool',
@@ -1808,11 +1889,34 @@ async function handleWithD1(db, kv, r2, request, path, method, env = {}) {
       return jsonResponse({ success: true, pool: null })
     }
     const pool = row.payload || {}
+    if (pool.poolKind === 'multi' || (pool.outcomeReserves && Array.isArray(pool.outcomes))) {
+      const reserves = pool.outcomeReserves || {}
+      const norm = {}
+      for (const o of pool.outcomes || []) {
+        norm[o] = parseFloat(reserves[o]) || 0
+      }
+      return jsonResponse({
+        success: true,
+        pool: {
+          poolId: row.contractId,
+          marketId: pool.marketId,
+          poolKind: 'multi',
+          outcomes: pool.outcomes || [],
+          outcomeReserves: norm,
+          totalLPShares: parseFloat(pool.totalLPShares) || 0,
+          feeRate: parseFloat(pool.feeRate) ?? 0.003,
+          platformFeeShare: parseFloat(pool.platformFeeShare) ?? 0.2,
+          maxTradeReserveFraction: parseFloat(pool.maxTradeReserveFraction) ?? 0.1,
+          minLiquidity: parseFloat(pool.minLiquidity) ?? 100,
+        },
+      })
+    }
     return jsonResponse({
       success: true,
       pool: {
         poolId: row.contractId,
         marketId: pool.marketId,
+        poolKind: pool.poolKind || 'binary',
         yesReserve: parseFloat(pool.yesReserve) || 0,
         noReserve: parseFloat(pool.noReserve) || 0,
         totalLPShares: parseFloat(pool.totalLPShares) || 0,
@@ -1837,8 +1941,6 @@ async function handleWithD1(db, kv, r2, request, path, method, env = {}) {
     if (!marketId || !side || !amount || !userId) {
       return jsonResponse({ error: 'Missing required fields', required: ['marketId', 'side', 'amount', 'userId'] }, 400)
     }
-    const sideNorm = side === 'yes' || side === 'Yes' ? 'Yes' : side === 'no' || side === 'No' ? 'No' : null
-    if (!sideNorm) return jsonResponse({ error: 'side must be Yes or No' }, 400)
     const amountNum = parseFloat(amount)
     if (isNaN(amountNum) || amountNum <= 0) return jsonResponse({ error: 'amount must be a positive number' }, 400)
     const minOutNum = typeof minOut !== 'undefined' ? parseFloat(minOut) : 0
@@ -1849,6 +1951,96 @@ async function handleWithD1(db, kv, r2, request, path, method, env = {}) {
       return jsonResponse({ error: 'Pool not found for this market' }, 404)
     }
     const poolPayload = poolRow.payload || {}
+    const marketRowPre = await storage.getContractById(db, marketId)
+    const mp = marketRowPre?.payload || {}
+    const isMultiMarket = mp.marketType === 'MultiOutcome' && Array.isArray(mp.outcomes) && mp.outcomes.length >= 2
+    const isMultiPool = poolPayload.poolKind === 'multi' || (poolPayload.outcomeReserves && Array.isArray(poolPayload.outcomes))
+
+    const currentBal = await storage.getBalance(db, userId)
+    if (currentBal < amountNum) {
+      return jsonResponse({ error: 'Insufficient balance', currentBalance: currentBal, required: amountNum }, 400)
+    }
+
+    if (isMultiMarket && isMultiPool) {
+      const sideStr = String(side).trim()
+      if (!mp.outcomes.includes(sideStr)) {
+        return jsonResponse({ error: 'Invalid outcome for this market', validOutcomes: mp.outcomes }, 400)
+      }
+      const reserves = { ...(poolPayload.outcomeReserves || {}) }
+      for (const o of poolPayload.outcomes || mp.outcomes) {
+        if (reserves[o] == null) reserves[o] = 0
+      }
+      const poolMulti = {
+        outcomeReserves: reserves,
+        outcomes: (poolPayload.outcomes && poolPayload.outcomes.length ? poolPayload.outcomes : mp.outcomes),
+        feeRate: parseFloat(poolPayload.feeRate) ?? 0.003,
+        platformFeeShare: parseFloat(poolPayload.platformFeeShare) ?? 0.2,
+        maxTradeReserveFraction: parseFloat(poolPayload.maxTradeReserveFraction) ?? 0.1,
+      }
+      const { outputAmount, feeAmount } = getQuoteMulti(poolMulti, sideStr, amountNum)
+      if (outputAmount <= 0) return jsonResponse({ error: 'Trade would result in zero output' }, 400)
+      if (outputAmount < minOutNum) return jsonResponse({ error: 'Slippage tolerance exceeded', minOut: minOutNum, outputAmount }, 400)
+      if (!isTradeWithinLimitMulti(poolMulti, sideStr, outputAmount)) {
+        return jsonResponse({ error: 'Trade size exceeds pool limit' }, 400)
+      }
+      applyTradeMulti(poolMulti, sideStr, amountNum, outputAmount)
+      await storage.setBalance(db, userId, currentBal - amountNum)
+      const sumRes = poolMulti.outcomes.reduce((s, o) => s + (poolMulti.outcomeReserves[o] ?? 0), 0)
+      const updatedPayload = {
+        ...poolPayload,
+        poolKind: 'multi',
+        outcomes: poolMulti.outcomes,
+        outcomeReserves: poolMulti.outcomeReserves,
+        totalLPShares: sumRes,
+      }
+      await storage.updateContractPayload(db, poolId, updatedPayload)
+
+      const positionId = `position-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`
+      const price = outcomeProbabilityMulti(poolMulti, sideStr)
+      const positionPayload = {
+        positionId,
+        marketId,
+        owner: userId,
+        positionType: sideStr,
+        amount: outputAmount,
+        price,
+        createdAt: new Date().toISOString(),
+      }
+      await storage.upsertContract(db, {
+        contract_id: positionId,
+        template_id: 'Position',
+        payload: positionPayload,
+        party: userId,
+        status: 'Active',
+      })
+      await backupToR2(r2, undefined, positionId, positionPayload)
+
+      const marketRow = await storage.getContractById(db, marketId)
+      if (marketRow?.payload) {
+        const p = marketRow.payload
+        const totalVolume = (parseFloat(p.totalVolume) || 0) + amountNum
+        const ov = { ...(p.outcomeVolumes || {}) }
+        ov[sideStr] = (parseFloat(ov[sideStr]) || 0) + outputAmount
+        await storage.updateContractPayload(db, marketId, { ...p, totalVolume, outcomeVolumes: ov })
+      }
+
+      return jsonResponse({
+        success: true,
+        positionId,
+        outputAmount,
+        feeAmount,
+        newBalance: currentBal - amountNum,
+        pool: {
+          poolKind: 'multi',
+          outcomes: poolMulti.outcomes,
+          outcomeReserves: poolMulti.outcomeReserves,
+        },
+      })
+    }
+
+    const sideNorm = side === 'yes' || side === 'Yes' ? 'Yes' : side === 'no' || side === 'No' ? 'No' : null
+    if (!sideNorm) return jsonResponse({ error: 'side must be Yes or No' }, 400)
+
     const pool = {
       yesReserve: parseFloat(poolPayload.yesReserve) || 0,
       noReserve: parseFloat(poolPayload.noReserve) || 0,
@@ -1860,11 +2052,6 @@ async function handleWithD1(db, kv, r2, request, path, method, env = {}) {
     if (outputAmount <= 0) return jsonResponse({ error: 'Trade would result in zero output' }, 400)
     if (outputAmount < minOutNum) return jsonResponse({ error: 'Slippage tolerance exceeded', minOut: minOutNum, outputAmount }, 400)
     if (!isTradeWithinLimit(pool, sideNorm, outputAmount)) return jsonResponse({ error: 'Trade size exceeds pool limit' }, 400)
-
-    const currentBal = await storage.getBalance(db, userId)
-    if (currentBal < amountNum) {
-      return jsonResponse({ error: 'Insufficient balance', currentBalance: currentBal, required: amountNum }, 400)
-    }
 
     applyTrade(pool, sideNorm, amountNum, outputAmount)
     await storage.setBalance(db, userId, currentBal - amountNum)
@@ -1970,6 +2157,16 @@ async function handleWithD1(db, kv, r2, request, path, method, env = {}) {
       resolved: resolved.length,
       resolveErrors,
     })
+    try {
+      await upsertAutomationHeartbeat(db, r2, {
+        lastResolveAt: new Date().toISOString(),
+        lastResolveDue: due.length,
+        lastResolveResolved: resolved.length,
+        lastResolveErrors: resolveErrors,
+      })
+    } catch (hbErr) {
+      console.error('[resolve-markets] heartbeat', hbErr?.message)
+    }
     return jsonResponse({ success: true, due: due.length, resolved: resolved.length, markets: resolved })
   }
 

@@ -1,0 +1,42 @@
+.automation-status-page {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 0 1rem 2rem;
+}
+
+.automation-status-card {
+  margin-top: 1.25rem;
+}
+
+.automation-status-dl {
+  margin: 0;
+  display: grid;
+  grid-template-columns: minmax(8rem, 34%) 1fr;
+  gap: 0.65rem 1.25rem;
+  font-size: var(--font-size-sm, 0.875rem);
+}
+
+.automation-status-dl dt {
+  margin: 0;
+  color: var(--color-text-tertiary, rgba(255, 255, 255, 0.55));
+  font-weight: var(--font-weight-medium, 500);
+}
+
+.automation-status-dl dd {
+  margin: 0;
+  color: var(--color-text-secondary, rgba(255, 255, 255, 0.8));
+}
+
+.automation-status-pre {
+  margin: 0.5rem 0 0;
+  padding: 0.65rem 0.75rem;
+  background: rgba(0, 0, 0, 0.25);
+  border-radius: var(--radius-sm, 6px);
+  font-size: 0.75rem;
+  overflow-x: auto;
+  max-height: 280px;
+}
+
+.text-error {
+  color: var(--color-error, #f87171);
+}

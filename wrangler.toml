@@ -38,6 +38,9 @@ index_name = "dice-express-market-embeddings"
 binding = "AI"
 
 [vars]
+# No platform pool risk: reject POST /api/trade (AMM). Binary markets still trade via limit orders (P2P).
+# Set to "0" or remove when you accept AMM inventory risk. See docs/ALGORITHMS_AND_RISK.md.
+DISABLE_AMM_TRADE = "1"
 # P2P-only (until you opt into platform liquidity): new markets get zero AMM liquidity — trading is matched orders only.
 # Set to "0" or remove when you want to enable AMM with platform liquidity. See docs/ALGORITHMS_AND_RISK.md.
 AUTO_MARKETS_ZERO_LIQUIDITY = "1"

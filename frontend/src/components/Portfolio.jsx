@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import { encodeFunctionData } from 'viem'
 import { Connection, PublicKey, Transaction } from '@solana/web3.js'
@@ -13,7 +13,7 @@ import { useAccountModal } from '../contexts/AccountModalContext'
 import { useWeb3Wallet } from '../contexts/Web3WalletContext'
 import { ContractStorage } from '../utils/contractStorage'
 import { SkeletonList } from './SkeletonLoader'
-import DiceLoader from './DiceLoader'
+import MultiDiceLoader from './MultiDiceLoader'
 import SubmitDiceLabel from './SubmitDiceLabel'
 import UserHubNav from './UserHubNav'
 import ErrorState from './ErrorState'
@@ -76,6 +76,18 @@ export default function Portfolio() {
   const [retryCount, setRetryCount] = useState(0)
   const isMountedRef = useRef(true)
   const depositCardRef = useRef(null)
+
+  const exposureByMarket = useMemo(() => {
+    const map = new Map()
+    for (const p of positions) {
+      const mid = p.payload?.marketId
+      if (!mid) continue
+      const amt = parseFloat(p.payload?.amount) || 0
+      if (amt <= 0) continue
+      map.set(mid, (map.get(mid) || 0) + amt)
+    }
+    return [...map.entries()].sort((a, b) => b[1] - a[1])
+  }, [positions])
 
   const refreshUserBalance = useCallback(async () => {
     if (!wallet) return
@@ -326,7 +338,7 @@ export default function Portfolio() {
           <p className="portfolio-header-desc">Balance, positions, deposit & withdraw.</p>
         </header>
         <div className="portfolio-loading-dice">
-          <DiceLoader size="md" label="Loading portfolio…" sublabel="Balance, positions, and activity." />
+          <MultiDiceLoader size="md" label="Loading portfolio…" sublabel="Balance, positions, and activity." />
         </div>
         <SkeletonList count={3} />
       </div>
@@ -701,7 +713,7 @@ export default function Portfolio() {
         <p className="balance-amount balance-amount--with-loader">
           {balanceLoading ? (
             <span className="balance-loading-inline">
-              <DiceLoader size="xs" decorative />
+              <MultiDiceLoader size="xs" decorative inline />
               <span className="balance-loading-text">Loading…</span>
             </span>
           ) : (
@@ -1008,6 +1020,24 @@ export default function Portfolio() {
       ) : (
         <div>
           <h2 className="mb-md">My Positions</h2>
+          {exposureByMarket.length > 0 && (
+            <div className="card mb-md">
+              <h3 className="mb-sm">Open exposure by market</h3>
+              <p className="text-secondary" style={{ fontSize: 'var(--font-size-sm)', marginBottom: '0.75rem' }}>
+                Sum of position sizes (shares) per market — quick view of where you have prediction risk.
+              </p>
+              <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
+                {exposureByMarket.slice(0, 12).map(([mid, sum]) => (
+                  <li key={mid} className="mb-xs" style={{ display: 'flex', justifyContent: 'space-between', gap: '1rem' }}>
+                    <Link to={`/market/${mid}`} style={{ color: 'var(--color-primary)', textDecoration: 'none' }}>
+                      {marketTitles[mid] || mid}
+                    </Link>
+                    <span>{sum.toFixed(2)} shares</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
             {positions.map((position) => (
               <div key={position.contractId} className="card mb-md">
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start' }}>

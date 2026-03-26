@@ -7,6 +7,17 @@ import { fetchMarkets } from '../services/marketsApi'
 import { useDebounce } from '../utils/useDebounce'
 import { MARKET_CATEGORIES, PREDICTION_STYLES, getSourceLabel, sourceForFilter, categoryForFilter, getCategoryDisplay, getMarketApiAttribution, getCategoryEmoji, getMarketOneLiner, formatResolutionDeadline, DISCOVER_SOURCE_TO_CATEGORY } from '../constants/marketConfig'
 import { formatPips } from '../constants/currency'
+import {
+  isOutcomeBasedMarket,
+  getMarketStaleness,
+  marketCreatedThisWeek,
+  readWatchlist,
+  toggleWatchlist,
+  isWatched,
+} from '../utils/marketUX'
+import MarketAlertSettings from './MarketAlertSettings'
+
+const MARKETS_CACHE_KEY = 'dice.markets.cache.v1'
 
 const CATEGORY_TOGGLE_OPTIONS = [
   { value: 'trending', label: 'Trending' },
@@ -31,6 +42,9 @@ export default function MarketsList({ source: sourceFromRoute }) {
   const [sortBy, setSortBy] = useState('volume') // 'volume', 'p2p', 'newest', 'oldest', 'ending_soon'
   const [currentPage, setCurrentPage] = useState(1)
   const [retryCount, setRetryCount] = useState(0)
+  const [quickFilter, setQuickFilter] = useState('all')
+  const [fromCacheBanner, setFromCacheBanner] = useState(false)
+  const [watchListVersion, setWatchListVersion] = useState(0)
 
   const MARKETS_PER_PAGE = 12
 
@@ -65,8 +79,9 @@ export default function MarketsList({ source: sourceFromRoute }) {
     if (selectedTopic !== 'all') count++
     if (selectedType !== 'all') count++
     if (selectedStatus !== 'all') count++
+    if (quickFilter !== 'all') count++
     return count
-  }, [debouncedSearchQuery, selectedCategory, selectedTopic, selectedType, selectedStatus])
+  }, [debouncedSearchQuery, selectedCategory, selectedTopic, selectedType, selectedStatus, quickFilter])
 
   useEffect(() => {
     isMountedRef.current = true
@@ -79,12 +94,40 @@ export default function MarketsList({ source: sourceFromRoute }) {
         if (!isMountedRef.current) return
         setMarkets(list)
         setError(null)
+        setFromCacheBanner(false)
+        try {
+          localStorage.setItem(MARKETS_CACHE_KEY, JSON.stringify(list))
+        } catch {
+          /* ignore quota / private mode */
+        }
         apiRoutesWorkingRef.current = true
       } catch (err) {
         if (!isMountedRef.current) return
         apiRoutesWorkingRef.current = false
-        setMarkets([])
-        setError(err.message)
+        try {
+          const raw = localStorage.getItem(MARKETS_CACHE_KEY)
+          if (raw) {
+            const parsed = JSON.parse(raw)
+            if (Array.isArray(parsed) && parsed.length > 0) {
+              setMarkets(parsed)
+              setFromCacheBanner(true)
+              setError(null)
+              apiRoutesWorkingRef.current = true
+            } else {
+              setMarkets([])
+              setFromCacheBanner(false)
+              setError(err.message)
+            }
+          } else {
+            setMarkets([])
+            setFromCacheBanner(false)
+            setError(err.message)
+          }
+        } catch {
+          setMarkets([])
+          setFromCacheBanner(false)
+          setError(err.message)
+        }
       } finally {
         if (isMountedRef.current) setLoading(false)
       }
@@ -218,6 +261,22 @@ export default function MarketsList({ source: sourceFromRoute }) {
     if (selectedStatus !== 'all') {
       filtered = filtered.filter(market => market.payload.status === selectedStatus)
     }
+
+    if (quickFilter === 'outcome_only') {
+      filtered = filtered.filter((m) => isOutcomeBasedMarket(m.payload))
+    }
+    if (quickFilter === 'new_week') {
+      filtered = filtered.filter((m) => marketCreatedThisWeek(m.payload))
+    }
+    if (quickFilter === 'high_vol') {
+      filtered = filtered.filter((m) => (parseFloat(m.payload?.totalVolume) || 0) >= 25)
+    }
+    if (quickFilter === 'watchlist') {
+      const w = readWatchlist()
+      filtered = filtered.filter(
+        (m) => w.includes(m.contractId) || w.includes(m.payload?.marketId)
+      )
+    }
     
     const effectiveSort = selectedCategory === 'trending' ? 'trending_blend' : sortBy
     filtered.sort((a, b) => {
@@ -262,7 +321,9 @@ export default function MarketsList({ source: sourceFromRoute }) {
     })
 
     return filtered
-  }, [markets, debouncedSearchQuery, selectedCategory, selectedTopic, selectedType, selectedStatus, listSourceFilter, sortBy])
+  },
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- watchListVersion invalidates watchlist filter without appearing in body
+  [markets, debouncedSearchQuery, selectedCategory, selectedTopic, selectedType, selectedStatus, listSourceFilter, sortBy, quickFilter, watchListVersion])
 
   // Pagination: slice to current page and reset page when results change
   const totalFiltered = filteredAndSortedMarkets.length
@@ -276,7 +337,7 @@ export default function MarketsList({ source: sourceFromRoute }) {
   // Reset to page 1 when filters or sort change
   useEffect(() => {
     setCurrentPage(1)
-  }, [debouncedSearchQuery, selectedCategory, selectedTopic, selectedType, selectedStatus, sortBy])
+  }, [debouncedSearchQuery, selectedCategory, selectedTopic, selectedType, selectedStatus, sortBy, quickFilter])
 
   const pageTitle = sourceFromRoute ? getSourceLabel(sourceFromRoute) : 'Prediction Markets'
   const pageSubtitle = sourceFromRoute
@@ -327,6 +388,12 @@ export default function MarketsList({ source: sourceFromRoute }) {
         <h1>{pageTitle}</h1>
         <p>{pageSubtitle}</p>
       </div>
+
+      {fromCacheBanner && (
+        <div className="alert-info mb-md" role="status">
+          Showing saved markets from your last successful load. Reconnect to refresh live data.
+        </div>
+      )}
       
       {/* Filters: always visible; Market Type, Status, Sort as separate dropdowns above the grid */}
       {(!loading && !error) && (
@@ -401,6 +468,29 @@ export default function MarketsList({ source: sourceFromRoute }) {
                 </div>
               </div>
             )}
+
+            <div className="markets-quick-filters mb-md" role="group" aria-label="Quick filters">
+              <span className="markets-category-toggles-label">Quick</span>
+              <div className="markets-quick-filters-row">
+                {[
+                  { value: 'all', label: 'All' },
+                  { value: 'outcome_only', label: 'Outcome-based' },
+                  { value: 'new_week', label: 'New (7d)' },
+                  { value: 'high_vol', label: 'Volume 25+' },
+                  { value: 'watchlist', label: 'Watchlist' },
+                ].map((opt) => (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    className={`markets-quick-filter-btn${quickFilter === opt.value ? ' markets-quick-filter-btn--active' : ''}`}
+                    aria-pressed={quickFilter === opt.value}
+                    onClick={() => setQuickFilter(opt.value)}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+            </div>
 
             <div
               className="markets-filters-quick-row"
@@ -555,6 +645,10 @@ export default function MarketsList({ source: sourceFromRoute }) {
               </span>
             )}
           </div>
+
+          <div className="market-alerts-embed">
+            <MarketAlertSettings variant="compact" />
+          </div>
         </div>
       )}
       {!apiRoutesWorkingRef.current ? (
@@ -607,6 +701,7 @@ export default function MarketsList({ source: sourceFromRoute }) {
                       setSelectedType('all')
                       setSelectedStatus('all')
                       setSortBy('volume')
+                      setQuickFilter('all')
                     }}
                   >
                     Clear All Filters
@@ -621,11 +716,27 @@ export default function MarketsList({ source: sourceFromRoute }) {
                   const oneLiner = getMarketOneLiner(market.payload)
                   const categoryLabel = getCategoryDisplay(market.payload)
                   const apiAttr = getMarketApiAttribution(market.payload)
+                  const stale = getMarketStaleness(market.payload)
+                  const watched = isWatched(market.contractId) || isWatched(market.payload?.marketId)
                   return (
+                  <div key={market.contractId} className="market-card-wrap">
+                    <button
+                      type="button"
+                      className={`market-card-watch${watched ? ' market-card-watch--on' : ''}`}
+                      title={watched ? 'Remove from watchlist' : 'Watchlist (saved in this browser)'}
+                      aria-label={watched ? 'Remove from watchlist' : 'Add to watchlist'}
+                      onClick={(e) => {
+                        e.preventDefault()
+                        e.stopPropagation()
+                        toggleWatchlist(market.payload?.marketId || market.contractId)
+                        setWatchListVersion((t) => t + 1)
+                      }}
+                    >
+                      {watched ? '★' : '☆'}
+                    </button>
                   <Link
-                    key={market.contractId}
                     to={`/market/${market.payload.marketId}`}
-                    style={{ textDecoration: 'none' }}
+                    className="market-card-link"
                   >
                     <div className="market-card">
                       <div>
@@ -664,6 +775,11 @@ export default function MarketsList({ source: sourceFromRoute }) {
                               </span>
                             </>
                           )}
+                          {stale === 'pending_resolution' && (
+                            <span className="market-card-tag market-card-tag-stale" title="Past resolution time">
+                              Pending resolution
+                            </span>
+                          )}
                         </div>
                         <h3>{market.payload.title}</h3>
                         <span className={`status ${getStatusClass(market.payload.status)}`}>
@@ -691,6 +807,7 @@ export default function MarketsList({ source: sourceFromRoute }) {
                       </div>
                     </div>
                   </Link>
+                  </div>
                   )
                 })}
               </div>

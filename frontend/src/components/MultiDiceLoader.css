@@ -1,0 +1,227 @@
+/* Three staggered 3D vector dice — infinite roll while loader is mounted */
+
+.multi-dice-loader {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--dice-loader-gap, 1rem);
+  text-align: center;
+}
+
+.multi-dice-loader--inline {
+  display: inline-flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 0.75rem;
+  text-align: left;
+}
+
+.multi-dice-loader--inline .multi-dice-loader__text {
+  text-align: left;
+}
+
+.multi-dice-loader__scene {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  perspective: 260px;
+  perspective-origin: 50% 38%;
+}
+
+.multi-dice-loader__die-wrap {
+  transform-style: preserve-3d;
+}
+
+/* Stagger so dice feel independent */
+.multi-dice-loader__die-wrap:nth-child(1) .rolling-die__cube {
+  animation-delay: 0s;
+}
+
+.multi-dice-loader__die-wrap:nth-child(2) .rolling-die__cube {
+  animation-delay: -0.55s;
+}
+
+.multi-dice-loader__die-wrap:nth-child(3) .rolling-die__cube {
+  animation-delay: -1.1s;
+}
+
+/* --- Per-die 3D cube (SVG faces) --- */
+.rolling-die {
+  width: var(--dice-size);
+  height: var(--dice-size);
+  transform-style: preserve-3d;
+}
+
+.rolling-die__cube {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  transform-style: preserve-3d;
+  transform-origin: 50% 50%;
+  will-change: transform;
+  animation: rolling-die-tumble 1.95s cubic-bezier(0.42, 0.02, 0.58, 1) infinite;
+  filter:
+    drop-shadow(0 3px 0 rgba(15, 23, 42, 0.38))
+    drop-shadow(0 10px 18px rgba(139, 92, 246, 0.22));
+}
+
+.rolling-die__face {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  backface-visibility: hidden;
+  transform-style: preserve-3d;
+}
+
+.rolling-die__face--front {
+  transform: rotateY(0deg) translateZ(calc(var(--dice-size) * 0.5));
+}
+
+.rolling-die__face--back {
+  transform: rotateY(180deg) translateZ(calc(var(--dice-size) * 0.5));
+}
+
+.rolling-die__face--right {
+  transform: rotateY(90deg) translateZ(calc(var(--dice-size) * 0.5));
+}
+
+.rolling-die__face--left {
+  transform: rotateY(-90deg) translateZ(calc(var(--dice-size) * 0.5));
+}
+
+.rolling-die__face--top {
+  transform: rotateX(90deg) translateZ(calc(var(--dice-size) * 0.5));
+}
+
+.rolling-die__face--bottom {
+  transform: rotateX(-90deg) translateZ(calc(var(--dice-size) * 0.5));
+}
+
+.rolling-die__svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+/* Bounce + multi-axis tumble: reads like dice hitting a surface between revolutions */
+@keyframes rolling-die-tumble {
+  0% {
+    transform: translateY(0) rotateX(-22deg) rotateY(0deg) rotateZ(0deg) scale3d(1, 1, 1);
+  }
+  7% {
+    transform: translateY(-11px) rotateX(28deg) rotateY(55deg) rotateZ(10deg) scale3d(1.02, 1.02, 1.02);
+  }
+  14% {
+    transform: translateY(0) rotateX(95deg) rotateY(115deg) rotateZ(-6deg) scale3d(1, 1, 1);
+  }
+  22% {
+    transform: translateY(-7px) rotateX(175deg) rotateY(185deg) rotateZ(14deg) scale3d(1.01, 1.01, 1.01);
+  }
+  32% {
+    transform: translateY(0) rotateX(265deg) rotateY(265deg) rotateZ(-8deg) scale3d(1, 1, 1);
+  }
+  42% {
+    transform: translateY(-13px) rotateX(355deg) rotateY(340deg) rotateZ(6deg) scale3d(1.03, 1.03, 1.03);
+  }
+  52% {
+    transform: translateY(0) rotateX(455deg) rotateY(430deg) rotateZ(-12deg) scale3d(1, 1, 1);
+  }
+  62% {
+    transform: translateY(-6px) rotateX(535deg) rotateY(515deg) rotateZ(9deg) scale3d(1.01, 1.01, 1.01);
+  }
+  74% {
+    transform: translateY(0) rotateX(620deg) rotateY(605deg) rotateZ(-5deg) scale3d(1, 1, 1);
+  }
+  86% {
+    transform: translateY(-9px) rotateX(685deg) rotateY(695deg) rotateZ(11deg) scale3d(1.02, 1.02, 1.02);
+  }
+  100% {
+    transform: translateY(0) rotateX(720deg) rotateY(780deg) rotateZ(0deg) scale3d(1, 1, 1);
+  }
+}
+
+.multi-dice-loader--xs {
+  --dice-size: 18px;
+  --dice-loader-gap: 0.35rem;
+}
+
+.multi-dice-loader--xs .multi-dice-loader__scene {
+  gap: 0.25rem;
+  perspective: 200px;
+}
+
+.multi-dice-loader--xs .rolling-die__cube {
+  animation-duration: 1.45s;
+  filter:
+    drop-shadow(0 1px 0 rgba(15, 23, 42, 0.4))
+    drop-shadow(0 4px 8px rgba(139, 92, 246, 0.16));
+}
+
+.multi-dice-loader--sm {
+  --dice-size: 24px;
+  --dice-loader-gap: 0.65rem;
+}
+
+.multi-dice-loader--sm .multi-dice-loader__scene {
+  gap: 0.32rem;
+}
+
+.multi-dice-loader--sm .rolling-die__cube {
+  animation-duration: 1.65s;
+}
+
+.multi-dice-loader--md {
+  --dice-size: 34px;
+}
+
+.multi-dice-loader--md .multi-dice-loader__scene {
+  gap: 0.4rem;
+}
+
+.multi-dice-loader--lg {
+  --dice-size: 42px;
+  --dice-loader-gap: 1.25rem;
+}
+
+.multi-dice-loader--lg .multi-dice-loader__scene {
+  gap: 0.5rem;
+  perspective: 300px;
+}
+
+.multi-dice-loader--lg .rolling-die__cube {
+  animation-duration: 2.15s;
+}
+
+.multi-dice-loader .dice-loader__label,
+.multi-dice-loader .dice-loader__sublabel {
+  margin: 0;
+}
+
+.multi-dice-loader .dice-loader__sublabel {
+  margin-top: 0.35rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rolling-die__cube {
+    animation: rolling-die-tumble-reduced 3.2s ease-in-out infinite;
+    filter: drop-shadow(0 2px 4px rgba(15, 23, 42, 0.25));
+  }
+
+  @keyframes rolling-die-tumble-reduced {
+    0%,
+    100% {
+      transform: translateY(0) rotateX(-14deg) rotateY(-18deg) scale3d(1, 1, 1);
+    }
+    50% {
+      transform: translateY(0) rotateX(14deg) rotateY(18deg) scale3d(1, 1, 1);
+    }
+  }
+
+  .multi-dice-loader__die-wrap .rolling-die__cube {
+    animation-delay: 0s !important;
+  }
+}

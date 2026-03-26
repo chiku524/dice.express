@@ -381,12 +381,12 @@
   margin: 0;
 }
 
-.market-detail-orders-loading__dice.dice-loader {
+.market-detail-orders-loading__dice.multi-dice-loader {
   flex-direction: row;
   gap: 0;
 }
 
-.market-detail-orders-loading__dice .dice-loader__scene {
+.market-detail-orders-loading__dice .multi-dice-loader__scene {
   flex-shrink: 0;
   line-height: 0;
 }

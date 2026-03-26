@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react'
-import DiceLoader from './DiceLoader'
+import MultiDiceLoader from './MultiDiceLoader'
 import './DesktopUpdateOverlay.css'
 
 /**
  * Full-screen overlay shown during update download/install in the desktop app.
- * Clean, centered card with rolling die and message.
+ * Clean, centered card with rolling dice and message.
  */
 export default function DesktopUpdateOverlay({ phase, version }) {
   const [visible, setVisible] = useState(false)
@@ -33,7 +33,7 @@ export default function DesktopUpdateOverlay({ phase, version }) {
           <img src="/logo.svg" alt="" width={56} height={56} />
         </div>
         <p className="desktop-update-overlay__name">dice.express</p>
-        <DiceLoader size="sm" className="desktop-update-overlay__dice" />
+        <MultiDiceLoader size="sm" decorative className="desktop-update-overlay__dice" />
         <p className="desktop-update-overlay__message">{label}</p>
       </div>
     </div>

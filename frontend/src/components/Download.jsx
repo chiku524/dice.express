@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { DESKTOP_APP_VERSION, DESKTOP_DOWNLOADS } from '../constants/downloads'
 import { fetchLatestRelease } from '../utils/latestRelease'
-import DiceLoader from './DiceLoader'
+import MultiDiceLoader from './MultiDiceLoader'
 import './Download.css'
 
 export default function Download() {
@@ -38,7 +38,7 @@ export default function Download() {
         <p className="download-version">
           {loading ? (
             <span className="download-version-loading">
-              <DiceLoader size="sm" inline label="Loading version…" />
+              <MultiDiceLoader size="sm" inline label="Loading version…" />
             </span>
           ) : (
             `Version ${version}`
@@ -51,7 +51,7 @@ export default function Download() {
         <p className="download-note">These links download the installer directly (no redirect to GitHub).</p>
         {loading ? (
           <div className="download-loading-dice">
-            <DiceLoader size="sm" inline label="Loading latest release…" />
+            <MultiDiceLoader size="sm" inline label="Loading latest release…" />
           </div>
         ) : (
         <ul className="download-list">

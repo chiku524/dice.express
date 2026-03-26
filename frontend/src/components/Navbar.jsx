@@ -172,7 +172,7 @@ export default function Navbar() {
           {/* Resources */}
           <div className="nav-dropdown nav-dropdown-resources" ref={resourcesMenuRef}>
             <button
-              className={`nav-dropdown-toggle ${isActive('/activity') || isActive('/history') || isActive('/download') ? 'active' : ''}`}
+              className={`nav-dropdown-toggle ${isActive('/activity') || isActive('/history') || isActive('/download') || isActive('/automation') ? 'active' : ''}`}
               onClick={() => {
                 setShowResourcesMenu(!showResourcesMenu)
                 setShowDiscoverMenu(false)
@@ -186,6 +186,9 @@ export default function Navbar() {
               <div className="nav-dropdown-menu">
                 <Link to="/download" className={isActive('/download') ? 'active' : ''}>
                   Download desktop
+                </Link>
+                <Link to="/automation" className={isActive('/automation') ? 'active' : ''}>
+                  Automation status
                 </Link>
                 <Link
                   to="/activity"

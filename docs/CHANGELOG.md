@@ -4,6 +4,13 @@ Summary of major cleanups and improvements. For current structure see [README](.
 
 ---
 
+## 1.0.27 — Multi-outcome markets, P2P-only toggle, alerts, Tauri native notifications (March 2026)
+
+- **Release:** Version **1.0.27**; tag **`v1.0.27`** for desktop CI and GitHub Releases.
+- **Markets & API:** Multi-outcome pool AMM support; `GET /api/public-config` (`ammTradeEnabled`, `tradingMode`, SMS probe); `DISABLE_AMM_TRADE` in **`wrangler.toml`** for operator P2P-only mode; automation heartbeat/probe and related Worker routes; resolve path skips auto-oracle for multi-outcome.
+- **Frontend:** Market alerts (browser + Tauri native via **`tauri-plugin-notification`**), watchlist UX, automation status page, multi-dice loaders, portfolio/browse refinements; **`MarketDetail`** respects public config when AMM is off.
+- **Desktop:** **`tauri-plugin-notification`** with **`notification:default`** capability; Rust **1.77.2** minimum for the notification crate.
+
 ## 1.0.26 — Docs TOC section sync, markets loading spinner (March 2026)
 
 - **Release:** Version **1.0.26**; tag **`v1.0.26`** for desktop CI.

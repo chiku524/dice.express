@@ -4,6 +4,7 @@ import { useWallet } from '../contexts/WalletContext'
 import { useAccountModal } from '../contexts/AccountModalContext'
 import { useToastContext } from '../contexts/ToastContext'
 import UserHubNav from './UserHubNav'
+import MarketAlertSettings from './MarketAlertSettings'
 import './Profile.css'
 
 function formatMemberSince(isoString) {
@@ -91,6 +92,10 @@ export default function Profile() {
         </div>
         {error && <p className="profile-error">{error}</p>}
         {saved && <p className="profile-success">Display name updated.</p>}
+      </div>
+
+      <div className="card profile-card">
+        <MarketAlertSettings variant="full" />
       </div>
 
       <div className="card profile-card">

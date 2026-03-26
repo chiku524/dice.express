@@ -4,19 +4,31 @@ import { useWallet } from '../contexts/WalletContext'
 import { useToastContext } from '../contexts/ToastContext'
 import { useAccountModal } from '../contexts/AccountModalContext'
 import { fetchMarkets, fetchPool, executeTrade } from '../services/marketsApi'
+import { apiUrl } from '../services/apiBase'
 import { fetchOpenOrders, placeOrder } from '../services/ordersApi'
 import MarketResolution from './MarketResolution'
-import DiceLoader from './DiceLoader'
+import MultiDiceLoader from './MultiDiceLoader'
 import SubmitDiceLabel from './SubmitDiceLabel'
 import ErrorState from './ErrorState'
 import { formatPips, PLATFORM_CURRENCY_SYMBOL } from '../constants/currency'
 import { PREDICTION_STYLES, getCategoryDisplay, formatResolutionDeadline, getCategoryEmoji, getMarketOneLiner, getResolutionOutcomeSummaries, getDisplayDescription, getResolutionSummary, getNewsMarketMeta, getMarketApiAttribution } from '../constants/marketConfig'
-import { getQuote, isTradeWithinLimit, yesProbability } from '../utils/ammQuote'
+import {
+  getQuote,
+  isTradeWithinLimit,
+  yesProbability,
+  getQuoteMulti,
+  isTradeWithinLimitMulti,
+  outcomeProbabilityMulti,
+  estimatePriceImpact,
+} from '../utils/ammQuote'
+import { getMarketStaleness } from '../utils/marketUX'
+import { usePublicConfig } from '../hooks/usePublicConfig'
 import { getSEOForPath } from '../constants/seo'
 import './MarketDetail.css'
 
 export default function MarketDetail() {
   const { marketId } = useParams()
+  const { ammTradeEnabled } = usePublicConfig()
   const { wallet } = useWallet()
   const { showToast } = useToastContext()
   const openAccountModal = useAccountModal()
@@ -35,6 +47,7 @@ export default function MarketDetail() {
   const [orderAmount, setOrderAmount] = useState('')
   const [orderPrice, setOrderPrice] = useState('0.5')
   const [orderLoading, setOrderLoading] = useState(false)
+  const [userPositions, setUserPositions] = useState([])
 
   // SEO: set page title to market title when viewing a specific market
   useEffect(() => {
@@ -65,13 +78,58 @@ export default function MarketDetail() {
   }, [marketId, retryCount])
 
   useEffect(() => {
-    if (!market?.payload?.marketId || market.payload.marketType !== 'Binary') return
+    if (!market?.payload?.marketId) return
+    const mt = market.payload.marketType
+    if (mt !== 'Binary' && mt !== 'MultiOutcome') return
     let cancelled = false
     fetchPool(market.payload.marketId).then((p) => {
       if (!cancelled) setPool(p)
     })
     return () => { cancelled = true }
   }, [market?.payload?.marketId, market?.payload?.marketType])
+
+  const outcomesKey = Array.isArray(market?.payload?.outcomes) ? market.payload.outcomes.join('|') : ''
+  useEffect(
+    () => {
+      const p = market?.payload
+      if (!p) return
+      if (p.marketType === 'MultiOutcome' && Array.isArray(p.outcomes) && p.outcomes.length) {
+        setTradeSide(p.outcomes[0])
+      } else {
+        setTradeSide('Yes')
+      }
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- reset side on market identity change; avoid full payload (list poll)
+    [market?.payload?.marketId, market?.payload?.marketType, outcomesKey]
+  )
+
+  useEffect(() => {
+    if (!wallet?.party || market?.payload?.status !== 'Settled' || !market?.payload?.marketId) {
+      setUserPositions([])
+      return
+    }
+    let cancelled = false
+    fetch(apiUrl('get-contracts'), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        party: wallet.party,
+        templateType: 'Position',
+        limit: 200,
+      }),
+    })
+      .then((r) => r.json())
+      .then((data) => {
+        if (cancelled) return
+        const mid = market.payload.marketId
+        const list = (data.contracts || []).filter((c) => c.payload?.marketId === mid)
+        setUserPositions(list)
+      })
+      .catch(() => {
+        if (!cancelled) setUserPositions([])
+      })
+    return () => { cancelled = true }
+  }, [wallet?.party, market?.payload?.marketId, market?.payload?.status])
 
   useEffect(() => {
     if (!market?.payload?.marketId || market.payload.marketType !== 'Binary') return
@@ -136,20 +194,39 @@ export default function MarketDetail() {
       showToast('Pool not loaded. Try refreshing.', 'error')
       return
     }
-    const poolForQuote = {
-      yesReserve: pool.yesReserve ?? 0,
-      noReserve: pool.noReserve ?? 0,
-      feeRate: pool.feeRate ?? 0.003,
-      maxTradeReserveFraction: pool.maxTradeReserveFraction ?? 0.1,
-    }
-    const { outputAmount } = getQuote(poolForQuote, tradeSide, amountNum)
-    if (outputAmount <= 0) {
-      showToast('Trade would result in zero shares', 'error')
-      return
-    }
-    if (!isTradeWithinLimit(poolForQuote, tradeSide, outputAmount)) {
-      showToast('Trade size exceeds pool limit. Try a smaller amount.', 'error')
-      return
+    const isMulti = market.payload.marketType === 'MultiOutcome' && pool.poolKind === 'multi'
+    if (isMulti) {
+      const poolForQuote = {
+        outcomeReserves: pool.outcomeReserves || {},
+        outcomes: pool.outcomes || [],
+        feeRate: pool.feeRate ?? 0.003,
+        maxTradeReserveFraction: pool.maxTradeReserveFraction ?? 0.1,
+      }
+      const { outputAmount } = getQuoteMulti(poolForQuote, tradeSide, amountNum)
+      if (outputAmount <= 0) {
+        showToast('Trade would result in zero shares', 'error')
+        return
+      }
+      if (!isTradeWithinLimitMulti(poolForQuote, tradeSide, outputAmount)) {
+        showToast('Trade size exceeds pool limit. Try a smaller amount.', 'error')
+        return
+      }
+    } else {
+      const poolForQuote = {
+        yesReserve: pool.yesReserve ?? 0,
+        noReserve: pool.noReserve ?? 0,
+        feeRate: pool.feeRate ?? 0.003,
+        maxTradeReserveFraction: pool.maxTradeReserveFraction ?? 0.1,
+      }
+      const { outputAmount } = getQuote(poolForQuote, tradeSide, amountNum)
+      if (outputAmount <= 0) {
+        showToast('Trade would result in zero shares', 'error')
+        return
+      }
+      if (!isTradeWithinLimit(poolForQuote, tradeSide, outputAmount)) {
+        showToast('Trade size exceeds pool limit. Try a smaller amount.', 'error')
+        return
+      }
     }
     setTradeLoading(true)
     try {
@@ -177,7 +254,7 @@ export default function MarketDetail() {
   if (loading) {
     return (
       <div className="loading">
-        <DiceLoader
+        <MultiDiceLoader
           size="lg"
           label="Loading market…"
           sublabel="Fetching market details…"
@@ -217,6 +294,8 @@ export default function MarketDetail() {
     ? (PREDICTION_STYLES.find(s => s.value === marketData.styleLabel)?.label || 'Binary')
     : 'Multi-Outcome'
   const isActiveBinary = marketData.status === 'Active' && marketData.marketType === 'Binary' && pool
+  const isActiveMultiPool =
+    marketData.status === 'Active' && marketData.marketType === 'MultiOutcome' && pool?.poolKind === 'multi'
 
   return (
     <div className="market-detail">
@@ -255,6 +334,14 @@ export default function MarketDetail() {
               </>
             )}
             <span className="market-detail-tag market-detail-tag-type">{marketTypeLabel}</span>
+            {getMarketStaleness(marketData) === 'pending_resolution' && (
+              <span
+                className="market-detail-tag market-detail-tag-stale"
+                title="Past scheduled resolution time — oracle or ops may still be processing"
+              >
+                Pending resolution
+              </span>
+            )}
           </div>
 
           <h1 className="market-detail-title">{displayTitle}</h1>
@@ -290,6 +377,13 @@ export default function MarketDetail() {
                   <li><span className="market-detail-outcome-no" aria-hidden>❌ No</span> {outcomeSummaries.no}</li>
                 </ul>
               )}
+              {marketData.marketType === 'MultiOutcome' && Array.isArray(marketData.outcomes) && marketData.outcomes.length > 0 && (
+                <ul className="market-detail-resolution-outcomes" aria-label="Outcomes">
+                  {marketData.outcomes.map((o) => (
+                    <li key={o}><strong>{o}</strong> — wins if this outcome is chosen at settlement (ops or configured oracle).</li>
+                  ))}
+                </ul>
+              )}
               {marketData.resolutionCriteria && !resolutionSummary && (
                 <p className="market-detail-resolution-criteria"><strong>Precise rule:</strong> {marketData.resolutionCriteria}</p>
               )}
@@ -306,6 +400,15 @@ export default function MarketDetail() {
             <div className="market-detail-odds">
               <span className="status-badge status-active">Yes {(yesProbability(pool) * 100).toFixed(0)}%</span>
               <span className="status-badge status-pending">No {(100 - yesProbability(pool) * 100).toFixed(0)}%</span>
+            </div>
+          )}
+          {isActiveMultiPool && pool.outcomes && (
+            <div className="market-detail-odds market-detail-odds--multi">
+              {pool.outcomes.map((o) => (
+                <span key={o} className="status-badge status-active" title="Pool-implied share of reserves">
+                  {o} {(outcomeProbabilityMulti(pool, o) * 100).toFixed(0)}%
+                </span>
+              ))}
             </div>
           )}
 
@@ -347,28 +450,63 @@ export default function MarketDetail() {
 
         {/* Bottom: buy/sell shares + limit orders */}
         <div className="market-detail-actions">
-          {isActiveBinary && (
+          {isActiveBinary && pool && !ammTradeEnabled && (
+            <div className="card market-detail-trade alert-info">
+              <h2 className="market-detail-trade-title">Peer-to-peer trading</h2>
+              <p className="market-detail-trade-hint" style={{ marginBottom: 0 }}>
+                Instant pool (AMM) buys are disabled so the platform does not take liquidity risk. Use{' '}
+                <strong>limit orders</strong> below to trade with other users.
+              </p>
+            </div>
+          )}
+          {isActiveMultiPool && !ammTradeEnabled && (
+            <div className="card market-detail-trade alert-info">
+              <h2 className="market-detail-trade-title">Pool trading unavailable</h2>
+              <p className="market-detail-trade-hint" style={{ marginBottom: 0 }}>
+                Multi-outcome markets use the pool only today (no P2P book). While AMM is off for operator risk control,
+                you can follow prices here but cannot open new pool positions — use <strong>binary</strong> markets for
+                limit-order trading.
+              </p>
+            </div>
+          )}
+          {(isActiveBinary || isActiveMultiPool) && ammTradeEnabled && (
             <div className="card market-detail-trade">
               <h2 className="market-detail-trade-title">Buy shares</h2>
-              <p className="market-detail-trade-hint">Spend {PLATFORM_CURRENCY_SYMBOL} to buy Yes or No at the current pool price (0.3% fee).</p>
+              <p className="market-detail-trade-hint">
+                {isActiveMultiPool
+                  ? `Spend ${PLATFORM_CURRENCY_SYMBOL} on one outcome. Multi-outcome markets use the pool only (no P2P book). 0.3% pool fee.`
+                  : `Spend ${PLATFORM_CURRENCY_SYMBOL} to buy Yes or No at the current pool price (0.3% fee).`}
+              </p>
               <div className="form-group">
-                <label>Side</label>
-                <div className="market-detail-side-buttons">
-                  <button
-                    type="button"
-                    className={tradeSide === 'Yes' ? 'btn-primary' : 'btn-secondary'}
-                    onClick={() => setTradeSide('Yes')}
+                <label>{isActiveMultiPool ? 'Outcome' : 'Side'}</label>
+                {isActiveMultiPool ? (
+                  <select
+                    className="filter-select"
+                    value={tradeSide}
+                    onChange={(e) => setTradeSide(e.target.value)}
                   >
-                    Buy Yes
-                  </button>
-                  <button
-                    type="button"
-                    className={tradeSide === 'No' ? 'btn-primary' : 'btn-secondary'}
-                    onClick={() => setTradeSide('No')}
-                  >
-                    Buy No
-                  </button>
-                </div>
+                    {(pool.outcomes || marketData.outcomes || []).map((o) => (
+                      <option key={o} value={o}>{o}</option>
+                    ))}
+                  </select>
+                ) : (
+                  <div className="market-detail-side-buttons">
+                    <button
+                      type="button"
+                      className={tradeSide === 'Yes' ? 'btn-primary' : 'btn-secondary'}
+                      onClick={() => setTradeSide('Yes')}
+                    >
+                      Buy Yes
+                    </button>
+                    <button
+                      type="button"
+                      className={tradeSide === 'No' ? 'btn-primary' : 'btn-secondary'}
+                      onClick={() => setTradeSide('No')}
+                    >
+                      Buy No
+                    </button>
+                  </div>
+                )}
               </div>
               <div className="form-group">
                 <label>Amount ({PLATFORM_CURRENCY_SYMBOL})</label>
@@ -382,22 +520,62 @@ export default function MarketDetail() {
                 />
               </div>
               {tradeAmount && parseFloat(tradeAmount) > 0 && pool && (() => {
+                const amt = parseFloat(tradeAmount)
+                if (isActiveMultiPool) {
+                  const poolM = {
+                    outcomeReserves: pool.outcomeReserves || {},
+                    outcomes: pool.outcomes || [],
+                    feeRate: pool.feeRate ?? 0.003,
+                    maxTradeReserveFraction: pool.maxTradeReserveFraction ?? 0.1,
+                  }
+                  const { outputAmount, feeAmount } = getQuoteMulti(poolM, tradeSide, amt)
+                  const withinLimit = isTradeWithinLimitMulti(poolM, tradeSide, outputAmount)
+                  const impact = estimatePriceImpact(poolM, tradeSide, amt, true)
+                  return (
+                    <div className="alert-info market-detail-quote">
+                      <p style={{ margin: 0 }}>
+                        Pay {formatPips(tradeAmount)} → ~{outputAmount.toFixed(2)} {tradeSide} shares
+                        {feeAmount > 0 && ` (fee ${formatPips(feeAmount)})`}
+                      </p>
+                      {impact.before != null && impact.delta != null && impact.delta > 0 && (
+                        <p style={{ margin: '0.35rem 0 0', fontSize: 'var(--font-size-sm)' }}>
+                          Est. price impact on {tradeSide}: ~{(impact.delta * 100).toFixed(2)} pts (implied probability {(impact.before * 100).toFixed(1)}% → {(impact.after * 100).toFixed(1)}%)
+                        </p>
+                      )}
+                      {!withinLimit && (
+                        <p style={{ margin: '0.5rem 0 0', color: 'var(--color-warning)' }}>Reduce amount to stay within limit.</p>
+                      )}
+                    </div>
+                  )
+                }
                 const { outputAmount, feeAmount } = getQuote(
                   { yesReserve: pool.yesReserve ?? 0, noReserve: pool.noReserve ?? 0, feeRate: pool.feeRate ?? 0.003 },
                   tradeSide,
-                  parseFloat(tradeAmount)
+                  amt
                 )
                 const withinLimit = isTradeWithinLimit(
                   { yesReserve: pool.yesReserve ?? 0, noReserve: pool.noReserve ?? 0, maxTradeReserveFraction: pool.maxTradeReserveFraction ?? 0.1 },
                   tradeSide,
                   outputAmount
                 )
+                const poolB = {
+                  yesReserve: pool.yesReserve ?? 0,
+                  noReserve: pool.noReserve ?? 0,
+                  feeRate: pool.feeRate ?? 0.003,
+                  maxTradeReserveFraction: pool.maxTradeReserveFraction ?? 0.1,
+                }
+                const impact = estimatePriceImpact(poolB, tradeSide, amt, false)
                 return (
                   <div className="alert-info market-detail-quote">
                     <p style={{ margin: 0 }}>
                       Pay {formatPips(tradeAmount)} → ~{outputAmount.toFixed(2)} {tradeSide} shares
                       {feeAmount > 0 && ` (fee ${formatPips(feeAmount)})`}
                     </p>
+                    {impact.before != null && impact.delta != null && impact.delta > 0 && (
+                      <p style={{ margin: '0.35rem 0 0', fontSize: 'var(--font-size-sm)' }}>
+                        Est. price impact: ~{(impact.delta * 100).toFixed(2)} pts on {tradeSide} (implied {(impact.before * 100).toFixed(1)}% → {(impact.after * 100).toFixed(1)}%)
+                      </p>
+                    )}
                     {!withinLimit && (
                       <p style={{ margin: '0.5rem 0 0', color: 'var(--color-warning)' }}>Reduce amount to stay within limit.</p>
                     )}
@@ -420,7 +598,7 @@ export default function MarketDetail() {
               <p className="market-detail-orders-hint">Place a limit order. Fills when someone takes the other side (2% fee on settlement).</p>
               {ordersLoading ? (
                 <p className="text-secondary market-detail-orders-loading">
-                  <DiceLoader size="xs" decorative className="market-detail-orders-loading__dice" />
+                  <MultiDiceLoader size="xs" decorative inline className="market-detail-orders-loading__dice" />
                   <span>Loading orders…</span>
                 </p>
               ) : (
@@ -487,7 +665,40 @@ export default function MarketDetail() {
             </div>
           )}
 
-          {marketData.status !== 'Active' && (
+          {marketData.status === 'Settled' && (
+            <div className="card market-detail-settled">
+              <h2 className="market-detail-trade-title">Settlement</h2>
+              <p className="market-detail-oneliner-text">
+                Winning outcome: <strong>{marketData.resolvedOutcome ?? '—'}</strong>
+              </p>
+              {wallet && userPositions.length > 0 && (
+                <div className="market-detail-settled-positions">
+                  <p className="text-secondary" style={{ marginBottom: '0.5rem' }}>Your positions on this market</p>
+                  <ul className="market-detail-order-list">
+                    {userPositions.map((c) => {
+                      const won = marketData.resolvedOutcome && c.payload?.positionType === marketData.resolvedOutcome
+                      return (
+                        <li key={c.contractId}>
+                          {c.payload?.positionType}: {Number(c.payload?.amount ?? 0).toFixed(2)} shares @{' '}
+                          {(Number(c.payload?.price ?? 0) * 100).toFixed(0)}%
+                          {marketData.resolvedOutcome
+                            ? won
+                              ? ' — matched winning outcome'
+                              : ' — did not match winning outcome'
+                            : ''}
+                        </li>
+                      )
+                    })}
+                  </ul>
+                </div>
+              )}
+              <p className="text-muted" style={{ fontSize: 'var(--font-size-sm)', marginTop: '0.75rem' }}>
+                P2P winners are credited per platform rules. Pool-only (AMM) positions may use a separate settlement path — check your Portfolio balance after resolution.
+              </p>
+            </div>
+          )}
+
+          {marketData.status !== 'Active' && marketData.status !== 'Settled' && (
             <div className="card market-detail-closed">
               <p className="text-secondary">This market is {marketData.status?.toLowerCase() || 'closed'}. Trading is disabled.</p>
             </div>

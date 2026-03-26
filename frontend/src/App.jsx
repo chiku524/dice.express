@@ -25,6 +25,7 @@ const Register = lazyWithRetry(() => import('./components/Register'))
 const SplashScreen = lazyWithRetry(() => import('./components/SplashScreen'))
 const DesktopLaunch = lazyWithRetry(() => import('./components/DesktopLaunch'))
 const Download = lazyWithRetry(() => import('./components/Download'))
+const AutomationStatus = lazyWithRetry(() => import('./components/AutomationStatus'))
 const PrivacyPolicy = lazyWithRetry(() => import('./components/PrivacyPolicy'))
 const TermsOfService = lazyWithRetry(() => import('./components/TermsOfService'))
 import { analytics } from './utils/analytics'
@@ -35,6 +36,7 @@ import Navbar from './components/Navbar'
 import Footer from './components/Footer'
 import DesktopSidebar from './components/DesktopSidebar'
 import TauriTrayBridge from './components/TauriTrayBridge'
+import MarketAlertsPoller from './components/MarketAlertsPoller'
 import PageSEO from './components/PageSEO'
 import { ToastContainer } from './components/Toast'
 import { ToastProvider, useToastContext } from './contexts/ToastContext'
@@ -233,7 +235,15 @@ function AppContent() {
               </ProtectedRoute>
             }
           />
-          <Route path="/create" element={<AutomatedMarketsInfo />} />
+            <Route path="/create" element={<AutomatedMarketsInfo />} />
+            <Route
+              path="/automation"
+              element={
+                <Suspense fallback={<LoadingSpinner message="Loading…" />}>
+                  <AutomationStatus />
+                </Suspense>
+              }
+            />
           <Route
             path="/portfolio"
             element={
@@ -265,6 +275,7 @@ function App() {
           <WalletProvider>
             <Web3WalletProvider>
               <TauriTrayBridge />
+              <MarketAlertsPoller />
               <AppContent />
             </Web3WalletProvider>
           </WalletProvider>
