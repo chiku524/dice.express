@@ -69,8 +69,8 @@ export default function Profile() {
     <div className="profile-page">
       <UserHubNav />
       <header className="profile-header">
-        <h1>Profile</h1>
-        <p className="profile-header-desc">Your account details and display name.</p>
+        <h1>Profile &amp; settings</h1>
+        <p className="profile-header-desc">Display name, notifications, and account details.</p>
       </header>
 
       <div className="card profile-card">
@@ -94,8 +94,9 @@ export default function Profile() {
         {saved && <p className="profile-success">Display name updated.</p>}
       </div>
 
-      <div className="card profile-card">
-        <MarketAlertSettings variant="full" />
+      <div className="card profile-card" id="notification-settings">
+        <h2 className="profile-section-title">Notification settings</h2>
+        <MarketAlertSettings />
       </div>
 
       <div className="card profile-card">
@@ -134,6 +135,7 @@ export default function Profile() {
         <div className="profile-actions">
           <Link to="/dashboard" className="btn-primary">Back to Dashboard</Link>
           <Link to="/portfolio" className="btn-secondary">Portfolio</Link>
+          <Link to="/watchlist" className="btn-secondary">Watchlist</Link>
           <button
             type="button"
             className="btn-secondary"

@@ -4,6 +4,7 @@ import './UserHubNav.css'
 const TABS = [
   { path: '/dashboard', label: 'Dashboard' },
   { path: '/portfolio', label: 'Portfolio' },
+  { path: '/watchlist', label: 'Watchlist' },
   { path: '/profile', label: 'Profile' },
 ]
 

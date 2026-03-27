@@ -124,6 +124,7 @@ export default function Dashboard() {
         )}
         <div className="dashboard-quick-links">
           <Link to="/profile" className="dashboard-quick-link primary">Profile & settings</Link>
+          <Link to="/watchlist" className="dashboard-quick-link secondary">Watchlist</Link>
           <Link to="/portfolio" className="dashboard-quick-link secondary">Portfolio & currency exchange</Link>
         </div>
       </div>

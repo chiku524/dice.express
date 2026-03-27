@@ -249,6 +249,16 @@ export default function DesktopSidebar() {
               </li>
               <li>
                 <NavLink
+                  to="/watchlist"
+                  className={({ isActive }) =>
+                    `desktop-sidebar__link ${isActive ? 'desktop-sidebar__link--active' : ''}`
+                  }
+                >
+                  Watchlist
+                </NavLink>
+              </li>
+              <li>
+                <NavLink
                   to="/profile"
                   className={({ isActive }) =>
                     `desktop-sidebar__link ${isActive ? 'desktop-sidebar__link--active' : ''}`

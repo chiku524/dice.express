@@ -208,6 +208,9 @@ export default function Navbar() {
                   {balanceFormatted}
                 </Link>
               )}
+              <Link to="/watchlist" className="nav-watchlist-link" title="Your starred markets">
+                Watchlist
+              </Link>
               <span className="nav-user-name-wrap">
                 <Link to="/dashboard" className="nav-user-name" title={`${wallet.party} — Click copy to copy`}>
                   {wallet.party.length > 16 ? wallet.party.substring(0, 16) + '…' : wallet.party}

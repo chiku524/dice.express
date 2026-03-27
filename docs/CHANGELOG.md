@@ -4,6 +4,12 @@ Summary of major cleanups and improvements. For current structure see [README](.
 
 ---
 
+## 1.0.28 — Watchlist page, alerts in Profile settings (March 2026)
+
+- **Release:** Version **1.0.28**; tag **`v1.0.28`** for desktop CI and GitHub Releases.
+- **UX:** Market alerts UI removed from Discover; **Notification settings** live only under **Profile & settings** (`#notification-settings`).
+- **Watchlist:** Dedicated **`/watchlist`** route (starred markets on device), linked from User hub, desktop sidebar, navbar, and dashboard.
+
 ## 1.0.27 — Multi-outcome markets, P2P-only toggle, alerts, Tauri native notifications (March 2026)
 
 - **Release:** Version **1.0.27**; tag **`v1.0.27`** for desktop CI and GitHub Releases.

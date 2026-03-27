@@ -217,6 +217,7 @@ function AppContent() {
             <Route path="/discover/science" element={<MarketsList source="science" />} />
             <Route path="/discover/virtual-realities" element={<MarketsList source="virtual_realities" />} />
             <Route path="/discover/user" element={<MarketsList source="user" />} />
+            <Route path="/watchlist" element={<MarketsList variant="watchlist" />} />
             <Route path="/market/:marketId" element={<MarketDetail />} />
             <Route path="/account" element={<Navigate to="/dashboard" replace />} />
           <Route

@@ -77,9 +77,14 @@ export const SEO_PAGES = {
     keywords: 'dashboard, balance, positions, prediction markets',
   },
   '/profile': {
-    title: `Profile | ${BASE_TITLE}`,
-    description: 'Manage your dice.express profile and display name. Trade prediction markets with Pips.',
-    keywords: 'profile, account, dice.express',
+    title: `Profile & settings | ${BASE_TITLE}`,
+    description: 'Display name, notification settings, and account details for dice.express.',
+    keywords: 'profile, settings, notifications, account, dice.express',
+  },
+  '/watchlist': {
+    title: `Watchlist — Starred markets | ${BASE_TITLE}`,
+    description: 'Markets you have starred on this device. Configure watchlist alerts in Profile notification settings.',
+    keywords: 'watchlist, starred markets, prediction markets, dice.express',
   },
   '/portfolio': {
     title: `Portfolio — Balance, Deposit & Withdraw Pips | ${BASE_TITLE}`,

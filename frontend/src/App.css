@@ -903,21 +903,6 @@
   transition: all var(--transition-base, 0.2s ease);
 }
 
-.market-alerts-embed {
-  margin-top: var(--spacing-lg, 1.25rem);
-  padding-top: var(--spacing-md, 1rem);
-  border-top: 1px solid rgba(148, 163, 184, 0.12);
-}
-
-.market-alerts--compact .profile-section-title {
-  display: none;
-}
-
-.market-alerts-compact-lead {
-  margin: 0 0 var(--spacing-sm, 0.5rem);
-  font-size: var(--font-size-sm);
-}
-
 .market-alerts-row {
   display: flex;
   flex-wrap: wrap;

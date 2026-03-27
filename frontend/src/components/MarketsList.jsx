@@ -15,7 +15,6 @@ import {
   toggleWatchlist,
   isWatched,
 } from '../utils/marketUX'
-import MarketAlertSettings from './MarketAlertSettings'
 
 const MARKETS_CACHE_KEY = 'dice.markets.cache.v1'
 
@@ -25,7 +24,8 @@ const CATEGORY_TOGGLE_OPTIONS = [
   ...MARKET_CATEGORIES.map((c) => ({ value: c.value, label: c.label })),
 ]
 
-export default function MarketsList({ source: sourceFromRoute }) {
+export default function MarketsList({ source: sourceFromRoute, variant = 'default' }) {
+  const isWatchlistPage = variant === 'watchlist'
   const [markets, setMarkets] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
@@ -45,11 +45,14 @@ export default function MarketsList({ source: sourceFromRoute }) {
   const [quickFilter, setQuickFilter] = useState('all')
   const [fromCacheBanner, setFromCacheBanner] = useState(false)
   const [watchListVersion, setWatchListVersion] = useState(0)
-
   const MARKETS_PER_PAGE = 12
 
   /** Discover routes narrow by source; home (/) shows all sources. */
   const listSourceFilter = sourceFromRoute || 'all'
+
+  useEffect(() => {
+    if (isWatchlistPage) setQuickFilter('watchlist')
+  }, [isWatchlistPage])
 
   // Debounce search query for better performance
   const debouncedSearchQuery = useDebounce(searchQuery, 300)
@@ -79,9 +82,11 @@ export default function MarketsList({ source: sourceFromRoute }) {
     if (selectedTopic !== 'all') count++
     if (selectedType !== 'all') count++
     if (selectedStatus !== 'all') count++
-    if (quickFilter !== 'all') count++
+    const quickCounts =
+      quickFilter !== 'all' && !(isWatchlistPage && quickFilter === 'watchlist')
+    if (quickCounts) count++
     return count
-  }, [debouncedSearchQuery, selectedCategory, selectedTopic, selectedType, selectedStatus, quickFilter])
+  }, [debouncedSearchQuery, selectedCategory, selectedTopic, selectedType, selectedStatus, quickFilter, isWatchlistPage])
 
   useEffect(() => {
     isMountedRef.current = true
@@ -339,10 +344,21 @@ export default function MarketsList({ source: sourceFromRoute }) {
     setCurrentPage(1)
   }, [debouncedSearchQuery, selectedCategory, selectedTopic, selectedType, selectedStatus, sortBy, quickFilter])
 
-  const pageTitle = sourceFromRoute ? getSourceLabel(sourceFromRoute) : 'Prediction Markets'
-  const pageSubtitle = sourceFromRoute
-    ? `Markets from ${getSourceLabel(sourceFromRoute).toLowerCase()}. P2P limit orders match peer-to-peer; pools may have zero liquidity.`
-    : 'Trade with virtual Credits (Pips). P2P limit orders; browse without crypto.'
+  const pageTitle = isWatchlistPage
+    ? 'Watchlist'
+    : sourceFromRoute
+      ? getSourceLabel(sourceFromRoute)
+      : 'Prediction Markets'
+  const pageSubtitle = isWatchlistPage
+    ? (
+      <>
+        Markets you have starred on this device. Turn on watchlist alerts under{' '}
+        <Link to="/profile#notification-settings">Profile → Notification settings</Link>.
+      </>
+    )
+    : sourceFromRoute
+      ? `Markets from ${getSourceLabel(sourceFromRoute).toLowerCase()}. P2P limit orders match peer-to-peer; pools may have zero liquidity.`
+      : 'Trade with virtual Credits (Pips). P2P limit orders; browse without crypto.'
 
   const scrollMarketsListToTop = () => {
     requestAnimationFrame(() => {
@@ -469,28 +485,30 @@ export default function MarketsList({ source: sourceFromRoute }) {
               </div>
             )}
 
-            <div className="markets-quick-filters mb-md" role="group" aria-label="Quick filters">
-              <span className="markets-category-toggles-label">Quick</span>
-              <div className="markets-quick-filters-row">
-                {[
-                  { value: 'all', label: 'All' },
-                  { value: 'outcome_only', label: 'Outcome-based' },
-                  { value: 'new_week', label: 'New (7d)' },
-                  { value: 'high_vol', label: 'Volume 25+' },
-                  { value: 'watchlist', label: 'Watchlist' },
-                ].map((opt) => (
-                  <button
-                    key={opt.value}
-                    type="button"
-                    className={`markets-quick-filter-btn${quickFilter === opt.value ? ' markets-quick-filter-btn--active' : ''}`}
-                    aria-pressed={quickFilter === opt.value}
-                    onClick={() => setQuickFilter(opt.value)}
-                  >
-                    {opt.label}
-                  </button>
-                ))}
+            {!isWatchlistPage && (
+              <div className="markets-quick-filters mb-md" role="group" aria-label="Quick filters">
+                <span className="markets-category-toggles-label">Quick</span>
+                <div className="markets-quick-filters-row">
+                  {[
+                    { value: 'all', label: 'All' },
+                    { value: 'outcome_only', label: 'Outcome-based' },
+                    { value: 'new_week', label: 'New (7d)' },
+                    { value: 'high_vol', label: 'Volume 25+' },
+                    { value: 'watchlist', label: 'Watchlist' },
+                  ].map((opt) => (
+                    <button
+                      key={opt.value}
+                      type="button"
+                      className={`markets-quick-filter-btn${quickFilter === opt.value ? ' markets-quick-filter-btn--active' : ''}`}
+                      aria-pressed={quickFilter === opt.value}
+                      onClick={() => setQuickFilter(opt.value)}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
 
             <div
               className="markets-filters-quick-row"
@@ -619,6 +637,7 @@ export default function MarketsList({ source: sourceFromRoute }) {
                   setSelectedType('all')
                   setSelectedStatus('all')
                   setSortBy('volume')
+                  setQuickFilter(isWatchlistPage ? 'watchlist' : 'all')
                 }}
               >
                 Clear All
@@ -644,10 +663,6 @@ export default function MarketsList({ source: sourceFromRoute }) {
                 No markets match your filters. Try adjusting your criteria.
               </span>
             )}
-          </div>
-
-          <div className="market-alerts-embed">
-            <MarketAlertSettings variant="compact" />
           </div>
         </div>
       )}
@@ -680,11 +695,17 @@ export default function MarketsList({ source: sourceFromRoute }) {
               <div className="empty-state-content">
                 <h3>No markets found</h3>
                 <p>
-                  {sourceFromRoute && sourceFromRoute !== 'active'
-                    ? `No markets in "${getSourceLabel(sourceFromRoute)}" yet. Markets are added automatically — check back soon or browse All Markets.`
-                    : activeFilterCount > 0
-                      ? 'No markets match your current filters. Try adjusting your search criteria.'
-                      : 'No markets available yet. Markets are added automatically — check back soon or try clearing filters.'}
+                  {isWatchlistPage
+                    ? readWatchlist().length === 0
+                      ? 'You have not starred any markets yet. Browse all markets and use the star on a card to add it here.'
+                      : activeFilterCount > 0
+                        ? 'No watched markets match your current filters. Try clearing search or other filters.'
+                        : 'None of your watched markets appear in the current list. They may have been removed, or try refreshing after reconnecting.'
+                    : sourceFromRoute && sourceFromRoute !== 'active'
+                      ? `No markets in "${getSourceLabel(sourceFromRoute)}" yet. Markets are added automatically — check back soon or browse All Markets.`
+                      : activeFilterCount > 0
+                        ? 'No markets match your current filters. Try adjusting your search criteria.'
+                        : 'No markets available yet. Markets are added automatically — check back soon or try clearing filters.'}
                 </p>
                 <Link to="/">
                   <button className="btn-primary mt-md" style={{ marginRight: 'var(--spacing-sm)' }}>
@@ -701,7 +722,7 @@ export default function MarketsList({ source: sourceFromRoute }) {
                       setSelectedType('all')
                       setSelectedStatus('all')
                       setSortBy('volume')
-                      setQuickFilter('all')
+                      setQuickFilter(isWatchlistPage ? 'watchlist' : 'all')
                     }}
                   >
                     Clear All Filters

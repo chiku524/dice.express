@@ -15,7 +15,10 @@ import {
   isTauriApp,
 } from '../utils/marketAlerts'
 
-export default function MarketAlertSettings({ variant = 'full' }) {
+/**
+ * Notification preferences (Profile → Notification settings only).
+ */
+export default function MarketAlertSettings() {
   const { showToast } = useToastContext()
   const publicCfg = usePublicConfig()
   const [prefs, setPrefs] = useState(readAlertPrefs)
@@ -59,28 +62,15 @@ export default function MarketAlertSettings({ variant = 'full' }) {
     }
   }
 
-  const compact = variant === 'compact'
   const noAlertTypes = !prefs.notifyNewMarkets && !prefs.notifyWatchlist
 
   return (
-    <div className={compact ? 'market-alerts market-alerts--compact' : 'market-alerts'}>
-      {!compact && (
-        <>
-          <h2 className="profile-section-title" id="market-alerts-section">
-            Market alerts
-          </h2>
-          <p className="profile-hint">
-            {isTauriApp()
-              ? 'Native OS notifications when new markets appear or a watchlist market changes status (via the Tauri notification plugin). Preferences stay on this device — no account server required.'
-              : 'Browser notifications when new markets appear or a watchlist market changes status. Everything stays in this browser — no account server required. For SMS, the operator must wire Twilio (or similar) on the API.'}
-          </p>
-        </>
-      )}
-      {compact && (
-        <p className="market-alerts-compact-lead text-secondary">
-          {isTauriApp() ? 'Native OS alerts (saved on this device)' : 'Desktop notifications (saved in this browser)'}
-        </p>
-      )}
+    <div className="market-alerts">
+      <p className="profile-hint" style={{ marginTop: 0 }}>
+        {isTauriApp()
+          ? 'Native OS notifications when new markets appear or a watchlist market changes status (Tauri notification plugin). Saved on this device only — not synced to your account.'
+          : 'Browser notifications for new markets and watchlist status changes. Saved in this browser only. SMS requires operator Twilio (or similar) on the API.'}
+      </p>
 
       <div className="market-alerts-row">
         {!prefs.desktopEnabled ? (
@@ -161,13 +151,11 @@ export default function MarketAlertSettings({ variant = 'full' }) {
         </>
       )}
 
-      {!compact && (
-        <p className="text-muted mt-md" style={{ fontSize: 'var(--font-size-sm)' }}>
-          {publicCfg.smsAlertsAvailable
-            ? 'SMS is configured on the server but not exposed in this UI yet — use desktop alerts for now.'
-            : 'Phone/SMS is not configured on this deployment; desktop notifications are the supported channel.'}
-        </p>
-      )}
+      <p className="text-muted mt-md" style={{ fontSize: 'var(--font-size-sm)' }}>
+        {publicCfg.smsAlertsAvailable
+          ? 'SMS is configured on the server but not exposed in this UI yet — use desktop alerts for now.'
+          : 'Phone/SMS is not configured on this deployment; desktop notifications are the supported channel.'}
+      </p>
     </div>
   )
 }
