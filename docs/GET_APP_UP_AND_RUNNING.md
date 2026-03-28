@@ -91,6 +91,7 @@ See **`PIPS_DEPOSIT_WITHDRAW_FLOW.md`** (§8–§9) for crypto verification and 
 ## 9. Resolution
 
 - **Resolving markets:** Call `POST /api/resolve-markets` (cron or manual) to resolve due markets and settle winners (2% fee). Run periodically (e.g. hourly or daily).
+- **Custom news (`operator_manual`) markets:** After **`resolutionDeadline`**, the same endpoint can settle **Yes** / **No** from news heuristics or **`Void`** with stake refunds if still ambiguous. Optional Pages env **`OPERATOR_MANUAL_RESOLVE_BEFORE_DEADLINE`**. See **`OPERATOR_MANUAL_RESOLUTION.md`**.
 
 ---
 
@@ -118,7 +119,7 @@ Quick reference for what’s done, what’s not, and what controls behavior. For
 
 - **Creation:** Call `POST /api/auto-markets` with **`{ "action": "seed_all", "sources": [...] }`** (or **`seed`** + **`source`**) using keys in **`AUTO_MARKET_SOURCES`** (`functions/lib/data-sources.mjs`). No UI for end-user creation; `/create` explains automation.
 - **Scheduler:** **`workers/auto-markets-cron`** is a Cloudflare Worker with an hourly Cron Trigger; it posts **`seed_all`** to **`SITE_URL`** (default **`https://dice.express`**) then **`resolve-markets`**. Optional **`AUTO_MARKETS_CRON_SECRET`** on Pages + Worker protects seeding.
-- **Resolution:** Markets resolve when their underlying event has a verdict. Call `POST /api/resolve-markets` (from a cron or manually). See **`ORACLE_STRATEGY.md`** and **`AUTO_MARKETS.md`**.
+- **Resolution:** Markets resolve when their underlying event has a verdict (or, for **operator-manual** custom news markets, when the deadline passes and automation applies). Call `POST /api/resolve-markets` (from a cron or manually). See **`ORACLE_STRATEGY.md`**, **`AUTO_MARKETS.md`**, and **`OPERATOR_MANUAL_RESOLUTION.md`**.
 
 ### 11.3 Suggested next engineering steps
 

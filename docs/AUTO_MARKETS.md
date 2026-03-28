@@ -44,6 +44,18 @@ Default: **every hour** (`0 * * * *`). Each run (1) seeds new markets, then (2) 
 
 Edit `workers/auto-markets-cron/wrangler.toml` → `[triggers]` → `crons` to change cadence (e.g. `*/30 * * * *` for twice hourly).
 
+### Operator-manual (custom news) markets
+
+Enriched news markets (**election**, **Olympics**, **conflict**, FDA, courts, etc.) use **`oracleSource: operator_manual`**. They resolve when **`POST /api/resolve-markets`** runs **after `resolutionDeadline`** (or earlier if you enable the flag below). Resolution uses **news search + headline heuristics**; if the outcome is still unclear at the deadline, the market settles **`Void`** and **refunds stakes** per position rules.
+
+**Pages env (optional):**
+
+| Variable | Purpose |
+|----------|---------|
+| **`OPERATOR_MANUAL_RESOLVE_BEFORE_DEADLINE`** | Set to **`1`** or **`true`** to allow **Yes**/**No** resolution **before** the deadline once the market is **≥ 6 hours** old (still requires **`oracleConfig.customType`**). |
+
+Full behavior, settlement details, and code pointers: **`docs/OPERATOR_MANUAL_RESOLUTION.md`**.
+
 ---
 
 ## API keys on the Pages project

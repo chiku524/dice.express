@@ -14,6 +14,7 @@ import { useWeb3Wallet } from '../contexts/Web3WalletContext'
 import { ContractStorage } from '../utils/contractStorage'
 import { SkeletonList } from './SkeletonLoader'
 import MultiDiceLoader from './MultiDiceLoader'
+import LoadingDiceProgress from './LoadingDiceProgress'
 import SubmitDiceLabel from './SubmitDiceLabel'
 import UserHubNav from './UserHubNav'
 import ErrorState from './ErrorState'
@@ -338,7 +339,12 @@ export default function Portfolio() {
           <p className="portfolio-header-desc">Balance, positions, deposit & withdraw.</p>
         </header>
         <div className="portfolio-loading-dice">
-          <MultiDiceLoader size="md" label="Loading portfolio…" sublabel="Balance, positions, and activity." />
+          <LoadingDiceProgress
+            size="md"
+            message="Loading portfolio…"
+            sublabel="Balance, positions, and activity."
+            progressSteps={['Rolling the dice…', 'Loading balances…', 'Fetching positions…', 'Almost ready…']}
+          />
         </div>
         <SkeletonList count={3} />
       </div>

@@ -7,6 +7,20 @@
 
 const NEWS_SOURCES = new Set(['gnews', 'perigon', 'newsapi_ai', 'newsdata_io'])
 
+/** Original feed id + query for automated operator_manual resolution (news search). */
+function operatorSeedMeta(ev, queryParts) {
+  const seedQuery = queryParts
+    .filter(Boolean)
+    .join(' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, 220)
+  return {
+    seedNewsSource: NEWS_SOURCES.has(ev.source) ? ev.source : undefined,
+    seedQuery: seedQuery || String(ev.title || '').slice(0, 200),
+  }
+}
+
 /** Known US presidential election dates (election day). */
 const ELECTION_DEADLINES = {
   2024: '2024-11-05T23:59:59.000Z',
@@ -280,6 +294,7 @@ export function enrichNewsEvent(ev, options = {}) {
     const title = `Will ${who} win the ${electionName}?`
     const resolutionCriteria = `Yes if ${who} is certified or officially declared winner of the ${electionName} by major outlets (e.g. AP, Reuters) or official certification.`
     const oneLiner = `${who} wins ${electionName}; otherwise No.`
+    const sm = operatorSeedMeta(ev, [who, electionName, String(year), rawTitle])
     return {
       ...ev,
       id: stableArticleId,
@@ -293,6 +308,7 @@ export function enrichNewsEvent(ev, options = {}) {
       resolutionDeadline: deadline,
       endDate: deadline.slice(0, 10),
       customType: 'election',
+      seedNewsSource: sm.seedNewsSource,
       oracleConfig: {
         ...(ev.oracleConfig || {}),
         customType: 'election',
@@ -301,6 +317,7 @@ export function enrichNewsEvent(ev, options = {}) {
         electionYear: year,
         electionTier: tier,
         electionEntitySlug: entSlug,
+        ...sm,
       },
     }
   }
@@ -318,6 +335,7 @@ export function enrichNewsEvent(ev, options = {}) {
       : `Will ${shortHeadline} be confirmed by end of ${year} Olympics?`
     const resolutionCriteria = `Yes if the outcome is confirmed by end of the ${year} Olympics per official results or major news.`
     const oneLiner = `Outcome confirmed by end of ${year} Olympics; otherwise No.`
+    const sm = operatorSeedMeta(ev, [shortHeadline, String(year), 'Olympics', rawTitle])
     return {
       ...ev,
       id: stableArticleId,
@@ -331,6 +349,7 @@ export function enrichNewsEvent(ev, options = {}) {
       resolutionDeadline: deadline,
       endDate: deadline.slice(0, 10),
       customType: 'olympics',
+      seedNewsSource: sm.seedNewsSource,
       oracleConfig: {
         ...(ev.oracleConfig || {}),
         customType: 'olympics',
@@ -338,6 +357,7 @@ export function enrichNewsEvent(ev, options = {}) {
         seedHeadline: rawTitle,
         olympicsYear: year,
         olympicsSubtopic: olySub,
+        ...sm,
       },
     }
   }
@@ -354,6 +374,7 @@ export function enrichNewsEvent(ev, options = {}) {
     const title = `Will the ${conflict} end by ${ym}?`
     const resolutionCriteria = `Yes if a formal ceasefire or peace agreement is announced, or major combat is widely reported over for ${conflict}, per major news (e.g. AP, Reuters).`
     const oneLiner = `Ceasefire or end of major combat for ${conflict} by deadline; otherwise No.`
+    const sm = operatorSeedMeta(ev, [conflict, ym, 'ceasefire', rawTitle])
     return {
       ...ev,
       id: stableArticleId,
@@ -367,6 +388,7 @@ export function enrichNewsEvent(ev, options = {}) {
       resolutionDeadline: deadline,
       endDate: deadline.slice(0, 10),
       customType: 'conflict',
+      seedNewsSource: sm.seedNewsSource,
       oracleConfig: {
         ...(ev.oracleConfig || {}),
         customType: 'conflict',
@@ -375,6 +397,7 @@ export function enrichNewsEvent(ev, options = {}) {
         conflictSlug: slug,
         conflictDeadlineYm: ym,
         dedupeKey,
+        ...sm,
       },
     }
   }
@@ -387,6 +410,7 @@ export function enrichNewsEvent(ev, options = {}) {
     const stableArticleId = `fda-drug-op-${ym}`
     const title = `Will the FDA regulatory outcome described in this news thread be confirmed by ${deadline.slice(0, 10)}?`
     const resolutionCriteria = `Yes if FDA approval, clearance, rejection, or formal action matching the headline is confirmed by FDA communications or major outlets (e.g. AP, Reuters). Otherwise No.`
+    const sm = operatorSeedMeta(ev, ['FDA', rawTitle, ym])
     return {
       ...ev,
       id: stableArticleId,
@@ -400,12 +424,14 @@ export function enrichNewsEvent(ev, options = {}) {
       resolutionDeadline: deadline,
       endDate: deadline.slice(0, 10),
       customType: 'fda_drug',
+      seedNewsSource: sm.seedNewsSource,
       oracleConfig: {
         ...(ev.oracleConfig || {}),
         customType: 'fda_drug',
         outcomeResolutionKind: 'operator_manual',
         seedHeadline: rawTitle,
         operatorDedupeYm: ym,
+        ...sm,
       },
     }
   }
@@ -422,6 +448,7 @@ export function enrichNewsEvent(ev, options = {}) {
     const stableArticleId = `court-op-${ym}`
     const title = `Will the court outcome referenced in this headline be confirmed by ${deadline.slice(0, 10)}?`
     const resolutionCriteria = `Yes if the decision or order described is issued and reported by official court sources or major outlets. Otherwise No.`
+    const sm = operatorSeedMeta(ev, ['Supreme Court', 'court', rawTitle, ym])
     return {
       ...ev,
       id: stableArticleId,
@@ -435,12 +462,14 @@ export function enrichNewsEvent(ev, options = {}) {
       resolutionDeadline: deadline,
       endDate: deadline.slice(0, 10),
       customType: 'court',
+      seedNewsSource: sm.seedNewsSource,
       oracleConfig: {
         ...(ev.oracleConfig || {}),
         customType: 'court',
         outcomeResolutionKind: 'operator_manual',
         seedHeadline: rawTitle,
         operatorDedupeYm: ym,
+        ...sm,
       },
     }
   }
@@ -457,6 +486,7 @@ export function enrichNewsEvent(ev, options = {}) {
     const stableArticleId = `legislation-op-${ym}`
     const title = `Will the legislative outcome described in this headline occur by ${deadline.slice(0, 10)}?`
     const resolutionCriteria = `Yes if the bill or action described becomes law, fails a decisive vote, or is vetoed as claimed, per Congress.gov / official sources or major outlets. Otherwise No.`
+    const sm = operatorSeedMeta(ev, ['Congress', 'Senate', 'House', rawTitle, ym])
     return {
       ...ev,
       id: stableArticleId,
@@ -470,12 +500,14 @@ export function enrichNewsEvent(ev, options = {}) {
       resolutionDeadline: deadline,
       endDate: deadline.slice(0, 10),
       customType: 'legislation',
+      seedNewsSource: sm.seedNewsSource,
       oracleConfig: {
         ...(ev.oracleConfig || {}),
         customType: 'legislation',
         outcomeResolutionKind: 'operator_manual',
         seedHeadline: rawTitle,
         operatorDedupeYm: ym,
+        ...sm,
       },
     }
   }
@@ -491,6 +523,7 @@ export function enrichNewsEvent(ev, options = {}) {
     const stableArticleId = `mna-ipo-op-${ym}`
     const title = `Will the corporate transaction referenced in this headline close or price as described by ${deadline.slice(0, 10)}?`
     const resolutionCriteria = `Yes if the deal, listing, or transaction outcome matches the headline’s claim per SEC filings, exchange notices, or major outlets. Otherwise No.`
+    const sm = operatorSeedMeta(ev, ['merger', 'IPO', 'acquisition', rawTitle, ym])
     return {
       ...ev,
       id: stableArticleId,
@@ -504,12 +537,14 @@ export function enrichNewsEvent(ev, options = {}) {
       resolutionDeadline: deadline,
       endDate: deadline.slice(0, 10),
       customType: 'mna_ipo',
+      seedNewsSource: sm.seedNewsSource,
       oracleConfig: {
         ...(ev.oracleConfig || {}),
         customType: 'mna_ipo',
         outcomeResolutionKind: 'operator_manual',
         seedHeadline: rawTitle,
         operatorDedupeYm: ym,
+        ...sm,
       },
     }
   }
@@ -527,6 +562,7 @@ export function enrichNewsEvent(ev, options = {}) {
     const stableArticleId = `macro-data-op-${ym}`
     const title = `Will the macroeconomic print referenced in this headline match the direction implied (vs prior / consensus) by ${deadline.slice(0, 10)}?`
     const resolutionCriteria = `Yes if the official release (BLS, BEA, or primary source) plus major coverage support the headline’s implied surprise direction. Operator applies published rubric. Otherwise No.`
+    const sm = operatorSeedMeta(ev, ['CPI', 'jobs', 'GDP', 'inflation', rawTitle, ym])
     return {
       ...ev,
       id: stableArticleId,
@@ -540,12 +576,14 @@ export function enrichNewsEvent(ev, options = {}) {
       resolutionDeadline: deadline,
       endDate: deadline.slice(0, 10),
       customType: 'macro_data',
+      seedNewsSource: sm.seedNewsSource,
       oracleConfig: {
         ...(ev.oracleConfig || {}),
         customType: 'macro_data',
         outcomeResolutionKind: 'operator_manual',
         seedHeadline: rawTitle,
         operatorDedupeYm: ym,
+        ...sm,
       },
     }
   }
@@ -558,6 +596,7 @@ export function enrichNewsEvent(ev, options = {}) {
     const stableArticleId = `fed-operator-op-${ym}`
     const title = `Will Federal Reserve policy developments match the headline’s implication by ${deadline.slice(0, 10)}?`
     const resolutionCriteria = `Yes if FOMC actions, statements, and subsequent market-standard interpretation align with the headline’s implied path (cut/hike/hold) per FOMC materials and major outlets. Operator-settled.`
+    const sm = operatorSeedMeta(ev, ['Federal Reserve', 'FOMC', 'interest rates', rawTitle, ym])
     return {
       ...ev,
       id: stableArticleId,
@@ -571,12 +610,14 @@ export function enrichNewsEvent(ev, options = {}) {
       resolutionDeadline: deadline,
       endDate: deadline.slice(0, 10),
       customType: 'fed_operator',
+      seedNewsSource: sm.seedNewsSource,
       oracleConfig: {
         ...(ev.oracleConfig || {}),
         customType: 'fed_operator',
         outcomeResolutionKind: 'operator_manual',
         seedHeadline: rawTitle,
         operatorDedupeYm: ym,
+        ...sm,
       },
     }
   }
@@ -592,6 +633,7 @@ export function enrichNewsEvent(ev, options = {}) {
     const stableArticleId = `summit-op-${ym}`
     const title = `Will the diplomatic outcome suggested in this headline materialize by ${deadline.slice(0, 10)}?`
     const resolutionCriteria = `Yes if the agreement, meeting, or ceasefire described is confirmed by official communiqués or major outlets. Otherwise No.`
+    const sm = operatorSeedMeta(ev, ['G7', 'G20', 'NATO', 'summit', 'diplomatic', rawTitle, ym])
     return {
       ...ev,
       id: stableArticleId,
@@ -605,12 +647,14 @@ export function enrichNewsEvent(ev, options = {}) {
       resolutionDeadline: deadline,
       endDate: deadline.slice(0, 10),
       customType: 'summit',
+      seedNewsSource: sm.seedNewsSource,
       oracleConfig: {
         ...(ev.oracleConfig || {}),
         customType: 'summit',
         outcomeResolutionKind: 'operator_manual',
         seedHeadline: rawTitle,
         operatorDedupeYm: ym,
+        ...sm,
       },
     }
   }
@@ -628,6 +672,7 @@ export function enrichNewsEvent(ev, options = {}) {
     const stableArticleId = `tech-antitrust-${co}-${ym}`
     const title = `Will the regulatory or antitrust outcome referenced in this headline be confirmed by ${deadline.slice(0, 10)}?`
     const resolutionCriteria = `Yes if the enforcement action, ruling, or settlement described is finalized per agencies, courts, or major outlets. Otherwise No.`
+    const sm = operatorSeedMeta(ev, [co, 'antitrust', 'regulatory', rawTitle, ym])
     return {
       ...ev,
       id: stableArticleId,
@@ -641,6 +686,7 @@ export function enrichNewsEvent(ev, options = {}) {
       resolutionDeadline: deadline,
       endDate: deadline.slice(0, 10),
       customType: 'tech_antitrust',
+      seedNewsSource: sm.seedNewsSource,
       oracleConfig: {
         ...(ev.oracleConfig || {}),
         customType: 'tech_antitrust',
@@ -648,6 +694,7 @@ export function enrichNewsEvent(ev, options = {}) {
         seedHeadline: rawTitle,
         techAntitrustTarget: co,
         operatorDedupeYm: ym,
+        ...sm,
       },
     }
   }

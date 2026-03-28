@@ -75,6 +75,14 @@ export async function fetchPublicConfig() {
 }
 
 /** Public automation / policy probe (no secrets). */
+/**
+ * @returns {Promise<{
+ *   resolveQueueSummary?: { dueCount: number, dueSample: Array<Record<string, unknown>> },
+ *   automationHeartbeat?: Record<string, unknown>,
+ *   keysPresent?: Record<string, boolean>,
+ *   [k: string]: unknown
+ * }>}
+ */
 export async function fetchAutoMarketsProbe() {
   const res = await fetch(`${apiUrl('auto-markets')}?action=probe`)
   if (!res.ok) throw new Error('Probe failed')

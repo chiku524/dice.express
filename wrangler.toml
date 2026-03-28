@@ -65,7 +65,8 @@ PLATFORM_WALLET_SOL = "6aJHBVSm5cxbYjsjFudoP1gZ3Ni3oMJcaN3ni5fpz3kz"
 # PLATFORM_WALLET_DOGE_XPUB = "xpub6..."
 
 # API keys for automated prediction markets (set via Cloudflare dashboard or: npx wrangler pages secret put <KEY> --project-name=dice-express)
-# ALPHA_VANTAGE_API_KEY, COINGECKO_API_KEY, THE_ODDS_API_KEY, OPENWEATHER_API_KEY, WEATHERAPI_API_KEY,
+# ALPHA_VANTAGE_API_KEY, COINGECKO_API_KEY, THE_ODDS_API_KEY, THE_ODDS_API_KEY_FALLBACK (optional spare Odds key),
+# OPENWEATHER_API_KEY, WEATHERAPI_API_KEY,
 # GNEWS_API_KEY, PERIGON_API_KEY, NEWSAPI_AI_KEY, NEWSDATA_API_KEY, FRED_API_KEY, FINNHUB_API_KEY,
 # FEC_API_KEY, OPENFEC_API_KEY, DATA_GOV_API_KEY (shared fallback for FEC/NASA/Congress when service keys unset),
 # BLS_API_KEY (BLS only — not api.data.gov; register at data.bls.gov), NASA_API_KEY, CONGRESS_GOV_API_KEY, CONGRESS_GOV_CONGRESS (optional session number),
@@ -75,3 +76,6 @@ PLATFORM_WALLET_SOL = "6aJHBVSm5cxbYjsjFudoP1gZ3Ni3oMJcaN3ni5fpz3kz"
 # AUTO_MARKETS_CRON_SECRET (optional; if set, same value required on Pages for POST seed — cron Worker sends X-Cron-Secret)
 # PRIVILEGED_API_SECRET (optional; if set with or without cron secret, POST add-credits, update-user-balance, store-contract,
 #   create-position, resolve-markets require X-Privileged-Secret or matching X-Cron-Secret — cron Worker sends both when configured)
+# OPERATOR_MANUAL_RESOLVE_BEFORE_DEADLINE (optional; Pages — early resolve for operator_manual customType after 6h age)
+# OPERATOR_MANUAL_NEWS_MIN_INTERVAL_MS (optional; Pages — min ms between pre-deadline news fetches per market; default 21600000)
+# P2P-first: DISABLE_AMM_TRADE=1 and AUTO_MARKETS_ZERO_LIQUIDITY=1 (below) until you accept AMM pool risk / are profitable.

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { fetchAutoMarketsProbe } from '../services/marketsApi'
 import { Link } from 'react-router-dom'
+import LoadingDiceProgress from './LoadingDiceProgress'
 import './AutomationStatus.css'
 
 /** Public view of last automation ticks (from GET /api/auto-markets?action=probe). */
@@ -29,6 +30,7 @@ export default function AutomationStatus() {
 
   const hb = data?.automationHeartbeat
   const lastSeed = data?.lastSeed
+  const rq = data?.resolveQueueSummary
 
   const appVersion =
     typeof import.meta !== 'undefined' && import.meta.env?.VITE_APP_VERSION
@@ -46,7 +48,16 @@ export default function AutomationStatus() {
       </div>
 
       <div className="card automation-status-card">
-        {loading && <p className="text-secondary">Loading…</p>}
+        {loading && (
+          <div className="automation-status-loading">
+            <LoadingDiceProgress
+              size="sm"
+              message="Loading automation snapshot…"
+              sublabel="Public probe from the API."
+              progressSteps={['Rolling the dice…', 'Querying probe…', 'Parsing status…']}
+            />
+          </div>
+        )}
         {err && <p className="text-error">{err}</p>}
         {!loading && !err && data && (
           <dl className="automation-status-dl">
@@ -75,6 +86,39 @@ export default function AutomationStatus() {
                 <pre className="automation-status-pre">{JSON.stringify(hb, null, 2)}</pre>
               ) : (
                 'No row yet — runs after next successful seed / resolve on deployed API'
+              )}
+            </dd>
+            <dt>Markets due for resolution (sample)</dt>
+            <dd>
+              {rq ? (
+                <>
+                  <strong>{rq.dueCount ?? 0}</strong> market(s) currently pass the due filter (same as{' '}
+                  <code>POST /api/resolve-markets</code>). Sample (up to 25):
+                  {Array.isArray(rq.dueSample) && rq.dueSample.length > 0 ? (
+                    <ul className="automation-status-resolve-queue">
+                      {rq.dueSample.map((row) => (
+                        <li key={row.marketId}>
+                          <code>{row.marketId}</code>
+                          {row.title ? ` — ${String(row.title).slice(0, 80)}${String(row.title).length > 80 ? '…' : ''}` : ''}
+                          {row.resolutionDeadline ? (
+                            <span className="text-secondary"> · deadline {String(row.resolutionDeadline).slice(0, 16)}</span>
+                          ) : null}
+                          {row.customType ? (
+                            <span className="text-secondary"> · {row.customType}</span>
+                          ) : null}
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className="text-secondary">None in sample (queue empty or all outside first 25).</p>
+                  )}
+                  <p className="text-secondary" style={{ marginTop: '0.5rem' }}>
+                    Ops dry-run (no writes): <code>POST /api/resolve-markets-preview</code> with the same secrets as{' '}
+                    <code>resolve-markets</code>. See <code>docs/API.md</code>.
+                  </p>
+                </>
+              ) : (
+                '—'
               )}
             </dd>
             <dt>API keys present (names only)</dt>

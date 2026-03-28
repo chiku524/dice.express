@@ -7,7 +7,7 @@ A prediction markets platform powered by **Pips**. Users deposit (crypto) to get
 - **Pips**: Platform currency. Deposit → receive Pips → trade → withdraw (fee applies).
 - **Markets**: Created via API; filter by source (global_events, industry, user, etc.).
 - **P2P**: Place orders (buy/sell Yes or No); when two orders match, positions are created and settlement pays winners (2% fee). `GET /api/orders?marketId=`, `POST /api/orders`.
-- **AMM**: Optional; in `functions/lib/amm.mjs`. Disable with `DISABLE_AMM_TRADE=1` for P2P-only.
+- **AMM**: Optional; in `functions/lib/amm.mjs`. **Production config keeps P2P-first:** `DISABLE_AMM_TRADE=1` and `AUTO_MARKETS_ZERO_LIQUIDITY=1` in `wrangler.toml` until you accept pool risk (e.g. after revenue). Settlement code still pays **AMM** winners when trading is re-enabled.
 - **Prediction styles**: Yes/No, True/False, Happens/Doesn't, Multi-outcome.
 - **Account**: Sign in; balance and positions in D1.
 
@@ -71,4 +71,6 @@ npm install
 - `docs/CLOUDFLARE.md` — Deploy to Cloudflare Pages, D1/R2/KV storage
 - `docs/PIPS_DEPOSIT_WITHDRAW_FLOW.md` — Deposit (crypto) → Pips → withdraw (fee)
 - `docs/PREDICTION_MARKETS.md` — Prediction styles, free/cheap APIs, automated market creation
+- `docs/OPERATOR_MANUAL_RESOLUTION.md` — Operator-manual automation, preview API, settlement idempotency
+- `docs/OPERATOR_MANUAL_TUNING.md` — Regex / seedQuery tuning playbook
 - `docs/P2P_AND_GROWTH_STRATEGY.md` — P2P-only mode and growth from zero

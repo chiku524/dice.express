@@ -16,6 +16,8 @@
 - **[VIRTUAL_CURRENCY_AND_MULTICHAIN.md](./VIRTUAL_CURRENCY_AND_MULTICHAIN.md)** – Credits, deposits/withdrawals, multi-chain
 - **[PREDICTION_MARKETS.md](./PREDICTION_MARKETS.md)** – Prediction styles, topics/APIs (free & cheap), automated market creation
 - **[ORACLE_STRATEGY.md](./ORACLE_STRATEGY.md)** – Oracles by category; automated resolution; Phase 2 roadmap (political / multi-oracle)
+- **[OPERATOR_MANUAL_RESOLUTION.md](./OPERATOR_MANUAL_RESOLUTION.md)** – Custom news (`operator_manual`) markets: deadlines, inference, **Void** refunds, **`resolve-markets-preview`**, probe queue, cron
+- **[OPERATOR_MANUAL_TUNING.md](./OPERATOR_MANUAL_TUNING.md)** – Tuning playbook (regex, **`seedQuery`**, staging)
 
 ## API & Implementation
 

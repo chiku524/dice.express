@@ -91,7 +91,15 @@ function AuthLayout({ children }) {
     <>
       <AnimatedBackground />
       <div className="app app--auth">
-        <Suspense fallback={<LoadingSpinner message="Loading..." />}>
+        <Suspense
+          fallback={
+            <LoadingSpinner
+              message="Loading…"
+              sublabel="Preparing this screen."
+              progressSteps={['Rolling the dice…', 'Loading module…', 'Almost ready…']}
+            />
+          }
+        >
           {children}
         </Suspense>
       </div>
@@ -106,7 +114,15 @@ function RootLayout({ showWalletModal, setShowWalletModal }) {
 
   const outlet = (
     <AccountModalProvider open={() => setShowWalletModal(true)}>
-      <Suspense fallback={<LoadingSpinner message="Loading..." />}>
+      <Suspense
+        fallback={
+          <LoadingSpinner
+            message="Loading…"
+            sublabel="Preparing this screen."
+            progressSteps={['Rolling the dice…', 'Loading module…', 'Almost ready…']}
+          />
+        }
+      >
         <div
           key={location.pathname}
           className={isTauri ? 'desktop-main-inner desktop-route-enter' : undefined}
@@ -240,7 +256,15 @@ function AppContent() {
             <Route
               path="/automation"
               element={
-                <Suspense fallback={<LoadingSpinner message="Loading…" />}>
+                <Suspense
+                  fallback={
+                    <LoadingSpinner
+                      message="Loading…"
+                      sublabel="Opening automation status."
+                      progressSteps={['Rolling the dice…', 'Loading module…', 'Almost ready…']}
+                    />
+                  }
+                >
                   <AutomationStatus />
                 </Suspense>
               }

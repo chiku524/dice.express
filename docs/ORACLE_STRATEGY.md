@@ -33,11 +33,11 @@ Prediction styles (binary, multi-outcome, **scalar buckets**, **conditional** Ye
 | `congress_gov` | Bill feed count | `CONGRESS_GOV_API_KEY` or `DATA_GOV_API_KEY` |
 | `bls` | CPI / series | `BLS_API_KEY` |
 | `gnews`, `perigon`, `newsapi_ai`, `newsdata_io` | News / headline rules | Per-provider keys |
-| `operator_manual` | Never auto-resolves | Manual only |
+| `operator_manual` | Custom news (**`customType`** binary; **MultiOutcome** uses label scoring) | News search + heuristics → **Yes** / **No** / winning outcome string / **Void**. Throttle: **`OPERATOR_MANUAL_NEWS_MIN_INTERVAL_MS`**. See **`docs/OPERATOR_MANUAL_RESOLUTION.md`**. |
 
 **Probe which keys are set (booleans only):** `GET /api/auto-markets?action=probe` → `keysPresent`.
 
-**Related docs:** `docs/PREDICTION_MARKETS.md`, `docs/AUTO_MARKETS.md`.
+**Related docs:** `docs/PREDICTION_MARKETS.md`, `docs/AUTO_MARKETS.md`, `docs/OPERATOR_MANUAL_RESOLUTION.md` (operator-manual / **`customType`** markets).
 
 ---
 

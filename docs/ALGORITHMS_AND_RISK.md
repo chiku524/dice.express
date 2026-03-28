@@ -29,7 +29,7 @@ So: **algorithms** = rule-based event building + trend thresholds + oracle resol
 
 - Each new market gets a **liquidity pool** with **1000 Yes / 1000 No** (or another amount you configure). That liquidity is created by the **platform** when the market is created.
 - Users trade **against the pool** via `POST /api/trade`. The **platform is the counterparty** (the pool pays out the other side).
-- **Settlement:** When a market resolves, the code pays out only to positions that have a **counterparty** (P2P-matched positions with `counterpartyPositionId`). Positions created by **AMM trades do not have a counterparty** in the current design, so **AMM winners are not paid by the resolve-markets job** unless you add logic to pay them from the pool (which would be the platform paying — i.e. platform risk).
+- **Settlement:** **`settleVirtualMarketPositions`** credits **P2P** winners (`counterpartyPositionId` set) at **`2 × amount × (1 − fee)`** and **AMM / pool-only** winners at **`amount × (1 − fee)`** per share. **Void** refunds stakes. Credits are **idempotent** (`settlementCreditedAt` on each position). With **`DISABLE_AMM_TRADE=1`**, users do not open new AMM positions; existing AMM positions would still settle if any remain. Paying AMM winners credits **user balances** from the platform’s obligation to honor shares — pool **reserves** are not automatically debited in this path; treat AMM re-enable as inventory / risk management (see **P2P_AND_GROWTH_STRATEGY.md**).
 
 So today:
 

@@ -4,6 +4,28 @@ Summary of major cleanups and improvements. For current structure see [README](.
 
 ---
 
+## 1.0.29 — Odds API fallback key, operator-manual hardening, docs & UI (March 2026)
+
+- **Release:** Version **1.0.29**; tag **`v1.0.29`** for desktop CI and GitHub Releases.
+- **Sports:** Optional **`THE_ODDS_API_KEY_FALLBACK`** on Pages — The Odds API calls retry with the fallback key on quota/auth errors (seeding and scores); **`GET .../auto-markets?action=probe`** reports whether the fallback is set.
+- **Operator-manual:** **`functions/lib/operator-manual-resolve.mjs`**, **`tests/operator-manual-resolve.test.mjs`**, **`docs/OPERATOR_MANUAL_RESOLUTION.md`**, **`docs/OPERATOR_MANUAL_TUNING.md`**; related **`resolve-markets`** / **`custom-news-markets`** / API updates.
+- **Frontend:** **`LoadingDiceProgress`**, **`MultiDiceLoader`** / **`MarketsList`** / **`MarketDetail`** / **`Portfolio`** / **`AutomationStatus`** refinements; **`marketConfig`**, **`marketsApi`**, theme and **`App`** routing.
+- **Docs & config:** Broader docs refresh; **`.dev.vars.example`** and **`wrangler.toml`** env comments for **`THE_ODDS_API_KEY_FALLBACK`**.
+
+## Operator-manual resolution documentation (March 2026)
+
+- **`docs/OPERATOR_MANUAL_RESOLUTION.md`** — Operator-manual / **`customType`** markets: **`resolutionDeadline`**, optional **`OPERATOR_MANUAL_RESOLVE_BEFORE_DEADLINE`** on Pages, news keys, hourly cron via **`workers/auto-markets-cron`**, **Yes**/**No**/**Void** settlement and refunds. Includes a **Tuning playbook** (safe staging, per-**`customType`** guidance, **`seedQuery`**/anchor fixes, local regex checks, Preview verification).
+- **Cross-links:** `docs/README.md`, `AUTO_MARKETS.md`, `API.md`, `ORACLE_STRATEGY.md`, `GET_APP_UP_AND_RUNNING.md`, root `README.md`, `wrangler.toml` comments, `workers/auto-markets-cron/README.md`, `USER_FLOW_AND_RISK_AUDIT.md`.
+
+## Resolution & settlement hardening (March 2026)
+
+- **Settlement:** Idempotent position credits (`settlementCreditedAt`, **`settlementKind`**, **`settlementPayoutPips`**); **AMM** winner payout **`amount × (1 − fee)`** when **`counterpartyPositionId`** is absent; **Void** refunds unchanged. **`backupToR2`** on position payload updates when R2 is bound.
+- **Operator-manual:** **`OPERATOR_MANUAL_NEWS_MIN_INTERVAL_MS`** throttle + **`lastOperatorNewsFetchAt`**; **`predictionLog`** JSON lines; **MultiOutcome** + **`operator_manual`** resolution (outcome label scoring); **`resolveOutcome(env, market, { dryRun })`**.
+- **API:** **`POST /api/resolve-markets-preview`** (ops); **`GET .../auto-markets?action=probe`** adds **`resolveQueueSummary`**.
+- **Frontend:** Automation status shows due sample; **MarketDetail** **Void** copy and P2P-first note.
+- **Docs:** **`docs/OPERATOR_MANUAL_TUNING.md`** (playbook split); **`ALGORITHMS_AND_RISK.md`** settlement section updated.
+- **Tests:** **`tests/operator-manual-resolve.test.mjs`**.
+
 ## 1.0.28 — Watchlist page, alerts in Profile settings (March 2026)
 
 - **Release:** Version **1.0.28**; tag **`v1.0.28`** for desktop CI and GitHub Releases.

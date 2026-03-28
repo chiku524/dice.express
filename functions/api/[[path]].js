@@ -78,6 +78,82 @@ function envFlagTrue(env, key) {
   return v === '1' || v === 'true' || v === 'yes'
 }
 
+/** Pips to refund on Void: AMM stores costPips; P2P uses amount × price (per leg). */
+function positionStakeRefundPips(positionPayload) {
+  if (!positionPayload || typeof positionPayload !== 'object') return 0
+  const cost = parseFloat(positionPayload.costPips)
+  if (Number.isFinite(cost) && cost > 0) return cost
+  const amount = parseFloat(positionPayload.amount) || 0
+  const price = parseFloat(positionPayload.price)
+  if (amount <= 0) return 0
+  const p = Number.isFinite(price) && price > 0 && price <= 1 ? price : 0.5
+  return amount * p
+}
+
+function positionTypeMatchesResolvedOutcome(positionType, resolvedOutcome) {
+  if (!resolvedOutcome || resolvedOutcome === 'Void' || resolvedOutcome === 'Refund') return false
+  const p = String(positionType || '')
+  return p === resolvedOutcome || p === `Outcome:${resolvedOutcome}`
+}
+
+/**
+ * Settle virtual-market positions after resolution: P2P winners 2×amount×(1−fee); AMM/pool winners amount×(1−fee) per share; Void refunds stake. Idempotent via payload.settlementCreditedAt.
+ */
+async function settleVirtualMarketPositions(db, marketId, resolvedOutcome, options = {}) {
+  const SETTLEMENT_FEE = options.SETTLEMENT_FEE ?? 0.02
+  const r2 = options.r2 ?? null
+  if (resolvedOutcome == null || resolvedOutcome === '') return
+  const all = await storage.getContracts(db, { templateType: 'Position', limit: 2000 })
+  const positions = all.filter((c) => c.payload?.marketId === marketId)
+  const isVoid = resolvedOutcome === 'Void' || resolvedOutcome === 'Refund'
+  for (const pos of positions) {
+    const pl = pos.payload || {}
+    if (pl.settlementCreditedAt) continue
+    const owner = pos.party
+    const contractId = pos.contractId
+    if (isVoid) {
+      const stake = positionStakeRefundPips(pl)
+      if (stake <= 0) continue
+      const current = await storage.getBalance(db, owner)
+      await storage.setBalance(db, owner, current + stake)
+      const nextPayload = {
+        ...pl,
+        settlementCreditedAt: new Date().toISOString(),
+        settlementOutcome: String(resolvedOutcome),
+        settlementKind: 'void_refund',
+        settlementPayoutPips: stake,
+      }
+      await storage.updateContractPayload(db, contractId, nextPayload)
+      if (r2) backupToR2(r2, undefined, contractId, nextPayload).catch(() => {})
+      continue
+    }
+    const amount = parseFloat(pl.amount) || 0
+    if (amount <= 0) continue
+    const ptype = pl.positionType
+    const isWinner = positionTypeMatchesResolvedOutcome(ptype, resolvedOutcome)
+    if (!isWinner) continue
+    let payout = 0
+    let kind = 'p2p_winner'
+    if (pl.counterpartyPositionId) {
+      payout = 2 * amount * (1 - SETTLEMENT_FEE)
+    } else {
+      payout = amount * (1 - SETTLEMENT_FEE)
+      kind = 'amm_winner'
+    }
+    const current = await storage.getBalance(db, owner)
+    await storage.setBalance(db, owner, current + payout)
+    const nextPayload = {
+      ...pl,
+      settlementCreditedAt: new Date().toISOString(),
+      settlementOutcome: String(resolvedOutcome),
+      settlementKind: kind,
+      settlementPayoutPips: payout,
+    }
+    await storage.updateContractPayload(db, contractId, nextPayload)
+    if (r2) backupToR2(r2, undefined, contractId, nextPayload).catch(() => {})
+  }
+}
+
 /**
  * "Feed-topic" markets = headline still visible in GNews/Perigon/etc. (not price/sports/FRED/oracles).
  * Skipped when AUTO_MARKETS_OUTCOME_ONLY=1 (committed in wrangler.toml) or by default when unset.
@@ -109,6 +185,7 @@ function checkPredictionMaintenanceAuth(request, env, body) {
  * When PRIVILEGED_API_SECRET and/or AUTO_MARKETS_CRON_SECRET is set on Pages, ops-only routes
  * require a matching X-Privileged-Secret or X-Cron-Secret (or body.privilegedSecret / body.cronSecret).
  * When neither env var is set, routes stay open (local dev / backward compatibility).
+ * Same gates apply to POST /api/resolve-markets-preview (dry-run).
  */
 function checkOpsSecret(request, body, env) {
   const priv = (env.PRIVILEGED_API_SECRET || '').toString().trim()
@@ -1039,6 +1116,7 @@ async function handleWithD1(db, kv, r2, request, path, method, env = {}) {
         positionType: outcomeNorm,
         amount: fillAmount,
         price: settlePrice,
+        costPips: myStakeForFill,
         counterpartyPositionId: posIdB,
         createdAt: new Date().toISOString(),
       }
@@ -1049,6 +1127,7 @@ async function handleWithD1(db, kv, r2, request, path, method, env = {}) {
         positionType: outcomeNorm === 'Yes' ? 'No' : 'Yes',
         amount: fillAmount,
         price: outcomeNorm === 'Yes' ? 1 - settlePrice : settlePrice,
+        costPips: otherStake,
         counterpartyPositionId: posIdA,
         createdAt: new Date().toISOString(),
       }
@@ -1437,6 +1516,23 @@ async function handleWithD1(db, kv, r2, request, path, method, env = {}) {
         const hb = await storage.getContractById(db, CRON_HEARTBEAT_CONTRACT_ID)
         if (hb?.payload && typeof hb.payload === 'object') automationHeartbeat = hb.payload
       } catch (_) {}
+      let resolveQueueSummary = null
+      try {
+        const allVm = await storage.getContracts(db, { limit: 500 })
+        const marketRows = allVm.filter((r) => resolveMarkets.isVirtualAutoMarketRow(r))
+        const dueAll = resolveMarkets.filterDueResolutionMarkets(marketRows, env)
+        resolveQueueSummary = {
+          dueCount: dueAll.length,
+          dueSample: dueAll.slice(0, 25).map((m) => ({
+            marketId: m.contractId,
+            title: m.payload?.title,
+            resolutionDeadline: m.payload?.resolutionDeadline,
+            oracleSource: m.payload?.oracleSource || m.payload?.source,
+            marketType: m.payload?.marketType,
+            customType: m.payload?.oracleConfig?.customType ?? null,
+          })),
+        }
+      } catch (_) {}
       return jsonResponse({
         success: true,
         action: 'probe',
@@ -1454,6 +1550,7 @@ async function handleWithD1(db, kv, r2, request, path, method, env = {}) {
         },
         ...(lastSeed && { lastSeed }),
         ...(automationHeartbeat && { automationHeartbeat }),
+        ...(resolveQueueSummary && { resolveQueueSummary }),
       })
     }
 
@@ -2004,6 +2101,7 @@ async function handleWithD1(db, kv, r2, request, path, method, env = {}) {
         positionType: sideStr,
         amount: outputAmount,
         price,
+        costPips: amountNum,
         createdAt: new Date().toISOString(),
       }
       await storage.upsertContract(db, {
@@ -2070,6 +2168,7 @@ async function handleWithD1(db, kv, r2, request, path, method, env = {}) {
       positionType: sideNorm,
       amount: outputAmount,
       price,
+      costPips: amountNum,
       createdAt: new Date().toISOString(),
     }
     await storage.upsertContract(db, {
@@ -2112,33 +2211,35 @@ async function handleWithD1(db, kv, r2, request, path, method, env = {}) {
         (r.payload?.oracleSource || r.payload?.source) &&
         r.payload?.source !== 'user'
     )
-    const due = marketRows.filter((m) => resolveMarkets.isMarketDueForResolution(m))
+    const due = marketRows.filter((m) => resolveMarkets.isMarketDueForResolution(m, env))
     const SETTLEMENT_FEE = 0.02
     const resolved = []
     let resolveErrors = 0
     for (const market of due) {
       try {
-        const { resolved: didResolve, outcome } = await resolveMarkets.resolveOutcome(env, market)
-        if (!didResolve || outcome === undefined) continue
+        const result = await resolveMarkets.resolveOutcome(env, market)
+        const { resolved: didResolve, outcome, meta } = result
+        if (!didResolve || outcome === undefined) {
+          if (meta?.didFetch && !meta?.skippedThrottle) {
+            const src = market.payload?.oracleSource || market.payload?.source
+            if (src === 'operator_manual' && market.payload?.oracleConfig) {
+              const p = market.payload
+              const next = {
+                ...p,
+                oracleConfig: { ...p.oracleConfig, lastOperatorNewsFetchAt: new Date().toISOString() },
+              }
+              await storage.updateContractPayload(db, market.contractId, next)
+              await backupToR2(r2, undefined, market.contractId, next).catch(() => {})
+              market.payload = next
+            }
+          }
+          continue
+        }
         const marketId = market.contractId
         const payload = { ...market.payload, status: 'Settled', resolvedOutcome: outcome }
         await storage.updateContractPayload(db, marketId, payload)
         await backupToR2(r2, undefined, marketId, payload)
-        if (outcome) {
-          const positions = (await storage.getContracts(db, { templateType: 'Position', limit: 1000 }))
-            .filter((c) => c.payload?.marketId === marketId && c.payload?.counterpartyPositionId)
-          for (const pos of positions) {
-            const amount = parseFloat(pos.payload?.amount) || 0
-            if (amount <= 0) continue
-            const isWinner = (pos.payload?.positionType === outcome) || (pos.payload?.positionType === `Outcome:${outcome}`)
-            if (isWinner) {
-              const payout = 2 * amount * (1 - SETTLEMENT_FEE)
-              const owner = pos.party
-              const current = await storage.getBalance(db, owner)
-              await storage.setBalance(db, owner, current + payout)
-            }
-          }
-        }
+        await settleVirtualMarketPositions(db, marketId, outcome, { SETTLEMENT_FEE, r2 })
         resolved.push({ marketId, outcome })
         if (env?.VECTORIZE) {
           const delEmb = await deleteMarketEmbeddings(env, [marketId])
@@ -2170,6 +2271,47 @@ async function handleWithD1(db, kv, r2, request, path, method, env = {}) {
     return jsonResponse({ success: true, due: due.length, resolved: resolved.length, markets: resolved })
   }
 
+  // POST /api/resolve-markets-preview — dry-run due markets (no D1 settlement writes); ops secret if configured
+  if (path === 'resolve-markets-preview' && method === 'POST') {
+    const ops = checkOpsSecret(request, body, env)
+    if (!ops.ok) return ops.response
+    const maxN = Math.min(100, Math.max(1, parseInt(body?.limit ?? '40', 10) || 40))
+    const all = await storage.getContracts(db, { limit: 500 })
+    const marketRows = all.filter((r) => resolveMarkets.isVirtualAutoMarketRow(r))
+    const due = resolveMarkets.filterDueResolutionMarkets(marketRows, env).slice(0, maxN)
+    const previews = []
+    for (const market of due) {
+      try {
+        const result = await resolveMarkets.resolveOutcome(env, market, { dryRun: true })
+        previews.push({
+          marketId: market.contractId,
+          title: market.payload?.title,
+          resolutionDeadline: market.payload?.resolutionDeadline,
+          oracleSource: market.payload?.oracleSource || market.payload?.source,
+          marketType: market.payload?.marketType,
+          customType: market.payload?.oracleConfig?.customType ?? null,
+          wouldResolve: result.resolved === true,
+          outcome: result.outcome,
+          meta: result.meta || null,
+        })
+      } catch (err) {
+        previews.push({
+          marketId: market.contractId,
+          title: market.payload?.title,
+          error: err?.message || String(err),
+        })
+      }
+    }
+    predictionLog('resolve_markets.preview', { dueScanned: due.length, previews: previews.length })
+    return jsonResponse({
+      success: true,
+      dryRun: true,
+      dueTotal: resolveMarkets.filterDueResolutionMarkets(marketRows, env).length,
+      scanned: due.length,
+      previews,
+    })
+  }
+
   // POST /api/update-market-status (optionally settle P2P positions: pay winners, 2% fee)
   if (path === 'update-market-status' && method === 'POST') {
     const { marketId, status, resolvedOutcome } = body
@@ -2191,19 +2333,7 @@ async function handleWithD1(db, kv, r2, request, path, method, env = {}) {
 
     const SETTLEMENT_FEE = 0.02
     if (status === 'Settled' && resolvedOutcome) {
-      const all = await storage.getContracts(db, { templateType: 'Position', limit: 1000 })
-      const positions = all.filter((c) => c.payload?.marketId === marketId && c.payload?.counterpartyPositionId)
-      for (const pos of positions) {
-        const amount = parseFloat(pos.payload?.amount) || 0
-        if (amount <= 0) continue
-        const isWinner = (pos.payload?.positionType === resolvedOutcome) || (pos.payload?.positionType === `Outcome:${resolvedOutcome}`)
-        if (isWinner) {
-          const payout = 2 * amount * (1 - SETTLEMENT_FEE)
-          const owner = pos.party
-          const current = await storage.getBalance(db, owner)
-          await storage.setBalance(db, owner, current + payout)
-        }
-      }
+      await settleVirtualMarketPositions(db, marketId, resolvedOutcome, { SETTLEMENT_FEE, r2 })
     }
 
     return jsonResponse({ success: true, market: { contractId: marketId, payload } })
@@ -2252,6 +2382,8 @@ async function handleWithD1(db, kv, r2, request, path, method, env = {}) {
     const positionId = `position-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`
     const contractId = `position-${positionId}`
     const templateId = (marketRow.templateId || '').includes('VirtualMarket') ? 'Position' : `${(marketRow.templateId || '').split(':')[0] || 'PredictionMarkets'}:Position`
+    const costPipsCreate =
+      positionType === 'No' ? amountNum * (1 - priceNum) : amountNum * priceNum
     const positionPayload = {
       positionId,
       marketId,
@@ -2259,6 +2391,7 @@ async function handleWithD1(db, kv, r2, request, path, method, env = {}) {
       positionType: positionType === 'Yes' || positionType === 'No' ? positionType : `Outcome:${positionType}`,
       amount: String(amountNum),
       price: String(priceNum),
+      costPips: costPipsCreate,
       createdAt: new Date().toISOString(),
       depositAmount: String(amountNum),
       depositCurrency: 'Credits',

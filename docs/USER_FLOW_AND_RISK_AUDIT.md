@@ -13,7 +13,7 @@ This document answers: **Is the user flow flawless? Can users register, sign in,
 | **Add Credits** | ✅ Implemented | **Cloudflare**: `POST /api/add-credits` (virtual top-up; no blockchain). Users add Credits from the Portfolio page. |
 | **View balance** | ✅ Implemented | `GET/POST /api/get-user-balance` with `userParty`. |
 | **Bet on prediction** | ✅ Implemented | `POST /api/trade` (AMM) or `POST /api/create-position` (fixed price). Debits balance, updates pool, creates Position. |
-| **Resolution payout** | ✅ Implemented | `POST /api/resolve-markets` settles due oracle markets and credits winning **P2P/counterparty** positions (2% settlement fee). `POST /api/update-market-status` with `Settled` + `resolvedOutcome` runs the same winner-credit loop for manual/operator resolution. |
+| **Resolution payout** | ✅ Implemented | `POST /api/resolve-markets` settles due oracle markets and credits winning **P2P/counterparty** positions (2% settlement fee). **`Void`** / **`Refund`** credits **all** positions (stake refund via `costPips` or `amount × price`). `POST /api/update-market-status` with `Settled` + `resolvedOutcome` uses the same settlement helper. See **`OPERATOR_MANUAL_RESOLUTION.md`** for **`operator_manual`** automation. |
 
 ---
 

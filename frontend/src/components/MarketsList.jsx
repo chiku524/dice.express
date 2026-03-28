@@ -371,7 +371,11 @@ export default function MarketsList({ source: sourceFromRoute, variant = 'defaul
       <div>
         <h1>{pageTitle}</h1>
         <div className="markets-list-loading-dice">
-          <LoadingSpinner message="Loading markets…" sublabel="Fetching the latest markets." />
+          <LoadingSpinner
+            message="Loading markets…"
+            sublabel="Fetching the latest markets."
+            progressSteps={['Rolling the dice…', 'Syncing markets…', 'Applying filters…', 'Almost ready…']}
+          />
         </div>
         <SkeletonMarketGrid count={6} />
       </div>

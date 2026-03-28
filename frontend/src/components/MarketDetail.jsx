@@ -8,6 +8,7 @@ import { apiUrl } from '../services/apiBase'
 import { fetchOpenOrders, placeOrder } from '../services/ordersApi'
 import MarketResolution from './MarketResolution'
 import MultiDiceLoader from './MultiDiceLoader'
+import LoadingSpinner from './LoadingSpinner'
 import SubmitDiceLabel from './SubmitDiceLabel'
 import ErrorState from './ErrorState'
 import { formatPips, PLATFORM_CURRENCY_SYMBOL } from '../constants/currency'
@@ -253,13 +254,17 @@ export default function MarketDetail() {
 
   if (loading) {
     return (
-      <div className="loading">
-        <MultiDiceLoader
-          size="lg"
-          label="Loading market…"
-          sublabel="Fetching market details…"
-        />
-      </div>
+      <LoadingSpinner
+        size="lg"
+        message="Loading market…"
+        sublabel="Fetching market details and pool."
+        progressSteps={[
+          'Rolling the dice…',
+          'Finding this market…',
+          'Loading liquidity pool…',
+          'Almost ready…',
+        ]}
+      />
     )
   }
 
@@ -668,24 +673,43 @@ export default function MarketDetail() {
           {marketData.status === 'Settled' && (
             <div className="card market-detail-settled">
               <h2 className="market-detail-trade-title">Settlement</h2>
-              <p className="market-detail-oneliner-text">
-                Winning outcome: <strong>{marketData.resolvedOutcome ?? '—'}</strong>
-              </p>
+              {marketData.resolvedOutcome === 'Void' || marketData.resolvedOutcome === 'Refund' ? (
+                <>
+                  <p className="market-detail-oneliner-text">
+                    Outcome: <strong>Void (refunded)</strong>
+                  </p>
+                  <p className="text-secondary" style={{ marginTop: '0.35rem' }}>
+                    This market did not resolve to a clear Yes/No (or single winning outcome). Stakes were returned to
+                    holders per position — check your Portfolio balance. See site documentation for operator-manual
+                    automation.
+                  </p>
+                </>
+              ) : (
+                <p className="market-detail-oneliner-text">
+                  Winning outcome: <strong>{marketData.resolvedOutcome ?? '—'}</strong>
+                </p>
+              )}
               {wallet && userPositions.length > 0 && (
                 <div className="market-detail-settled-positions">
                   <p className="text-secondary" style={{ marginBottom: '0.5rem' }}>Your positions on this market</p>
                   <ul className="market-detail-order-list">
                     {userPositions.map((c) => {
-                      const won = marketData.resolvedOutcome && c.payload?.positionType === marketData.resolvedOutcome
+                      const ro = marketData.resolvedOutcome
+                      const voided = ro === 'Void' || ro === 'Refund'
+                      const ptype = c.payload?.positionType
+                      const won =
+                        !voided && ro && (ptype === ro || ptype === `Outcome:${ro}`)
                       return (
                         <li key={c.contractId}>
                           {c.payload?.positionType}: {Number(c.payload?.amount ?? 0).toFixed(2)} shares @{' '}
                           {(Number(c.payload?.price ?? 0) * 100).toFixed(0)}%
-                          {marketData.resolvedOutcome
-                            ? won
-                              ? ' — matched winning outcome'
-                              : ' — did not match winning outcome'
-                            : ''}
+                          {voided
+                            ? ' — stake refunded (void)'
+                            : ro
+                              ? won
+                                ? ' — winning side'
+                                : ' — not the winning side'
+                              : ''}
                         </li>
                       )
                     })}
@@ -693,7 +717,8 @@ export default function MarketDetail() {
                 </div>
               )}
               <p className="text-muted" style={{ fontSize: 'var(--font-size-sm)', marginTop: '0.75rem' }}>
-                P2P winners are credited per platform rules. Pool-only (AMM) positions may use a separate settlement path — check your Portfolio balance after resolution.
+                Matched (P2P) and pool positions follow platform settlement rules when AMM is enabled. This deployment may
+                be <strong>P2P-only</strong> (no AMM) until pool risk is acceptable — see public config and docs.
               </p>
             </div>
           )}

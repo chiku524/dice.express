@@ -98,7 +98,7 @@ There is **no UI** and **no public API** for users to create markets. The route 
    - **Single source:** If **AUTO_MARKETS_SOURCE** is set (e.g. `sports`), body is `{ "action": "seed", "source": "sports", ... }`.
 2. API loads **events** from the chosen source(s). For each event it uses a stable **market ID**. It **only creates a market if that ID doesn't already exist**. New events → new markets; existing → skipped.
 3. For each *new* event the API creates a **market** and **liquidity pool**, stores them in D1 and backs up to R2. Automated markets use **`settlementTrigger: { tag: "EventBased", value: "<summary>" }`** (outcome/event-driven), not time-only or manual; **`resolutionDeadline`** still reflects the oracle window (e.g. game time or last trading day).
-4. **POST /api/resolve-markets** (called by the same cron after seeding) resolves due markets and settles winners (2% fee).
+4. **POST /api/resolve-markets** (called by the same cron after seeding) resolves due markets and settles winners (P2P and AMM paths; 2% fee on payouts). **Custom news** (**`operator_manual`**) binary markets use heuristics; **MultiOutcome** **`operator_manual`** uses outcome-label scoring in titles, else **`Void`**. Preview: **`POST /api/resolve-markets-preview`**. See **`OPERATOR_MANUAL_RESOLUTION.md`**.
 
 ## Categories and APIs (what gets created)
 

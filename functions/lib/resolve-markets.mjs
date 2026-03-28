@@ -4,14 +4,27 @@
  */
 import * as ds from './data-sources.mjs'
 import { overlapSetCount } from './news-market-topic.mjs'
+import { resolveOperatorManualOutcome, resolveOperatorManualMultiOutcome } from './operator-manual-resolve.mjs'
 
 /** Is the market due for resolution? (event time or end date has passed) */
-export function isMarketDueForResolution(market) {
+export function isMarketDueForResolution(market, env = {}) {
   const payload = market.payload || {}
   const cfg = payload.oracleConfig || {}
   const source = payload.oracleSource || payload.source
 
-  if (source === 'operator_manual') return false
+  if (source === 'operator_manual') {
+    const dl = payload.resolutionDeadline
+    if (!dl) return false
+    const deadlineMs = new Date(dl).getTime()
+    if (Number.isNaN(deadlineMs)) return false
+    const now = Date.now()
+    if (now >= deadlineMs) return true
+    if (!cfg.customType) return false
+    const early = env.OPERATOR_MANUAL_RESOLVE_BEFORE_DEADLINE === '1' || env.OPERATOR_MANUAL_RESOLVE_BEFORE_DEADLINE === 'true'
+    if (!early) return false
+    const createdMs = payload.createdAt ? new Date(payload.createdAt).getTime() : 0
+    return now >= createdMs + 6 * 3600000
+  }
 
   if (source === 'the_odds_api') {
     const commenceTime = cfg.commenceTime || payload.commenceTime
@@ -81,16 +94,36 @@ export function isMarketDueForResolution(market) {
   return false
 }
 
-/** Resolve a single market. Returns { resolved, outcome } or throws. */
-export async function resolveOutcome(env, market) {
+/** Active virtual auto-market rows (same filter as POST /api/resolve-markets). */
+export function isVirtualAutoMarketRow(row) {
+  const tid = row.templateId || row.template_id
+  const p = row.payload || {}
+  const src = p.source
+  return (
+    (tid === 'VirtualMarket' || (tid && String(tid).includes('Market'))) &&
+    row.status === 'Active' &&
+    (p.oracleSource || p.source) &&
+    src !== 'user'
+  )
+}
+
+export function filterDueResolutionMarkets(marketRows, env) {
+  return marketRows.filter((m) => isVirtualAutoMarketRow(m) && isMarketDueForResolution(m, env))
+}
+
+/** Resolve a single market. Returns { resolved, outcome?, meta? } or throws. */
+export async function resolveOutcome(env, market, options = {}) {
+  const dryRun = options.dryRun === true
   const payload = market.payload || {}
   const cfg = payload.oracleConfig || {}
   const source = payload.oracleSource || payload.source
 
-  /** Automated oracle path is binary-oriented; multi-outcome markets settle via ops (e.g. update-market-status). */
-  if (payload.marketType === 'MultiOutcome') return { resolved: false }
+  if (payload.marketType === 'MultiOutcome') {
+    if (source === 'operator_manual') return resolveOperatorManualMultiOutcome(env, market, { dryRun })
+    return { resolved: false }
+  }
 
-  if (source === 'operator_manual') return { resolved: false }
+  if (source === 'operator_manual') return resolveOperatorManualOutcome(env, market, { dryRun })
 
   if (source === 'fred') {
     const { seriesId = 'DFF', threshold, comparator = 'gte', endDate } = cfg

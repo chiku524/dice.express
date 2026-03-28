@@ -281,7 +281,10 @@ export function getResolutionSummary(payload) {
   const sourceLabel = getApiSourceLabel(payload)
   if (!sourceLabel || sourceLabel === 'User-Created') return null
   if (oc?.outcomeResolutionKind === 'operator_manual') {
-    return `Outcome-based market: settled manually by the operator using the published criteria (not auto-oracle).`
+    if (oc?.customType) {
+      return `Automated at resolution time: news search and headline heuristics for this topic type; if the outcome is still unclear, the market is voided and stakes refunded.`
+    }
+    return `Outcome-based market: use published criteria; resolution may be manual unless automated rules are enabled.`
   }
   if (oc?.outcomeResolutionKind === 'forex_ecb' && oc.base && oc.quote && oc.threshold != null && oc.endDate) {
     return `ECB via Frankfurter: Yes if ${oc.base}/${oc.quote} on or before ${oc.endDate} is ≥ ${oc.threshold}.`

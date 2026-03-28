@@ -107,32 +107,112 @@ export const COINGECKO_COINS = [
 ]
 
 // --- The Odds API (sports) ---
-/** Get in-season sports. env.THE_ODDS_API_KEY. Does not count against quota. */
+/** Primary + optional fallback key when primary quota/auth fails. Never hardcode keys. */
+function oddsKeysFromEnv(env) {
+  const primary = String(env.THE_ODDS_API_KEY ?? '').trim()
+  const fallback = String(env.THE_ODDS_API_KEY_FALLBACK ?? '').trim()
+  const out = []
+  if (primary) out.push(primary)
+  if (fallback && !out.includes(fallback)) out.push(fallback)
+  return out
+}
+
+function oddsFailureIsKeyOrQuota(status, data) {
+  if (status === 401 || status === 402 || status === 403 || status === 429) return true
+  const msg = String(data?.message ?? data?.error ?? '').toLowerCase()
+  if (
+    msg.includes('quota') ||
+    msg.includes('exceed') ||
+    msg.includes('limit') ||
+    msg.includes('out of requests') ||
+    msg.includes('usage') ||
+    msg.includes('invalid api key') ||
+    msg.includes('not authorized')
+  )
+    return true
+  return false
+}
+
+async function fetchOddsOnce(url, timeoutMs = 15000) {
+  const ctrl = new AbortController()
+  const t = setTimeout(() => ctrl.abort(), timeoutMs)
+  try {
+    const res = await fetch(url, { signal: ctrl.signal })
+    clearTimeout(t)
+    const contentType = res.headers.get('content-type') || ''
+    let data
+    if (contentType.includes('application/json')) data = await res.json()
+    else {
+      const text = await res.text()
+      try {
+        data = JSON.parse(text)
+      } catch {
+        data = { message: text }
+      }
+    }
+    return { ok: res.ok, status: res.status, data }
+  } catch (e) {
+    clearTimeout(t)
+    throw e
+  }
+}
+
+/** GET Odds API URL; on quota/invalid key (or network error), retries with THE_ODDS_API_KEY_FALLBACK if set. */
+async function fetchOddsArrayWithFallback(env, buildUrl) {
+  const keys = oddsKeysFromEnv(env)
+  if (!keys.length) throw new Error('THE_ODDS_API_KEY not set')
+  let lastQuotaErr = null
+  for (let i = 0; i < keys.length; i++) {
+    const apiKey = keys[i]
+    const url = buildUrl(apiKey)
+    let result
+    try {
+      result = await fetchOddsOnce(url)
+    } catch (e) {
+      if (e?.name === 'AbortError') throw e
+      if (i < keys.length - 1) {
+        console.warn('[data-sources] Odds API network error, trying fallback key:', e?.message)
+        continue
+      }
+      throw e
+    }
+    const { ok, status, data } = result
+    if (ok && Array.isArray(data)) return data
+    const msg = typeof data?.message === 'string' ? data.message : `HTTP ${status}`
+    if (oddsFailureIsKeyOrQuota(status, data) && i < keys.length - 1) {
+      console.warn('[data-sources] Odds API:', msg, '- trying THE_ODDS_API_KEY_FALLBACK')
+      lastQuotaErr = new Error(msg)
+      continue
+    }
+    if (ok && !Array.isArray(data)) {
+      throw new Error(msg === `HTTP ${status}` ? 'Odds API returned non-array' : msg)
+    }
+    throw new Error(msg)
+  }
+  throw lastQuotaErr || new Error('THE_ODDS_API_KEY requests failed')
+}
+
+/** Get in-season sports. env.THE_ODDS_API_KEY; optional THE_ODDS_API_KEY_FALLBACK. /sports does not count against quota. */
 export async function fetchOddsSports(env, all = false) {
-  const key = env.THE_ODDS_API_KEY
-  if (!key) throw new Error('THE_ODDS_API_KEY not set')
-  const url = `${ODDS_API_BASE}/sports?apiKey=${key}${all ? '&all=true' : ''}`
-  const data = await fetchApi(url)
-  return Array.isArray(data) ? data : []
+  return fetchOddsArrayWithFallback(env, (apiKey) => `${ODDS_API_BASE}/sports?apiKey=${apiKey}${all ? '&all=true' : ''}`)
 }
 
-/** Get events with odds for a sport. env.THE_ODDS_API_KEY */
+/** Get events with odds for a sport. */
 export async function fetchOddsEvents(env, sportKey = 'basketball_nba', regions = 'us', oddsFormat = 'decimal') {
-  const key = env.THE_ODDS_API_KEY
-  if (!key) throw new Error('THE_ODDS_API_KEY not set')
-  const url = `${ODDS_API_BASE}/sports/${encodeURIComponent(sportKey)}/odds?regions=${regions}&oddsFormat=${oddsFormat}&apiKey=${key}`
-  const data = await fetchApi(url)
-  return Array.isArray(data) ? data : []
+  return fetchOddsArrayWithFallback(
+    env,
+    (apiKey) =>
+      `${ODDS_API_BASE}/sports/${encodeURIComponent(sportKey)}/odds?regions=${regions}&oddsFormat=${oddsFormat}&apiKey=${apiKey}`
+  )
 }
 
-/** Get scores for completed games. env.THE_ODDS_API_KEY. daysFrom 1-3. */
+/** Get scores for completed games. daysFrom 1-3. */
 export async function fetchOddsScores(env, sportKey, daysFrom = 2, eventIds = null) {
-  const key = env.THE_ODDS_API_KEY
-  if (!key) throw new Error('THE_ODDS_API_KEY not set')
-  let url = `${ODDS_API_BASE}/sports/${encodeURIComponent(sportKey)}/scores?apiKey=${key}&daysFrom=${daysFrom}`
-  if (eventIds && eventIds.length) url += `&eventIds=${eventIds.join(',')}`
-  const data = await fetchApi(url)
-  return Array.isArray(data) ? data : []
+  return fetchOddsArrayWithFallback(env, (apiKey) => {
+    let url = `${ODDS_API_BASE}/sports/${encodeURIComponent(sportKey)}/scores?apiKey=${apiKey}&daysFrom=${daysFrom}`
+    if (eventIds && eventIds.length) url += `&eventIds=${eventIds.join(',')}`
+    return url
+  })
 }
 
 // --- OpenWeatherMap ---
@@ -1311,6 +1391,7 @@ export function probeAutoMarketEnv(env) {
   const set = (k) => !!(env[k] && String(env[k]).trim())
   return {
     THE_ODDS_API_KEY: set('THE_ODDS_API_KEY'),
+    THE_ODDS_API_KEY_FALLBACK: set('THE_ODDS_API_KEY_FALLBACK'),
     ALPHA_VANTAGE_API_KEY: set('ALPHA_VANTAGE_API_KEY'),
     COINGECKO_API_KEY: set('COINGECKO_API_KEY'),
     OPENWEATHER_API_KEY: set('OPENWEATHER_API_KEY'),
