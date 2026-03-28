@@ -4,6 +4,14 @@ Summary of major cleanups and improvements. For current structure see [README](.
 
 ---
 
+## 1.0.30 — P2P orders, limits, contracts index (March 2026)
+
+- **Release:** Version **1.0.30**; tag **`v1.0.30`** for desktop CI and GitHub Releases.
+- **API:** Server-side **sell size** check vs positions and open sells; **`shortfall`** on insufficient Pips for limit buys; **idempotency** for place-order and withdraw (**`Idempotency-Key`** / body); **rate limits** (orders, cancel, get-contracts per party, unscoped get-contracts per IP, withdraw); **KV** with **in-memory RL fallback** when KV is absent; structured **`predictionLog`** for orders, withdraw, deposit credit.
+- **Contracts:** **`get-contracts`** optional **`marketId`** filter; D1 migration **`0007_contracts_payload_market_id_index`** (expression index on **`payload.marketId`**).
+- **Frontend:** **Max sell** net of resting sells; **your open orders** + **cancel**; book shows **remaining** / partial fills; **Quick trade** panel; **`ordersApi`** idempotency header; **`marketTradeForm`** helpers; **`usePipsBalance`** hook.
+- **Tests:** **`p2p-order-validation`**, **`api-rate-limit`**, **`storage-query`** (marketId query).
+
 ## 1.0.29 — Odds API fallback key, operator-manual hardening, docs & UI (March 2026)
 
 - **Release:** Version **1.0.29**; tag **`v1.0.29`** for desktop CI and GitHub Releases.

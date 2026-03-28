@@ -1,6 +1,6 @@
 {
   "name": "dice-express",
-  "version": "1.0.29",
+  "version": "1.0.30",
   "description": "dice.express — prediction markets with Pips on Cloudflare",
   "dependencies": {
     "@solana/spl-token": "^0.4.14",
@@ -21,7 +21,7 @@
     "pages:custom-domain": "bash scripts/pages-add-custom-domain.sh",
     "d1:clear-prediction-markets": "node scripts/clear-prediction-markets.mjs remote",
     "d1:clear-prediction-markets:local": "node scripts/clear-prediction-markets.mjs local",
-    "test": "node --test ./tests/storage-query.test.mjs ./tests/market-embeddings-parse.test.mjs ./tests/operator-manual-resolve.test.mjs",
+    "test": "node --test ./tests/storage-query.test.mjs ./tests/p2p-order-validation.test.mjs ./tests/api-rate-limit.test.mjs ./tests/market-embeddings-parse.test.mjs ./tests/operator-manual-resolve.test.mjs",
     "tauri": "tauri",
     "tauri:dev": "tauri dev",
     "tauri:build": "tauri build",

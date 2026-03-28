@@ -21,10 +21,13 @@ binding = "R2"
 bucket_name = "dice-express-r2"
 
 # KV namespace — create with: npx wrangler kv namespace create DICE_KV (space, not colon)
-# Use the id from output below; for preview: npx wrangler kv namespace create DICE_KV --preview
+# For `wrangler pages dev` / preview, create a preview namespace and set preview_id so rate limits
+# and idempotency use real KV (optional — without preview_id, in-memory RL fallback still applies per isolate):
+#   npx wrangler kv namespace create DICE_KV --preview
 [[kv_namespaces]]
 binding = "KV"
 id = "bf88f3a357f640ccb3173da7e163570d"
+# preview_id = "paste-output-of-wrangler-kv-namespace-create---preview"
 
 # Vectorize (768-dim cosine) for embedding dedupe of auto-seeded markets. Create index once:
 #   npx wrangler vectorize create dice-express-market-embeddings --dimensions=768 --metric=cosine

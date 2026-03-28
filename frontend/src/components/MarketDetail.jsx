@@ -1,11 +1,11 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { useWallet } from '../contexts/WalletContext'
 import { useToastContext } from '../contexts/ToastContext'
 import { useAccountModal } from '../contexts/AccountModalContext'
 import { fetchMarkets, fetchPool, executeTrade } from '../services/marketsApi'
 import { apiUrl } from '../services/apiBase'
-import { fetchOpenOrders, placeOrder } from '../services/ordersApi'
+import { fetchOpenOrders, placeOrder, cancelOrder, formatOrderSizeDisplay } from '../services/ordersApi'
 import MarketResolution from './MarketResolution'
 import MultiDiceLoader from './MultiDiceLoader'
 import LoadingSpinner from './LoadingSpinner'
@@ -24,13 +24,24 @@ import {
 } from '../utils/ammQuote'
 import { getMarketStaleness } from '../utils/marketUX'
 import { usePublicConfig } from '../hooks/usePublicConfig'
+import { usePipsBalance } from '../hooks/usePipsBalance'
 import { getSEOForPath } from '../constants/seo'
+import {
+  BINARY_PIP_PRESETS,
+  defaultLimitPriceFromPool,
+  formatMaxSpendPips,
+  sumSharesForMarketOutcome,
+  formatMaxSellShares,
+  sumOpenSellSharesReservedForOutcome,
+  netSellableSharesAfterOpenSells,
+} from '../utils/marketTradeForm'
 import './MarketDetail.css'
 
 export default function MarketDetail() {
   const { marketId } = useParams()
   const { ammTradeEnabled } = usePublicConfig()
   const { wallet } = useWallet()
+  const { balanceRaw, balanceLoading, refreshBalance } = usePipsBalance(wallet?.party)
   const { showToast } = useToastContext()
   const openAccountModal = useAccountModal()
   const [market, setMarket] = useState(null)
@@ -48,7 +59,10 @@ export default function MarketDetail() {
   const [orderAmount, setOrderAmount] = useState('')
   const [orderPrice, setOrderPrice] = useState('0.5')
   const [orderLoading, setOrderLoading] = useState(false)
+  const [cancellingOrderId, setCancellingOrderId] = useState(null)
   const [userPositions, setUserPositions] = useState([])
+  /** Binary: `pool` = instant AMM buy; `limit` = P2P order book. */
+  const [tradeTab, setTradeTab] = useState('pool')
 
   // SEO: set page title to market title when viewing a specific market
   useEffect(() => {
@@ -105,32 +119,83 @@ export default function MarketDetail() {
   )
 
   useEffect(() => {
-    if (!wallet?.party || market?.payload?.status !== 'Settled' || !market?.payload?.marketId) {
+    if (!ammTradeEnabled) setTradeTab('limit')
+    else setTradeTab('pool')
+  }, [ammTradeEnabled, market?.payload?.marketId])
+
+  useEffect(() => {
+    if (market?.payload?.marketType === 'Binary') {
+      setOrderOutcome(tradeSide === 'No' ? 'No' : 'Yes')
+    }
+  }, [tradeSide, market?.payload?.marketType])
+
+  const positionMarketId = market?.payload?.marketId
+  const positionMarketStatus = market?.payload?.status
+  const positionMarketType = market?.payload?.marketType
+
+  const fetchUserPositionsForMarket = useCallback(async () => {
+    if (!wallet?.party || !positionMarketId) {
       setUserPositions([])
       return
     }
-    let cancelled = false
-    fetch(apiUrl('get-contracts'), {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        party: wallet.party,
-        templateType: 'Position',
-        limit: 200,
-      }),
-    })
-      .then((r) => r.json())
-      .then((data) => {
-        if (cancelled) return
-        const mid = market.payload.marketId
-        const list = (data.contracts || []).filter((c) => c.payload?.marketId === mid)
-        setUserPositions(list)
+    const needPositions =
+      positionMarketStatus === 'Settled' ||
+      (positionMarketStatus === 'Active' && positionMarketType === 'Binary')
+    if (!needPositions) {
+      setUserPositions([])
+      return
+    }
+    try {
+      const r = await fetch(apiUrl('get-contracts'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          party: wallet.party,
+          templateType: 'Position',
+          marketId: positionMarketId,
+          limit: 200,
+        }),
       })
-      .catch(() => {
-        if (!cancelled) setUserPositions([])
+      const data = await r.json()
+      const list = (data.contracts || []).filter((c) => {
+        const st = c.status
+        return !st || st === 'Active'
       })
-    return () => { cancelled = true }
-  }, [wallet?.party, market?.payload?.marketId, market?.payload?.status])
+      setUserPositions(list)
+    } catch {
+      setUserPositions([])
+    }
+  }, [wallet?.party, positionMarketId, positionMarketStatus, positionMarketType])
+
+  useEffect(() => {
+    fetchUserPositionsForMarket()
+  }, [fetchUserPositionsForMarket])
+
+  const sellableSharesForOutcome = useMemo(
+    () => sumSharesForMarketOutcome(userPositions, market?.payload?.marketId, tradeSide),
+    [userPositions, market?.payload?.marketId, tradeSide]
+  )
+
+  const openSellReservedForLimitOutcome = useMemo(
+    () => sumOpenSellSharesReservedForOutcome(openOrders, wallet?.party ?? '', orderOutcome),
+    [openOrders, wallet?.party, orderOutcome]
+  )
+
+  const limitSellNetShares = useMemo(
+    () =>
+      netSellableSharesAfterOpenSells(
+        sellableSharesForOutcome,
+        openOrders,
+        wallet?.party ?? '',
+        orderOutcome
+      ),
+    [sellableSharesForOutcome, openOrders, wallet?.party, orderOutcome]
+  )
+
+  const myOpenOrdersOnMarket = useMemo(
+    () => (wallet?.party ? openOrders.filter((o) => o.owner === wallet.party) : []),
+    [openOrders, wallet?.party]
+  )
 
   useEffect(() => {
     if (!market?.payload?.marketId || market.payload.marketType !== 'Binary') return
@@ -155,6 +220,15 @@ export default function MarketDetail() {
       showToast('Enter valid amount and price (0–1)', 'error')
       return
     }
+    if (orderSide === 'sell' && amountNum > limitSellNetShares + 1e-9) {
+      showToast(
+        limitSellNetShares <= 0 && sellableSharesForOutcome > 0
+          ? 'All your shares for this outcome are already listed in open sell orders'
+          : 'Amount exceeds shares available to sell (after open orders)',
+        'error'
+      )
+      return
+    }
     setOrderLoading(true)
     try {
       const result = await placeOrder({
@@ -173,11 +247,66 @@ export default function MarketDetail() {
       setOrderAmount('')
       const list = await fetchOpenOrders(market.payload.marketId)
       setOpenOrders(list)
+      await refreshBalance()
+      await fetchUserPositionsForMarket()
     } catch (err) {
-      showToast(err.message || 'Order failed', 'error')
+      const b = err.responseBody
+      if (b?.shortfall != null && b?.required != null) {
+        showToast(
+          `Need ${formatPips(b.shortfall)} more (have ${formatPips(b.current)}, requires ${formatPips(b.required)}).`,
+          'error'
+        )
+      } else if (b?.code === 'SELL_EXCEEDS_POSITION' && b?.availableToSell != null) {
+        showToast(
+          `Sell too large — only ~${Number(b.availableToSell).toFixed(2)} shares free after your other sell orders.`,
+          'error'
+        )
+      } else if (err.status === 429 || String(err.message || '').toLowerCase().includes('too many')) {
+        showToast('Too many requests — please wait a moment and try again.', 'error')
+      } else {
+        showToast(err.message || 'Order failed', 'error')
+      }
     } finally {
       setOrderLoading(false)
     }
+  }
+
+  const handleCancelMyOrder = async (orderId) => {
+    if (!wallet || !market?.payload?.marketId) return
+    setCancellingOrderId(orderId)
+    try {
+      await cancelOrder(orderId, wallet.party)
+      showToast('Order cancelled', 'success')
+      const list = await fetchOpenOrders(market.payload.marketId)
+      setOpenOrders(list)
+      await fetchUserPositionsForMarket()
+    } catch (e) {
+      showToast(e.message || 'Cancel failed', 'error')
+    } finally {
+      setCancellingOrderId(null)
+    }
+  }
+
+  const applyMaxSpend = () => {
+    const s = formatMaxSpendPips(balanceRaw)
+    if (!s) {
+      showToast('No Pips available to spend', 'error')
+      return
+    }
+    setTradeAmount(s)
+  }
+
+  const applyMaxSellShares = () => {
+    const s = formatMaxSellShares(limitSellNetShares)
+    if (!s) {
+      if (sellableSharesForOutcome > 0 && openSellReservedForLimitOutcome > 0) {
+        showToast('All your shares for this outcome are already on the sell book', 'error')
+      } else {
+        showToast(`No ${tradeSide} shares to sell on this market`, 'error')
+      }
+      return
+    }
+    setOrderAmount(s)
   }
 
   const handleTrade = async () => {
@@ -189,6 +318,10 @@ export default function MarketDetail() {
     const amountNum = parseFloat(tradeAmount)
     if (!tradeAmount || isNaN(amountNum) || amountNum <= 0) {
       showToast('Enter a valid amount in Pips', 'error')
+      return
+    }
+    if (amountNum > balanceRaw + 1e-9) {
+      showToast('Amount exceeds your Pips balance', 'error')
       return
     }
     if (!pool || !market?.payload?.marketId) {
@@ -240,6 +373,8 @@ export default function MarketDetail() {
       })
       showToast(`You bought ${result.outputAmount?.toFixed(2) ?? '?'} ${tradeSide} shares`, 'success')
       setTradeAmount('')
+      await refreshBalance()
+      await fetchUserPositionsForMarket()
       const updatedPool = await fetchPool(market.payload.marketId)
       if (updatedPool) setPool(updatedPool)
       const list = await fetchMarkets(null, { sort: 'activity' })
@@ -249,6 +384,15 @@ export default function MarketDetail() {
       showToast(err.message || 'Trade failed', 'error')
     } finally {
       setTradeLoading(false)
+    }
+  }
+
+  const pickBinaryOutcome = (outcome) => {
+    const o = outcome === 'No' ? 'No' : 'Yes'
+    setTradeSide(o)
+    setOrderOutcome(o)
+    if (pool && market?.payload?.marketType === 'Binary') {
+      setOrderPrice(defaultLimitPriceFromPool(pool, o))
     }
   }
 
@@ -301,6 +445,14 @@ export default function MarketDetail() {
   const isActiveBinary = marketData.status === 'Active' && marketData.marketType === 'Binary' && pool
   const isActiveMultiPool =
     marketData.status === 'Active' && marketData.marketType === 'MultiOutcome' && pool?.poolKind === 'multi'
+  const binaryYesPct = isActiveBinary ? (yesProbability(pool) * 100).toFixed(0) : ''
+  const binaryNoPct = isActiveBinary ? (100 - parseFloat(binaryYesPct)).toFixed(0) : ''
+  const limitPriceNum = parseFloat(orderPrice)
+  const limitPriceValid = Number.isFinite(limitPriceNum) && limitPriceNum > 0 && limitPriceNum <= 1
+  const limitCentsSlider = limitPriceValid
+    ? Math.min(99, Math.max(1, Math.round(limitPriceNum * 100)))
+    : 50
+  const limitCentsDisplay = limitPriceValid ? limitCentsSlider : null
 
   return (
     <div className="market-detail">
@@ -453,17 +605,321 @@ export default function MarketDetail() {
           )}
         </div>
 
-        {/* Bottom: buy/sell shares + limit orders */}
-        <div className="market-detail-actions">
-          {isActiveBinary && pool && !ammTradeEnabled && (
-            <div className="card market-detail-trade alert-info">
-              <h2 className="market-detail-trade-title">Peer-to-peer trading</h2>
-              <p className="market-detail-trade-hint" style={{ marginBottom: 0 }}>
-                Instant pool (AMM) buys are disabled so the platform does not take liquidity risk. Use{' '}
-                <strong>limit orders</strong> below to trade with other users.
+        {/* Bottom: trade */}
+        <div className={`market-detail-actions${isActiveBinary && pool ? ' market-detail-actions--binary' : ''}`}>
+          {isActiveBinary && pool && (
+            <div className="card market-detail-trade-unified">
+              <h2 className="market-detail-trade-title">Trade</h2>
+              <p className="market-detail-trade-hint market-detail-trade-hint--tight">
+                Pick <strong>Yes</strong> or <strong>No</strong>, then either buy instantly from the pool (when enabled) or set a <strong>limit price</strong> to trade with others.
               </p>
+
+              {!ammTradeEnabled && (
+                <div className="alert-info market-detail-trade-banner">
+                  <strong>Pool buys are off.</strong> This deployment uses peer-to-peer limit orders only (no instant AMM). Place a buy or sell below at your price.
+                </div>
+              )}
+
+              <p className="market-detail-step-label">Outcome</p>
+              <div className="market-detail-outcome-pills" role="group" aria-label="Choose Yes or No">
+                <button
+                  type="button"
+                  className={`market-detail-outcome-pill${tradeSide === 'Yes' ? ' is-selected' : ''}`}
+                  onClick={() => pickBinaryOutcome('Yes')}
+                >
+                  <span className="market-detail-outcome-pill-label">Yes</span>
+                  <span className="market-detail-outcome-pill-meta">~{binaryYesPct}%</span>
+                </button>
+                <button
+                  type="button"
+                  className={`market-detail-outcome-pill market-detail-outcome-pill--no${tradeSide === 'No' ? ' is-selected' : ''}`}
+                  onClick={() => pickBinaryOutcome('No')}
+                >
+                  <span className="market-detail-outcome-pill-label">No</span>
+                  <span className="market-detail-outcome-pill-meta">~{binaryNoPct}%</span>
+                </button>
+              </div>
+
+              {ammTradeEnabled && (
+                <div className="market-detail-trade-tabs" role="tablist" aria-label="How to trade">
+                  <button
+                    type="button"
+                    role="tab"
+                    aria-selected={tradeTab === 'pool'}
+                    className={`market-detail-trade-tab${tradeTab === 'pool' ? ' is-active' : ''}`}
+                    onClick={() => setTradeTab('pool')}
+                  >
+                    Instant (pool)
+                  </button>
+                  <button
+                    type="button"
+                    role="tab"
+                    aria-selected={tradeTab === 'limit'}
+                    className={`market-detail-trade-tab${tradeTab === 'limit' ? ' is-active' : ''}`}
+                    onClick={() => setTradeTab('limit')}
+                  >
+                    Limit order
+                  </button>
+                </div>
+              )}
+
+              {ammTradeEnabled && tradeTab === 'pool' && (
+                <div className="market-detail-trade-panel">
+                  <p className="market-detail-step-label">Spend {PLATFORM_CURRENCY_SYMBOL}</p>
+                  <div className="market-detail-preset-row" aria-label="Quick amounts">
+                    {BINARY_PIP_PRESETS.map((p) => (
+                      <button
+                        key={p}
+                        type="button"
+                        className="btn-secondary market-detail-preset-chip"
+                        onClick={() => setTradeAmount(String(p))}
+                      >
+                        {p}
+                      </button>
+                    ))}
+                    <button
+                      type="button"
+                      className="btn-secondary market-detail-preset-chip market-detail-preset-chip--max"
+                      onClick={applyMaxSpend}
+                      disabled={!wallet || balanceLoading || balanceRaw <= 0}
+                      title="Use your full Pips balance (rounded down to cents)"
+                    >
+                      Max
+                    </button>
+                  </div>
+                  <div className="form-group">
+                    <label htmlFor="market-trade-amount">Amount</label>
+                    <input
+                      id="market-trade-amount"
+                      type="number"
+                      value={tradeAmount}
+                      onChange={(e) => setTradeAmount(e.target.value)}
+                      placeholder="0"
+                      min="0"
+                      step="0.01"
+                    />
+                  </div>
+                  {tradeAmount && parseFloat(tradeAmount) > 0 && pool && (() => {
+                    const amt = parseFloat(tradeAmount)
+                    const { outputAmount, feeAmount } = getQuote(
+                      { yesReserve: pool.yesReserve ?? 0, noReserve: pool.noReserve ?? 0, feeRate: pool.feeRate ?? 0.003 },
+                      tradeSide,
+                      amt
+                    )
+                    const withinLimit = isTradeWithinLimit(
+                      { yesReserve: pool.yesReserve ?? 0, noReserve: pool.noReserve ?? 0, maxTradeReserveFraction: pool.maxTradeReserveFraction ?? 0.1 },
+                      tradeSide,
+                      outputAmount
+                    )
+                    const poolB = {
+                      yesReserve: pool.yesReserve ?? 0,
+                      noReserve: pool.noReserve ?? 0,
+                      feeRate: pool.feeRate ?? 0.003,
+                      maxTradeReserveFraction: pool.maxTradeReserveFraction ?? 0.1,
+                    }
+                    const impact = estimatePriceImpact(poolB, tradeSide, amt, false)
+                    return (
+                      <div className="alert-info market-detail-quote">
+                        <p style={{ margin: 0 }}>
+                          ≈ <strong>{outputAmount.toFixed(2)}</strong> {tradeSide} shares for {formatPips(tradeAmount)}
+                          {feeAmount > 0 && <span> (fee {formatPips(feeAmount)})</span>}
+                        </p>
+                        {impact.before != null && impact.delta != null && impact.delta > 0 && (
+                          <p className="market-detail-quote-sub">
+                            Est. impact on {tradeSide}: ~{(impact.delta * 100).toFixed(2)} pts ({(impact.before * 100).toFixed(1)}% → {(impact.after * 100).toFixed(1)}%)
+                          </p>
+                        )}
+                        {!withinLimit && (
+                          <p className="market-detail-quote-warn">Try a smaller amount.</p>
+                        )}
+                      </div>
+                    )
+                  })()}
+                  <button
+                    type="button"
+                    className="btn-primary market-detail-confirm"
+                    onClick={handleTrade}
+                    disabled={tradeLoading || !tradeAmount || parseFloat(tradeAmount) <= 0}
+                  >
+                    {tradeLoading
+                      ? <SubmitDiceLabel busyLabel="Trading…" />
+                      : `Buy ${tradeSide} now`}
+                  </button>
+                  <p className="market-detail-micro-hint">0.3% pool fee. Settlement rules apply when the market resolves.</p>
+                </div>
+              )}
+
+              {(!ammTradeEnabled || tradeTab === 'limit') && (
+                <div className="market-detail-trade-panel">
+                  <p className="market-detail-step-label">Limit order</p>
+                  <p className="market-detail-trade-hint market-detail-trade-hint--tight">
+                    Name your price in <strong>cents per share</strong> (1¢–99¢). Fills when another trader matches you. <strong>2% fee</strong> on settlement.
+                    {' '}Sells go to the order book only — the pool does not buy shares back.
+                  </p>
+                  <div className="market-detail-buy-sell-toggle" role="group" aria-label="Buy or sell shares">
+                    <button
+                      type="button"
+                      className={orderSide === 'buy' ? 'btn-primary' : 'btn-secondary'}
+                      onClick={() => setOrderSide('buy')}
+                    >
+                      Buy {tradeSide}
+                    </button>
+                    <button
+                      type="button"
+                      className={orderSide === 'sell' ? 'btn-primary' : 'btn-secondary'}
+                      onClick={() => setOrderSide('sell')}
+                    >
+                      Sell {tradeSide}
+                    </button>
+                  </div>
+                  <div className="form-group">
+                    <label htmlFor="market-order-shares">Shares</label>
+                    {orderSide === 'sell' && wallet && (
+                      <p className="market-detail-micro-hint" style={{ marginTop: 0 }}>
+                        {openSellReservedForLimitOutcome > 0
+                          ? <>~{limitSellNetShares.toFixed(2)} {tradeSide} shares free to list (~{sellableSharesForOutcome.toFixed(2)} held, ~{openSellReservedForLimitOutcome.toFixed(2)} in open sells).</>
+                          : <>You hold ~{sellableSharesForOutcome.toFixed(2)} {tradeSide} shares (all positions on this market).</>}
+                      </p>
+                    )}
+                    <div className="market-detail-preset-row">
+                      {[10, 25, 50, 100].map((s) => (
+                        <button
+                          key={s}
+                          type="button"
+                          className="btn-secondary market-detail-preset-chip"
+                          onClick={() => setOrderAmount(String(s))}
+                        >
+                          {s}
+                        </button>
+                      ))}
+                      {orderSide === 'sell' && (
+                        <button
+                          type="button"
+                          className="btn-secondary market-detail-preset-chip market-detail-preset-chip--max"
+                          onClick={applyMaxSellShares}
+                          disabled={!wallet || limitSellNetShares <= 0}
+                          title="Fill with shares not already on the sell book"
+                        >
+                          Max
+                        </button>
+                      )}
+                    </div>
+                    <input
+                      id="market-order-shares"
+                      type="number"
+                      value={orderAmount}
+                      onChange={(e) => setOrderAmount(e.target.value)}
+                      placeholder="How many shares"
+                      min="0"
+                      step="0.01"
+                    />
+                  </div>
+                  <div className="form-group">
+                    <div className="market-detail-limit-price-head">
+                      <label htmlFor="market-order-cents">Limit price</label>
+                      <button
+                        type="button"
+                        className="market-detail-link-btn"
+                        onClick={() => setOrderPrice(defaultLimitPriceFromPool(pool, tradeSide))}
+                      >
+                        Match pool (~{(tradeSide === 'Yes' ? binaryYesPct : binaryNoPct)}¢)
+                      </button>
+                    </div>
+                    <div className="market-detail-cents-row">
+                      <input
+                        id="market-order-cents"
+                        type="number"
+                        min={1}
+                        max={99}
+                        step={1}
+                        value={limitPriceValid ? limitCentsSlider : ''}
+                        onChange={(e) => {
+                          const raw = e.target.value
+                          if (raw === '') {
+                            setOrderPrice('')
+                            return
+                          }
+                          const c = parseInt(raw, 10)
+                          if (!Number.isFinite(c)) return
+                          const v = Math.min(99, Math.max(1, c))
+                          setOrderPrice((v / 100).toFixed(2))
+                        }}
+                        placeholder="¢"
+                        aria-describedby="market-order-cents-hint"
+                      />
+                      <span className="market-detail-cents-suffix" id="market-order-cents-hint">¢ per share</span>
+                    </div>
+                    <input
+                      type="range"
+                      className="market-detail-price-slider"
+                      min={1}
+                      max={99}
+                      value={limitCentsSlider}
+                      onChange={(e) => setOrderPrice((Math.min(99, Math.max(1, parseInt(e.target.value, 10))) / 100).toFixed(2))}
+                      aria-label="Limit price in cents"
+                    />
+                  </div>
+                  <button
+                    type="button"
+                    className="btn-primary market-detail-confirm"
+                    onClick={handlePlaceOrder}
+                    disabled={
+                      orderLoading ||
+                      !wallet ||
+                      !orderAmount ||
+                      parseFloat(orderAmount) <= 0 ||
+                      !limitPriceValid
+                    }
+                  >
+                    {orderLoading
+                      ? <SubmitDiceLabel busyLabel="Placing…" />
+                      : `${orderSide === 'buy' ? 'Place buy' : 'Place sell'} · ${tradeSide}${limitCentsDisplay != null ? ` @ ${limitCentsDisplay}¢` : ''}`}
+                  </button>
+                </div>
+              )}
+
+              {ordersLoading ? (
+                <p className="text-secondary market-detail-orders-loading market-detail-open-orders--below">
+                  <MultiDiceLoader size="xs" decorative inline className="market-detail-orders-loading__dice" />
+                  <span>Loading open orders…</span>
+                </p>
+              ) : openOrders.length > 0 ? (
+                <div className="market-detail-open-orders market-detail-open-orders--below">
+                  {wallet && myOpenOrdersOnMarket.length > 0 && (
+                    <div className="market-detail-my-orders">
+                      <h4 className="market-detail-my-orders-heading">Your open orders</h4>
+                      <ul className="market-detail-order-list market-detail-order-list--my">
+                        {myOpenOrdersOnMarket.map((o) => (
+                          <li key={o.orderId} className="market-detail-my-order-row">
+                            <span>
+                              {o.side === 'buy' ? 'Buy' : 'Sell'} {o.outcome} — {formatOrderSizeDisplay(o)} @ {(o.priceReal * 100).toFixed(0)}¢
+                            </span>
+                            <button
+                              type="button"
+                              className="btn-secondary market-detail-cancel-order-btn"
+                              disabled={cancellingOrderId === o.orderId}
+                              onClick={() => handleCancelMyOrder(o.orderId)}
+                            >
+                              {cancellingOrderId === o.orderId ? '…' : 'Cancel'}
+                            </button>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                  <h3 className="market-detail-open-orders-heading">Open limit orders</h3>
+                  <ul className="market-detail-order-list">
+                    {openOrders.slice(0, 12).map((o) => (
+                      <li key={o.orderId}>
+                        {o.side === 'buy' ? 'Buy' : 'Sell'} {o.outcome} — {formatOrderSizeDisplay(o)} @ {(o.priceReal * 100).toFixed(0)}¢
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ) : null}
             </div>
           )}
+
           {isActiveMultiPool && !ammTradeEnabled && (
             <div className="card market-detail-trade alert-info">
               <h2 className="market-detail-trade-title">Pool trading unavailable</h2>
@@ -474,48 +930,53 @@ export default function MarketDetail() {
               </p>
             </div>
           )}
-          {(isActiveBinary || isActiveMultiPool) && ammTradeEnabled && (
+          {isActiveMultiPool && ammTradeEnabled && (
             <div className="card market-detail-trade">
               <h2 className="market-detail-trade-title">Buy shares</h2>
               <p className="market-detail-trade-hint">
-                {isActiveMultiPool
-                  ? `Spend ${PLATFORM_CURRENCY_SYMBOL} on one outcome. Multi-outcome markets use the pool only (no P2P book). 0.3% pool fee.`
-                  : `Spend ${PLATFORM_CURRENCY_SYMBOL} to buy Yes or No at the current pool price (0.3% fee).`}
+                Spend {PLATFORM_CURRENCY_SYMBOL} on one outcome. Pool only for multi-outcome markets (0.3% fee).
               </p>
-              <div className="form-group">
-                <label>{isActiveMultiPool ? 'Outcome' : 'Side'}</label>
-                {isActiveMultiPool ? (
-                  <select
-                    className="filter-select"
-                    value={tradeSide}
-                    onChange={(e) => setTradeSide(e.target.value)}
+              <p className="market-detail-step-label">Outcome</p>
+              <div className="market-detail-outcome-pills market-detail-outcome-pills--wrap" role="group" aria-label="Choose outcome">
+                {(pool.outcomes || marketData.outcomes || []).map((o) => (
+                  <button
+                    key={o}
+                    type="button"
+                    className={`market-detail-outcome-pill market-detail-outcome-pill--multi${tradeSide === o ? ' is-selected' : ''}`}
+                    onClick={() => setTradeSide(o)}
                   >
-                    {(pool.outcomes || marketData.outcomes || []).map((o) => (
-                      <option key={o} value={o}>{o}</option>
-                    ))}
-                  </select>
-                ) : (
-                  <div className="market-detail-side-buttons">
-                    <button
-                      type="button"
-                      className={tradeSide === 'Yes' ? 'btn-primary' : 'btn-secondary'}
-                      onClick={() => setTradeSide('Yes')}
-                    >
-                      Buy Yes
-                    </button>
-                    <button
-                      type="button"
-                      className={tradeSide === 'No' ? 'btn-primary' : 'btn-secondary'}
-                      onClick={() => setTradeSide('No')}
-                    >
-                      Buy No
-                    </button>
-                  </div>
-                )}
+                    <span className="market-detail-outcome-pill-label">{o}</span>
+                    <span className="market-detail-outcome-pill-meta">
+                      ~{(outcomeProbabilityMulti(pool, o) * 100).toFixed(0)}%
+                    </span>
+                  </button>
+                ))}
               </div>
               <div className="form-group">
-                <label>Amount ({PLATFORM_CURRENCY_SYMBOL})</label>
+                <label htmlFor="market-multi-amount">Amount ({PLATFORM_CURRENCY_SYMBOL})</label>
+                <div className="market-detail-preset-row">
+                  {BINARY_PIP_PRESETS.map((p) => (
+                    <button
+                      key={p}
+                      type="button"
+                      className="btn-secondary market-detail-preset-chip"
+                      onClick={() => setTradeAmount(String(p))}
+                    >
+                      {p}
+                    </button>
+                  ))}
+                  <button
+                    type="button"
+                    className="btn-secondary market-detail-preset-chip market-detail-preset-chip--max"
+                    onClick={applyMaxSpend}
+                    disabled={!wallet || balanceLoading || balanceRaw <= 0}
+                    title="Use your full Pips balance (rounded down to cents)"
+                  >
+                    Max
+                  </button>
+                </div>
                 <input
+                  id="market-multi-amount"
                   type="number"
                   value={tradeAmount}
                   onChange={(e) => setTradeAmount(e.target.value)}
@@ -526,147 +987,40 @@ export default function MarketDetail() {
               </div>
               {tradeAmount && parseFloat(tradeAmount) > 0 && pool && (() => {
                 const amt = parseFloat(tradeAmount)
-                if (isActiveMultiPool) {
-                  const poolM = {
-                    outcomeReserves: pool.outcomeReserves || {},
-                    outcomes: pool.outcomes || [],
-                    feeRate: pool.feeRate ?? 0.003,
-                    maxTradeReserveFraction: pool.maxTradeReserveFraction ?? 0.1,
-                  }
-                  const { outputAmount, feeAmount } = getQuoteMulti(poolM, tradeSide, amt)
-                  const withinLimit = isTradeWithinLimitMulti(poolM, tradeSide, outputAmount)
-                  const impact = estimatePriceImpact(poolM, tradeSide, amt, true)
-                  return (
-                    <div className="alert-info market-detail-quote">
-                      <p style={{ margin: 0 }}>
-                        Pay {formatPips(tradeAmount)} → ~{outputAmount.toFixed(2)} {tradeSide} shares
-                        {feeAmount > 0 && ` (fee ${formatPips(feeAmount)})`}
-                      </p>
-                      {impact.before != null && impact.delta != null && impact.delta > 0 && (
-                        <p style={{ margin: '0.35rem 0 0', fontSize: 'var(--font-size-sm)' }}>
-                          Est. price impact on {tradeSide}: ~{(impact.delta * 100).toFixed(2)} pts (implied probability {(impact.before * 100).toFixed(1)}% → {(impact.after * 100).toFixed(1)}%)
-                        </p>
-                      )}
-                      {!withinLimit && (
-                        <p style={{ margin: '0.5rem 0 0', color: 'var(--color-warning)' }}>Reduce amount to stay within limit.</p>
-                      )}
-                    </div>
-                  )
-                }
-                const { outputAmount, feeAmount } = getQuote(
-                  { yesReserve: pool.yesReserve ?? 0, noReserve: pool.noReserve ?? 0, feeRate: pool.feeRate ?? 0.003 },
-                  tradeSide,
-                  amt
-                )
-                const withinLimit = isTradeWithinLimit(
-                  { yesReserve: pool.yesReserve ?? 0, noReserve: pool.noReserve ?? 0, maxTradeReserveFraction: pool.maxTradeReserveFraction ?? 0.1 },
-                  tradeSide,
-                  outputAmount
-                )
-                const poolB = {
-                  yesReserve: pool.yesReserve ?? 0,
-                  noReserve: pool.noReserve ?? 0,
+                const poolM = {
+                  outcomeReserves: pool.outcomeReserves || {},
+                  outcomes: pool.outcomes || [],
                   feeRate: pool.feeRate ?? 0.003,
                   maxTradeReserveFraction: pool.maxTradeReserveFraction ?? 0.1,
                 }
-                const impact = estimatePriceImpact(poolB, tradeSide, amt, false)
+                const { outputAmount, feeAmount } = getQuoteMulti(poolM, tradeSide, amt)
+                const withinLimit = isTradeWithinLimitMulti(poolM, tradeSide, outputAmount)
+                const impact = estimatePriceImpact(poolM, tradeSide, amt, true)
                 return (
                   <div className="alert-info market-detail-quote">
                     <p style={{ margin: 0 }}>
-                      Pay {formatPips(tradeAmount)} → ~{outputAmount.toFixed(2)} {tradeSide} shares
-                      {feeAmount > 0 && ` (fee ${formatPips(feeAmount)})`}
+                      ≈ <strong>{outputAmount.toFixed(2)}</strong> {tradeSide} shares for {formatPips(tradeAmount)}
+                      {feeAmount > 0 && <span> (fee {formatPips(feeAmount)})</span>}
                     </p>
                     {impact.before != null && impact.delta != null && impact.delta > 0 && (
-                      <p style={{ margin: '0.35rem 0 0', fontSize: 'var(--font-size-sm)' }}>
-                        Est. price impact: ~{(impact.delta * 100).toFixed(2)} pts on {tradeSide} (implied {(impact.before * 100).toFixed(1)}% → {(impact.after * 100).toFixed(1)}%)
+                      <p className="market-detail-quote-sub">
+                        Est. impact on {tradeSide}: ~{(impact.delta * 100).toFixed(2)} pts ({(impact.before * 100).toFixed(1)}% → {(impact.after * 100).toFixed(1)}%)
                       </p>
                     )}
                     {!withinLimit && (
-                      <p style={{ margin: '0.5rem 0 0', color: 'var(--color-warning)' }}>Reduce amount to stay within limit.</p>
+                      <p className="market-detail-quote-warn">Try a smaller amount.</p>
                     )}
                   </div>
                 )
               })()}
               <button
+                type="button"
                 className="btn-primary market-detail-confirm"
                 onClick={handleTrade}
                 disabled={tradeLoading || !tradeAmount || parseFloat(tradeAmount) <= 0}
               >
-                {tradeLoading ? <SubmitDiceLabel busyLabel="Trading…" /> : 'Confirm trade'}
+                {tradeLoading ? <SubmitDiceLabel busyLabel="Trading…" /> : `Buy ${tradeSide} now`}
               </button>
-            </div>
-          )}
-
-          {marketData.status === 'Active' && marketData.marketType === 'Binary' && (
-            <div className="card market-detail-orders">
-              <h2 className="market-detail-orders-title">Limit orders</h2>
-              <p className="market-detail-orders-hint">Place a limit order. Fills when someone takes the other side (2% fee on settlement).</p>
-              {ordersLoading ? (
-                <p className="text-secondary market-detail-orders-loading">
-                  <MultiDiceLoader size="xs" decorative inline className="market-detail-orders-loading__dice" />
-                  <span>Loading orders…</span>
-                </p>
-              ) : (
-                <>
-                  {openOrders.length > 0 && (
-                    <div className="market-detail-open-orders">
-                      <h3 className="market-detail-open-orders-heading">Open orders</h3>
-                      <ul className="market-detail-order-list">
-                        {openOrders.slice(0, 8).map((o) => (
-                          <li key={o.orderId}>
-                            {o.side === 'buy' ? 'Buy' : 'Sell'} {o.outcome} — {o.amountReal} @ {(o.priceReal * 100).toFixed(0)}%
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-                  <div className="market-detail-order-form">
-                    <div className="form-group">
-                      <label>Outcome</label>
-                      <select value={orderOutcome} onChange={(e) => setOrderOutcome(e.target.value)}>
-                        <option value="Yes">Yes</option>
-                        <option value="No">No</option>
-                      </select>
-                    </div>
-                    <div className="form-group">
-                      <label>Side</label>
-                      <select value={orderSide} onChange={(e) => setOrderSide(e.target.value)}>
-                        <option value="buy">Buy</option>
-                        <option value="sell">Sell</option>
-                      </select>
-                    </div>
-                    <div className="form-group">
-                      <label>Amount (shares)</label>
-                      <input
-                        type="number"
-                        value={orderAmount}
-                        onChange={(e) => setOrderAmount(e.target.value)}
-                        placeholder="e.g. 100"
-                        min="1"
-                        step="1"
-                      />
-                    </div>
-                    <div className="form-group">
-                      <label>Price (0–1)</label>
-                      <input
-                        type="number"
-                        value={orderPrice}
-                        onChange={(e) => setOrderPrice(e.target.value)}
-                        min="0"
-                        max="1"
-                        step="0.01"
-                      />
-                    </div>
-                    <button
-                      className="btn-secondary"
-                      onClick={handlePlaceOrder}
-                      disabled={orderLoading || !wallet || !orderAmount || parseFloat(orderAmount) <= 0}
-                    >
-                      {orderLoading ? <SubmitDiceLabel busyLabel="Placing…" /> : 'Place order'}
-                    </button>
-                  </div>
-                </>
-              )}
             </div>
           )}
 

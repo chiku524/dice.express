@@ -32,6 +32,8 @@ import {
   upsertMarketEmbedding,
 } from '../lib/market-embeddings.mjs'
 import { predictionLog } from '../lib/prediction-observability.mjs'
+import { consumeRateLimitBucket, contractsListingClientKey } from '../lib/api-rate-limit.mjs'
+import { loadSellCapacityForBinaryOrder } from '../lib/p2p-order-validation.mjs'
 import * as resolveMarkets from '../lib/resolve-markets.mjs'
 import { addPips, pipsToCents, centsToPipsStr, cryptoAmountToPipsStr } from '../lib/pips-precision.mjs'
 import { verifyErc20Deposit, verifyNativeDeposit } from '../lib/verify-deposit-rpc.mjs'
@@ -51,7 +53,8 @@ import { privateKeyToAccount } from 'viem/accounts'
 const CORS = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'GET,POST,PUT,PATCH,OPTIONS,DELETE',
-  'Access-Control-Allow-Headers': 'X-CSRF-Token, X-Requested-With, Accept, Content-Type, Authorization',
+  'Access-Control-Allow-Headers':
+    'X-CSRF-Token, X-Requested-With, Accept, Content-Type, Authorization, Idempotency-Key',
 }
 
 const TEMPLATE_VIRTUAL_MARKET = 'VirtualMarket'
@@ -425,6 +428,58 @@ async function parseBody(request) {
   }
 }
 
+const P2P_ORDER_IDEM_PREFIX = 'idem:p2p-order:v1:'
+const P2P_ORDER_IDEM_TTL_SEC = 86400
+
+function normalizeIdempotencyKey(raw) {
+  const s = typeof raw === 'string' ? raw.trim() : ''
+  if (!s || s.length > 128) return ''
+  return s
+}
+
+async function readP2pOrderIdempotency(kv, owner, idemKey) {
+  if (!kv || !owner || !idemKey) return null
+  try {
+    const key = `${P2P_ORDER_IDEM_PREFIX}${encodeURIComponent(owner)}:${encodeURIComponent(idemKey)}`
+    return await kv.get(key)
+  } catch {
+    return null
+  }
+}
+
+async function writeP2pOrderIdempotency(kv, owner, idemKey, jsonStr) {
+  if (!kv || !owner || !idemKey || !jsonStr) return
+  try {
+    const key = `${P2P_ORDER_IDEM_PREFIX}${encodeURIComponent(owner)}:${encodeURIComponent(idemKey)}`
+    await kv.put(key, jsonStr, { expirationTtl: P2P_ORDER_IDEM_TTL_SEC })
+  } catch {
+    // non-fatal
+  }
+}
+
+const WITHDRAW_IDEM_PREFIX = 'idem:withdraw:v1:'
+const WITHDRAW_IDEM_TTL_SEC = 86400
+
+async function readWithdrawIdempotency(kv, party, idemKey) {
+  if (!kv || !party || !idemKey) return null
+  try {
+    const key = `${WITHDRAW_IDEM_PREFIX}${encodeURIComponent(party)}:${encodeURIComponent(idemKey)}`
+    return await kv.get(key)
+  } catch {
+    return null
+  }
+}
+
+async function writeWithdrawIdempotency(kv, party, idemKey, jsonStr) {
+  if (!kv || !party || !idemKey || !jsonStr) return
+  try {
+    const key = `${WITHDRAW_IDEM_PREFIX}${encodeURIComponent(party)}:${encodeURIComponent(idemKey)}`
+    await kv.put(key, jsonStr, { expirationTtl: WITHDRAW_IDEM_TTL_SEC })
+  } catch {
+    // non-fatal
+  }
+}
+
 async function handleWithD1(db, kv, r2, request, path, method, env = {}) {
   const url = new URL(request.url)
   const query = Object.fromEntries(url.searchParams)
@@ -748,6 +803,7 @@ async function handleWithD1(db, kv, r2, request, path, method, env = {}) {
       source: 'crypto',
       referenceId: txHashNorm,
     })
+    predictionLog('api.deposit.credited', { party, networkId: netId, referenceIdTail: txHashNorm.slice(-8) })
     return jsonResponse({
       success: true,
       balance: newBalStr,
@@ -772,7 +828,7 @@ async function handleWithD1(db, kv, r2, request, path, method, env = {}) {
     const feeMin = parseFloat(env.WITHDRAWAL_FEE_MIN || '1')
     const withdrawMaxPp = parseFloat(env.WITHDRAW_MAX_PP || '0') || 0
     const withdrawMaxPending = Math.max(0, parseInt(env.WITHDRAW_MAX_PENDING || '0', 10) || 0)
-    const { userParty, accountId, amount, destinationAddress, networkId, token: tokenParam } = body
+    const { userParty, accountId, amount, destinationAddress, networkId, token: tokenParam, idempotencyKey: withdrawIdemBody } = body
     const party = userParty || accountId
     const token = tokenParam === 'native' ? 'native' : 'usdc'
     if (!party || amount === undefined || !destinationAddress) {
@@ -839,6 +895,23 @@ async function handleWithD1(db, kv, r2, request, path, method, env = {}) {
         return jsonResponse({ error: 'Too many pending withdrawals', message: `Max ${withdrawMaxPending} pending. Wait for one to complete.` }, 429)
       }
     }
+    const withdrawIdemKey = normalizeIdempotencyKey(request.headers.get('Idempotency-Key') || withdrawIdemBody)
+    if (withdrawIdemKey) {
+      const cachedWd = await readWithdrawIdempotency(kv, party, withdrawIdemKey)
+      if (cachedWd) {
+        try {
+          predictionLog('api.withdraw.idempotent_replay', { party })
+          return jsonResponse(JSON.parse(cachedWd))
+        } catch {
+          /* ignore corrupt KV */
+        }
+      }
+    }
+    const rlWd = await consumeRateLimitBucket(kv, `withdraw-req:${party}`, 25, 3600)
+    if (!rlWd.ok) {
+      predictionLog('api.withdraw.rate_limited', { party })
+      return jsonResponse({ error: 'Too many withdrawal requests', retryAfterSec: 3600 }, 429)
+    }
     const currentRaw = await storage.getBalanceRaw(db, party)
     const currentCents = pipsToCents(currentRaw)
     if (deductCents > 0 && currentCents < deductCents) {
@@ -864,7 +937,7 @@ async function handleWithD1(db, kv, r2, request, path, method, env = {}) {
     const w = { requestId, party, amountPips, feePips, netPips, destination: dest, networkId: netId, token }
     const sendResult = await sendOneWithdrawal(env, db, w)
     if (sendResult.ok) {
-      return jsonResponse({
+      const wdBody = {
         success: true,
         requestId,
         txHash: sendResult.txHash,
@@ -875,9 +948,12 @@ async function handleWithD1(db, kv, r2, request, path, method, env = {}) {
         networkId: netId,
         token,
         message: 'Withdrawal sent. Transaction: ' + sendResult.txHash,
-      })
+      }
+      if (withdrawIdemKey) await writeWithdrawIdempotency(kv, party, withdrawIdemKey, JSON.stringify(wdBody))
+      predictionLog('api.withdraw.sent', { party, requestId, networkId: netId, token })
+      return jsonResponse(wdBody)
     }
-    return jsonResponse({
+    const wdQueued = {
       success: true,
       requestId,
       txHash: null,
@@ -889,7 +965,10 @@ async function handleWithD1(db, kv, r2, request, path, method, env = {}) {
       networkId: netId,
       token,
       message: 'Withdrawal queued; send failed and will be retried: ' + (sendResult.error || 'unknown'),
-    }, 200)
+    }
+    if (withdrawIdemKey) await writeWithdrawIdempotency(kv, party, withdrawIdemKey, JSON.stringify(wdQueued))
+    predictionLog('api.withdraw.queued', { party, requestId, networkId: netId, err: sendResult.error || null })
+    return jsonResponse(wdQueued, 200)
   }
 
   // GET /api/withdrawal-requests — list withdrawal requests for a user
@@ -1031,20 +1110,29 @@ async function handleWithD1(db, kv, r2, request, path, method, env = {}) {
     })
   }
 
-  // GET /api/orders — list open P2P orders for a market
+  // GET /api/orders — list open P2P orders for a market (optional owner = only that party’s rows)
   if (path === 'orders' && method === 'GET') {
-    const { marketId, outcome } = query
+    const { marketId, outcome, owner: ownerFilter } = query
     if (!marketId) return jsonResponse({ error: 'marketId required' }, 400)
-    const orders = await storage.getOpenOrdersByMarket(db, marketId, outcome || undefined)
+    let orders = await storage.getOpenOrdersByMarket(db, marketId, outcome || undefined)
+    if (ownerFilter) {
+      orders = orders.filter((o) => o.owner === ownerFilter)
+    }
     return jsonResponse({ success: true, orders })
   }
 
   // POST /api/orders — create P2P order (and try match) or cancel
   if (path === 'orders' && method === 'POST') {
-    const { cancel, orderId, owner, marketId, outcome, side, amount, price } = body
+    const { cancel, orderId, owner, marketId, outcome, side, amount, price, idempotencyKey: idemBody } = body
     if (cancel && orderId && owner) {
+      const rlCancel = await consumeRateLimitBucket(kv, `p2p-cancel:${owner}`, 80, 60)
+      if (!rlCancel.ok) {
+        predictionLog('api.order.rate_limited', { kind: 'cancel', owner })
+        return jsonResponse({ error: 'Too many requests', retryAfterSec: 60 }, 429)
+      }
       const ok = await storage.cancelOrder(db, orderId, owner)
       if (!ok) return jsonResponse({ error: 'Order not found or already matched/cancelled' }, 404)
+      predictionLog('api.order.cancelled', { owner, orderId })
       return jsonResponse({ success: true, cancelled: true })
     }
     if (!marketId || !outcome || !side || amount === undefined || price === undefined || !owner) {
@@ -1060,11 +1148,64 @@ async function handleWithD1(db, kv, r2, request, path, method, env = {}) {
     if (isNaN(amountNum) || amountNum <= 0 || isNaN(priceNum) || priceNum < 0 || priceNum > 1) {
       return jsonResponse({ error: 'amount must be positive, price between 0 and 1' }, 400)
     }
+
+    const idemKey = normalizeIdempotencyKey(request.headers.get('Idempotency-Key') || idemBody)
+    if (idemKey) {
+      const cached = await readP2pOrderIdempotency(kv, owner, idemKey)
+      if (cached) {
+        try {
+          const replay = JSON.parse(cached)
+          predictionLog('api.order.idempotent_replay', { owner, marketId })
+          return jsonResponse(replay)
+        } catch {
+          // ignore corrupt KV entry
+        }
+      }
+    }
+
+    const rlPlace = await consumeRateLimitBucket(kv, `p2p-order:${owner}`, 45, 60)
+    if (!rlPlace.ok) {
+      predictionLog('api.order.rate_limited', { kind: 'place', owner, marketId })
+      return jsonResponse({ error: 'Too many requests', retryAfterSec: 60 }, 429)
+    }
+
+    if (sideNorm === 'sell') {
+      const cap = await loadSellCapacityForBinaryOrder(storage, db, { owner, marketId, outcomeNorm })
+      if (amountNum > cap.net + 1e-9) {
+        predictionLog('api.order.reject_sell_over', {
+          owner,
+          marketId,
+          outcome: outcomeNorm,
+          requested: amountNum,
+          held: cap.held,
+          reserved: cap.reserved,
+          net: cap.net,
+        })
+        return jsonResponse(
+          {
+            error: 'Sell size exceeds shares available (after open sell orders)',
+            code: 'SELL_EXCEEDS_POSITION',
+            heldShares: cap.held,
+            reservedInOpenSells: cap.reserved,
+            availableToSell: cap.net,
+          },
+          400
+        )
+      }
+    }
+
     const stake = outcomeNorm === 'Yes'
       ? (sideNorm === 'buy' ? amountNum * priceNum : amountNum * (1 - priceNum))
       : (sideNorm === 'buy' ? amountNum * (1 - priceNum) : amountNum * priceNum)
     const bal = await storage.getBalance(db, owner)
-    if (bal < stake) return jsonResponse({ error: 'Insufficient balance', required: stake, current: bal }, 400)
+    if (bal < stake) {
+      const shortfall = Math.max(0, stake - bal)
+      predictionLog('api.order.insufficient_balance', { owner, side: sideNorm, required: stake, current: bal, shortfall })
+      return jsonResponse(
+        { error: 'Insufficient balance', required: stake, current: bal, shortfall },
+        400
+      )
+    }
 
     const newOrderId = `order-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`
     await storage.createOrder(db, {
@@ -1169,8 +1310,10 @@ async function handleWithD1(db, kv, r2, request, path, method, env = {}) {
       await storage.updateOrderPartialFill(db, newOrderId, remainingToFill, remainingToFill <= 0 && lastMatchOrderId && lastPositionId ? { counterpartyOrderId: lastMatchOrderId, positionId: lastPositionId } : undefined)
     }
     const hadMatch = totalFilled > 0
+    /** @type {Record<string, unknown>} */
+    let responseBody
     if (hadMatch) {
-      return jsonResponse({
+      responseBody = {
         success: true,
         matched: true,
         orderId: newOrderId,
@@ -1179,27 +1322,54 @@ async function handleWithD1(db, kv, r2, request, path, method, env = {}) {
         amountRemaining: remainingToFill,
         price: lastSettlePrice,
         message: remainingToFill > 0 ? `Partially filled: ${totalFilled} matched, ${remainingToFill} left on the book.` : 'Fully filled.',
-      })
+      }
+    } else {
+      responseBody = {
+        success: true,
+        matched: false,
+        orderId: newOrderId,
+        message: 'Order placed. It will fill when someone takes the other side (any size up to your amount).',
+      }
     }
-
-    return jsonResponse({
-      success: true,
-      matched: false,
+    if (idemKey) await writeP2pOrderIdempotency(kv, owner, idemKey, JSON.stringify(responseBody))
+    predictionLog('api.order.completed', {
+      matched: responseBody.matched,
       orderId: newOrderId,
-      message: 'Order placed. It will fill when someone takes the other side (any size up to your amount).',
+      marketId,
+      owner,
+      amountFilled: hadMatch ? totalFilled : 0,
     })
+    return jsonResponse(responseBody)
   }
 
   // GET /api/get-contracts, POST /api/get-contracts
   if (path === 'get-contracts' && (method === 'GET' || method === 'POST')) {
     try {
       const params = method === 'GET' ? query : body
-      const { party, templateType, status, limit } = params
+      const { party, templateType, status, limit, marketId: marketIdFilter } = params
+      if (party) {
+        const rlGc = await consumeRateLimitBucket(kv, `get-contracts:${party}`, 120, 60)
+        if (!rlGc.ok) {
+          predictionLog('api.get_contracts.rate_limited', { party, backend: rlGc.backend })
+          return jsonResponse({ error: 'Too many requests', retryAfterSec: 60 }, 429)
+        }
+      } else {
+        const ipKey = contractsListingClientKey(request)
+        const maxUnscoped = ipKey === 'local-dev' ? 400 : ipKey === 'unknown' ? 180 : 90
+        const rlIp = await consumeRateLimitBucket(kv, `get-contracts-ip:${ipKey}`, maxUnscoped, 60)
+        if (!rlIp.ok) {
+          predictionLog('api.get_contracts.rate_limited', { unscoped: true, ipBucket: ipKey, backend: rlIp.backend })
+          return jsonResponse({ error: 'Too many requests', retryAfterSec: 60 }, 429)
+        }
+      }
+      const limRaw = limit ? parseInt(limit, 10) : 100
+      const lim = Number.isFinite(limRaw) ? Math.min(500, Math.max(1, limRaw)) : 100
       const list = await storage.getContracts(db, {
         party: party || undefined,
         templateType: templateType || undefined,
         status: status || undefined,
-        limit: limit ? parseInt(limit, 10) : 100,
+        marketId: marketIdFilter || undefined,
+        limit: lim,
       })
       const contracts = (list || []).map((c) => ({
         ...c,

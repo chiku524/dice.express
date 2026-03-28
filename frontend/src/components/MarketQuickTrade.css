@@ -1,0 +1,295 @@
+.market-quick-trade {
+  margin-top: var(--spacing-md);
+  padding: var(--spacing-md);
+  background: rgba(0, 0, 0, 0.25);
+  border-radius: var(--radius-md);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.market-quick-trade--inactive,
+.market-quick-trade--loading {
+  text-align: center;
+  padding: var(--spacing-sm);
+}
+
+.market-quick-trade-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-sm);
+  margin-bottom: var(--spacing-sm);
+}
+
+.market-quick-trade-title {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-teal);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.market-quick-trade-link {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-secondary);
+  text-decoration: none;
+}
+
+.market-quick-trade-link:hover {
+  color: var(--color-teal);
+  text-decoration: underline;
+}
+
+.market-quick-trade-muted {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+}
+
+.market-quick-note,
+.market-quick-hint {
+  margin: 0 0 var(--spacing-sm);
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+  line-height: 1.4;
+}
+
+.market-quick-outcome-pills {
+  display: flex;
+  gap: var(--spacing-xs);
+  margin-bottom: var(--spacing-sm);
+}
+
+.market-quick-outcome-pills--wrap {
+  flex-wrap: wrap;
+}
+
+.market-quick-pill {
+  flex: 1;
+  min-width: 0;
+  padding: var(--spacing-sm) var(--spacing-md);
+  border-radius: var(--radius-md);
+  border: 2px solid rgba(255, 255, 255, 0.12);
+  background: rgba(0, 0, 0, 0.2);
+  color: var(--color-text-primary);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.market-quick-pill--sm {
+  flex: 0 1 auto;
+  font-size: var(--font-size-xs);
+  padding: 6px 10px;
+}
+
+.market-quick-pill.is-on {
+  border-color: var(--color-teal);
+  background: rgba(20, 184, 166, 0.12);
+}
+
+.market-quick-pill-pct {
+  display: block;
+  font-weight: var(--font-weight-normal);
+  font-size: var(--font-size-xs);
+  color: var(--color-text-secondary);
+  margin-top: 2px;
+}
+
+.market-quick-tabs {
+  display: flex;
+  margin-bottom: var(--spacing-sm);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.market-quick-tabs button {
+  flex: 1;
+  padding: 6px 10px;
+  border: none;
+  background: transparent;
+  color: var(--color-text-secondary);
+  font: inherit;
+  font-size: var(--font-size-sm);
+  cursor: pointer;
+}
+
+.market-quick-tabs button.is-on {
+  background: rgba(20, 184, 166, 0.2);
+  color: var(--color-teal);
+}
+
+.market-quick-section {
+  margin-bottom: var(--spacing-sm);
+}
+
+.market-quick-presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: var(--spacing-sm);
+}
+
+.market-quick-chip {
+  padding: 4px 10px;
+  font-size: var(--font-size-xs);
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--color-text-primary);
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.market-quick-chip:hover {
+  border-color: rgba(20, 184, 166, 0.4);
+}
+
+.market-quick-chip--max {
+  border-color: rgba(20, 184, 166, 0.35);
+  color: var(--color-teal);
+}
+
+.market-quick-chip:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.market-quick-field {
+  margin-bottom: var(--spacing-sm);
+}
+
+.market-quick-field label {
+  display: block;
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+  margin-bottom: 4px;
+}
+
+.market-quick-field input[type="number"] {
+  width: 100%;
+  max-width: 12rem;
+}
+
+.market-quick-field--row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-xs);
+}
+
+.market-quick-link {
+  border: none;
+  background: none;
+  padding: 0;
+  font-size: var(--font-size-xs);
+  color: var(--color-teal);
+  cursor: pointer;
+  text-decoration: underline;
+  font-family: inherit;
+}
+
+.market-quick-slider {
+  width: 100%;
+  margin-bottom: var(--spacing-sm);
+  accent-color: var(--color-teal);
+}
+
+.market-quick-bs {
+  display: flex;
+  gap: var(--spacing-xs);
+  margin-bottom: var(--spacing-sm);
+}
+
+.market-quick-bs button {
+  flex: 1;
+  padding: 6px 10px;
+  border-radius: var(--radius-md);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(0, 0, 0, 0.2);
+  color: var(--color-text-secondary);
+  font: inherit;
+  font-size: var(--font-size-sm);
+  cursor: pointer;
+}
+
+.market-quick-bs button.is-on {
+  border-color: var(--color-teal);
+  color: var(--color-teal);
+  background: rgba(20, 184, 166, 0.1);
+}
+
+.market-quick-quote {
+  margin: 0 0 var(--spacing-sm);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+}
+
+.market-quick-warn {
+  color: var(--color-warning, #eab308);
+}
+
+.market-quick-cta {
+  width: 100%;
+  margin-top: var(--spacing-xs);
+}
+
+.market-quick-orders {
+  list-style: none;
+  padding: var(--spacing-sm) 0 0;
+  margin: var(--spacing-sm) 0 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+}
+
+.market-quick-orders li {
+  padding: 4px 0;
+}
+
+.market-quick-my-orders {
+  margin-top: var(--spacing-sm);
+  padding-top: var(--spacing-xs);
+  border-top: 1px solid rgba(20, 184, 166, 0.2);
+}
+
+.market-quick-my-orders-label {
+  margin: 0 0 4px;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--color-teal);
+}
+
+.market-quick-order-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-xs);
+}
+
+.market-quick-cancel {
+  flex-shrink: 0;
+  width: 1.5rem;
+  height: 1.5rem;
+  padding: 0;
+  line-height: 1;
+  border-radius: var(--radius-sm);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: rgba(0, 0, 0, 0.3);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  font-size: var(--font-size-sm);
+}
+
+.market-quick-cancel:hover:not(:disabled) {
+  border-color: var(--color-teal);
+  color: var(--color-teal);
+}
+
+.market-quick-cancel:disabled {
+  opacity: 0.5;
+  cursor: default;
+}

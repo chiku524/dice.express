@@ -22,10 +22,10 @@ function safeJsonParse(str, fallback = {}) {
 
 /**
  * Build SQL + bind params for listing contracts (used by getContracts and tests).
- * @param {{ party?: string, templateType?: string, status?: string, limit?: number }} opts
+ * @param {{ party?: string, templateType?: string, status?: string, marketId?: string, limit?: number }} opts
  * @returns {{ query: string, params: unknown[] }}
  */
-export function buildGetContractsQuery({ party, templateType, status, limit = 100 } = {}) {
+export function buildGetContractsQuery({ party, templateType, status, marketId, limit = 100 } = {}) {
   const conditions = []
   const params = []
   if (party) {
@@ -39,6 +39,10 @@ export function buildGetContractsQuery({ party, templateType, status, limit = 10
   if (status) {
     conditions.push('status = ?')
     params.push(status)
+  }
+  if (marketId) {
+    conditions.push(`COALESCE(json_extract(payload, '$.marketId'), '') = ?`)
+    params.push(marketId)
   }
   const whereClause = conditions.length ? `WHERE ${conditions.join(' AND ')}` : ''
   const query = `SELECT * FROM ${CONTRACTS_TABLE} ${whereClause} ORDER BY created_at DESC LIMIT ?`

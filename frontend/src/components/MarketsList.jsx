@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useRef } from 'react'
+import { useState, useEffect, useMemo, useRef, useCallback } from 'react'
 import { Link } from 'react-router-dom'
 import { SkeletonMarketGrid } from './SkeletonLoader'
 import LoadingSpinner from './LoadingSpinner'
@@ -15,6 +15,7 @@ import {
   toggleWatchlist,
   isWatched,
 } from '../utils/marketUX'
+import MarketQuickTrade from './MarketQuickTrade'
 
 const MARKETS_CACHE_KEY = 'dice.markets.cache.v1'
 
@@ -45,7 +46,30 @@ export default function MarketsList({ source: sourceFromRoute, variant = 'defaul
   const [quickFilter, setQuickFilter] = useState('all')
   const [fromCacheBanner, setFromCacheBanner] = useState(false)
   const [watchListVersion, setWatchListVersion] = useState(0)
+  /** `marketId` of card with expanded quick trade (Discover / categories / watchlist). */
+  const [expandedQuickTradeId, setExpandedQuickTradeId] = useState(null)
   const MARKETS_PER_PAGE = 12
+
+  const refreshMarketsList = useCallback(async () => {
+    try {
+      const list = await fetchMarkets(null, { sort: 'activity' })
+      setMarkets(list)
+      setError(null)
+      setFromCacheBanner(false)
+      try {
+        localStorage.setItem(MARKETS_CACHE_KEY, JSON.stringify(list))
+      } catch {
+        /* ignore */
+      }
+      apiRoutesWorkingRef.current = true
+    } catch (err) {
+      console.warn('[MarketsList] refresh after trade failed', err?.message)
+    }
+  }, [])
+
+  useEffect(() => {
+    setExpandedQuickTradeId(null)
+  }, [currentPage])
 
   /** Discover routes narrow by source; home (/) shows all sources. */
   const listSourceFilter = sourceFromRoute || 'all'
@@ -743,6 +767,8 @@ export default function MarketsList({ source: sourceFromRoute, variant = 'defaul
                   const apiAttr = getMarketApiAttribution(market.payload)
                   const stale = getMarketStaleness(market.payload)
                   const watched = isWatched(market.contractId) || isWatched(market.payload?.marketId)
+                  const mid = market.payload?.marketId
+                  const quickOpen = mid && expandedQuickTradeId === mid
                   return (
                   <div key={market.contractId} className="market-card-wrap">
                     <button
@@ -832,6 +858,27 @@ export default function MarketsList({ source: sourceFromRoute, variant = 'defaul
                       </div>
                     </div>
                   </Link>
+                  {market.payload?.status === 'Active' && mid && (
+                    <>
+                      <div className="market-card-toolbar">
+                        <button
+                          type="button"
+                          className={`market-card-quick-trade-btn${quickOpen ? ' market-card-quick-trade-btn--open' : ''}`}
+                          aria-expanded={quickOpen}
+                          onClick={(e) => {
+                            e.preventDefault()
+                            e.stopPropagation()
+                            setExpandedQuickTradeId((id) => (id === mid ? null : mid))
+                          }}
+                        >
+                          {quickOpen ? 'Close quick trade' : 'Quick trade'}
+                        </button>
+                      </div>
+                      {quickOpen && (
+                        <MarketQuickTrade market={market} onTradeSuccess={refreshMarketsList} />
+                      )}
+                    </>
+                  )}
                   </div>
                   )
                 })}

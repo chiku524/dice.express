@@ -1,6 +1,10 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
-import { useLocation } from 'react-router-dom'
-import { documentationHashToSectionId } from '../constants/documentationSections'
+import { useLocation, useNavigate } from 'react-router-dom'
+import {
+  DOCUMENTATION_SECTIONS,
+  documentationBasePath,
+  documentationHashToSectionId,
+} from '../constants/documentationSections'
 import './Documentation.css'
 
 function hashForDocsSection(location) {
@@ -13,7 +17,9 @@ function hashForDocsSection(location) {
 
 export default function Documentation() {
   const location = useLocation()
+  const navigate = useNavigate()
   const mainRef = useRef(null)
+  const docsPath = documentationBasePath(location.pathname)
   const [activeSection, setActiveSection] = useState(() => {
     if (typeof window === 'undefined') return 'getting-started'
     return documentationHashToSectionId(window.location.hash)
@@ -77,16 +83,42 @@ export default function Documentation() {
     }
   }
 
+  const selectSection = (sectionId) => {
+    navigate({ pathname: docsPath, hash: `#${sectionId}` })
+  }
+
   return (
     <div className="docs-page">
-      <main ref={mainRef} className="docs-main" role="region" aria-label="Documentation content">
-        <p className="docs-nav-hint">
-          Open <strong>Documentation</strong> in the header (hover to see all sections) or, in the desktop app, use the sidebar <strong>Documentation</strong> flyout — then pick a section to load here.
-        </p>
-        <div className="docs-content-inner">
-          {renderContent()}
-        </div>
-      </main>
+      <div className="docs-layout">
+        <nav className="docs-toc" aria-label="Table of contents">
+          <h2 className="docs-toc-title">Contents</h2>
+          <ul className="docs-toc-list">
+            {DOCUMENTATION_SECTIONS.map((section) => {
+              const isCurrent = activeSection === section.id
+              return (
+                <li key={section.id}>
+                  <button
+                    type="button"
+                    className={`docs-toc-link${isCurrent ? ' docs-toc-link--active' : ''}`}
+                    aria-current={isCurrent ? 'location' : undefined}
+                    onClick={() => selectSection(section.id)}
+                  >
+                    {section.title}
+                  </button>
+                </li>
+              )
+            })}
+          </ul>
+        </nav>
+        <main ref={mainRef} className="docs-main" role="region" aria-label="Documentation content">
+          <p className="docs-nav-hint">
+            Choose a topic in <strong>Contents</strong> to switch sections. In the desktop app, the sidebar <strong>Documentation</strong> flyout links here too.
+          </p>
+          <div className="docs-content-inner">
+            {renderContent()}
+          </div>
+        </main>
+      </div>
     </div>
   )
 }

@@ -20,4 +20,15 @@ describe('buildGetContractsQuery', () => {
     const { params } = buildGetContractsQuery({ party: 'platform', status: 'Active', limit: 50 })
     assert.deepEqual(params, ['platform', 'Active', 50])
   })
+
+  it('marketId adds json_extract condition before LIMIT', () => {
+    const { query, params } = buildGetContractsQuery({
+      party: 'alice',
+      templateType: 'Position',
+      marketId: 'm-1',
+      limit: 100,
+    })
+    assert.match(query, /json_extract\(payload/)
+    assert.deepEqual(params, ['alice', 'Position', '%Position%', 'm-1', 100])
+  })
 })

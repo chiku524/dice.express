@@ -1,28 +1,21 @@
 import { useState, useRef, useEffect } from 'react'
-import { Link, useLocation, useNavigate } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 import { useWallet } from '../contexts/WalletContext'
 import { useToastContext } from '../contexts/ToastContext'
 import { getVirtualBalance } from '../services/balance'
 import { BRAND_NAME, BRAND_TAGLINE } from '../constants/brand'
 import { MARKET_SOURCES, getDiscoverPathForSource } from '../constants/marketConfig'
-import {
-  DOCUMENTATION_SECTIONS,
-  documentationBasePath,
-} from '../constants/documentationSections'
 import './Navbar.css'
 
 export default function Navbar() {
   const { wallet, disconnectWallet } = useWallet()
   const { showToast } = useToastContext()
   const location = useLocation()
-  const navigate = useNavigate()
   const [showDiscoverMenu, setShowDiscoverMenu] = useState(false)
   const [showResourcesMenu, setShowResourcesMenu] = useState(false)
-  const [showDocsMenu, setShowDocsMenu] = useState(false)
   const [balanceFormatted, setBalanceFormatted] = useState(null)
   const discoverMenuRef = useRef(null)
   const resourcesMenuRef = useRef(null)
-  const docsMenuRef = useRef(null)
 
   // Fetch virtual balance when wallet is connected
   useEffect(() => {
@@ -46,9 +39,6 @@ export default function Navbar() {
       if (resourcesMenuRef.current && !resourcesMenuRef.current.contains(event.target)) {
         setShowResourcesMenu(false)
       }
-      if (docsMenuRef.current && !docsMenuRef.current.contains(event.target)) {
-        setShowDocsMenu(false)
-      }
     }
 
     document.addEventListener('mousedown', handleClickOutside)
@@ -59,18 +49,17 @@ export default function Navbar() {
   useEffect(() => {
     setShowDiscoverMenu(false)
     setShowResourcesMenu(false)
-    setShowDocsMenu(false)
   }, [location.pathname, location.hash])
 
   const isActive = (path) => location.pathname === path
   const isDiscoverActive = () => isActive('/') || location.pathname.startsWith('/discover') || location.pathname.startsWith('/market')
-  const isDocsActive = () => isActive('/docs') || isActive('/documentation')
-  const docsSectionIsActive = (sectionId) => {
-    if (!isDocsActive()) return false
-    const h = location.hash.replace(/^#/, '')
-    if (!h && sectionId === 'getting-started') return true
-    return h === sectionId
-  }
+  const isResourcesActive = () =>
+    isActive('/activity') ||
+    isActive('/history') ||
+    isActive('/download') ||
+    isActive('/automation') ||
+    isActive('/docs') ||
+    isActive('/documentation')
 
   const isDesktopApp = typeof window !== 'undefined' && window.__TAURI__
 
@@ -99,7 +88,6 @@ export default function Navbar() {
               onClick={() => {
                 setShowDiscoverMenu(!showDiscoverMenu)
                 setShowResourcesMenu(false)
-                setShowDocsMenu(false)
               }}
             >
               Discover
@@ -123,60 +111,13 @@ export default function Navbar() {
             )}
           </div>
 
-          {/* Documentation — hover (or click) opens full section list */}
-          <div
-            className="nav-dropdown nav-dropdown-docs"
-            ref={docsMenuRef}
-            onMouseEnter={() => setShowDocsMenu(true)}
-            onMouseLeave={() => setShowDocsMenu(false)}
-          >
-            <button
-              type="button"
-              className={`nav-dropdown-toggle ${isDocsActive() ? 'active' : ''}`}
-              aria-expanded={showDocsMenu}
-              aria-haspopup="true"
-              onClick={() => {
-                setShowDocsMenu((o) => !o)
-                setShowDiscoverMenu(false)
-                setShowResourcesMenu(false)
-              }}
-            >
-              Documentation
-              <span className="dropdown-arrow">▼</span>
-            </button>
-            {showDocsMenu && (
-              <div className="nav-dropdown-menu nav-dropdown-menu--docs" role="menu">
-                {DOCUMENTATION_SECTIONS.map((section) => {
-                  const docsPath = documentationBasePath(location.pathname)
-                  const to = `${docsPath}#${section.id}`
-                  return (
-                    <Link
-                      key={section.id}
-                      role="menuitem"
-                      to={to}
-                      className={docsSectionIsActive(section.id) ? 'active' : ''}
-                      onClick={(e) => {
-                        e.preventDefault()
-                        navigate({ pathname: docsPath, hash: `#${section.id}` })
-                        setShowDocsMenu(false)
-                      }}
-                    >
-                      {section.title}
-                    </Link>
-                  )
-                })}
-              </div>
-            )}
-          </div>
-
           {/* Resources */}
           <div className="nav-dropdown nav-dropdown-resources" ref={resourcesMenuRef}>
             <button
-              className={`nav-dropdown-toggle ${isActive('/activity') || isActive('/history') || isActive('/download') || isActive('/automation') ? 'active' : ''}`}
+              className={`nav-dropdown-toggle ${isResourcesActive() ? 'active' : ''}`}
               onClick={() => {
                 setShowResourcesMenu(!showResourcesMenu)
                 setShowDiscoverMenu(false)
-                setShowDocsMenu(false)
               }}
             >
               Resources
@@ -184,6 +125,12 @@ export default function Navbar() {
             </button>
             {showResourcesMenu && (
               <div className="nav-dropdown-menu">
+                <Link
+                  to="/documentation"
+                  className={isActive('/documentation') || isActive('/docs') ? 'active' : ''}
+                >
+                  Documentation
+                </Link>
                 <Link to="/download" className={isActive('/download') ? 'active' : ''}>
                   Download desktop
                 </Link>
