@@ -4,6 +4,11 @@ Summary of major cleanups and improvements. For current structure see [README](.
 
 ---
 
+## 1.0.31 — Loading dice 3D read (March 2026)
+
+- **Release:** Version **1.0.31**; tag **`v1.0.31`** for desktop CI and GitHub Releases.
+- **Frontend:** **`RollingVectorDie`** per-face SVG shading (top/front/sides/back/bottom) so tumbling reads as a **cube**, not a flat card; **`MultiDiceLoader`** removes **`drop-shadow`** on the animated cube (avoids browser flattening of **`preserve-3d`**), adds **ground shadow** on the die wrap, **tighter perspective** scaled by **`--dice-size`**, face **inset** highlights, slightly **squarer** face corners.
+
 ## 1.0.30 — P2P orders, limits, contracts index (March 2026)
 
 - **Release:** Version **1.0.30**; tag **`v1.0.30`** for desktop CI and GitHub Releases.
