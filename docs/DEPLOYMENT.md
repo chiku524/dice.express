@@ -78,7 +78,9 @@ Cloudflare builds and deploys on every push. No API token in GitHub required.
 
 ## Option B: GitHub Actions (Direct Upload)
 
-Build in CI and deploy to the existing **dice-express** project. Set GitHub secrets: `CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_API_TOKEN`. Every push to `main` triggers deploy. Manual run: Actions → Deploy to Cloudflare Pages → Run workflow.
+Build in CI and deploy to the existing **dice-express** project. Set GitHub secrets: `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`. Every push to `main` triggers deploy. Manual run: Actions → Deploy to Cloudflare Pages → Run workflow.
+
+The **deploy** job runs **`npm ci`** at the **repository root** before `wrangler pages deploy`. Root `package.json` supplies **`viem`**, **Solana**, and other libraries that Wrangler bundles with **Pages Functions**; without that install, deploy fails with “Could not resolve …” errors.
 
 ---
 

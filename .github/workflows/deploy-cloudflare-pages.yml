@@ -79,6 +79,17 @@ jobs:
           name: pages-dist
           path: frontend/dist
 
+      # Wrangler bundles `functions/` against repo-root `node_modules` (viem, Solana, etc.).
+      # Without this install, direct upload fails with "Could not resolve" for those packages.
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install root dependencies (Pages Functions)
+        run: npm ci
+
       - name: Deploy to Cloudflare Pages
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
