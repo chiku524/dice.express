@@ -1,4 +1,4 @@
-/* Docs page: on-page TOC + main pane; desktop sidebar can deep-link by hash. */
+/* Docs page: on-page TOC + main (web); Tauri hides TOC — sidebar Documentation flyout is the TOC. */
 
 .docs-page {
   --docs-main-bg: var(--color-surface, rgba(20, 28, 40, 0.6));
@@ -225,6 +225,22 @@
 
 .desktop-app .docs-nav-hint {
   border-color: rgba(20, 184, 166, 0.22);
+}
+
+/* Desktop (Tauri): sidebar Documentation popover lists sections — hide duplicate in-page TOC */
+html.desktop-app .docs-toc {
+  display: none;
+}
+
+html.desktop-app .docs-layout {
+  grid-template-columns: 1fr;
+  gap: 0;
+}
+
+html.desktop-app .docs-main {
+  max-width: min(48rem, 100%);
+  margin-left: auto;
+  margin-right: auto;
 }
 
 @media (max-width: 768px) {

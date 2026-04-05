@@ -15,11 +15,16 @@ function hashForDocsSection(location) {
   return win
 }
 
+function isTauriShell() {
+  return typeof window !== 'undefined' && !!window.__TAURI__
+}
+
 export default function Documentation() {
   const location = useLocation()
   const navigate = useNavigate()
   const mainRef = useRef(null)
   const docsPath = documentationBasePath(location.pathname)
+  const tauriShell = isTauriShell()
   const [activeSection, setActiveSection] = useState(() => {
     if (typeof window === 'undefined') return 'getting-started'
     return documentationHashToSectionId(window.location.hash)
@@ -112,7 +117,15 @@ export default function Documentation() {
         </nav>
         <main ref={mainRef} className="docs-main" role="region" aria-label="Documentation content">
           <p className="docs-nav-hint">
-            Choose a topic in <strong>Contents</strong> to switch sections. In the desktop app, the sidebar <strong>Documentation</strong> flyout links here too.
+            {tauriShell ? (
+              <>
+                Use the sidebar <strong>Documentation</strong> menu to switch topics.
+              </>
+            ) : (
+              <>
+                Choose a topic in <strong>Contents</strong> or the top nav <strong>Documentation</strong> dropdown to switch sections.
+              </>
+            )}
           </p>
           <div className="docs-content-inner">
             {renderContent()}

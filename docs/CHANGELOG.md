@@ -4,6 +4,11 @@ Summary of major cleanups and improvements. For current structure see [README](.
 
 ---
 
+## 1.0.33 — Desktop docs layout (April 2026)
+
+- **Release:** Version **1.0.33**; tag **`v1.0.33`** for desktop CI and GitHub Releases.
+- **Desktop app:** Documentation page (`/docs`) hides the in-page **Contents** column; the sidebar **Documentation** flyout is the only TOC. Web layout unchanged.
+
 ## 1.0.32 — Auto-markets pipeline, pending activation, CI & docs (April 2026)
 
 - **Release:** Version **1.0.32**; tag **`v1.0.32`** for CI and GitHub Releases.
