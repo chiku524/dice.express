@@ -126,14 +126,12 @@ export function finalizeNewsFeedTopicMarket(ev) {
       ? `“${category}” top-headlines (English)`
       : `“${seedQuery || 'technology'}” search results (English)`
 
-  const title = `Will “${topicLabel}” still appear in ${provider} ${feedClause} by end of ${dateStr} (UTC)?`
+  const title = `Will an article title similar to “${topicLabel}” still appear in ${provider} ${feedClause} by end of ${dateStr} (UTC)?`
   const safeTitle = title.length > 158 ? `${title.slice(0, 155)}…` : title
 
   const description =
-    `Measures whether this story thread—“${topicLabel}”—is still visible in the same ${provider} ` +
-    `feed parameters used when the market was created (${feedClause}). ` +
-    `This is not a claim about real-world outcomes, only about continued prominence in that automated feed. ` +
-    `Full rules are in the resolution criteria.`
+    `Binary, rule-based market: Yes if, by end of ${dateStr} UTC, the ${provider} API (same parameters as stored) returns at least one article whose title overlaps the seed headline by the token rule in the resolution criteria; otherwise No. ` +
+    `“Similar” means the deterministic token-overlap count in the criteria—not editorial judgment. Anchor text: “${topicLabel}”.`
 
   const resolutionCriteria =
     `Automated resolution after end of calendar day ${dateStr} (UTC). ` +
@@ -145,7 +143,7 @@ export function finalizeNewsFeedTopicMarket(ev) {
     `(4) If the API errors, the market stays open until a later resolution run succeeds.`
 
   const oneLiner =
-    `Yes if the feed still surfaces a headline matching the stored topic signature (${minTokenOverlap}+ overlapping words); otherwise No.`
+    `Yes if any returned article title meets the ${minTokenOverlap}+ token overlap with the seed; otherwise No.`
 
   return {
     ...ev,

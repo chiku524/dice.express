@@ -4,6 +4,34 @@
  * Keys are read from env; never hardcode keys.
  */
 
+import {
+  FRANKFURTER_PAIR_ROTATION,
+  deterministicShuffle,
+  interleaveArrays,
+  pickOddsSportKeysForSeed,
+  pickRotatingWindow,
+  rotatedNewsCategory,
+  rotatedNewsQuery,
+  utcHourSlot,
+  varietyOffsetSlot,
+} from './auto-market-variety.mjs'
+
+export {
+  deterministicShuffle,
+  utcHourSlot,
+  rotatedNewsCategory,
+  rotatedNewsQuery,
+  varietyOffsetSlot,
+} from './auto-market-variety.mjs'
+
+/** Pick a stable variant from parallel equivalent wordings (variety without changing oracle semantics). */
+function pickVariant(seedKey, variants) {
+  const s = String(seedKey)
+  let h = 0
+  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0
+  return variants[h % variants.length]
+}
+
 const ALPHA_VANTAGE_BASE = 'https://www.alphavantage.co/query'
 const COINGECKO_PRO_BASE = 'https://pro-api.coingecko.com/api/v3'
 const ODDS_API_BASE = 'https://api.the-odds-api.com/v4'
@@ -396,7 +424,7 @@ export async function fetchFinnhubStockEarnings(env, symbol) {
 /**
  * Scheduled macro markets: effective fed funds (DFF) vs a threshold by a future date.
  */
-export async function eventsFromFredFunds(env, limit = 2) {
+export async function eventsFromFredFunds(env, limit = 2, horizonSlot = utcHourSlot()) {
   const key = env.FRED_API_KEY
   if (!key) return []
   const today = new Date().toISOString().slice(0, 10)
@@ -410,9 +438,16 @@ export async function eventsFromFredFunds(env, limit = 2) {
   if (!current || current.value == null) return []
   const spot = current.value
   const events = []
+  const horizonSets = [
+    [14, 28],
+    [10, 21],
+    [7, 14],
+    [12, 26],
+  ]
+  const pair = horizonSets[Math.abs(horizonSlot) % horizonSets.length]
   const horizons = []
-  if (limit >= 1) horizons.push(14)
-  if (limit >= 2) horizons.push(28)
+  if (limit >= 1) horizons.push(pair[0])
+  if (limit >= 2) horizons.push(pair[1])
   for (const days of horizons) {
     const end = new Date()
     end.setUTCDate(end.getUTCDate() + days)
@@ -525,13 +560,9 @@ export async function fetchFrankfurterRateOnOrBefore(endYmd, base, quote) {
   return null
 }
 
-export async function eventsFromFrankfurterForex(env, limit = 4) {
-  const pairs = [
-    { base: 'USD', quote: 'EUR' },
-    { base: 'USD', quote: 'GBP' },
-    { base: 'USD', quote: 'JPY' },
-    { base: 'EUR', quote: 'USD' },
-  ].slice(0, Math.max(1, Math.min(limit, 4)))
+export async function eventsFromFrankfurterForex(env, limit = 4, rotateSlot = utcHourSlot()) {
+  const n = Math.max(1, Math.min(limit, 4))
+  const pairs = pickRotatingWindow(FRANKFURTER_PAIR_ROTATION, n, rotateSlot)
   const events = []
   const settle = new Date()
   settle.setUTCDate(settle.getUTCDate() + 7)
@@ -543,14 +574,18 @@ export async function eventsFromFrankfurterForex(env, limit = 4) {
       const decimals = quote === 'JPY' ? 2 : 4
       const mult = 10 ** decimals
       const threshold = Math.round(cur.rate * 0.998 * mult) / mult
-      const title = `On ${dateStr}, will 1 ${base} be worth at least ${threshold} ${quote} (Frankfurter / ECB)?`
+      const title = pickVariant(`${base}-${quote}-${dateStr}-fx`, [
+        `Frankfurter ECB rate: On ${dateStr}, will 1 ${base} buy at least ${threshold} ${quote}?`,
+        `FX (${base}/${quote}): ≥ ${threshold} on ${dateStr} per Frankfurter (ECB)?`,
+        `Will ${base}/${quote} be ≥ ${threshold} on ${dateStr} using Frankfurter’s ECB feed?`,
+      ])
       const id = `fx-${base}-${quote}-${dateStr}`
       events.push({
         id,
         source: 'frankfurter',
         title,
-        description: `${title} Spot about ${cur.rate} on ${cur.date}. No API key required.`,
-        resolutionCriteria: `Yes if Frankfurter’s ${dateStr} (or last available ECB publish on or before that date) rate for 1 ${base} in ${quote} is ≥ ${threshold}. Data: https://www.frankfurter.app (ECB).`,
+        description: `${title} Spot at seed ≈ ${cur.rate} (Frankfurter date ${cur.date}). Threshold = 99.8% of that spot, rounded to ${decimals} decimal place(s).`,
+        resolutionCriteria: `Yes if Frankfurter’s rate for 1 ${base} in ${quote} on ${dateStr}, or the latest ECB rate on or before that date if no print exists, is ≥ ${threshold}. Comparator: ≥. Source: Frankfurter (ECB reference data).`,
         oneLiner: `${base}/${quote} ≥ ${threshold} on ${dateStr}; otherwise No.`,
         endDate: dateStr,
         resolutionDeadline: `${dateStr}T23:59:59.000Z`,
@@ -580,19 +615,23 @@ export async function fetchUsgsEarthquakeCount(startYmd, endYmd, minMagnitude = 
   return Array.isArray(data?.features) ? data.features.length : 0
 }
 
-export async function eventsFromUsgsQuakeCount(env, limit = 1) {
+export async function eventsFromUsgsQuakeCount(env, limit = 1, profileSlot = utcHourSlot()) {
   if (limit < 1) return []
+  const profiles = [
+    { minMag: 5, minCount: 12 },
+    { minMag: 4.5, minCount: 26 },
+    { minMag: 5.5, minCount: 9 },
+  ]
+  const { minMag, minCount } = profiles[Math.abs(profileSlot) % profiles.length]
   const start = new Date()
   const startYmd = start.toISOString().slice(0, 10)
   const end = new Date(start)
   end.setUTCDate(end.getUTCDate() + 7)
   const endYmd = end.toISOString().slice(0, 10)
-  const minMag = 5
-  const minCount = 12
   const title = `Will USGS record at least ${minCount} global earthquakes M≥${minMag} from ${startYmd} through ${endYmd} (UTC)?`
   return [
     {
-      id: `usgs-m${minMag}-${startYmd}-${endYmd}`,
+      id: `usgs-m${String(minMag).replace('.', 'p')}-${startYmd}-${endYmd}`,
       source: 'usgs',
       title,
       description: `${title} Counts from USGS FDSNWS event API (public, no key).`,
@@ -964,10 +1003,15 @@ export async function eventsFromOdds(env, sportKey = 'basketball_nba', limit = 2
   const events = await fetchOddsEvents(env, sportKey, 'us', 'decimal')
   const list = (events || []).slice(0, limit).map((e) => {
     const eventStart = formatEventStart(e.commence_time)
-    const title = `Will ${e.home_team} win vs ${e.away_team}?`
-    const description = `${title} Event start: ${eventStart}.`
-    const resolutionCriteria = `Home team (${e.home_team}) wins the match. Resolved using The Odds API scores after the event (commence: ${e.commence_time || 'TBD'}).`
-    const oneLiner = `Home team (${e.home_team}) wins; otherwise No.`
+    const seedKey = `${e.id}-${e.home_team}`
+    const title = pickVariant(seedKey, [
+      `Will ${e.home_team} (home on card) defeat ${e.away_team} per The Odds API final score?`,
+      `Will ${e.home_team} beat ${e.away_team} as the winning side on The Odds API’s completed fixture?`,
+      `Moneyline (home): Will ${e.home_team} finish ahead of ${e.away_team} when The Odds API marks the game complete?`,
+    ])
+    const description = `${title} Scheduled start (local format): ${eventStart}. Teams and home/away roles follow this Odds API event id (${e.id}). Resolution uses only The Odds API /scores for sport ${e.sport_key || 'TBD'}—no manual picks.`
+    const resolutionCriteria = `Yes if The Odds API reports the fixture complete and the score for ${e.home_team} (home_team) is strictly greater than the score for ${e.away_team} (away_team). No if away scores higher, scores are equal (including draws), the event is cancelled or not completed in the API, or scores are missing. Commence time (API): ${e.commence_time || 'TBD'}.`
+    const oneLiner = `Yes if ${e.home_team} wins on the posted final score; No if ${e.away_team} wins or the result is a draw.`
     const resolutionDeadline = resolutionAfterCommence(e.commence_time, 3)
     return {
       id: e.id,
@@ -990,28 +1034,36 @@ export async function eventsFromOdds(env, sportKey = 'basketball_nba', limit = 2
 }
 
 /** Stock threshold markets from Massive daily aggregates (parallel to Alpha Vantage stock lane). */
-export async function eventsFromMassive(env, symbols = ALPHA_VANTAGE_SYMBOLS.slice(0, 3)) {
+export async function eventsFromMassive(env, symbols = ALPHA_VANTAGE_SYMBOLS.slice(0, 3), opts = {}) {
+  const mix = Number(opts.thresholdMix ?? 0) || 0
+  const mults = [1.034, 1.048, 1.056, 1.042, 1.051]
   const events = []
   const endDate = new Date()
   endDate.setDate(endDate.getDate() + 7)
   const dateStr = endDate.toISOString().slice(0, 10)
-  for (const symbol of symbols) {
+  for (let i = 0; i < symbols.length; i++) {
+    const symbol = symbols[i]
     try {
       const q = await fetchMassiveLatestDailyClose(env, symbol)
       if (!q || q.price == null) continue
-      const threshold = Math.round(q.price * 1.05)
-      const title = `Will ${symbol} close above $${threshold} by ${dateStr}?`
+      const mult = mults[(i + mix) % mults.length]
+      const threshold = Math.round(q.price * mult)
+      const title = pickVariant(`${symbol}-${dateStr}-m`, [
+        `Will ${symbol}’s latest Massive daily bar close be ≥ $${threshold} after ${dateStr} (UTC calendar)?`,
+        `After ${dateStr}, will Massive’s most recent completed 1D close for ${symbol} reach at least $${threshold}?`,
+        `Massive 1D close: Will ${symbol} show ≥ $${threshold} when resolved after the deadline?`,
+      ])
       events.push({
         id: `massive-${symbol}-${dateStr}`,
         source: 'massive',
         title,
-        description: `${title} Latest daily close (Massive) about $${q.price}.`,
-        resolutionCriteria: `Closing price of ${symbol} on or before ${dateStr} is at or above $${threshold}. Data source: Massive (daily aggregates).`,
-        oneLiner: `${symbol} closes at or above $${threshold} by ${dateStr}; otherwise No.`,
+        description: `${title} Reference print when created: about $${q.price} (latest daily bar in Massive feed). Threshold rounds to whole dollars as stored.`,
+        resolutionCriteria: `After ${dateStr}T23:59:59.000Z (UTC end of that calendar day), Yes if Massive’s latest available completed daily aggregate close (same ticker endpoint as at seeding) is ≥ $${threshold} USD. No if below. Comparator: ≥. Data: Massive daily aggregates.`,
+        oneLiner: `Yes if Massive latest completed daily close ≥ $${threshold} after UTC end of ${dateStr}; otherwise No.`,
         symbol,
         threshold,
         endDate: dateStr,
-        resolutionDeadline: resolutionUSMarketCloseUTC(dateStr),
+        resolutionDeadline: resolutionEndOfDayUTC(dateStr),
         oracleSource: 'massive',
         oracleConfig: { symbol, threshold, endDate: dateStr },
       })
@@ -1022,28 +1074,36 @@ export async function eventsFromMassive(env, symbols = ALPHA_VANTAGE_SYMBOLS.sli
   return events
 }
 
-export async function eventsFromAlphaVantage(env, symbols = ALPHA_VANTAGE_SYMBOLS.slice(0, 5)) {
+export async function eventsFromAlphaVantage(env, symbols = ALPHA_VANTAGE_SYMBOLS.slice(0, 5), opts = {}) {
+  const mix = Number(opts.thresholdMix ?? 0) || 0
+  const mults = [1.034, 1.048, 1.056, 1.041, 1.052]
   const events = []
   const endDate = new Date()
   endDate.setDate(endDate.getDate() + 7)
   const dateStr = endDate.toISOString().slice(0, 10)
-  for (const symbol of symbols) {
+  for (let i = 0; i < symbols.length; i++) {
+    const symbol = symbols[i]
     try {
       const q = await fetchAlphaVantageQuote(env, symbol)
       if (!q || q.price == null) continue
-      const threshold = Math.round(q.price * 1.05) // 5% above current
-      const title = `Will ${symbol} close above $${threshold} by ${dateStr}?`
+      const mult = mults[(i + mix) % mults.length]
+      const threshold = Math.round(q.price * mult)
+      const title = pickVariant(`${symbol}-${dateStr}-av`, [
+        `Will Alpha Vantage’s GLOBAL_QUOTE price for ${symbol} be ≥ $${threshold} after ${dateStr} (UTC)?`,
+        `After ${dateStr}, will ${symbol} quote at or above $${threshold} on Alpha Vantage GLOBAL_QUOTE?`,
+        `${symbol} ≥ $${threshold} on Alpha Vantage (post–${dateStr} resolution check)?`,
+      ])
       events.push({
         id: `av-${symbol}-${dateStr}`,
         source: 'alpha_vantage',
         title,
-        description: `${title} Current price about $${q.price}.`,
-        resolutionCriteria: `Closing price of ${symbol} on or before ${dateStr} is at or above $${threshold}. Data source: Alpha Vantage.`,
-        oneLiner: `${symbol} closes at or above $${threshold} by ${dateStr}; otherwise No.`,
+        description: `${title} Snapshot “05. price” when created: about $${q.price}. Important: resolution reads GLOBAL_QUOTE again after the deadline—not a frozen historical auction print.`,
+        resolutionCriteria: `After ${dateStr}T23:59:59.000Z, Yes if Alpha Vantage GLOBAL_QUOTE field “05. price” for ${symbol} is ≥ $${threshold} USD on that fetch. No if below or quote missing. (Uses the live GLOBAL_QUOTE returned when the worker resolves, not a stored historical print.)`,
+        oneLiner: `Yes if Alpha Vantage GLOBAL_QUOTE ≥ $${threshold} after UTC end of ${dateStr}; otherwise No.`,
         symbol,
         threshold,
         endDate: dateStr,
-        resolutionDeadline: resolutionUSMarketCloseUTC(dateStr),
+        resolutionDeadline: resolutionEndOfDayUTC(dateStr),
         oracleSource: 'alpha_vantage',
         oracleConfig: { symbol, threshold, endDate: dateStr },
       })
@@ -1054,7 +1114,9 @@ export async function eventsFromAlphaVantage(env, symbols = ALPHA_VANTAGE_SYMBOL
   return events
 }
 
-export async function eventsFromCoinGecko(env, coins = COINGECKO_COINS.slice(0, 3)) {
+export async function eventsFromCoinGecko(env, coins = COINGECKO_COINS.slice(0, 3), opts = {}) {
+  const mix = Number(opts.thresholdMix ?? 0) || 0
+  const mults = [1.072, 1.088, 1.105, 1.092, 1.078]
   const ids = coins.map((c) => (typeof c === 'string' ? c : c.id))
   const prices = await fetchCoinGeckoPrice(env, ids, 'usd')
   if (!prices || typeof prices !== 'object') return []
@@ -1062,20 +1124,26 @@ export async function eventsFromCoinGecko(env, coins = COINGECKO_COINS.slice(0, 
   const endDate = new Date()
   endDate.setDate(endDate.getDate() + 7)
   const dateStr = endDate.toISOString().slice(0, 10)
-  for (const c of coins) {
+  for (let i = 0; i < coins.length; i++) {
+    const c = coins[i]
     const id = typeof c === 'string' ? c : c.id
     const sym = typeof c === 'string' ? id.toUpperCase() : c.symbol
     const price = prices[id]?.usd
     if (price == null) continue
-    const threshold = Math.round(price * 1.1) // 10% above
-    const title = `Will ${sym} be above $${threshold} by ${dateStr}?`
+    const mult = mults[(i + mix) % mults.length]
+    const threshold = Math.round(price * mult)
+    const title = pickVariant(`${id}-${dateStr}-cg`, [
+      `Will CoinGecko USD spot for ${sym} (${id}) be ≥ $${threshold} after ${dateStr} (UTC)?`,
+      `After ${dateStr}, will ${sym} trade at or above $${threshold} on CoinGecko simple/price?`,
+      `Crypto spot: ${sym} ≥ $${threshold} on CoinGecko when resolved past ${dateStr}?`,
+    ])
     events.push({
       id: `cg-${id}-${dateStr}`,
       source: 'coingecko',
       title,
-      description: `${title} Current price about $${price}.`,
-      resolutionCriteria: `${sym} price at or above $${threshold} on or before ${dateStr}. Data source: CoinGecko.`,
-      oneLiner: `${sym} at or above $${threshold} by ${dateStr}; otherwise No.`,
+      description: `${title} Spot USD when created: about $${price}. Coin ID: ${id}. Resolution re-fetches simple/price after the deadline.`,
+      resolutionCriteria: `After ${dateStr}T23:59:59.000Z, Yes if CoinGecko simple/price for coin id “${id}” in USD is ≥ $${threshold}. No if below or price missing. Source: CoinGecko API (same family as at creation).`,
+      oneLiner: `Yes if CoinGecko USD spot ≥ $${threshold} after UTC end of ${dateStr}; otherwise No.`,
       symbol: sym,
       coinId: id,
       threshold,
@@ -1088,7 +1156,25 @@ export async function eventsFromCoinGecko(env, coins = COINGECKO_COINS.slice(0, 
   return events
 }
 
-export const WEATHER_CITIES = ['London', 'New York', 'Los Angeles', 'Chicago', 'Tokyo']
+export const WEATHER_CITIES = [
+  'London',
+  'New York',
+  'Los Angeles',
+  'Chicago',
+  'Tokyo',
+  'Paris',
+  'Sydney',
+  'Singapore',
+  'Dubai',
+  'Berlin',
+  'Toronto',
+  'Mumbai',
+  'Seoul',
+  'Madrid',
+  'Amsterdam',
+  'Mexico City',
+  'Vancouver',
+]
 
 /** Precise resolution time: end of calendar day UTC (for news, weather, crypto date-based). */
 export function resolutionEndOfDayUTC(dateStr) {
@@ -1096,7 +1182,10 @@ export function resolutionEndOfDayUTC(dateStr) {
   return `${dateStr.slice(0, 10)}T23:59:59.000Z`
 }
 
-/** Precise resolution time: US equity market close 4pm Eastern. EDT = 20:00 UTC, EST = 21:00 UTC. */
+/**
+ * US equity regular-session close mapped to UTC (4pm America/New_York, DST heuristic by month).
+ * Auto-seeded price markets use `resolutionEndOfDayUTC` instead so `resolutionDeadline` matches the worker gate.
+ */
 export function resolutionUSMarketCloseUTC(dateStr) {
   if (!dateStr || dateStr.length < 10) return null
   const y = dateStr.slice(0, 4)
@@ -1127,15 +1216,18 @@ export async function eventsFromOpenWeather(env, cities = WEATHER_CITIES.slice(0
       const forecast = await fetchOpenWeatherForecast(env, city, 'metric')
       const list = forecast?.list || []
       const dayList = list.filter((x) => x.dt_txt && x.dt_txt.startsWith(dateStr))
-      const hasRain = dayList.some((x) => (x.weather && x.weather[0] && x.weather[0].main === 'Rain') || (x.pop && x.pop > 0.5))
-      const title = `Will it rain in ${city} on ${dateStr}?`
+      const title = pickVariant(`${city}-${dateStr}-ow`, [
+        `Will OpenWeather show rain, drizzle, or >50% POP for ${city} on ${dateStr} (UTC date)?`,
+        `OpenWeather (${city}, ${dateStr}): rain, drizzle, or high precipitation probability?`,
+        `Will ${city} hit the OpenWeather rain/drizzle/high-POP rule on ${dateStr}?`,
+      ])
       events.push({
         id: `ow-${city.replace(/\s+/g, '-')}-${dateStr}`,
         source: 'openweathermap',
         title,
-        description: `${title} Forecast for ${city} on ${dateStr}.`,
-        resolutionCriteria: `Rain or significant precipitation in ${city} on ${dateStr}. Data source: OpenWeatherMap.`,
-        oneLiner: `Rain in ${city} on ${dateStr}; otherwise No.`,
+        description: `${title} POP = probability of precipitation on a 3-hour step. Same rule is re-evaluated from a fresh forecast fetch at resolution.`,
+        resolutionCriteria: `For ${city} on calendar date ${dateStr} (UTC), Yes if any OpenWeather 3-hour forecast step in that day has weather.main “Rain” or “Drizzle”, or has probability of precipitation (pop) strictly greater than 0.5. No otherwise. Re-fetch the same OpenWeather forecast API at resolution (metric units).`,
+        oneLiner: `Yes if any 3h step is Rain/Drizzle or pop > 0.5; otherwise No.`,
         endDate: dateStr,
         resolutionDeadline: resolutionEndOfDayUTC(dateStr),
         city,
@@ -1157,17 +1249,19 @@ export async function eventsFromWeatherApi(env, cities = WEATHER_CITIES.slice(0,
   const dateStr = tomorrow.toISOString().slice(0, 10)
   for (const city of cities) {
     try {
-      const forecast = await fetchWeatherApiForecast(env, city, 3)
-      const forecastDay = forecast?.forecast?.forecastday?.find((d) => d.date === dateStr)
-      const willRain = forecastDay?.day?.daily_will_it_rain === 1
-      const title = `Will it rain in ${city} on ${dateStr}?`
+      await fetchWeatherApiForecast(env, city, 3)
+      const title = pickVariant(`${city}-${dateStr}-wa`, [
+        `Will WeatherAPI flag measurable rain for ${city} on ${dateStr}?`,
+        `WeatherAPI daily_will_it_rain = 1 for ${city} on ${dateStr}?`,
+        `Rain day (${city}): does WeatherAPI’s daily forecast say it will rain on ${dateStr}?`,
+      ])
       events.push({
         id: `wa-${city.replace(/\s+/g, '-')}-${dateStr}`,
         source: 'weatherapi',
         title,
-        description: `${title} Forecast for ${city} on ${dateStr}.`,
-        resolutionCriteria: `Rain in ${city} on ${dateStr}. Data source: WeatherAPI.com.`,
-        oneLiner: `Rain in ${city} on ${dateStr}; otherwise No.`,
+        description: `${title} Oracle field: forecastday[].day.daily_will_it_rain === 1 for date ${dateStr}. Re-checked via the same WeatherAPI forecast call at resolution.`,
+        resolutionCriteria: `Yes if WeatherAPI forecast for ${city} has daily_will_it_rain === 1 on ${dateStr} for that calendar day. No if 0 or day missing. Data source: WeatherAPI.com forecast.json.`,
+        oneLiner: `Yes if daily_will_it_rain is 1; otherwise No.`,
         endDate: dateStr,
         resolutionDeadline: resolutionEndOfDayUTC(dateStr),
         city,
@@ -1198,7 +1292,11 @@ export async function eventsFromGNews(env, category = 'general', limit = 5) {
       id: `gnews-${category}-${Date.now()}-${i}`,
       source: 'gnews',
       title: fullHeadline,
-      description: `GNews ${category} headline seed · ${dateStr}.`,
+      description: pickVariant(`${category}-${i}-${dateStr}`, [
+        `Headline from GNews category “${category}” (${dateStr})—may become a feed-continuation or promoted outcome market after enrichment.`,
+        `GNews “${category}” article title captured ${dateStr}; downstream automation picks resolution mode.`,
+        `Source row: GNews top headlines · ${category} · ${dateStr}.`,
+      ]),
       resolutionCriteria: '',
       oneLiner: '',
       endDate: dateStr,
@@ -1226,7 +1324,11 @@ export async function eventsFromPerigon(env, q = 'technology', limit = 5) {
       id: `perigon-${Date.now()}-${i}`,
       source: 'perigon',
       title: fullHeadline,
-      description: `Perigon search “${q}” · ${dateStr}.`,
+      description: pickVariant(`${q}-${i}-${dateStr}-pg`, [
+        `Perigon search “${q}” (${dateStr})—headline retained for automated topic/outcome promotion.`,
+        `Article from Perigon query “${q}” on ${dateStr}; resolution mode assigned later in the seed pipeline.`,
+        `Perigon hit · query “${q}” · ${dateStr}.`,
+      ]),
       resolutionCriteria: '',
       oneLiner: '',
       endDate: dateStr,
@@ -1248,7 +1350,11 @@ export async function eventsFromNewsApiAi(env, q = 'technology', limit = 5) {
       id: `newsapi_ai-${Date.now()}-${i}`,
       source: 'newsapi_ai',
       title: fullHeadline,
-      description: `NewsAPI.ai keyword “${q}” · ${dateStr}.`,
+      description: pickVariant(`${q}-${i}-${dateStr}-nai`, [
+        `NewsAPI.ai articles for “${q}” (${dateStr})—seed headline for automated markets.`,
+        `Headline pulled from NewsAPI.ai keyword “${q}” on ${dateStr}.`,
+        `NewsAPI.ai row · “${q}” · ${dateStr}.`,
+      ]),
       resolutionCriteria: '',
       oneLiner: '',
       endDate: dateStr,
@@ -1270,7 +1376,11 @@ export async function eventsFromNewsDataIo(env, q = 'technology', limit = 5) {
       id: `newsdata_io-${Date.now()}-${i}`,
       source: 'newsdata_io',
       title: fullHeadline,
-      description: `NewsData.io query “${q}” · ${dateStr}.`,
+      description: pickVariant(`${q}-${i}-${dateStr}-ndi`, [
+        `NewsData.io latest query “${q}” (${dateStr})—feeds automated market creation.`,
+        `Headline from NewsData.io “${q}” on ${dateStr}.`,
+        `NewsData.io result · “${q}” · ${dateStr}.`,
+      ]),
       resolutionCriteria: '',
       oneLiner: '',
       endDate: dateStr,
@@ -1313,27 +1423,39 @@ function settlementWeekday(d, preferEndOfWeek = true) {
  * Uses current price; threshold = current * (1 + pctUp). Settlement = end of week (Friday) or next trading day.
  * No extra API calls beyond GLOBAL_QUOTE (fits free tier).
  */
-export async function eventsFromStocksTrend(env, symbols = ALPHA_VANTAGE_SYMBOLS.slice(0, 5), pctUp = 0.02, settlementEndOfWeek = true) {
+export async function eventsFromStocksTrend(
+  env,
+  symbols = ALPHA_VANTAGE_SYMBOLS.slice(0, 5),
+  settlementEndOfWeek = true,
+  mixSeed = 0
+) {
   const events = []
   const settle = settlementWeekday(new Date(), settlementEndOfWeek)
   const dateStr = settle.toISOString().slice(0, 10)
-  for (const symbol of symbols) {
+  const pcts = [0.016, 0.022, 0.019, 0.025, 0.02]
+  for (let i = 0; i < symbols.length; i++) {
+    const symbol = symbols[i]
     try {
       const q = await fetchAlphaVantageQuote(env, symbol)
       if (!q || q.price == null) continue
+      const pctUp = pcts[(i + mixSeed) % pcts.length]
       const threshold = Math.round(q.price * (1 + pctUp) * 100) / 100
-      const title = `Will ${symbol} close above $${threshold} by ${dateStr}?`
+      const title = pickVariant(`${symbol}-${dateStr}-tr`, [
+        `Trend: Will ${symbol}’s Alpha Vantage GLOBAL_QUOTE be ≥ $${threshold} after ${dateStr} (US close window)?`,
+        `Will ${symbol} quote ≥ $${threshold} on Alpha Vantage once ${dateStr} has passed (trend lane)?`,
+        `${symbol} ≥ $${threshold} on Alpha Vantage after ${dateStr}—trend threshold market?`,
+      ])
       events.push({
         id: `av-trend-${symbol}-${dateStr}`,
         source: 'alpha_vantage_trend',
         title,
-        description: `${title} Current price about $${q.price}. Settlement: ${dateStr}.`,
-        resolutionCriteria: `Closing price of ${symbol} on or before ${dateStr} is at or above $${threshold}. Data source: Alpha Vantage.`,
-        oneLiner: `${symbol} closes at or above $${threshold} by ${dateStr}; otherwise No.`,
+        description: `${title} Reference quote ~$${q.price} when created; threshold from +${(pctUp * 100).toFixed(1)}% move. Uses same GLOBAL_QUOTE resolution rule as other Alpha Vantage markets (post-deadline fetch).`,
+        resolutionCriteria: `After ${dateStr}T23:59:59.000Z (UTC end of that calendar day), Yes if Alpha Vantage GLOBAL_QUOTE “05. price” for ${symbol} is ≥ $${threshold}. No otherwise. Note: the worker keys off endDate for the gate, not the separate US-close display timestamp.`,
+        oneLiner: `Yes if GLOBAL_QUOTE ≥ $${threshold} after UTC end of ${dateStr}; otherwise No.`,
         symbol,
         threshold,
         endDate: dateStr,
-        resolutionDeadline: resolutionUSMarketCloseUTC(dateStr),
+        resolutionDeadline: resolutionEndOfDayUTC(dateStr),
         commenceTime: settle.toISOString(),
         oracleSource: 'alpha_vantage',
         oracleConfig: { symbol, threshold, endDate: dateStr },
@@ -1346,36 +1468,43 @@ export async function eventsFromStocksTrend(env, symbols = ALPHA_VANTAGE_SYMBOLS
 }
 
 /**
- * Trend-based crypto events: "Will [symbol] be above $X in 24h?"
- * Settlement = now + settlementHours. Threshold = current * (1 + pctUp).
+ * Trend-based crypto events: per-asset horizon and % bump rotate for variety.
  */
-export async function eventsFromCryptoTrend(env, coins = COINGECKO_COINS.slice(0, 3), settlementHours = 24, pctUp = 0.02) {
+export async function eventsFromCryptoTrend(env, coins = COINGECKO_COINS.slice(0, 3), mixSeed = 0) {
   const ids = coins.map((c) => (typeof c === 'string' ? c : c.id))
   const prices = await fetchCoinGeckoPrice(env, ids, 'usd')
   if (!prices || typeof prices !== 'object') return []
   const events = []
-  const settle = new Date(Date.now() + settlementHours * 60 * 60 * 1000)
-  const dateStr = settle.toISOString().slice(0, 19).replace('T', ' ')
-  const dateOnly = settle.toISOString().slice(0, 10)
-  for (const c of coins) {
+  const hourOpts = [18, 24, 30, 36]
+  const pctOpts = [0.015, 0.02, 0.025, 0.018, 0.022]
+  for (let i = 0; i < coins.length; i++) {
+    const c = coins[i]
     const id = typeof c === 'string' ? c : c.id
     const sym = typeof c === 'string' ? id.toUpperCase() : c.symbol
     const price = prices[id]?.usd
     if (price == null) continue
+    const settlementHours = hourOpts[(i + mixSeed) % hourOpts.length]
+    const pctUp = pctOpts[(i + mixSeed * 3) % pctOpts.length]
+    const settle = new Date(Date.now() + settlementHours * 60 * 60 * 1000)
+    const dateOnly = settle.toISOString().slice(0, 10)
     const threshold = Math.round(price * (1 + pctUp) * 100) / 100
-    const title = `Will ${sym} be above $${threshold} in ${settlementHours} hours?`
+    const title = pickVariant(`${id}-${settlementHours}-ctr`, [
+      `Will ${sym} (CoinGecko ${id}) be ≥ $${threshold} USD by UTC end of ${dateOnly}?`,
+      `CoinGecko trend: ${sym} ≥ $${threshold} after UTC calendar day ${dateOnly}?`,
+      `By end of ${dateOnly} (UTC): ${sym} spot ≥ $${threshold} on CoinGecko?`,
+    ])
     events.push({
       id: `cg-trend-${id}-${dateOnly}-${settlementHours}h`,
       source: 'coingecko_trend',
       title,
-      description: `${title} Current price about $${price}. Settlement: ${dateStr} UTC.`,
-      resolutionCriteria: `${sym} price at or above $${threshold} on or before ${dateStr} UTC. Data source: CoinGecko.`,
-      oneLiner: `${sym} at or above $${threshold} within ${settlementHours}h; otherwise No.`,
+      description: `${title} Spot ~$${price} when created; nominal horizon ${settlementHours}h; bump +${(pctUp * 100).toFixed(1)}%. Resolution compares CoinGecko simple/price only after UTC end-of-day ${dateOnly} (worker uses date-only endDate).`,
+      resolutionCriteria: `After ${dateOnly}T23:59:59.000Z, Yes if CoinGecko simple/price USD for coin id “${id}” is ≥ $${threshold}. No if below or missing. (Implementation maps endDate to end-of that UTC calendar day before fetching.)`,
+      oneLiner: `Yes if CoinGecko USD ≥ $${threshold} after UTC end of ${dateOnly}; otherwise No.`,
       symbol: sym,
       coinId: id,
       threshold,
       endDate: dateOnly,
-      resolutionDeadline: settle.toISOString(),
+      resolutionDeadline: resolutionEndOfDayUTC(dateOnly),
       commenceTime: settle.toISOString(),
       oracleSource: 'coingecko',
       oracleConfig: { coinId: id, symbol: sym, threshold, endDate: dateOnly, settlementHours },
@@ -1499,30 +1628,79 @@ export function resolveSeedLimitForSource(source, opts = {}) {
 export async function getEventsFromSource(env, source, opts = {}) {
   const limit = clampSeedLimit(opts.limit ?? DEFAULT_SEED_PER_SOURCE_LIMIT)
   const sportKey = opts.sportKey ?? 'basketball_nba'
-  const category = opts.category ?? 'general'
-  const q = opts.q ?? 'technology'
+  const baseSlot = utcHourSlot()
+  const vKey = typeof opts.varietySourceKey === 'string' ? opts.varietySourceKey : source
+  const vIdx = Number.isFinite(opts.varietyIndex) ? opts.varietyIndex : 0
+
+  const slotNewsCat = varietyOffsetSlot(baseSlot, `${vKey}:gnews:${vIdx}`)
+  const slotNewsQ = varietyOffsetSlot(baseSlot, `${vKey}:nq:${vIdx}`)
+  const slotSport = varietyOffsetSlot(baseSlot, `${vKey}:sport:${vIdx}`)
+  const slotAv = varietyOffsetSlot(baseSlot, `${vKey}:av:${vIdx}`)
+  const slotMassive = varietyOffsetSlot(baseSlot, `${vKey}:massive:${vIdx}`)
+  const slotFh = varietyOffsetSlot(baseSlot, `${vKey}:fh:${vIdx}`)
+  const slotCg = varietyOffsetSlot(baseSlot, `${vKey}:cg:${vIdx}`)
+  const slotTrend = varietyOffsetSlot(baseSlot, `${vKey}:trend:${vIdx}`)
+  const slotMacro = varietyOffsetSlot(baseSlot, `${vKey}:macro:${vIdx}`)
+  const slotOw = varietyOffsetSlot(baseSlot, `${vKey}:ow:${vIdx}`)
+  const slotWa = varietyOffsetSlot(baseSlot, `${vKey}:wa:${vIdx}`)
+
+  const category = opts.category ?? rotatedNewsCategory(slotNewsCat)
+  const q = opts.q ?? rotatedNewsQuery(slotNewsQ)
   try {
-    if (source === 'sports') return await eventsFromOdds(env, sportKey, limit)
-    if (source === 'alpha_vantage' || source === 'stocks') return await eventsFromAlphaVantage(env, ALPHA_VANTAGE_SYMBOLS.slice(0, 1))
-    if (source === 'stocks_trend') return await eventsFromStocksTrend(env, ALPHA_VANTAGE_SYMBOLS.slice(0, 5), 0.02, true)
-    if (source === 'crypto' || source === 'coingecko') return await eventsFromCoinGecko(env, COINGECKO_COINS.slice(0, 5))
-    if (source === 'crypto_trend') return await eventsFromCryptoTrend(env, COINGECKO_COINS.slice(0, 3), 24, 0.02)
-    if (source === 'openweather' || source === 'weather') return await eventsFromOpenWeather(env, WEATHER_CITIES?.slice(0, 3) || ['London', 'New York'])
-    if (source === 'weatherapi') return await eventsFromWeatherApi(env, WEATHER_CITIES?.slice(0, 3) || ['London', 'New York'])
+    if (source === 'sports') {
+      if (opts.sportsMix === 'single') {
+        return await eventsFromOdds(env, sportKey, limit)
+      }
+      const keyCount = Math.min(5, Math.max(2, Math.ceil(limit / 6)))
+      const keys = pickOddsSportKeysForSeed(keyCount, slotSport)
+      const perKey = Math.max(1, Math.ceil(limit / keys.length))
+      const lists = await Promise.all(keys.map((sk) => eventsFromOdds(env, sk, perKey)))
+      return interleaveArrays(lists).slice(0, limit)
+    }
+    if (source === 'alpha_vantage' || source === 'stocks') {
+      const syms = pickRotatingWindow(ALPHA_VANTAGE_SYMBOLS, 2, slotAv)
+      return await eventsFromAlphaVantage(env, syms, { thresholdMix: slotAv })
+    }
+    if (source === 'stocks_trend') {
+      const syms = pickRotatingWindow(ALPHA_VANTAGE_SYMBOLS, 5, slotTrend)
+      return await eventsFromStocksTrend(env, syms, true, slotTrend)
+    }
+    if (source === 'crypto' || source === 'coingecko') {
+      const coins = pickRotatingWindow(COINGECKO_COINS, 5, slotCg)
+      return await eventsFromCoinGecko(env, coins, { thresholdMix: slotCg })
+    }
+    if (source === 'crypto_trend') {
+      const coins = pickRotatingWindow(COINGECKO_COINS, 4, slotTrend)
+      return await eventsFromCryptoTrend(env, coins, slotTrend)
+    }
+    if (source === 'openweather' || source === 'weather') {
+      const cities = pickRotatingWindow(WEATHER_CITIES, 5, slotOw)
+      return await eventsFromOpenWeather(env, cities.length ? cities : ['London', 'New York'])
+    }
+    if (source === 'weatherapi') {
+      const cities = pickRotatingWindow(WEATHER_CITIES, 5, slotWa)
+      return await eventsFromWeatherApi(env, cities.length ? cities : ['London', 'New York'])
+    }
     if (source === 'gnews' || source === 'news') return await eventsFromGNews(env, category, limit)
     if (source === 'perigon') return await eventsFromPerigon(env, q, limit)
     if (source === 'newsapi_ai') return await eventsFromNewsApiAi(env, q, limit)
     if (source === 'newsdata_io' || source === 'newsdata') return await eventsFromNewsDataIo(env, q, limit)
     if (source === 'frankfurter' || source === 'forex')
-      return await eventsFromFrankfurterForex(env, Math.min(limit, 4))
-    if (source === 'usgs') return await eventsFromUsgsQuakeCount(env, 1)
+      return await eventsFromFrankfurterForex(env, Math.min(limit, 4), slotMacro)
+    if (source === 'usgs') return await eventsFromUsgsQuakeCount(env, 1, slotMacro)
     if (source === 'fec' || source === 'openfec') return await eventsFromFecPresidentialLead(env, 1)
     if (source === 'nasa_neo') return await eventsFromNasaNeo(env, 1)
     if (source === 'congress_gov') return await eventsFromCongressGovBillFeed(env, 1)
     if (source === 'bls') return await eventsFromBlsCpi(env, 1)
-    if (source === 'fred') return await eventsFromFredFunds(env, Math.min(limit, 2))
-    if (source === 'finnhub') return await eventsFromFinnhubEarnings(env, ALPHA_VANTAGE_SYMBOLS.slice(0, 8), Math.min(limit, 8))
-    if (source === 'massive') return await eventsFromMassive(env, ALPHA_VANTAGE_SYMBOLS.slice(0, 3))
+    if (source === 'fred') return await eventsFromFredFunds(env, Math.min(limit, 2), slotMacro)
+    if (source === 'finnhub') {
+      const syms = pickRotatingWindow(ALPHA_VANTAGE_SYMBOLS, 8, slotFh)
+      return await eventsFromFinnhubEarnings(env, syms, Math.min(limit, 8))
+    }
+    if (source === 'massive') {
+      const syms = pickRotatingWindow(ALPHA_VANTAGE_SYMBOLS, 4, slotMassive)
+      return await eventsFromMassive(env, syms, { thresholdMix: slotMassive })
+    }
   } catch (err) {
     console.warn('[data-sources] getEventsFromSource', source, err?.message)
     return []
@@ -1550,21 +1728,41 @@ export async function gatherEventsFromAllSources(env, sources = AUTO_MARKET_SOUR
           overrides: normalizePerSourceOverrides(limitOpts.overrides),
         }
   const sportKey = typeof limitOpts === 'object' && limitOpts !== null ? limitOpts.sportKey : undefined
+  const sportsMix = typeof limitOpts === 'object' && limitOpts !== null && limitOpts.sportsMix === 'single' ? 'single' : undefined
   const bySource = {}
   const limitsBySource = {}
+  /** @type {Record<string, { ok: boolean, count: number, error?: string }>} */
+  const sourceHealth = {}
   const results = await Promise.allSettled(
-    sources.map((src) => {
+    sources.map((src, i) => {
       const lim = resolveSeedLimitForSource(src, opts)
       limitsBySource[src] = lim
-      return getEventsFromSource(env, src, { limit: lim, ...(sportKey ? { sportKey } : {}) })
+      return getEventsFromSource(env, src, {
+        limit: lim,
+        varietyIndex: i,
+        varietySourceKey: src,
+        ...(sportKey ? { sportKey } : {}),
+        ...(sportsMix ? { sportsMix } : {}),
+      })
     })
   )
   const allEvents = []
   results.forEach((outcome, i) => {
     const src = sources[i]
-    const events = outcome.status === 'fulfilled' ? outcome.value : []
-    bySource[src] = events.length
-    allEvents.push(...events)
+    if (outcome.status === 'fulfilled') {
+      const events = outcome.value
+      bySource[src] = events.length
+      sourceHealth[src] = { ok: true, count: events.length }
+      allEvents.push(...events)
+    } else {
+      bySource[src] = 0
+      const err = outcome.reason
+      sourceHealth[src] = {
+        ok: false,
+        count: 0,
+        error: err && typeof err === 'object' && 'message' in err ? String(err.message) : String(err),
+      }
+    }
   })
-  return { events: allEvents, bySource, limitsBySource }
+  return { events: allEvents, bySource, limitsBySource, sourceHealth }
 }

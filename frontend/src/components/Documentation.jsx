@@ -129,6 +129,10 @@ function GettingStartedContent() {
     <div className="doc-section">
       <h1>Getting Started</h1>
       <p>Welcome to dice.express — prediction markets with Pips. Your choice. Your chance.</p>
+      <p className="text-secondary">
+        For a single technical overview (stack, deployment, doc map), see the repository file{' '}
+        <code>docs/APPLICATION.md</code>.
+      </p>
 
       <h2>Overview</h2>
       <p>
@@ -736,7 +740,7 @@ function RoadmapContent() {
             <ul>
               <li>Scheduled cron (or Worker trigger) for <code>auto-markets</code> and <code>resolve-markets</code></li>
               <li>Lock down privileged routes (<code>add-credits</code>, bulk seed) behind auth or secrets</li>
-              <li>Monitoring, alerts, and withdrawal queue runbooks (<code>docs/GET_APP_UP_AND_RUNNING.md</code>)</li>
+              <li>Monitoring, alerts, and withdrawal queue runbooks (<code>docs/DEPLOYMENT.md</code>)</li>
             </ul>
           </article>
 

@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import './DiceLoader.css'
 import './MultiDiceLoader.css'
 import RollingVectorDie from './RollingVectorDie'
@@ -33,25 +33,39 @@ function shuffleIndices3() {
  * @param {string | undefined} sublabel
  * @param {string | undefined} diceShuffleKey - extra signal when `decorative` (e.g. composite external copy)
  */
+function buildDieAnimationParams(size) {
+  const baseSec = BASE_DURATION_SEC[size] ?? BASE_DURATION_SEC.md
+  const variantBySlot = shuffleIndices3()
+  return Array.from({ length: DICE_COUNT }, (_, dieSlot) => {
+    const v = variantBySlot[dieSlot]
+    const jitter = 0.9 + Math.random() * 0.2
+    const durationMult = VARIANT_DURATION_MULT[v] * jitter
+    const durationSec = baseSec * durationMult
+    const delaySec = -Math.random() * durationSec
+    return {
+      style: {
+        '--die-anim-delay': `${delaySec.toFixed(3)}s`,
+        '--die-anim-duration-mult': durationMult.toFixed(4),
+        '--die-anim-name': VARIANT_NAMES[v],
+      },
+    }
+  })
+}
+
 function useDieAnimationParams(size, label, sublabel, diceShuffleKey) {
-  return useMemo(() => {
-    const baseSec = BASE_DURATION_SEC[size] ?? BASE_DURATION_SEC.md
-    const variantBySlot = shuffleIndices3()
-    return Array.from({ length: DICE_COUNT }, (_, dieSlot) => {
-      const v = variantBySlot[dieSlot]
-      const jitter = 0.9 + Math.random() * 0.2
-      const durationMult = VARIANT_DURATION_MULT[v] * jitter
-      const durationSec = baseSec * durationMult
-      const delaySec = -Math.random() * durationSec
-      return {
-        style: {
-          '--die-anim-delay': `${delaySec.toFixed(3)}s`,
-          '--die-anim-duration-mult': durationMult.toFixed(4),
-          '--die-anim-name': VARIANT_NAMES[v],
-        },
-      }
-    })
-  }, [size, label, sublabel, diceShuffleKey])
+  const shuffleKey = [size, label ?? '', sublabel ?? '', diceShuffleKey ?? ''].join('\0')
+  const [dieParams, setDieParams] = useState(() => buildDieAnimationParams(size))
+  const skipFirstEffect = useRef(true)
+
+  useEffect(() => {
+    if (skipFirstEffect.current) {
+      skipFirstEffect.current = false
+      return
+    }
+    setDieParams(buildDieAnimationParams(size))
+  }, [shuffleKey, size])
+
+  return dieParams
 }
 
 /**

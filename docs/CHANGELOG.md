@@ -4,6 +4,32 @@ Summary of major cleanups and improvements. For current structure see [README](.
 
 ---
 
+## 1.0.32 — Auto-markets pipeline, pending activation, CI & docs (April 2026)
+
+- **Release:** Version **1.0.32**; tag **`v1.0.32`** for CI and GitHub Releases.
+- **Auto-markets:** **`AUTO_MARKETS_PENDING_ACTIVATION`** stores new markets as **AutoPending** (no pool until promotion); **`POST /api/auto-markets`** **`activate_pending`** validates and promotes to **Active** or **AutoRejected**; KV **source health** pause via **`AUTO_MARKETS_PAUSE_AFTER_CONSECUTIVE_FAILURES`**; **stable content fingerprint** on **`payload.autoMarketCreation`**; richer seed/probe responses and **`appendSeedRunHistory`**; optional Worker **`AUTO_MARKETS_CRON_ACTIVATE_PENDING`**; **`predictionLog`** import fix on **`prediction-maintenance`**.
+- **Frontend:** Automation status shows activation queue and pending sample; market link/share helpers and related Discover/detail polish; status styling for **AutoPending** / **AutoRejected**.
+- **Tests:** **`auto-market-seed`**, **`auto-market-activation`**, deadline/resolve-queue, **`market-links`**.
+
+## CI, API router split, E2E, and ops (April 2026)
+
+- **CI:** [`.github/workflows/ci.yml`](../.github/workflows/ci.yml) runs root unit tests, frontend ESLint, production build, Playwright smoke (Chromium), on PRs and pushes to `main`. Deploy workflow runs the same checks before upload; static `frontend/dist` is passed as an artifact to the deploy job.
+- **API:** [`functions/api/handle-d1.mjs`](../functions/api/handle-d1.mjs) dispatches to [`functions/api/routes/d1-*.mjs`](../functions/api/routes/) (public, deposits, withdrawals, orders, markets, resolve, etc.); shared helpers in [`functions/api/lib/d1-shared.mjs`](../functions/api/lib/d1-shared.mjs). [`functions/api/[[path]].js`](../functions/api/[[path]].js) is the Pages entry (proxy + `X-Request-Id`). [`functions/api/lib/api-http.mjs`](../functions/api/lib/api-http.mjs) for CORS/JSON responses.
+- **Observability:** JSON error bodies and `predictionLog` batch events include correlation via `requestId` / `httpRequestId` where applicable; `GET /api/health` exposes `privilegedRoutesGated`.
+- **Tests:** [`tests/market-config-deadline.test.mjs`](../tests/market-config-deadline.test.mjs), [`tests/resolve-markets-due.test.mjs`](../tests/resolve-markets-due.test.mjs). **E2E:** [`e2e/smoke.spec.mjs`](../e2e/smoke.spec.mjs), [`playwright.config.mjs`](../playwright.config.mjs), root `npm run test:e2e` / `test:e2e:install`.
+- **Ops / data:** Production secrets checklist lives in [`docs/DEPLOYMENT.md`](./DEPLOYMENT.md) (Part 3); optional SQL notes in [`schema/d1/optional_backfill_resolution_deadline_utc_end.sql`](../schema/d1/optional_backfill_resolution_deadline_utc_end.sql).
+
+## Documentation consolidation (April 2026)
+
+- **[APPLICATION.md](./APPLICATION.md)** — single “start here” overview for the product and stack.
+- **[DEPLOYMENT.md](./DEPLOYMENT.md)** — merges former **CLOUDFLARE.md**, **GET_APP_UP_AND_RUNNING.md**, and the standalone production secrets checklist.
+- **[USER_FLOWS_TRADING_AND_RISK.md](./USER_FLOWS_TRADING_AND_RISK.md)** — merges **USER_FLOW_AND_RISK_AUDIT.md** and **ALGORITHMS_AND_RISK.md**.
+- **[OPERATOR_MANUAL_RESOLUTION.md](./OPERATOR_MANUAL_RESOLUTION.md)** — now includes the full tuning playbook (removed **OPERATOR_MANUAL_TUNING.md**).
+- **[AUTO_MARKETS.md](./AUTO_MARKETS.md)** — adds the operator playbook section (removed **PREDICTION_OPS_PLAYBOOK.md**).
+- **[HISTORICAL_CANTON_DAML_API.md](./HISTORICAL_CANTON_DAML_API.md)** — Canton/DAML reference split out of **API.md**.
+- **PLATFORM_VISION_AND_ROADMAP.md** — adds a short “production implementation (today)” subsection; **VIRTUAL_CURRENCY_AND_MULTICHAIN.md** removed as a standalone file.
+- **Frontend:** ESLint React Compiler rules — [`LoadingDiceProgress`](../frontend/src/components/LoadingDiceProgress.jsx) drops redundant `useMemo`; [`MultiDiceLoader`](../frontend/src/components/MultiDiceLoader.jsx) moves `Math.random` jitter into `useEffect` so render stays pure.
+
 ## 1.0.31 — Loading dice 3D read (March 2026)
 
 - **Release:** Version **1.0.31**; tag **`v1.0.31`** for desktop CI and GitHub Releases.
@@ -138,7 +164,7 @@ Summary of major cleanups and improvements. For current structure see [README](.
 - **Blockchain**: Dynamic multi-network architecture (BlockchainProvider, BlockchainRegistry, CantonProvider); ready for additional chains for deposit/withdraw.
 - **Filtering**: Collapsible filters, debounced search, filter chips, clear-all, category and style filters.
 - **UI**: Toast notifications, tooltips, standardized errors, theme variables, market card styling.
-- **Virtual currency**: Platform Credits for all activity; multi-chain deposits/withdrawals (see VIRTUAL_CURRENCY_AND_MULTICHAIN.md).
+- **Virtual currency**: Platform Credits for all activity; multi-chain deposits/withdrawals (see **APPLICATION.md** / **PLATFORM_VISION_AND_ROADMAP.md**).
 - **Prediction styles**: Yes/No, True/False, Happens/Doesn't, Multi-outcome; categories (Finance, Sports, etc.).
 - **Font**: Comfortaa applied app-wide.
 
@@ -146,4 +172,4 @@ Summary of major cleanups and improvements. For current structure see [README](.
 
 - **AMM**: AMM_DVP_DESIGN, AMM_IMPLEMENTATION, AMM_AND_ALGORITHMS merged into [AMM.md](./AMM.md).
 - **API**: Query-endpoints section merged into [API.md](./API.md).
-- **Cloudflare**: Deploy and storage (D1/R2/KV) merged into [CLOUDFLARE.md](./CLOUDFLARE.md). Brand and prediction markets: [BRAND.md](./BRAND.md), [PREDICTION_MARKETS.md](./PREDICTION_MARKETS.md). Crypto deposit verification: [PIPS_DEPOSIT_WITHDRAW_FLOW.md](./PIPS_DEPOSIT_WITHDRAW_FLOW.md) §8–§9.
+- **Cloudflare**: Deploy, storage (D1/R2/KV), and production runbook: [DEPLOYMENT.md](./DEPLOYMENT.md). Brand and prediction markets: [BRAND.md](./BRAND.md), [PREDICTION_MARKETS.md](./PREDICTION_MARKETS.md). Crypto deposit verification: [PIPS_DEPOSIT_WITHDRAW_FLOW.md](./PIPS_DEPOSIT_WITHDRAW_FLOW.md) §8–§9.

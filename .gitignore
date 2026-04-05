@@ -45,6 +45,9 @@ Thumbs.db
 logs/
 *.log
 
+# Playwright
+test-results/
+
 # Temporary files
 *.tmp
 *.temp

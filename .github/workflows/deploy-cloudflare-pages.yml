@@ -20,12 +20,9 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  deploy:
+  verify:
     runs-on: ubuntu-latest
-    name: Build and deploy
-    permissions:
-      contents: read
-      deployments: write
+    name: Test, lint, and build
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -39,11 +36,48 @@ jobs:
       - name: Install root dependencies
         run: npm ci
 
+      - name: Unit tests (root)
+        run: npm test
+
       - name: Install frontend dependencies
         run: cd frontend && npm ci
 
+      - name: Frontend ESLint
+        run: cd frontend && npm run lint
+
       - name: Build frontend
         run: npm run build:frontend
+
+      - name: Install Playwright browser (Chromium)
+        run: npx playwright install chromium --with-deps
+
+      - name: End-to-end smoke (Chromium)
+        env:
+          PLAYWRIGHT_SKIP_BUILD: '1'
+        run: npm run test:e2e
+
+      - name: Upload Pages static output
+        uses: actions/upload-artifact@v4
+        with:
+          name: pages-dist
+          path: frontend/dist
+
+  deploy:
+    runs-on: ubuntu-latest
+    name: Deploy to Cloudflare
+    needs: [verify]
+    permissions:
+      contents: read
+      deployments: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download Pages static output
+        uses: actions/download-artifact@v4
+        with:
+          name: pages-dist
+          path: frontend/dist
 
       - name: Deploy to Cloudflare Pages
         env:
@@ -60,5 +94,5 @@ jobs:
             echo "Deploy failed (often 504). Waiting 90s before retry..."
             sleep 90
           done
-          echo "::error::All 5 deploy attempts failed. Your dice-express project and env vars are unchanged. Try running 'npm run pages:deploy' from your machine (often works when CI times out), or see docs/CLOUDFLARE.md."
+          echo "::error::All 5 deploy attempts failed. Your dice-express project and env vars are unchanged. Try running 'npm run pages:deploy' from your machine (often works when CI times out), or see docs/DEPLOYMENT.md."
           exit 1

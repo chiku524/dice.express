@@ -1,6 +1,6 @@
 {
   "name": "dice-express",
-  "version": "1.0.31",
+  "version": "1.0.32",
   "description": "dice.express — prediction markets with Pips on Cloudflare",
   "dependencies": {
     "@solana/spl-token": "^0.4.14",
@@ -21,13 +21,16 @@
     "pages:custom-domain": "bash scripts/pages-add-custom-domain.sh",
     "d1:clear-prediction-markets": "node scripts/clear-prediction-markets.mjs remote",
     "d1:clear-prediction-markets:local": "node scripts/clear-prediction-markets.mjs local",
-    "test": "node --test ./tests/storage-query.test.mjs ./tests/p2p-order-validation.test.mjs ./tests/api-rate-limit.test.mjs ./tests/market-embeddings-parse.test.mjs ./tests/operator-manual-resolve.test.mjs",
+    "test": "node --test ./tests/storage-query.test.mjs ./tests/p2p-order-validation.test.mjs ./tests/api-rate-limit.test.mjs ./tests/market-embeddings-parse.test.mjs ./tests/operator-manual-resolve.test.mjs ./tests/market-config-deadline.test.mjs ./tests/market-links.test.mjs ./tests/resolve-markets-due.test.mjs ./tests/auto-market-seed.test.mjs ./tests/auto-market-activation.test.mjs",
+    "test:e2e": "playwright test",
+    "test:e2e:install": "playwright install chromium",
     "tauri": "tauri",
     "tauri:dev": "tauri dev",
     "tauri:build": "tauri build",
     "tauri:signer-generate": "tauri signer generate"
   },
   "devDependencies": {
+    "@playwright/test": "^1.50.0",
     "@tauri-apps/cli": "^2"
   },
   "keywords": [

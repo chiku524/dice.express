@@ -1,6 +1,6 @@
-# Cloudflare: Deploy & Storage (D1, R2, KV)
+# Deployment (Cloudflare Pages, D1, and production operations)
 
-This doc covers **deploying** dice.express to Cloudflare Pages and configuring **storage** (D1, R2, KV) so the entire API runs on Cloudflare with no Supabase or Vercel backend.
+Deploy dice.express to **Cloudflare Pages**, bind **D1, R2, KV, Vectorize, Workers AI**, run **migrations**, then complete the **go-live checklist** (crypto verification, cron Worker, resolution). For Pips and on-chain deposit/withdraw detail, see **`PIPS_DEPOSIT_WITHDRAW_FLOW.md`**. For auto-markets troubleshooting, see **`AUTO_MARKETS.md`**.
 
 ---
 
@@ -214,6 +214,122 @@ Create D1, run schema, set `database_id` in `wrangler.toml` (and optionally R2/K
 | `schema/d1/*.sql` | D1 table definitions. |
 | `functions/lib/cf-storage.mjs` | D1/KV/R2 helpers. |
 | `functions/api/[[path]].js` | Router: D1-backed routes or proxy to `BACKEND_URL`. |
+
+---
+
+# Part 3 — Production go-live
+
+Complete this after **crypto deposit verification** is understood (see **`PIPS_DEPOSIT_WITHDRAW_FLOW.md`** §8–§9).
+
+## Confirm Pages Functions bindings
+
+In **Cloudflare Dashboard** → **Pages** → **dice-express** → **Settings** → **Functions**, verify:
+
+- **D1** binding **`DB`** → database **dice-express-db** (same `database_id` as **`wrangler.toml`**).
+- **R2** **`R2`** → bucket **dice-express-r2**.
+- **KV** **`KV`** → your namespace (e.g. **DICE_KV**).
+- **Vectorize** **`VECTORIZE`** → index **dice-express-market-embeddings** (768 dimensions, cosine). Create with Wrangler if missing (Part 2 §3b).
+- **Workers AI** **`AI`** — model for market embeddings used with Vectorize.
+
+Without D1/R2/KV, core API breaks. Without AI/Vectorize, markets still seed; **embedding dedupe** is skipped (lexical + semantic dedupe still apply).
+
+## D1 migrations (remote)
+
+```bash
+npx wrangler d1 execute dice-express-db --remote --file=./schema/d1/0000_initial.sql
+npx wrangler d1 execute dice-express-db --remote --file=./schema/d1/0001_users.sql
+npx wrangler d1 execute dice-express-db --remote --file=./schema/d1/0002_p2p_orders.sql
+npx wrangler d1 execute dice-express-db --remote --file=./schema/d1/0003_deposits_withdrawals.sql
+npx wrangler d1 execute dice-express-db --remote --file=./schema/d1/0004_p2p_partial_fill.sql   # optional; skip if column already exists
+npx wrangler d1 execute dice-express-db --remote --file=./schema/d1/0005_deposit_reference_unique.sql
+```
+
+Ensure **dice-express-db** is attached to the Pages project (this section + Part 2).
+
+## Environment variables and secrets
+
+**Pages → Settings → Environment variables:**
+
+- **Vars (non-secret):** Usually from **`wrangler.toml`**. For **no platform AMM inventory risk**, keep **`AUTO_MARKETS_ZERO_LIQUIDITY=1`** (or **`INITIAL_POOL_LIQUIDITY=0`**) so new markets are **P2P-first** until you change policy. See **`USER_FLOWS_TRADING_AND_RISK.md`**. **`PLATFORM_WALLET_ADDRESS`** etc. live in **`wrangler.toml`** unless you override in the dashboard.
+- **Secrets:** **`ALCHEMY_API_KEY`** (RPC for deposit verification), **`DEPOSIT_CRYPTO_SECRET`** (deposit watcher calling **`POST /api/deposit-crypto`**). Full list: **`PIPS_DEPOSIT_WITHDRAW_FLOW.md`** §8–§9.
+
+### Production secrets checklist (before real users or funds)
+
+1. **Privileged API** — Set **`PRIVILEGED_API_SECRET`** and/or **`AUTO_MARKETS_CRON_SECRET`** where you use cron. If both are unset, ops routes such as **`POST /api/add-credits`** stay **unauthenticated** (local dev only).
+2. **Deposit / withdrawal** — Set **`DEPOSIT_CRYPTO_SECRET`**, withdrawal processing secret per **`PIPS_DEPOSIT_WITHDRAW_FLOW.md`** and **`wrangler.toml`** comments.
+3. **Health check** — **`GET /api/health`** returns **`privilegedRoutesGated: true`** when at least one of **`PRIVILEGED_API_SECRET`** or **`AUTO_MARKETS_CRON_SECRET`** is set. If **`false`** in production, fix env before go-live.
+4. **Resolution deadlines** — Older markets may use legacy **`resolutionDeadline`** values. Optional pattern: **`schema/d1/optional_backfill_resolution_deadline_utc_end.sql`**.
+
+## Verifying crypto deposit
+
+- Confirm **`ALCHEMY_API_KEY`** and **`DEPOSIT_CRYPTO_SECRET`** are set. **`PLATFORM_WALLET_ADDRESS`** is in **`wrangler.toml`**.
+- **`POST /api/deposit-crypto`** with `txHash`, `cryptoAmount`, `cryptoDecimals`, `userParty`, `networkId`, header **`X-Deposit-Crypto-Secret`**: API verifies the tx on-chain (Alchemy); failure → `400` **`VERIFICATION_FAILED`**; success → credit user.
+- **Quick test:** Small USDC to platform wallet → call API with that tx; confirm balance and **`GET /api/deposit-records`**. See **`PIPS_DEPOSIT_WITHDRAW_FLOW.md`** §8.
+
+## Crypto deposit watcher (automated)
+
+A small service watches the **platform wallet** for ERC20 transfers, then calls **`POST /api/deposit-crypto`** with header **`X-Deposit-Crypto-Secret`**. Body example: `{ "userParty": "…", "cryptoAmount": "<raw>", "cryptoDecimals": 6, "txHash": "0x…", "networkId": "ethereum" }`. Options: Cloudflare Worker + cron or a Node script. See **`PIPS_DEPOSIT_WITHDRAW_FLOW.md`** §8.
+
+## Crypto withdrawals
+
+Users request withdrawals; API debits balance and inserts **`withdrawal_requests`** (`pending`). You run a process that: (1) reads `pending` rows, (2) sends crypto from the platform wallet, (3) updates status (e.g. **`completed`**, **`tx_hash`**). Use **`storage.updateWithdrawalStatus`** or D1 SQL. No built-in sender in the app.
+
+## Automated prediction markets
+
+**Only automated creation; user `source: 'user'` is disabled.** See **`PREDICTION_MARKETS.md`**.
+
+- Data from free-tier APIs (Odds, CoinGecko, Alpha Vantage, weather, news, …) within provider limits.
+- **Cron Worker:** `cd workers/auto-markets-cron && npx wrangler deploy`. **`SITE_URL`** default **`https://dice.express`** — must match the deployment that has D1 and env keys. **`AUTO_MARKETS_CRON_SECRET`**: set on **Pages** and the **Worker** if you lock seeding. Sports free tier (~500 req/mo) is below hourly usage (~720/mo) — use a paid Odds plan or **`AUTO_MARKETS_SOURCE`** for testing.
+- **API keys** belong on the **Pages** project, not only the Worker. See **`AUTO_MARKETS.md`**.
+
+## Resolution
+
+- **`POST /api/resolve-markets`** (cron or manual) resolves due markets and settles winners (2% fee on P2P path).
+- **`operator_manual`** custom news markets: after **`resolutionDeadline`**, same endpoint can settle **Yes** / **No** from news heuristics or **`Void`** with refunds. Optional **`OPERATOR_MANUAL_RESOLVE_BEFORE_DEADLINE`**. See **`OPERATOR_MANUAL_RESOLUTION.md`**.
+
+## Optional controls
+
+- Gate or remove test **`POST /api/add-credits`** in production (IP/role).
+- **`WITHDRAW_MAX_PP` / `WITHDRAW_MAX_PENDING`**: cap withdrawal size and pending count per user.
+
+## Production readiness Q&A
+
+### Deposit / withdraw
+
+| Feature | Ready? | What you must do |
+|--------|--------|------------------|
+| **Withdraw (crypto)** | Yes | Process **`withdrawal_requests`**: send from platform wallet; update DB. |
+| **Crypto deposit** | Yes | Call **`POST /api/deposit-crypto`** when the platform wallet receives funds (watcher or manual). |
+
+### What creates markets?
+
+**User-created markets are disabled.** Only **`POST /api/auto-markets`** (**`seed_all`** / **`seed`**) using **`AUTO_MARKET_SOURCES`** in **`functions/lib/data-sources.mjs`**. Scheduler: **`workers/auto-markets-cron`** hourly → **`seed_all`** then **`resolve-markets`**.
+
+### Quick reference
+
+| Question | Answer |
+|----------|--------|
+| Deposit/withdraw prod-ready? | Deposit: yes with an indexer or manual API calls. Withdraw: yes with an off-chain sender + DB updates. |
+| What creates a market? | **`POST /api/auto-markets`**. |
+| New markets on a schedule? | **dice-express-auto-markets-cron** (hourly) or manual **`seed_all`**. |
+| How resolved? | **`POST /api/resolve-markets`**. |
+| Pips vs USD? | **1 PP ≈ $1 USD** display convention (see product copy). |
+
+### Suggested next engineering steps
+
+1. **Crypto** — Publish platform wallet; automate deposits; implement withdrawal sender.
+2. **Auto-markets** — Cron Worker; API keys on Pages. See **`AUTO_MARKETS.md`**.
+3. **Resolution** — Schedule **`POST /api/resolve-markets`**.
+4. **Safety** — Gate **`add-credits`**; optional secrets on **`auto-markets`**.
+
+## Order of operations (summary)
+
+1. Deploy (`npm run pages:deploy` or CI); attach **D1, R2, KV, Vectorize, AI** in Dashboard.
+2. Run D1 migrations (above; include **`0005_deposit_reference_unique.sql`**).
+3. Set Pages secrets: **`ALCHEMY_API_KEY`**, **`DEPOSIT_CRYPTO_SECRET`**; privileged/cron secrets for production.
+4. Deposit watcher + withdrawal processor when using real funds.
+5. Deploy cron Worker; confirm **`SITE_URL`**; add data API keys on **Pages**. After a D1 market wipe, align **Vectorize** or **`POST /api/prediction-maintenance`** (see **`PREDICTION_MARKETS.md`**).
+6. Run **`POST /api/resolve-markets`** on a schedule.
 
 ---
 

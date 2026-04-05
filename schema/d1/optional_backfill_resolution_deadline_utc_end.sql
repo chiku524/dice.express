@@ -1,0 +1,18 @@
+-- Optional: normalize auto-market resolution deadlines to UTC end-of-calendar-day
+-- (matches seeding + resolve-markets for price/trend lanes). Review rows before running.
+--
+-- Example: set payload.resolutionDeadline from payload.oracleConfig.endDate when present.
+-- D1/SQLite json functions — adjust WHERE to your cohort (e.g. Active VirtualMarket only).
+--
+-- UPDATE contracts
+-- SET payload = json_set(
+--   payload,
+--   '$.resolutionDeadline',
+--   (json_extract(payload, '$.oracleConfig.endDate') || 'T23:59:59.000Z')
+-- )
+-- WHERE template_id = 'VirtualMarket'
+--   AND status = 'Active'
+--   AND json_extract(payload, '$.oracleConfig.endDate') IS NOT NULL
+--   AND json_extract(payload, '$.resolutionDeadline') IS NOT NULL;
+--
+-- Prefer re-seeding or a one-off maintenance script if your payload shapes vary.

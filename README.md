@@ -65,12 +65,13 @@ npm install
 
 ## Docs
 
-- `docs/README.md` — Documentation index
-- `docs/GET_APP_UP_AND_RUNNING.md` — Deploy and run in production (D1, crypto, cron)
-- `docs/ARCHITECTURE.md` — Cloudflare stack
-- `docs/CLOUDFLARE.md` — Deploy to Cloudflare Pages, D1/R2/KV storage
-- `docs/PIPS_DEPOSIT_WITHDRAW_FLOW.md` — Deposit (crypto) → Pips → withdraw (fee)
-- `docs/PREDICTION_MARKETS.md` — Prediction styles, free/cheap APIs, automated market creation
-- `docs/OPERATOR_MANUAL_RESOLUTION.md` — Operator-manual automation, preview API, settlement idempotency
-- `docs/OPERATOR_MANUAL_TUNING.md` — Regex / seedQuery tuning playbook
+- `docs/APPLICATION.md` — **Start here:** what dice.express is, stack, essentials
+- `docs/README.md` — Full documentation index
+- `docs/DEPLOYMENT.md` — Cloudflare Pages, D1/R2/KV/Vectorize/AI, production go-live
+- `docs/ARCHITECTURE.md` — Cloudflare data plane and flows
+- `docs/USER_FLOWS_TRADING_AND_RISK.md` — User journeys, AMM vs P2P, platform risk
+- `docs/PIPS_DEPOSIT_WITHDRAW_FLOW.md` — Pips, deposit verification, withdraw flow
+- `docs/PREDICTION_MARKETS.md` — Prediction styles, APIs, automated markets
+- `docs/AUTO_MARKETS.md` — Cron Worker, keys, troubleshooting, operator playbook
+- `docs/OPERATOR_MANUAL_RESOLUTION.md` — Operator-manual markets, tuning, preview API
 - `docs/P2P_AND_GROWTH_STRATEGY.md` — P2P-only mode and growth from zero

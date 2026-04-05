@@ -313,7 +313,8 @@ export function getResolutionSummary(payload) {
   }
   if (oc?.outcomeResolutionKind === 'price_feed' && (oc.threshold != null || oc.endDate)) {
     const comp = oc.comparator === 'lte' ? 'at or below' : 'at or above'
-    return `Automated price oracle: Yes if spot is ${comp} $${oc.threshold} on or before ${oc.endDate || 'settlement'}.`
+    const day = oc.endDate || 'settlement'
+    return `Price oracle: after UTC end of ${day}, Yes if the feed price is ${comp} $${oc.threshold} (see full criteria for provider + field).`
   }
   if (oc?.newsResolutionMode === 'feed_topic_continuation') {
     return `Automated: re-fetch the same ${sourceLabel} feed as at creation; Yes if any headline meets the stored token-overlap threshold (see criteria).`
@@ -403,12 +404,27 @@ function isDateOnlyDeadline(deadline) {
   return false
 }
 
+/** Backend uses …T23:59:59.000Z as “end of UTC calendar day” for many oracles — show that clearly, not a confusing local time. */
+function isUtcCalendarDayEnd(deadline) {
+  const s = String(deadline).trim()
+  return /T23:59:59(\.000)?Z$/i.test(s)
+}
+
 /** Format resolution deadline (ISO or YYYY-MM-DD) for display. Date-only values show calendar day only (no time) to match title. */
 export function formatResolutionDeadline(deadline, short = false) {
   if (!deadline) return ''
   try {
     const d = new Date(deadline)
     if (Number.isNaN(d.getTime())) return deadline
+    if (isUtcCalendarDayEnd(deadline)) {
+      const label = d.toLocaleDateString(undefined, {
+        ...(short
+          ? { month: 'short', day: 'numeric', year: 'numeric' }
+          : { dateStyle: 'medium' }),
+        timeZone: 'UTC',
+      })
+      return short ? `${label} · 23:59 UTC` : `End of ${label} (23:59 UTC, calendar day)`
+    }
     const dateOnly = isDateOnlyDeadline(deadline)
     if (dateOnly) {
       const y = d.getUTCFullYear()
@@ -424,6 +440,128 @@ export function formatResolutionDeadline(deadline, short = false) {
   } catch {
     return String(deadline)
   }
+}
+
+/** Milliseconds since epoch for resolution, or null if missing/invalid. */
+export function getResolutionDeadlineMs(payload) {
+  const raw = payload?.resolutionDeadline
+  if (!raw) return null
+  const t = new Date(raw).getTime()
+  return Number.isNaN(t) ? null : t
+}
+
+/** One-line deadline for cards and previews (matches short `formatResolutionDeadline`). */
+export function getCardResolutionLine(payload) {
+  const dl = payload?.resolutionDeadline
+  if (!dl) return ''
+  return `Resolves by ${formatResolutionDeadline(dl, true)}`
+}
+
+function tokenizeTitle(title) {
+  if (!title || typeof title !== 'string') return []
+  return title
+    .toLowerCase()
+    .replace(/[^\p{L}\p{N}\s]/gu, ' ')
+    .split(/\s+/)
+    .filter((w) => w.length > 2)
+}
+
+/**
+ * Related markets by title token overlap. `candidates` are list rows like `{ contractId, payload }`.
+ */
+export function findRelatedMarkets(selfPayload, candidates, selfContractId, selfMarketId, limit = 3) {
+  const tokens = new Set(tokenizeTitle(selfPayload?.title))
+  if (tokens.size === 0) return []
+  const scored = []
+  for (const m of candidates) {
+    if (!m?.payload) continue
+    const pid = m.payload.marketId
+    const cid = m.contractId
+    if (cid === selfContractId || pid === selfMarketId) continue
+    const other = new Set(tokenizeTitle(m.payload.title))
+    let overlap = 0
+    for (const t of tokens) {
+      if (other.has(t)) overlap++
+    }
+    const strong = [...tokens].some((t) => t.length >= 5 && other.has(t))
+    if (overlap >= 2 || (overlap >= 1 && strong)) {
+      scored.push({ market: m, score: overlap })
+    }
+  }
+  scored.sort(
+    (a, b) =>
+      b.score - a.score ||
+      (parseFloat(b.market.payload?.totalVolume) || 0) - (parseFloat(a.market.payload?.totalVolume) || 0)
+  )
+  return scored.slice(0, limit).map((s) => s.market)
+}
+
+/**
+ * Heuristic liquidity / data confidence for UX badges (not financial advice).
+ */
+export function getMarketDataConfidence(payload, openOrderCount = 0) {
+  const vol = parseFloat(payload?.totalVolume) || 0
+  const orders = openOrderCount || 0
+  if (vol < 5 && orders < 2) {
+    return {
+      level: 'thin',
+      label: 'Thin activity',
+      hint: 'Few trades so far — prices can move quickly on small orders.',
+    }
+  }
+  if (vol < 25 && orders < 1) {
+    return {
+      level: 'medium',
+      label: 'Limited book',
+      hint: 'Light volume — check open orders before sizing up.',
+    }
+  }
+  return { level: 'solid', label: null, hint: null }
+}
+
+/** Short line explaining why automated (or user) markets exist on the platform. */
+export function getWhyMarketExistsLine(payload) {
+  const api = getApiSourceLabel(payload)
+  if (api === 'User-Created') {
+    return 'This market was created by a community member. Read how it resolves before trading.'
+  }
+  const bucket = getSourceLabel(sourceForFilter(payload))
+  return `Opened automatically from real-world feeds (${bucket} · ${api}) so the question and deadline stay tied to observable data.`
+}
+
+/** Plain-language bullets for an expandable “in simple terms” block (detail page). */
+export function getPlainEnglishResolution(payload) {
+  const lines = []
+  const dl = payload?.resolutionDeadline
+  if (dl) {
+    lines.push(
+      `After ${formatResolutionDeadline(dl)}, new trades stop and the outcome is decided using the rule below (or the exact criteria if you expand it).`
+    )
+  }
+  const sum = getResolutionSummary(payload)
+  if (sum) {
+    lines.push(`In short: ${sum}`)
+  }
+  const { yes, no } = getResolutionOutcomeSummaries(payload)
+  if (payload?.marketType === 'Binary' && yes && no) {
+    lines.push(`Yes pays if: ${yes}`)
+    lines.push(`No pays if: ${no}`)
+  }
+  return lines
+}
+
+/** Meta / Open Graph description for share previews. */
+export function buildMarketShareDescription(payload) {
+  const title = (payload?.title || 'Prediction market').trim()
+  const shortTitle = title.length > 140 ? `${title.slice(0, 137)}…` : title
+  const dl = payload?.resolutionDeadline
+    ? ` Resolves ${formatResolutionDeadline(payload.resolutionDeadline, true)}.`
+    : ''
+  const sum = getResolutionSummary(payload)
+  const extra = sum ? ` ${sum.replace(/\s+/g, ' ')}` : ''
+  let out = `${shortTitle}.${dl}${extra}`.trim()
+  if (out.length > 300) out = `${out.slice(0, 297)}…`
+  return out
 }
 
 /** Binary-style variants (Binary) and multi-outcome (AMM order book; pool is Yes/No only for Binary). */

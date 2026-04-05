@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from 'react'
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { useWallet } from '../contexts/WalletContext'
 import { useToastContext } from '../contexts/ToastContext'
@@ -12,7 +12,7 @@ import LoadingSpinner from './LoadingSpinner'
 import SubmitDiceLabel from './SubmitDiceLabel'
 import ErrorState from './ErrorState'
 import { formatPips, PLATFORM_CURRENCY_SYMBOL } from '../constants/currency'
-import { PREDICTION_STYLES, getCategoryDisplay, formatResolutionDeadline, getCategoryEmoji, getMarketOneLiner, getResolutionOutcomeSummaries, getDisplayDescription, getResolutionSummary, getNewsMarketMeta, getMarketApiAttribution } from '../constants/marketConfig'
+import { PREDICTION_STYLES, getCategoryDisplay, formatResolutionDeadline, getCategoryEmoji, getMarketOneLiner, getResolutionOutcomeSummaries, getDisplayDescription, getResolutionSummary, getNewsMarketMeta, getMarketApiAttribution, getWhyMarketExistsLine, getPlainEnglishResolution, findRelatedMarkets, buildMarketShareDescription, getMarketDataConfidence } from '../constants/marketConfig'
 import {
   getQuote,
   isTradeWithinLimit,
@@ -26,6 +26,8 @@ import { getMarketStaleness } from '../utils/marketUX'
 import { usePublicConfig } from '../hooks/usePublicConfig'
 import { usePipsBalance } from '../hooks/usePipsBalance'
 import { getSEOForPath } from '../constants/seo'
+import { applyMarketPageShareMeta } from '../utils/shareMeta'
+import { getAbsoluteMarketUrl, copyTextToClipboard, canUseWebShare, shareMarketNative } from '../utils/marketLinks'
 import {
   BINARY_PIP_PRESETS,
   defaultLimitPriceFromPool,
@@ -45,6 +47,7 @@ export default function MarketDetail() {
   const { showToast } = useToastContext()
   const openAccountModal = useAccountModal()
   const [market, setMarket] = useState(null)
+  const [allMarkets, setAllMarkets] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [retryCount, setRetryCount] = useState(0)
@@ -63,6 +66,17 @@ export default function MarketDetail() {
   const [userPositions, setUserPositions] = useState([])
   /** Binary: `pool` = instant AMM buy; `limit` = P2P order book. */
   const [tradeTab, setTradeTab] = useState('pool')
+  const [tradeA11yMessage, setTradeA11yMessage] = useState('')
+  const tradeAckKeyRef = useRef('')
+  const [tradeAckDismissed, setTradeAckDismissed] = useState(true)
+
+  const toastTrade = useCallback(
+    (msg, kind) => {
+      showToast(msg, kind)
+      if (kind === 'success' || kind === 'error') setTradeA11yMessage(msg)
+    },
+    [showToast]
+  )
 
   // SEO: set page title to market title when viewing a specific market
   useEffect(() => {
@@ -75,11 +89,42 @@ export default function MarketDetail() {
   }, [market?.payload?.title])
 
   useEffect(() => {
+    if (!market?.payload || !marketId || typeof window === 'undefined') return
+    const mid = market.payload.marketId
+    if (mid !== marketId && market.contractId !== marketId) return
+    const canonicalUrl = getAbsoluteMarketUrl(marketId)
+    if (!canonicalUrl) return
+    const t = market.payload.title || 'Market'
+    const short = t.length > 60 ? `${t.slice(0, 57)}…` : t
+    const pageTitle = `${short} | dice.express`
+    applyMarketPageShareMeta({
+      description: buildMarketShareDescription(market.payload),
+      canonicalUrl,
+      ogTitle: pageTitle,
+    })
+  }, [market?.payload, market?.contractId, marketId])
+
+  useEffect(() => {
+    const key = marketId ? `dice.tradeAck.v1:${marketId}` : ''
+    tradeAckKeyRef.current = key
+    if (!key || typeof window === 'undefined') {
+      setTradeAckDismissed(true)
+      return
+    }
+    try {
+      setTradeAckDismissed(window.localStorage.getItem(key) === '1')
+    } catch {
+      setTradeAckDismissed(false)
+    }
+  }, [marketId])
+
+  useEffect(() => {
     const loadMarket = async () => {
       try {
         setLoading(true)
         setError(null)
         const list = await fetchMarkets(null, { sort: 'activity' })
+        setAllMarkets(list)
         const found = list.find(m => m.contractId === marketId || m.payload?.marketId === marketId)
         if (found) setMarket(found)
         else setError('Market not found')
@@ -210,18 +255,18 @@ export default function MarketDetail() {
 
   const handlePlaceOrder = async () => {
     if (!wallet) {
-      showToast('Sign in to place an order', 'error')
+      toastTrade('Sign in to place an order', 'error')
       openAccountModal()
       return
     }
     const amountNum = parseFloat(orderAmount)
     const priceNum = parseFloat(orderPrice)
     if (!orderAmount || isNaN(amountNum) || amountNum <= 0 || isNaN(priceNum) || priceNum < 0 || priceNum > 1) {
-      showToast('Enter valid amount and price (0–1)', 'error')
+      toastTrade('Enter valid amount and price (0–1)', 'error')
       return
     }
     if (orderSide === 'sell' && amountNum > limitSellNetShares + 1e-9) {
-      showToast(
+      toastTrade(
         limitSellNetShares <= 0 && sellableSharesForOutcome > 0
           ? 'All your shares for this outcome are already listed in open sell orders'
           : 'Amount exceeds shares available to sell (after open orders)',
@@ -240,9 +285,9 @@ export default function MarketDetail() {
         owner: wallet.party,
       })
       if (result.matched) {
-        showToast('Matched! Position created.', 'success')
+        toastTrade('Matched! Position created.', 'success')
       } else {
-        showToast('Order placed. It will fill when someone takes the other side.', 'success')
+        toastTrade('Order placed. It will fill when someone takes the other side.', 'success')
       }
       setOrderAmount('')
       const list = await fetchOpenOrders(market.payload.marketId)
@@ -252,19 +297,19 @@ export default function MarketDetail() {
     } catch (err) {
       const b = err.responseBody
       if (b?.shortfall != null && b?.required != null) {
-        showToast(
+        toastTrade(
           `Need ${formatPips(b.shortfall)} more (have ${formatPips(b.current)}, requires ${formatPips(b.required)}).`,
           'error'
         )
       } else if (b?.code === 'SELL_EXCEEDS_POSITION' && b?.availableToSell != null) {
-        showToast(
+        toastTrade(
           `Sell too large — only ~${Number(b.availableToSell).toFixed(2)} shares free after your other sell orders.`,
           'error'
         )
       } else if (err.status === 429 || String(err.message || '').toLowerCase().includes('too many')) {
-        showToast('Too many requests — please wait a moment and try again.', 'error')
+        toastTrade('Too many requests — please wait a moment and try again.', 'error')
       } else {
-        showToast(err.message || 'Order failed', 'error')
+        toastTrade(err.message || 'Order failed', 'error')
       }
     } finally {
       setOrderLoading(false)
@@ -276,12 +321,12 @@ export default function MarketDetail() {
     setCancellingOrderId(orderId)
     try {
       await cancelOrder(orderId, wallet.party)
-      showToast('Order cancelled', 'success')
+      toastTrade('Order cancelled', 'success')
       const list = await fetchOpenOrders(market.payload.marketId)
       setOpenOrders(list)
       await fetchUserPositionsForMarket()
     } catch (e) {
-      showToast(e.message || 'Cancel failed', 'error')
+      toastTrade(e.message || 'Cancel failed', 'error')
     } finally {
       setCancellingOrderId(null)
     }
@@ -290,7 +335,7 @@ export default function MarketDetail() {
   const applyMaxSpend = () => {
     const s = formatMaxSpendPips(balanceRaw)
     if (!s) {
-      showToast('No Pips available to spend', 'error')
+      toastTrade('No Pips available to spend', 'error')
       return
     }
     setTradeAmount(s)
@@ -300,9 +345,9 @@ export default function MarketDetail() {
     const s = formatMaxSellShares(limitSellNetShares)
     if (!s) {
       if (sellableSharesForOutcome > 0 && openSellReservedForLimitOutcome > 0) {
-        showToast('All your shares for this outcome are already on the sell book', 'error')
+        toastTrade('All your shares for this outcome are already on the sell book', 'error')
       } else {
-        showToast(`No ${tradeSide} shares to sell on this market`, 'error')
+        toastTrade(`No ${tradeSide} shares to sell on this market`, 'error')
       }
       return
     }
@@ -311,21 +356,21 @@ export default function MarketDetail() {
 
   const handleTrade = async () => {
     if (!wallet) {
-      showToast('Sign in to trade', 'error')
+      toastTrade('Sign in to trade', 'error')
       openAccountModal()
       return
     }
     const amountNum = parseFloat(tradeAmount)
     if (!tradeAmount || isNaN(amountNum) || amountNum <= 0) {
-      showToast('Enter a valid amount in Pips', 'error')
+      toastTrade('Enter a valid amount in Pips', 'error')
       return
     }
     if (amountNum > balanceRaw + 1e-9) {
-      showToast('Amount exceeds your Pips balance', 'error')
+      toastTrade('Amount exceeds your Pips balance', 'error')
       return
     }
     if (!pool || !market?.payload?.marketId) {
-      showToast('Pool not loaded. Try refreshing.', 'error')
+      toastTrade('Pool not loaded. Try refreshing.', 'error')
       return
     }
     const isMulti = market.payload.marketType === 'MultiOutcome' && pool.poolKind === 'multi'
@@ -338,11 +383,11 @@ export default function MarketDetail() {
       }
       const { outputAmount } = getQuoteMulti(poolForQuote, tradeSide, amountNum)
       if (outputAmount <= 0) {
-        showToast('Trade would result in zero shares', 'error')
+        toastTrade('Trade would result in zero shares', 'error')
         return
       }
       if (!isTradeWithinLimitMulti(poolForQuote, tradeSide, outputAmount)) {
-        showToast('Trade size exceeds pool limit. Try a smaller amount.', 'error')
+        toastTrade('Trade size exceeds pool limit. Try a smaller amount.', 'error')
         return
       }
     } else {
@@ -354,11 +399,11 @@ export default function MarketDetail() {
       }
       const { outputAmount } = getQuote(poolForQuote, tradeSide, amountNum)
       if (outputAmount <= 0) {
-        showToast('Trade would result in zero shares', 'error')
+        toastTrade('Trade would result in zero shares', 'error')
         return
       }
       if (!isTradeWithinLimit(poolForQuote, tradeSide, outputAmount)) {
-        showToast('Trade size exceeds pool limit. Try a smaller amount.', 'error')
+        toastTrade('Trade size exceeds pool limit. Try a smaller amount.', 'error')
         return
       }
     }
@@ -371,17 +416,18 @@ export default function MarketDetail() {
         minOut: 0,
         userId: wallet.party,
       })
-      showToast(`You bought ${result.outputAmount?.toFixed(2) ?? '?'} ${tradeSide} shares`, 'success')
+      toastTrade(`You bought ${result.outputAmount?.toFixed(2) ?? '?'} ${tradeSide} shares`, 'success')
       setTradeAmount('')
       await refreshBalance()
       await fetchUserPositionsForMarket()
       const updatedPool = await fetchPool(market.payload.marketId)
       if (updatedPool) setPool(updatedPool)
       const list = await fetchMarkets(null, { sort: 'activity' })
+      setAllMarkets(list)
       const found = list.find((m) => m.contractId === marketId || m.payload?.marketId === marketId)
       if (found) setMarket(found)
     } catch (err) {
-      showToast(err.message || 'Trade failed', 'error')
+      toastTrade(err.message || 'Trade failed', 'error')
     } finally {
       setTradeLoading(false)
     }
@@ -395,6 +441,37 @@ export default function MarketDetail() {
       setOrderPrice(defaultLimitPriceFromPool(pool, o))
     }
   }
+
+  const dismissTradeAck = useCallback(() => {
+    const k = tradeAckKeyRef.current
+    if (k) {
+      try {
+        window.localStorage.setItem(k, '1')
+      } catch {
+        /* ignore */
+      }
+    }
+    setTradeAckDismissed(true)
+  }, [])
+
+  const copyMarketLink = useCallback(async () => {
+    const url = getAbsoluteMarketUrl(marketId)
+    if (!url) return
+    const ok = await copyTextToClipboard(url)
+    if (ok) toastTrade('Market link copied to clipboard', 'success')
+    else toastTrade('Could not copy automatically — copy the URL from the address bar', 'error')
+  }, [marketId, toastTrade])
+
+  const relatedMarkets = useMemo(() => {
+    if (!market?.payload) return []
+    return findRelatedMarkets(
+      market.payload,
+      allMarkets,
+      market.contractId,
+      market.payload.marketId,
+      5
+    )
+  }, [market, allMarkets])
 
   if (loading) {
     return (
@@ -438,6 +515,9 @@ export default function MarketDetail() {
   const outcomeSummaries = getResolutionOutcomeSummaries(marketData)
   const displayDescription = getDisplayDescription(marketData)
   const resolutionSummary = getResolutionSummary(marketData)
+  const whyLine = getWhyMarketExistsLine(marketData)
+  const plainEnglishLines = getPlainEnglishResolution(marketData)
+  const detailConfidence = getMarketDataConfidence(marketData, market.openOrderCount ?? 0)
   const newsMeta = getNewsMarketMeta(marketData)
   const marketTypeLabel = marketData.marketType === 'Binary'
     ? (PREDICTION_STYLES.find(s => s.value === marketData.styleLabel)?.label || 'Binary')
@@ -454,13 +534,50 @@ export default function MarketDetail() {
     : 50
   const limitCentsDisplay = limitPriceValid ? limitCentsSlider : null
 
+  const shareUrl = getAbsoluteMarketUrl(marketId)
+  const webShareEnabled = canUseWebShare()
+
+  const onShareMarketPage = async () => {
+    if (!shareUrl || !marketData) return
+    const result = await shareMarketNative({
+      title: displayTitle,
+      text: buildMarketShareDescription(marketData),
+      url: shareUrl,
+    })
+    if (!result.ok && result.reason === 'error') {
+      toastTrade('Could not open the share sheet — try Copy link instead', 'error')
+    }
+  }
+
   return (
     <div className="market-detail">
-      <nav className="market-detail-breadcrumb" aria-label="Breadcrumb">
-        <Link to="/">Markets</Link>
-        <span className="market-detail-breadcrumb-sep" aria-hidden>→</span>
-        <span title={displayTitle}>{breadcrumbTitle}</span>
-      </nav>
+      <div className="market-detail-top-bar">
+        <nav className="market-detail-breadcrumb" aria-label="Breadcrumb">
+          <Link to="/">Markets</Link>
+          <span className="market-detail-breadcrumb-sep" aria-hidden>→</span>
+          <span title={displayTitle}>{breadcrumbTitle}</span>
+        </nav>
+        <div className="market-detail-share-actions">
+          <button
+            type="button"
+            className="btn-secondary market-detail-copy-link"
+            onClick={copyMarketLink}
+            title={shareUrl || 'Copy link to this market'}
+          >
+            Copy link
+          </button>
+          {webShareEnabled && (
+            <button
+              type="button"
+              className="btn-secondary market-detail-share-native"
+              onClick={() => { void onShareMarketPage() }}
+              title="Share using your device (apps, AirDrop, etc.)"
+            >
+              Share…
+            </button>
+          )}
+        </div>
+      </div>
 
       <div className="market-detail-layout">
         {/* Top: market details only */}
@@ -499,6 +616,14 @@ export default function MarketDetail() {
                 Pending resolution
               </span>
             )}
+            {detailConfidence.label && (
+              <span
+                className={`market-detail-tag market-detail-tag-confidence${detailConfidence.level === 'thin' ? ' market-detail-tag-confidence--thin' : ''}`}
+                title={detailConfidence.hint || undefined}
+              >
+                {detailConfidence.label}
+              </span>
+            )}
           </div>
 
           <h1 className="market-detail-title">{displayTitle}</h1>
@@ -516,6 +641,11 @@ export default function MarketDetail() {
             {displayDescription && <p className="market-detail-desc">{displayDescription}</p>}
           </section>
 
+          <section className="market-detail-why" aria-label="Why this market exists">
+            <h3 className="market-detail-why-title">Why this market exists</h3>
+            <p className="market-detail-why-text">{whyLine}</p>
+          </section>
+
           {(marketData.resolutionCriteria || marketData.resolutionDeadline || outcomeSummaries.yes || resolutionSummary) && (
             <section className="market-detail-resolution" aria-label="How it resolves">
               <h3 className="market-detail-resolution-title">📋 How it resolves</h3>
@@ -527,6 +657,16 @@ export default function MarketDetail() {
               )}
               {resolutionSummary && (
                 <p className="market-detail-resolution-summary">{resolutionSummary}</p>
+              )}
+              {plainEnglishLines.length > 0 && (
+                <details className="market-detail-resolution-details market-detail-plain-english">
+                  <summary>Plain-language summary</summary>
+                  <ul className="market-detail-plain-list">
+                    {plainEnglishLines.map((line, idx) => (
+                      <li key={idx}>{line}</li>
+                    ))}
+                  </ul>
+                </details>
               )}
               {marketData.marketType === 'Binary' && outcomeSummaries.yes && outcomeSummaries.no && (
                 <ul className="market-detail-resolution-outcomes" aria-label="Outcome definitions">
@@ -550,6 +690,21 @@ export default function MarketDetail() {
                   <p className="market-detail-resolution-criteria">{marketData.resolutionCriteria}</p>
                 </details>
               )}
+            </section>
+          )}
+
+          {relatedMarkets.length > 0 && (
+            <section className="market-detail-related" aria-label="Related markets">
+              <h3 className="market-detail-related-title">Related markets</h3>
+              <ul className="market-detail-related-list">
+                {relatedMarkets.map((rm) => (
+                  <li key={rm.contractId || rm.payload?.marketId}>
+                    <Link to={`/market/${rm.payload?.marketId}`}>
+                      {rm.payload?.title || rm.payload?.marketId}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
             </section>
           )}
 
@@ -607,6 +762,22 @@ export default function MarketDetail() {
 
         {/* Bottom: trade */}
         <div className={`market-detail-actions${isActiveBinary && pool ? ' market-detail-actions--binary' : ''}`}>
+          {/*
+            Single live region for pool + limit + multi-outcome trades (all use toastTrade).
+          */}
+          <div id="market-detail-trade-status" className="visually-hidden" aria-live="polite" aria-atomic="true">
+            {tradeA11yMessage}
+          </div>
+          {marketData.status === 'Active' && !tradeAckDismissed && (
+            <div className="market-detail-trade-ack card" role="region" aria-label="Before you trade">
+              <p className="market-detail-trade-ack-text">
+                <strong>Heads up:</strong> Outcomes follow the published rule and oracle data. You can lose Pips. Only trade what you understand — read <em>How it resolves</em> above.
+              </p>
+              <button type="button" className="btn-primary market-detail-trade-ack-btn" onClick={dismissTradeAck}>
+                I understand — continue
+              </button>
+            </div>
+          )}
           {isActiveBinary && pool && (
             <div className="card market-detail-trade-unified">
               <h2 className="market-detail-trade-title">Trade</h2>

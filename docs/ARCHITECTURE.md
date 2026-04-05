@@ -9,7 +9,7 @@ dice.express is a **virtual** prediction markets platform: markets, balances, P2
 - **Markets**: Rows in **`contracts`** (`template_id`: `VirtualMarket`, `LiquidityPool`, `Position`, …). Balances in **`user_balances`**. P2P orders in **`p2p_orders`**.
 - **Automated creation**: Only **`POST /api/auto-markets`** (cron Worker or manual). User-created markets via **`POST /api/markets`** with `source: 'user'` are **disabled**.
 - **Dedupe**: Lexical keys + semantic (Jaccard) in **`market-dedupe.mjs`**; paraphrase near-duplicates via **embeddings** (**`@cf/baai/bge-base-en-v1.5`**) + **Vectorize** in **`market-embeddings.mjs`**. Vectors removed when markets settle; maintenance API can backfill or prune. See **`PREDICTION_MARKETS.md`**.
-- **P2P-first ops**: **`AUTO_MARKETS_ZERO_LIQUIDITY=1`** (committed default) gives new markets **zero** AMM liquidity so matching is **limit-order / P2P** until you change that policy. See **`ALGORITHMS_AND_RISK.md`** and **`P2P_AND_GROWTH_STRATEGY.md`**.
+- **P2P-first ops**: **`AUTO_MARKETS_ZERO_LIQUIDITY=1`** (committed default) gives new markets **zero** AMM liquidity so matching is **limit-order / P2P** until you change that policy. See **`USER_FLOWS_TRADING_AND_RISK.md`** and **`P2P_AND_GROWTH_STRATEGY.md`**.
 
 ## Core flows
 

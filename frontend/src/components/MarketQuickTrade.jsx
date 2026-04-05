@@ -39,6 +39,14 @@ export default function MarketQuickTrade({ market, onTradeSuccess }) {
   const { ammTradeEnabled } = usePublicConfig()
   const { wallet } = useWallet()
   const { showToast } = useToastContext()
+  const [tradeA11y, setTradeA11y] = useState('')
+  const announce = useCallback(
+    (msg, kind) => {
+      showToast(msg, kind)
+      if (kind === 'success' || kind === 'error') setTradeA11y(msg)
+    },
+    [showToast]
+  )
   const openAccountModal = useAccountModal()
   const { balanceRaw, balanceLoading, refreshBalance } = usePipsBalance(wallet?.party)
 
@@ -179,19 +187,19 @@ export default function MarketQuickTrade({ market, onTradeSuccess }) {
   const applyMaxSpend = useCallback(() => {
     const s = formatMaxSpendPips(balanceRaw)
     if (!s) {
-      showToast('No Pips available to spend', 'error')
+      announce('No Pips available to spend', 'error')
       return
     }
     setTradeAmount(s)
-  }, [balanceRaw, showToast])
+  }, [balanceRaw, announce])
 
   const applyMaxSellShares = useCallback(() => {
     const s = formatMaxSellShares(limitSellNetShares)
     if (!s) {
       if (sellableSharesForOutcome > 0 && openSellReservedForLimitOutcome > 0) {
-        showToast('All your shares for this outcome are already on the sell book', 'error')
+        announce('All your shares for this outcome are already on the sell book', 'error')
       } else {
-        showToast(`No ${tradeSide} shares to sell`, 'error')
+        announce(`No ${tradeSide} shares to sell`, 'error')
       }
       return
     }
@@ -201,26 +209,26 @@ export default function MarketQuickTrade({ market, onTradeSuccess }) {
     sellableSharesForOutcome,
     openSellReservedForLimitOutcome,
     tradeSide,
-    showToast,
+    announce,
   ])
 
   const handleTrade = async () => {
     if (!wallet) {
-      showToast('Sign in to trade', 'error')
+      announce('Sign in to trade', 'error')
       openAccountModal()
       return
     }
     const amountNum = parseFloat(tradeAmount)
     if (!tradeAmount || Number.isNaN(amountNum) || amountNum <= 0) {
-      showToast('Enter a valid amount in Pips', 'error')
+      announce('Enter a valid amount in Pips', 'error')
       return
     }
     if (!pool || !marketId) {
-      showToast('Pool not loaded', 'error')
+      announce('Pool not loaded', 'error')
       return
     }
     if (amountNum > balanceRaw + 1e-9) {
-      showToast('Amount exceeds your Pips balance', 'error')
+      announce('Amount exceeds your Pips balance', 'error')
       return
     }
     const isMultiPool = isMulti && pool.poolKind === 'multi'
@@ -233,11 +241,11 @@ export default function MarketQuickTrade({ market, onTradeSuccess }) {
       }
       const { outputAmount } = getQuoteMulti(poolForQuote, tradeSide, amountNum)
       if (outputAmount <= 0) {
-        showToast('Trade would result in zero shares', 'error')
+        announce('Trade would result in zero shares', 'error')
         return
       }
       if (!isTradeWithinLimitMulti(poolForQuote, tradeSide, outputAmount)) {
-        showToast('Trade too large for pool. Try less.', 'error')
+        announce('Trade too large for pool. Try less.', 'error')
         return
       }
     } else {
@@ -249,11 +257,11 @@ export default function MarketQuickTrade({ market, onTradeSuccess }) {
       }
       const { outputAmount } = getQuote(poolForQuote, tradeSide, amountNum)
       if (outputAmount <= 0) {
-        showToast('Trade would result in zero shares', 'error')
+        announce('Trade would result in zero shares', 'error')
         return
       }
       if (!isTradeWithinLimit(poolForQuote, tradeSide, outputAmount)) {
-        showToast('Trade too large for pool. Try less.', 'error')
+        announce('Trade too large for pool. Try less.', 'error')
         return
       }
     }
@@ -266,7 +274,7 @@ export default function MarketQuickTrade({ market, onTradeSuccess }) {
         minOut: 0,
         userId: wallet.party,
       })
-      showToast(`Bought ~${result.outputAmount?.toFixed(2) ?? '?'} ${tradeSide} shares`, 'success')
+      announce(`Bought ~${result.outputAmount?.toFixed(2) ?? '?'} ${tradeSide} shares`, 'success')
       setTradeAmount('')
       const updatedPool = await fetchPool(marketId)
       if (updatedPool) setPool(updatedPool)
@@ -274,7 +282,7 @@ export default function MarketQuickTrade({ market, onTradeSuccess }) {
       await fetchUserPositionsForMarket()
       onTradeSuccess?.()
     } catch (err) {
-      showToast(err.message || 'Trade failed', 'error')
+      announce(err.message || 'Trade failed', 'error')
     } finally {
       setTradeLoading(false)
     }
@@ -282,18 +290,18 @@ export default function MarketQuickTrade({ market, onTradeSuccess }) {
 
   const handlePlaceOrder = async () => {
     if (!wallet) {
-      showToast('Sign in to place an order', 'error')
+      announce('Sign in to place an order', 'error')
       openAccountModal()
       return
     }
     const amountNum = parseFloat(orderAmount)
     const priceNum = parseFloat(orderPrice)
     if (!orderAmount || Number.isNaN(amountNum) || amountNum <= 0 || Number.isNaN(priceNum) || priceNum < 0 || priceNum > 1) {
-      showToast('Enter shares and a valid limit price', 'error')
+      announce('Enter shares and a valid limit price', 'error')
       return
     }
     if (orderSide === 'sell' && amountNum > limitSellNetShares + 1e-9) {
-      showToast(
+      announce(
         limitSellNetShares <= 0 && sellableSharesForOutcome > 0
           ? 'All your shares for this outcome are already listed in open sell orders'
           : 'Amount exceeds shares available to sell (after open orders)',
@@ -311,7 +319,7 @@ export default function MarketQuickTrade({ market, onTradeSuccess }) {
         price: priceNum,
         owner: wallet.party,
       })
-      showToast(result.matched ? 'Matched!' : 'Order placed on the book', 'success')
+      announce(result.matched ? 'Matched!' : 'Order placed on the book', 'success')
       setOrderAmount('')
       const list = await fetchOpenOrders(marketId)
       setOpenOrders(list)
@@ -321,19 +329,19 @@ export default function MarketQuickTrade({ market, onTradeSuccess }) {
     } catch (err) {
       const b = err.responseBody
       if (b?.shortfall != null && b?.required != null) {
-        showToast(
+        announce(
           `Need ${formatPips(b.shortfall)} more (have ${formatPips(b.current)}, requires ${formatPips(b.required)}).`,
           'error'
         )
       } else if (b?.code === 'SELL_EXCEEDS_POSITION' && b?.availableToSell != null) {
-        showToast(
+        announce(
           `Sell too large — only ~${Number(b.availableToSell).toFixed(2)} shares free after your other sell orders.`,
           'error'
         )
       } else if (err.status === 429 || String(err.message || '').toLowerCase().includes('too many')) {
-        showToast('Too many requests — please wait a moment and try again.', 'error')
+        announce('Too many requests — please wait a moment and try again.', 'error')
       } else {
-        showToast(err.message || 'Order failed', 'error')
+        announce(err.message || 'Order failed', 'error')
       }
     } finally {
       setOrderLoading(false)
@@ -345,13 +353,13 @@ export default function MarketQuickTrade({ market, onTradeSuccess }) {
     setCancellingOrderId(orderId)
     try {
       await cancelOrder(orderId, wallet.party)
-      showToast('Order cancelled', 'success')
+      announce('Order cancelled', 'success')
       const list = await fetchOpenOrders(marketId)
       setOpenOrders(list)
       await fetchUserPositionsForMarket()
       onTradeSuccess?.()
     } catch (e) {
-      showToast(e.message || 'Cancel failed', 'error')
+      announce(e.message || 'Cancel failed', 'error')
     } finally {
       setCancellingOrderId(null)
     }
@@ -409,6 +417,7 @@ export default function MarketQuickTrade({ market, onTradeSuccess }) {
   if (isActiveBinary) {
     return (
       <div className="market-quick-trade">
+        <div className="visually-hidden" aria-live="polite" aria-atomic="true">{tradeA11y}</div>
         <div className="market-quick-trade-head">
           <span className="market-quick-trade-title">Quick trade</span>
           <Link to={detailHref} className="market-quick-trade-link">Full page</Link>
@@ -647,6 +656,7 @@ export default function MarketQuickTrade({ market, onTradeSuccess }) {
   if (isActiveMultiPool && ammTradeEnabled) {
     return (
       <div className="market-quick-trade">
+        <div className="visually-hidden" aria-live="polite" aria-atomic="true">{tradeA11y}</div>
         <div className="market-quick-trade-head">
           <span className="market-quick-trade-title">Quick buy (pool)</span>
           <Link to={detailHref} className="market-quick-trade-link">Full page</Link>

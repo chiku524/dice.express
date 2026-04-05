@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import MultiDiceLoader from './MultiDiceLoader'
 import './LoadingDiceProgress.css'
 
@@ -41,8 +41,7 @@ export default function LoadingDiceProgress({
 }) {
   const [stepIndex, setStepIndex] = useState(0)
   const stepsKey = progressStepsContentKey(progressSteps)
-  // stepsKey encodes progressSteps content; avoids new [] identity each parent render.
-  const steps = useMemo(() => resolveSteps(progressSteps), [stepsKey])
+  const steps = resolveSteps(progressSteps)
   const determinate = typeof progress === 'number' && !Number.isNaN(progress)
   const pct = determinate ? Math.min(100, Math.max(0, progress)) : null
 

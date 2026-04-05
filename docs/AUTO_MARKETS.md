@@ -27,6 +27,7 @@ Set in Cloudflare Dashboard → Workers & Pages → **dice-express-auto-markets-
 | **AUTO_MARKETS_NEWS_LIMIT** | No | Per-source cap for **news / enriched** sources (`news`, `perigon`, `newsapi_ai`, `newsdata_io`). Default `50` when unset in Worker env. |
 | **AUTO_MARKETS_CRON_SECRET** | No | If set on the **Worker**, every seed request sends `X-Cron-Secret`. If you set the **same** variable on the **Pages** project, `POST /api/auto-markets` seed actions **require** a matching header (401 otherwise). Use both together for production. |
 | **PRIVILEGED_API_SECRET** | No | If set on **Pages**, ops-only `POST` routes (including **`/api/resolve-markets`**) require **`X-Privileged-Secret`** unless **`X-Cron-Secret`** matches **`AUTO_MARKETS_CRON_SECRET`**. Set the **same** value on this Worker so the hourly **`resolve-markets`** call succeeds. See **`docs/API.md`** (Ops-only routes). |
+| **AUTO_MARKETS_CRON_ACTIVATE_PENDING** | No | If **`1`** / **`true`**, after each seed the Worker calls **`POST /api/auto-markets`** with **`{ "action": "activate_pending", "limit": 60 }`** (requires the same cron secret as seed when Pages enforces it). Use when **`AUTO_MARKETS_PENDING_ACTIVATION`** is on. |
 
 ---
 
@@ -88,6 +89,51 @@ Returns `{ keysPresent: { THE_ODDS_API_KEY: true/false, ... }, seedSources: [...
 `GET https://YOUR_SITE/api/auto-markets?action=events&source=crypto&limit=2`
 
 If `count` is `0` but `COINGECKO_API_KEY` is false, CoinGecko may still work (public API) unless rate-limited from Cloudflare’s egress IPs.
+
+---
+
+## Pending activation (quarantine) and post-create validation
+
+**Contract row statuses** (D1 `contracts.status`, template `VirtualMarket`):
+
+| Status | Meaning |
+|--------|---------|
+| **Active** | Listed on default `GET /api/markets` (with `Approved` user markets); has an AMM **LiquidityPool** when created through the normal path. |
+| **AutoPending** | Seeded by automation but **not** listed by default; **no pool** yet — `POST /api/trade` returns “pool not found” until promoted. |
+| **AutoRejected** | Failed **`activate_pending`** validation; remains hidden from the default markets list. |
+
+**Env (Pages):**
+
+| Variable | Default | Purpose |
+|----------|---------|---------|
+| **`AUTO_MARKETS_PENDING_ACTIVATION`** | off | Set to **`1`** / **`true`** so new auto-markets are written as **AutoPending** instead of going live immediately. |
+| **`AUTO_MARKETS_POST_MIN_DEADLINE_HOURS`** | unset | Optional. During **`activate_pending`**, reject promotion if `resolutionDeadline` is sooner than this many hours from “now” (quality gates still apply). |
+| **`AUTO_MARKETS_PAUSE_AFTER_CONSECUTIVE_FAILURES`** | **`5`** | After this many **consecutive** failed source fetches (tracked in KV `auto_markets:source_health`), that source is **skipped** for seeding until it succeeds again. Set to **`0`** to disable. |
+
+**Cron / ops:**
+
+- **`POST /api/auto-markets`** with JSON **`{ "action": "activate_pending", "limit": 40 }`** (and **`X-Cron-Secret`** when `AUTO_MARKETS_CRON_SECRET` is set on Pages) runs the **idempotent** validator: re-checks quality gates (+ optional horizon), sets row **Active**, creates the **LiquidityPool**, or marks **AutoRejected** with reasons in `payload.autoMarketActivation`.
+- Optional on the **auto-markets cron Worker**: **`AUTO_MARKETS_CRON_ACTIVATE_PENDING=true`** runs **`activate_pending`** after each seed (same secret headers as seed).
+
+**Probe:** `GET /api/auto-markets?action=probe` includes **`automationQueue`** (flags + pause threshold), **`autoPendingQueue`** (count + sample), and existing **`sourceHealthSnapshot`**.
+
+---
+
+## Time alignment (resolution deadlines)
+
+Automated payloads use **UTC** end-of-day (`T23:59:59.000Z`) when only a calendar date is known. Sport-style markets may use **`commenceTime`** + a short grace window for `resolutionDeadline`. **`activate_pending`** can enforce a **minimum horizon** before promotion via **`AUTO_MARKETS_POST_MIN_DEADLINE_HOURS`** so markets are not published with deadlines already in the past or imminently due.
+
+---
+
+## Outcome-only policy matrix (reference)
+
+| Pages env | Effect on seeding |
+|-----------|-------------------|
+| **`AUTO_MARKETS_OUTCOME_ONLY=1`** | Strong bias to checkable / outcome-shaped markets; feed-topic headline churn stays off unless overridden. |
+| **`AUTO_MARKETS_ALLOW_FEED_TOPIC=1`** | Relaxes feed-topic creation where the pipeline allows it (still subject to quality gates and dedupe). |
+| **`shouldSkipFeedTopicHeadlineMarkets` (server)** | When true, feed-topic-only news candidates are skipped before market construction. |
+
+Pair **`AUTO_MARKETS_PENDING_ACTIVATION`** with **`activate_pending`** so policy + gates can run twice: at seed and before the market goes public.
 
 ---
 
@@ -153,3 +199,38 @@ If manual calls to `?action=events` return events for several sources (e.g. weat
 | Other | RAPIDAPI_KEY, MASSIVE_API_KEY | Per-provider |
 
 If a key is set and probe shows `true` but events are still empty, the next step is provider rate limits, key validity, or (for crypto) Cloudflare IP blocking.
+
+---
+
+## Operator playbook (prediction markets)
+
+Concise runbook while keeping **outcome-only** policy (no feed-topic headline churn).
+
+### Scheduled automation
+
+1. **Cron Worker** (`workers/auto-markets-cron`) calls `POST /api/auto-markets` (seed) then `POST /api/resolve-markets`.
+2. **Heartbeat** — After each successful seed or resolve, the API updates D1 contract `system-cron-heartbeat-v1` (template `CronHeartbeat`) and may still write KV `auto_markets:last_seed`.
+3. **Public check** — `GET /api/auto-markets?action=probe` returns policy flags, `lastSeed` (KV), `automationHeartbeat` (D1), and `keysPresent`. The site page **Resources → Automation status** (`/automation`) reads this.
+
+### Multi-outcome markets
+
+- **Creation** — `POST /api/markets` with `source` ≠ `user`, `marketType: "MultiOutcome"`, and `outcomes: ["A","B",…]` (2–8 unique labels). Pools are created automatically; **P2P limit orders stay binary-only** in the API.
+- **Trading** — Users trade on the **AMM pool** only (`POST /api/trade` with `side` set to the exact outcome label).
+- **Resolution** — `resolve-markets` **does not** auto-settle multi-outcome markets today. Use **`POST /api/update-market-status`** with `status: "Settled"` and `resolvedOutcome` equal to the **winning outcome string** (must match one of `outcomes`).
+
+### Manual settlement (binary or multi)
+
+- **`POST /api/update-market-status`** — privileged secret if configured. Sets `resolvedOutcome` and runs P2P winner payouts where positions match.
+- **AMM-only positions** (no `counterpartyPositionId`) may not follow the same payout path as matched P2P; confirm balances and product rules before promising users a specific AMM redemption.
+
+### Congestion and policy
+
+- **User-created markets** remain disabled (`source: user` → 403).
+- **`AUTO_MARKETS_OUTCOME_ONLY=1`** — keeps automated seeding aligned with checkable outcomes; feed-topic markets stay off unless you explicitly allow them.
+- **Do not** bulk-create multi-outcome markets without resolution discipline — each extra outcome adds ops surface area.
+
+### When things look stuck
+
+1. Cloudflare Worker logs for `dice-express-auto-markets-cron`.
+2. `GET …/api/auto-markets?action=probe` — keys, last seed, heartbeat timestamps.
+3. `GET …/api/auto-markets?action=events&source=…&limit=2` — per-source smoke test.

@@ -2,7 +2,8 @@
  * Cron Worker: seeds automated prediction markets (all integrated lanes) and resolves due markets.
  * Deploy: cd workers/auto-markets-cron && npx wrangler deploy
  * Set env: SITE_URL. Optional: AUTO_MARKETS_CRON_SECRET, AUTO_MARKETS_LIMIT (default 25),
- * AUTO_MARKETS_NEWS_LIMIT (default 50), AUTO_MARKETS_SOURCE (single-source override).
+ * AUTO_MARKETS_NEWS_LIMIT (default 50), AUTO_MARKETS_SOURCE (single-source override),
+ * AUTO_MARKETS_CRON_ACTIVATE_PENDING (call POST activate_pending after seed when true).
  *
  * Default seed_all uses every entry in `AUTO_MARKET_SOURCES` (including **sports**) on each tick.
  * The Odds API free tier is ~500 req/month; at hourly cron that is roughly one sports request per hour
@@ -60,6 +61,31 @@ export default {
       else console.log('[auto-markets-cron] seed', singleSource || 'all', 'created:', seedData.count ?? 0, singleSource ? '' : 'bySource:', seedData.bySource ?? '')
     } catch (err) {
       console.error('[auto-markets-cron] seed', err.message)
+    }
+
+    if (env.AUTO_MARKETS_CRON_ACTIVATE_PENDING === '1' || env.AUTO_MARKETS_CRON_ACTIVATE_PENDING === 'true') {
+      try {
+        const controller = new AbortController()
+        const timeout = setTimeout(() => controller.abort(), 120000)
+        const actRes = await fetch(`${siteUrl}/api/auto-markets`, {
+          method: 'POST',
+          headers,
+          body: JSON.stringify({ action: 'activate_pending', limit: 60 }),
+          signal: controller.signal,
+        })
+        clearTimeout(timeout)
+        const actData = await actRes.json().catch(() => ({}))
+        if (!actRes.ok) console.error('[auto-markets-cron] activate_pending', actRes.status, actData)
+        else
+          console.log(
+            '[auto-markets-cron] activate_pending activated:',
+            actData.activated?.length ?? 0,
+            'rejected:',
+            actData.rejected?.length ?? 0
+          )
+      } catch (err) {
+        console.error('[auto-markets-cron] activate_pending', err.message)
+      }
     }
 
     try {

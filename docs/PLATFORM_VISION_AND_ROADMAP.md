@@ -56,6 +56,13 @@ Transform the application into an **automated prediction market platform** where
 
 See **PREDICTION_MARKETS.md** for detailed data models and UI behavior.
 
+### 2.3 Production implementation (today)
+
+- **Balances and contracts** live in **Cloudflare D1** (`user_balances`, `contracts`, …), not on a public Canton JSON query API.
+- **Pips** are the user-facing virtual unit; **1:1 with USD** is the usual display convention for stablecoin rails.
+- **Deposits:** EVM paths use **`POST /api/deposit-crypto`** with on-chain verification (e.g. Alchemy). **Withdrawals:** rows in **`withdrawal_requests`** plus an operator process to broadcast txs and update status.
+- **Multi-chain** in product terms means multiple **`networkId`** values on those endpoints; extend providers rather than duplicating docs here.
+
 ---
 
 ## 3. Virtual Currency & Multi-Chain
@@ -82,7 +89,7 @@ See **PREDICTION_MARKETS.md** for detailed data models and UI behavior.
   - Backend: credit/debit virtual balance and record chain, tx hash, amount.
 - **Canton**: Can remain special (e.g. CC token) for one of the deposit/withdraw options; others use EVM or other chains.
 
-See **VIRTUAL_CURRENCY_AND_MULTICHAIN.md** for flows, APIs, and security.
+See **`APPLICATION.md`**, **`PIPS_DEPOSIT_WITHDRAW_FLOW.md`**, and **`DEPLOYMENT.md`** for production flows, APIs, and secrets.
 
 ---
 
@@ -112,7 +119,7 @@ See **VIRTUAL_CURRENCY_AND_MULTICHAIN.md** for flows, APIs, and security.
 - **Optional (later)**:
   - Market-making bots (provide liquidity), arbitrage detection, risk limits.
 
-See **ALGORITHMS_AND_RISK.md** and **AMM.md** for formulas and integration points.
+See **`USER_FLOWS_TRADING_AND_RISK.md`** and **`AMM.md`** for formulas and integration points.
 
 ---
 
@@ -192,11 +199,11 @@ See **ALGORITHMS_AND_RISK.md** and **AMM.md** for formulas and integration point
 
 ### 7.1 Documentation
 
+- **docs/APPLICATION.md**: Single-page application essentials.
 - **docs/PLATFORM_VISION_AND_ROADMAP.md** (this file): Vision, principles, roadmap.
-- **docs/VIRTUAL_CURRENCY_AND_MULTICHAIN.md**: Virtual currency rules, multi-chain flows.
-- **docs/PREDICTION_MARKETS.md**: All market styles, data model, automated creation, UI.
-- **docs/AMM.md**, **docs/ALGORITHMS_AND_RISK.md**: AMM formulas, fee model, algorithm hooks.
-- Keep **ORACLE_STRATEGY.md**, **ARCHITECTURE.md**, **BLOCKCHAIN_INTEGRATION.md** and link from here.
+- **docs/PREDICTION_MARKETS.md**: Market styles, data model, automated creation, UI.
+- **docs/AMM.md**, **docs/USER_FLOWS_TRADING_AND_RISK.md**: AMM formulas, fee model, trading/risk.
+- **docs/ORACLE_STRATEGY.md**, **docs/ARCHITECTURE.md**, **docs/DEPLOYMENT.md** — link from **`APPLICATION.md`**.
 
 ### 7.2 Code / Repo
 

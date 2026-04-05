@@ -4,6 +4,22 @@
   padding: 0 1rem 2rem;
 }
 
+.automation-status-header-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-md, 1rem);
+}
+
+.automation-status-header-row h1 {
+  margin: 0;
+}
+
+.automation-status-refresh {
+  flex-shrink: 0;
+}
+
 .automation-status-card {
   margin-top: 1.25rem;
 }

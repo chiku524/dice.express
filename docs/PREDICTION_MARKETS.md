@@ -144,7 +144,7 @@ The Discover UI calls **`GET /api/markets?sort=activity`** so lists load with **
 | **Discover → Global Events** | Sports, weather, news/headline markets. |
 | **Discover → Industry Topics** | Stocks and crypto markets. |
 
-**Category filter:** Sports, Weather, Finance, Crypto, News, Other. Markets are tagged so you can filter. Deploy the cron Worker: `cd workers/auto-markets-cron && npx wrangler deploy`. Set **SITE_URL** (and optional **THE_ODDS_API_KEY** on the Pages project for sports). See **GET_APP_UP_AND_RUNNING.md** for full setup.
+**Category filter:** Sports, Weather, Finance, Crypto, News, Other. Markets are tagged so you can filter. Deploy the cron Worker: `cd workers/auto-markets-cron && npx wrangler deploy`. Set **SITE_URL** (and optional **THE_ODDS_API_KEY** on the Pages project for sports). See **`DEPLOYMENT.md`** for full setup.
 
 ## User-facing behavior
 

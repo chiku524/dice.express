@@ -5,7 +5,7 @@ import LoadingSpinner from './LoadingSpinner'
 import ErrorState from './ErrorState'
 import { fetchMarkets } from '../services/marketsApi'
 import { useDebounce } from '../utils/useDebounce'
-import { MARKET_CATEGORIES, PREDICTION_STYLES, getSourceLabel, sourceForFilter, categoryForFilter, getCategoryDisplay, getMarketApiAttribution, getCategoryEmoji, getMarketOneLiner, formatResolutionDeadline, DISCOVER_SOURCE_TO_CATEGORY } from '../constants/marketConfig'
+import { MARKET_CATEGORIES, PREDICTION_STYLES, getSourceLabel, sourceForFilter, categoryForFilter, getCategoryDisplay, getMarketApiAttribution, getCategoryEmoji, getMarketOneLiner, getCardResolutionLine, findRelatedMarkets, getMarketDataConfidence, buildMarketShareDescription, DISCOVER_SOURCE_TO_CATEGORY } from '../constants/marketConfig'
 import { formatPips } from '../constants/currency'
 import {
   isOutcomeBasedMarket,
@@ -16,6 +16,8 @@ import {
   isWatched,
 } from '../utils/marketUX'
 import MarketQuickTrade from './MarketQuickTrade'
+import { useToastContext } from '../contexts/ToastContext'
+import { getAbsoluteMarketUrl, copyTextToClipboard, canUseWebShare, shareMarketNative } from '../utils/marketLinks'
 
 const MARKETS_CACHE_KEY = 'dice.markets.cache.v1'
 
@@ -26,6 +28,7 @@ const CATEGORY_TOGGLE_OPTIONS = [
 ]
 
 export default function MarketsList({ source: sourceFromRoute, variant = 'default' }) {
+  const { showToast } = useToastContext()
   const isWatchlistPage = variant === 'watchlist'
   const [markets, setMarkets] = useState([])
   const [loading, setLoading] = useState(true)
@@ -44,11 +47,51 @@ export default function MarketsList({ source: sourceFromRoute, variant = 'defaul
   const [currentPage, setCurrentPage] = useState(1)
   const [retryCount, setRetryCount] = useState(0)
   const [quickFilter, setQuickFilter] = useState('all')
+  /** Spotlight row: narrows list without changing sort (composable with Quick filters). */
+  const [stripFilter, setStripFilter] = useState('all')
   const [fromCacheBanner, setFromCacheBanner] = useState(false)
   const [watchListVersion, setWatchListVersion] = useState(0)
   /** `marketId` of card with expanded quick trade (Discover / categories / watchlist). */
   const [expandedQuickTradeId, setExpandedQuickTradeId] = useState(null)
+  const sortUserOverrideRef = useRef(false)
   const MARKETS_PER_PAGE = 12
+
+  const copyCardMarketLink = useCallback(
+    async (id, titleHint) => {
+      const url = getAbsoluteMarketUrl(id)
+      if (!url) return
+      const ok = await copyTextToClipboard(url)
+      if (ok) showToast('Market link copied to clipboard', 'success')
+      else {
+        showToast(
+          titleHint
+            ? `Could not copy — open "${titleHint.slice(0, 40)}${titleHint.length > 40 ? '…' : ''}" and use Copy link`
+            : 'Could not copy — open the market page and use Copy link',
+          'error'
+        )
+      }
+    },
+    [showToast]
+  )
+
+  const webShareEnabled = useMemo(() => canUseWebShare(), [])
+
+  const shareCardMarket = useCallback(
+    async (payload) => {
+      const id = payload?.marketId
+      const url = getAbsoluteMarketUrl(id)
+      if (!url) return
+      const result = await shareMarketNative({
+        title: payload?.title?.trim() || 'Prediction market',
+        text: buildMarketShareDescription(payload),
+        url,
+      })
+      if (!result.ok && result.reason === 'error') {
+        showToast('Could not open the share sheet — try Copy link instead', 'error')
+      }
+    },
+    [showToast]
+  )
 
   const refreshMarketsList = useCallback(async () => {
     try {
@@ -77,6 +120,20 @@ export default function MarketsList({ source: sourceFromRoute, variant = 'defaul
   useEffect(() => {
     if (isWatchlistPage) setQuickFilter('watchlist')
   }, [isWatchlistPage])
+
+  useEffect(() => {
+    sortUserOverrideRef.current = false
+  }, [sourceFromRoute, variant])
+
+  useEffect(() => {
+    if (sortUserOverrideRef.current || isWatchlistPage) return
+    const src = sourceFromRoute || 'all'
+    if (src === 'sports') setSortBy('ending_soon')
+    else if (src === 'industry') setSortBy('p2p')
+    else if (DISCOVER_SOURCE_TO_CATEGORY[src]) setSortBy('newest')
+    else if (src === 'global_events' || src === 'virtual_realities' || src === 'user') setSortBy('newest')
+    else setSortBy('volume')
+  }, [sourceFromRoute, variant, isWatchlistPage])
 
   // Debounce search query for better performance
   const debouncedSearchQuery = useDebounce(searchQuery, 300)
@@ -109,8 +166,9 @@ export default function MarketsList({ source: sourceFromRoute, variant = 'defaul
     const quickCounts =
       quickFilter !== 'all' && !(isWatchlistPage && quickFilter === 'watchlist')
     if (quickCounts) count++
+    if (stripFilter !== 'all') count++
     return count
-  }, [debouncedSearchQuery, selectedCategory, selectedTopic, selectedType, selectedStatus, quickFilter, isWatchlistPage])
+  }, [debouncedSearchQuery, selectedCategory, selectedTopic, selectedType, selectedStatus, quickFilter, stripFilter, isWatchlistPage])
 
   useEffect(() => {
     isMountedRef.current = true
@@ -233,6 +291,8 @@ export default function MarketsList({ source: sourceFromRoute, variant = 'defaul
       Resolving: 'status-resolving',
       Settled: 'status-settled',
       PendingApproval: 'status-pending',
+      AutoPending: 'status-pending',
+      AutoRejected: 'status-pending',
     }
     return (status) => statusMap[status] || 'status-pending'
   }, [])
@@ -306,6 +366,27 @@ export default function MarketsList({ source: sourceFromRoute, variant = 'defaul
         (m) => w.includes(m.contractId) || w.includes(m.payload?.marketId)
       )
     }
+
+    if (stripFilter === 'new_24h') {
+      const cutoff = Date.now() - 24 * 3600 * 1000
+      filtered = filtered.filter((m) => {
+        const t = m.payload?.createdAt ? new Date(m.payload.createdAt).getTime() : 0
+        return t >= cutoff
+      })
+    }
+    if (stripFilter === 'resolves_48h') {
+      const now = Date.now()
+      const end = now + 48 * 3600 * 1000
+      filtered = filtered.filter((m) => {
+        const d = m.payload?.resolutionDeadline
+        if (!d) return false
+        const t = new Date(d).getTime()
+        return t >= now && t <= end
+      })
+    }
+    if (stripFilter === 'hot_p2p') {
+      filtered = filtered.filter((m) => (m.openOrderCount || 0) >= 2)
+    }
     
     const effectiveSort = selectedCategory === 'trending' ? 'trending_blend' : sortBy
     filtered.sort((a, b) => {
@@ -352,7 +433,7 @@ export default function MarketsList({ source: sourceFromRoute, variant = 'defaul
     return filtered
   },
   // eslint-disable-next-line react-hooks/exhaustive-deps -- watchListVersion invalidates watchlist filter without appearing in body
-  [markets, debouncedSearchQuery, selectedCategory, selectedTopic, selectedType, selectedStatus, listSourceFilter, sortBy, quickFilter, watchListVersion])
+  [markets, debouncedSearchQuery, selectedCategory, selectedTopic, selectedType, selectedStatus, listSourceFilter, sortBy, quickFilter, stripFilter, watchListVersion])
 
   // Pagination: slice to current page and reset page when results change
   const totalFiltered = filteredAndSortedMarkets.length
@@ -366,7 +447,7 @@ export default function MarketsList({ source: sourceFromRoute, variant = 'defaul
   // Reset to page 1 when filters or sort change
   useEffect(() => {
     setCurrentPage(1)
-  }, [debouncedSearchQuery, selectedCategory, selectedTopic, selectedType, selectedStatus, sortBy, quickFilter])
+  }, [debouncedSearchQuery, selectedCategory, selectedTopic, selectedType, selectedStatus, sortBy, quickFilter, stripFilter])
 
   const pageTitle = isWatchlistPage
     ? 'Watchlist'
@@ -442,6 +523,29 @@ export default function MarketsList({ source: sourceFromRoute, variant = 'defaul
       {/* Filters: always visible; Market Type, Status, Sort as separate dropdowns above the grid */}
       {(!loading && !error) && (
         <div className="card mb-xl filters-card markets-filters-card">
+          {!isWatchlistPage && (
+            <div className="markets-spotlight-strip" role="group" aria-label="Quick discovery">
+              <span className="markets-spotlight-label">Spotlight</span>
+              {[
+                { id: 'new_24h', label: 'New (24h)' },
+                { id: 'resolves_48h', label: 'Resolves in 48h' },
+                { id: 'hot_p2p', label: 'Hot P2P (2+ orders)' },
+              ].map(({ id, label }) => (
+                <button
+                  key={id}
+                  type="button"
+                  className={`markets-spotlight-btn${stripFilter === id ? ' markets-spotlight-btn--active' : ''}`}
+                  aria-pressed={stripFilter === id}
+                  onClick={() => {
+                    setStripFilter((f) => (f === id ? 'all' : id))
+                    setCurrentPage(1)
+                  }}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          )}
           <div className="markets-filters-toolbar">
             <div className="filter-group filter-group-full">
               <label htmlFor="search">
@@ -576,10 +680,14 @@ export default function MarketsList({ source: sourceFromRoute, variant = 'defaul
                 <select
                   id="sort"
                   value={sortBy}
-                  onChange={(e) => setSortBy(e.target.value)}
+                  onChange={(e) => {
+                    sortUserOverrideRef.current = true
+                    setSortBy(e.target.value)
+                  }}
                   className="filter-select"
                 >
                   <option value="volume">Volume (High to Low)</option>
+                  <option value="p2p">P2P activity (open orders)</option>
                   <option value="newest">Newest First</option>
                   <option value="oldest">Oldest First</option>
                   <option value="ending_soon">Ending Soon</option>
@@ -655,6 +763,24 @@ export default function MarketsList({ source: sourceFromRoute, variant = 'defaul
                   </button>
                 </span>
               )}
+              {stripFilter !== 'all' && (
+                <span className="filter-chip">
+                  Spotlight:{' '}
+                  {stripFilter === 'new_24h'
+                    ? 'New (24h)'
+                    : stripFilter === 'resolves_48h'
+                      ? 'Resolves in 48h'
+                      : 'Hot P2P'}
+                  <button
+                    type="button"
+                    onClick={() => setStripFilter('all')}
+                    className="filter-chip-remove"
+                    aria-label="Remove spotlight filter"
+                  >
+                    ×
+                  </button>
+                </span>
+              )}
               <button
                 type="button"
                 className="filter-chip-clear-all"
@@ -666,6 +792,8 @@ export default function MarketsList({ source: sourceFromRoute, variant = 'defaul
                   setSelectedStatus('all')
                   setSortBy('volume')
                   setQuickFilter(isWatchlistPage ? 'watchlist' : 'all')
+                  setStripFilter('all')
+                  sortUserOverrideRef.current = false
                 }}
               >
                 Clear All
@@ -751,6 +879,8 @@ export default function MarketsList({ source: sourceFromRoute, variant = 'defaul
                       setSelectedStatus('all')
                       setSortBy('volume')
                       setQuickFilter(isWatchlistPage ? 'watchlist' : 'all')
+                      setStripFilter('all')
+                      sortUserOverrideRef.current = false
                     }}
                   >
                     Clear All Filters
@@ -766,6 +896,15 @@ export default function MarketsList({ source: sourceFromRoute, variant = 'defaul
                   const categoryLabel = getCategoryDisplay(market.payload)
                   const apiAttr = getMarketApiAttribution(market.payload)
                   const stale = getMarketStaleness(market.payload)
+                  const confidence = getMarketDataConfidence(market.payload, market.openOrderCount || 0)
+                  const resolveLine = getCardResolutionLine(market.payload)
+                  const related = findRelatedMarkets(
+                    market.payload,
+                    markets,
+                    market.contractId,
+                    market.payload?.marketId,
+                    2
+                  )
                   const watched = isWatched(market.contractId) || isWatched(market.payload?.marketId)
                   const mid = market.payload?.marketId
                   const quickOpen = mid && expandedQuickTradeId === mid
@@ -831,6 +970,14 @@ export default function MarketsList({ source: sourceFromRoute, variant = 'defaul
                               Pending resolution
                             </span>
                           )}
+                          {confidence.label && (
+                            <span
+                              className={`market-card-tag market-card-tag-confidence${confidence.level === 'thin' ? ' market-card-tag-confidence--thin' : ''}`}
+                              title={confidence.hint || undefined}
+                            >
+                              {confidence.label}
+                            </span>
+                          )}
                         </div>
                         <h3>{market.payload.title}</h3>
                         <span className={`status ${getStatusClass(market.payload.status)}`}>
@@ -843,9 +990,9 @@ export default function MarketsList({ source: sourceFromRoute, variant = 'defaul
                       <p className="mt-md market-card-desc">
                         {market.payload.description ? (market.payload.description.length > 120 ? market.payload.description.substring(0, 120).trim() + '…' : market.payload.description) : ''}
                       </p>
-                      {market.payload.resolutionDeadline && (
+                      {resolveLine && (
                         <p className="market-card-resolves" style={{ fontSize: 'var(--font-size-xs)', color: 'var(--color-teal)', marginTop: 'var(--spacing-xs)' }}>
-                          ⏱️ Resolves by {formatResolutionDeadline(market.payload.resolutionDeadline, true)}
+                          ⏱️ {resolveLine}
                         </p>
                       )}
                       <div className="mt-md" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 'auto' }}>
@@ -858,9 +1005,62 @@ export default function MarketsList({ source: sourceFromRoute, variant = 'defaul
                       </div>
                     </div>
                   </Link>
-                  {market.payload?.status === 'Active' && mid && (
-                    <>
-                      <div className="market-card-toolbar">
+                  {related.length > 0 && (
+                    <div className="market-card-related market-card-related--wrap">
+                      <span>Similar: </span>
+                      {related.map((r, i) => (
+                        <span key={r.contractId || r.payload?.marketId}>
+                          {i > 0 ? ' · ' : null}
+                          <Link to={`/market/${r.payload?.marketId}`}>
+                            {(r.payload?.title || 'Market').length > 36
+                              ? `${(r.payload.title || 'Market').slice(0, 36)}…`
+                              : (r.payload?.title || 'Market')}
+                          </Link>
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                  {mid && (
+                    <div
+                      className={[
+                        'market-card-toolbar',
+                        market.payload?.status === 'Active' ? 'market-card-toolbar--split' : '',
+                        !webShareEnabled && market.payload?.status !== 'Active' ? 'market-card-toolbar--end' : '',
+                      ]
+                        .filter(Boolean)
+                        .join(' ')}
+                    >
+                      <div className="market-card-toolbar-actions">
+                        <button
+                          type="button"
+                          className="market-card-copy-link"
+                          title={getAbsoluteMarketUrl(mid)}
+                          aria-label={`Copy link to market: ${(market.payload.title || 'market').slice(0, 120)}`}
+                          onClick={(e) => {
+                            e.preventDefault()
+                            e.stopPropagation()
+                            void copyCardMarketLink(mid, market.payload.title || '')
+                          }}
+                        >
+                          Copy link
+                        </button>
+                        {webShareEnabled && (
+                          <button
+                            type="button"
+                            className="market-card-share-link"
+                            title="Share via your device (Messages, social apps, etc.)"
+                            aria-label={`Share market: ${(market.payload.title || 'market').slice(0, 120)}`}
+                            onClick={(e) => {
+                              e.preventDefault()
+                              e.stopPropagation()
+                              void shareCardMarket(market.payload)
+                            }}
+                          >
+                            Share…
+                          </button>
+                        )}
+                      </div>
+                      {market.payload?.status === 'Active' && (
                         <button
                           type="button"
                           className={`market-card-quick-trade-btn${quickOpen ? ' market-card-quick-trade-btn--open' : ''}`}
@@ -873,11 +1073,11 @@ export default function MarketsList({ source: sourceFromRoute, variant = 'defaul
                         >
                           {quickOpen ? 'Close quick trade' : 'Quick trade'}
                         </button>
-                      </div>
-                      {quickOpen && (
-                        <MarketQuickTrade market={market} onTradeSuccess={refreshMarketsList} />
                       )}
-                    </>
+                    </div>
+                  )}
+                  {market.payload?.status === 'Active' && mid && quickOpen && (
+                    <MarketQuickTrade market={market} onTradeSuccess={refreshMarketsList} />
                   )}
                   </div>
                   )

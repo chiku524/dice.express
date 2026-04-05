@@ -12,7 +12,6 @@ import {
   ALL_NEWS_PROMO_EQUITY_TICKERS,
   COINGECKO_COINS,
   resolutionEndOfDayUTC,
-  resolutionUSMarketCloseUTC,
 } from './data-sources.mjs'
 
 const NEWS_FEED_SOURCES = new Set(['gnews', 'perigon', 'newsapi_ai', 'newsdata_io'])
@@ -270,14 +269,14 @@ async function tryPromoteStock(env, ev, text, headline) {
       description: `${title} Outcome market seeded from a news headline (“${seedSnippet}”). Spot about $${spot} when created. Data source: Alpha Vantage.`,
       resolutionCriteria:
         comparator === 'lte'
-          ? `Closing price of ${sym} on or before ${dateStr} is at or below $${threshold}. Data source: Alpha Vantage.`
-          : `Closing price of ${sym} on or before ${dateStr} is at or above $${threshold}. Data source: Alpha Vantage.`,
+          ? `After ${dateStr}T23:59:59.000Z, Yes if Alpha Vantage GLOBAL_QUOTE “05. price” for ${sym} is ≤ $${threshold}. No otherwise. (Live quote at resolution.)`
+          : `After ${dateStr}T23:59:59.000Z, Yes if Alpha Vantage GLOBAL_QUOTE “05. price” for ${sym} is ≥ $${threshold}. No otherwise. (Live quote at resolution.)`,
       oneLiner:
         comparator === 'lte'
-          ? `${sym} closes at or below $${threshold} by ${dateStr}; otherwise No.`
-          : `${sym} closes at or above $${threshold} by ${dateStr}; otherwise No.`,
+          ? `${sym} GLOBAL_QUOTE ≤ $${threshold} after UTC end of ${dateStr}; otherwise No.`
+          : `${sym} GLOBAL_QUOTE ≥ $${threshold} after UTC end of ${dateStr}; otherwise No.`,
       endDate: dateStr,
-      resolutionDeadline: resolutionUSMarketCloseUTC(dateStr),
+      resolutionDeadline: resolutionEndOfDayUTC(dateStr),
       oracleSource: 'alpha_vantage',
       oracleConfig: {
         symbol: sym,

@@ -1,44 +1,48 @@
-# Documentation Index
+# Documentation index
 
-## Getting Started
+Start with **[APPLICATION.md](./APPLICATION.md)** for a single overview of what dice.express is, how it is built, and where to read next.
 
-- **[../README.md](../README.md)** – Project overview and setup
-- **[GET_APP_UP_AND_RUNNING.md](./GET_APP_UP_AND_RUNNING.md)** – Deploy and operate in production (D1, crypto, cron, resolution, production Q&A)
+## Essentials
 
-## Architecture & Design
+| Doc | Purpose |
+|-----|---------|
+| **[APPLICATION.md](./APPLICATION.md)** | Product and stack overview, doc map |
+| **[../README.md](../README.md)** | Repo clone, local dev, project layout |
+| **[DEPLOYMENT.md](./DEPLOYMENT.md)** | Cloudflare Pages, D1/R2/KV/Vectorize/AI, migrations, crypto go-live, production checklist |
+| **[ARCHITECTURE.md](./ARCHITECTURE.md)** | Data plane, flows, observability |
+| **[API.md](./API.md)** | Current **`/api/*`** reference |
+| **[USER_FLOWS_TRADING_AND_RISK.md](./USER_FLOWS_TRADING_AND_RISK.md)** | User journeys, AMM vs P2P, platform risk |
 
-- **[ARCHITECTURE.md](./ARCHITECTURE.md)** – System architecture, Cloudflare stack, AMM, P2P
-- **[PLATFORM_VISION_AND_ROADMAP.md](./PLATFORM_VISION_AND_ROADMAP.md)** – Vision, virtual currency, multi-chain, roadmap
-- **[AMM.md](./AMM.md)** – AMM design, implementation, and algorithms
+## Markets and automation
 
-## Platform Specs
+| Doc | Purpose |
+|-----|---------|
+| **[PREDICTION_MARKETS.md](./PREDICTION_MARKETS.md)** | Styles, APIs by topic, automated creation, maintenance |
+| **[ORACLE_STRATEGY.md](./ORACLE_STRATEGY.md)** | Oracles by category, resolution roadmap |
+| **[AUTO_MARKETS.md](./AUTO_MARKETS.md)** | Cron Worker, env vars, API keys, troubleshooting, operator playbook |
+| **[OPERATOR_MANUAL_RESOLUTION.md](./OPERATOR_MANUAL_RESOLUTION.md)** | Custom news markets, Void, preview API, tuning |
 
-- **[VIRTUAL_CURRENCY_AND_MULTICHAIN.md](./VIRTUAL_CURRENCY_AND_MULTICHAIN.md)** – Credits, deposits/withdrawals, multi-chain
-- **[PREDICTION_MARKETS.md](./PREDICTION_MARKETS.md)** – Prediction styles, topics/APIs (free & cheap), automated market creation
-- **[ORACLE_STRATEGY.md](./ORACLE_STRATEGY.md)** – Oracles by category; automated resolution; Phase 2 roadmap (political / multi-oracle)
-- **[OPERATOR_MANUAL_RESOLUTION.md](./OPERATOR_MANUAL_RESOLUTION.md)** – Custom news (`operator_manual`) markets: deadlines, inference, **Void** refunds, **`resolve-markets-preview`**, probe queue, cron
-- **[OPERATOR_MANUAL_TUNING.md](./OPERATOR_MANUAL_TUNING.md)** – Tuning playbook (regex, **`seedQuery`**, staging)
+## Money and product
 
-## API & Implementation
+| Doc | Purpose |
+|-----|---------|
+| **[PIPS_DEPOSIT_WITHDRAW_FLOW.md](./PIPS_DEPOSIT_WITHDRAW_FLOW.md)** | Pips, fees, on-chain deposit verification, secrets |
+| **[PLATFORM_VISION_AND_ROADMAP.md](./PLATFORM_VISION_AND_ROADMAP.md)** | Vision, roadmap, virtual-currency model |
+| **[P2P_AND_GROWTH_STRATEGY.md](./P2P_AND_GROWTH_STRATEGY.md)** | P2P-only mode and cold-start growth |
+| **[AMM.md](./AMM.md)** | AMM design and formulas |
 
-- **[API.md](./API.md)** – **Cloudflare `/api/*` reference** (current); Canton/DAML appendix (historical)
-- **[CLOUDFLARE.md](./CLOUDFLARE.md)** – Deploy to Cloudflare Pages; D1, R2, KV, Vectorize, Workers AI bindings
+## Brand, UX, release
 
-## Deployment & Ops
+| Doc | Purpose |
+|-----|---------|
+| **[BRAND.md](./BRAND.md)** | Brand and theme |
+| **[SEO.md](./SEO.md)** | SEO and sitemap |
+| **[UX_HISTORY_AND_RECOMMENDATIONS.md](./UX_HISTORY_AND_RECOMMENDATIONS.md)** | UX history and recommendations |
+| **[RELEASE_DESKTOP.md](./RELEASE_DESKTOP.md)** | Tauri desktop release and signing |
 
-- **[PIPS_DEPOSIT_WITHDRAW_FLOW.md](./PIPS_DEPOSIT_WITHDRAW_FLOW.md)** – Pips flow, fees, env vars, **on-chain deposit verification**, Cloudflare secrets
-- **[AUTO_MARKETS.md](./AUTO_MARKETS.md)** – Auto-markets cron Worker: deploy, env, API keys on Pages, verify, troubleshooting
-- **[RELEASE_DESKTOP.md](./RELEASE_DESKTOP.md)** – Tauri desktop release, CI, **updater signing** (private key + GitHub secrets)
+## History and archive
 
-## Brand & UX
-
-- **[BRAND.md](./BRAND.md)** – Brand, theme colors, favicon/logo
-- **[SEO.md](./SEO.md)** – SEO and sitemap
-- **[UX_HISTORY_AND_RECOMMENDATIONS.md](./UX_HISTORY_AND_RECOMMENDATIONS.md)** – Historical redesign notes + UX/UI recommendations
-- **[USER_FLOW_AND_RISK_AUDIT.md](./USER_FLOW_AND_RISK_AUDIT.md)** – User flow and risk audit
-- **[ALGORITHMS_AND_RISK.md](./ALGORITHMS_AND_RISK.md)** – Algorithms and risk controls
-- **[P2P_AND_GROWTH_STRATEGY.md](./P2P_AND_GROWTH_STRATEGY.md)** – P2P-only mode and growth
-
-## History
-
-- **[CHANGELOG.md](./CHANGELOG.md)** – Cleanup history and improvements summary
+| Doc | Purpose |
+|-----|---------|
+| **[CHANGELOG.md](./CHANGELOG.md)** | Release and cleanup history |
+| **[HISTORICAL_CANTON_DAML_API.md](./HISTORICAL_CANTON_DAML_API.md)** | Legacy Canton/DAML reference (not production API) |
