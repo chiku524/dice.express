@@ -11,11 +11,11 @@
   margin: 2rem auto;
   padding: var(--spacing-2xl);
   text-align: center;
-  background: rgba(15, 23, 42, 0.6);
+  background: rgba(15, 23, 42, 0.55);
   backdrop-filter: blur(20px);
-  border-radius: 20px;
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  box-shadow: 0 24px 48px rgba(0, 0, 0, 0.3);
+  border-radius: var(--radius-xl, 12px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.22);
 }
 
 .dashboard-gate h1 {
@@ -53,10 +53,11 @@
 
 .dashboard-header h1 {
   margin: 0 0 var(--spacing-xs);
-  font-size: var(--font-size-3xl);
+  font-size: clamp(1.5rem, 2.5vw, var(--font-size-3xl));
   font-weight: var(--font-weight-bold);
   color: var(--color-text-primary);
   letter-spacing: -0.02em;
+  line-height: 1.2;
 }
 
 .dashboard-welcome {
@@ -80,8 +81,8 @@
   margin: 0 0 var(--spacing-2xl);
   color: var(--color-text-secondary);
   font-size: var(--font-size-base);
-  line-height: 1.6;
-  max-width: 42ch;
+  line-height: 1.55;
+  max-width: 40rem;
 }
 
 .dashboard-profile-card {
@@ -89,8 +90,9 @@
   padding: var(--spacing-xl);
   background: rgba(15, 23, 42, 0.5);
   backdrop-filter: blur(16px);
-  border-radius: 18px;
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: var(--radius-xl, 12px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
 .dashboard-profile-row {
@@ -183,8 +185,8 @@
 }
 
 .dashboard-quick-link.primary:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(139, 92, 246, 0.4);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px rgba(139, 92, 246, 0.35);
 }
 
 .dashboard-quick-link.secondary {
@@ -261,24 +263,25 @@
   padding: var(--spacing-xl);
   background: rgba(15, 23, 42, 0.5);
   backdrop-filter: blur(16px);
-  border-radius: 18px;
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: var(--radius-xl, 12px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   transition: border-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
 }
 
 .dashboard-card:hover {
-  border-color: rgba(139, 92, 246, 0.25);
-  transform: translateY(-2px);
-  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.25);
+  border-color: rgba(139, 92, 246, 0.22);
+  transform: translateY(-1px);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.2);
 }
 
 .dashboard-card-title {
   margin: 0;
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-base);
   font-weight: var(--font-weight-semibold);
-  color: var(--color-text-secondary);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
+  color: var(--color-text-primary);
+  text-transform: none;
+  letter-spacing: -0.01em;
 }
 
 .dashboard-card-value {
@@ -310,6 +313,10 @@
 
 .dashboard-card-action:hover {
   transform: translateY(-1px);
+}
+
+.dashboard-page .breadcrumb {
+  color: var(--color-text-muted);
 }
 
 @media (max-width: 768px) {

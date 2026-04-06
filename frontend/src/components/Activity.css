@@ -37,20 +37,18 @@
   background: var(--color-surface);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  border: 1px solid var(--color-border, rgba(100, 108, 255, 0.2));
-  border-radius: var(--radius-lg, 8px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: var(--radius-xl, 12px);
   padding: var(--card-padding, 1.5rem);
   transition: all var(--transition-base, 0.2s ease);
-  box-shadow: var(--shadow-sm, 0 1px 2px rgba(0, 0, 0, 0.1));
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
 }
 
 .contract-item:hover {
   background: var(--color-surface-hover);
-  border-color: var(--color-primary-border, rgba(100, 108, 255, 0.3));
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-md, 0 4px 6px rgba(0, 0, 0, 0.2));
+  border-color: var(--color-primary-border, rgba(100, 108, 255, 0.28));
+  transform: translateY(-1px);
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.18);
 }
 
 .contract-header {

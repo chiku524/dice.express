@@ -11,11 +11,12 @@
   margin: 2rem auto;
   padding: var(--spacing-2xl);
   text-align: center;
-  background: rgba(15, 23, 42, 0.6);
+  box-sizing: border-box;
+  background: rgba(15, 23, 42, 0.55);
   backdrop-filter: blur(20px);
-  border-radius: 20px;
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  box-shadow: 0 24px 48px rgba(0, 0, 0, 0.3);
+  border-radius: var(--radius-xl, 12px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.22);
 }
 
 .profile-gate h1 {
@@ -55,10 +56,11 @@
 
 .profile-header h1 {
   margin: 0 0 var(--spacing-xs);
-  font-size: var(--font-size-3xl);
+  font-size: clamp(1.5rem, 2.5vw, var(--font-size-3xl));
   font-weight: var(--font-weight-bold);
   color: var(--color-text-primary);
   letter-spacing: -0.02em;
+  line-height: 1.2;
 }
 
 .profile-header p,
@@ -66,7 +68,8 @@
   margin: 0;
   color: var(--color-text-secondary);
   font-size: var(--font-size-base);
-  line-height: 1.5;
+  line-height: 1.55;
+  max-width: 40rem;
 }
 
 .profile-card {
@@ -75,20 +78,22 @@
   padding: var(--spacing-xl);
   background: rgba(15, 23, 42, 0.5);
   backdrop-filter: blur(16px);
-  border-radius: 18px;
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: var(--radius-xl, 12px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   transition: border-color 0.2s ease;
 }
 
 .profile-card:hover {
-  border-color: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.12);
 }
 
 .profile-section-title {
   margin: 0 0 var(--spacing-sm);
-  font-size: var(--font-size-lg);
+  font-size: var(--font-size-base);
   font-weight: var(--font-weight-semibold);
   color: var(--color-text-primary);
+  letter-spacing: -0.01em;
 }
 
 .profile-hint {

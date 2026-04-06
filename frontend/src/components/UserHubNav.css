@@ -9,21 +9,22 @@
   align-items: center;
   gap: 2px;
   padding: 4px;
-  background: rgba(15, 23, 42, 0.5);
-  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: var(--radius-xl, 12px);
   border: 1px solid rgba(255, 255, 255, 0.06);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
 .user-hub-tab {
   display: inline-block;
-  padding: 10px 20px;
-  border-radius: 10px;
+  padding: 10px 18px;
+  border-radius: var(--radius-lg, 10px);
   font-size: var(--font-size-sm);
-  font-weight: var(--font-weight-semibold);
+  font-weight: var(--font-weight-medium);
   color: var(--color-text-secondary);
   text-decoration: none;
-  transition: background 0.2s ease, color 0.2s ease;
+  transition: background 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
+  border: 1px solid transparent;
 }
 
 .user-hub-tab:hover {
@@ -32,14 +33,15 @@
 }
 
 .user-hub-tab.active {
-  background: rgba(20, 184, 166, 0.15);
-  color: #2dd4bf;
-  border: 1px solid rgba(20, 184, 166, 0.3);
+  background: rgba(20, 184, 166, 0.12);
+  color: #5eead4;
+  border-color: rgba(20, 184, 166, 0.22);
+  box-shadow: 0 0 0 1px rgba(20, 184, 166, 0.12);
 }
 
 .user-hub-tab.active:hover {
-  background: rgba(20, 184, 166, 0.2);
-  color: #5eead4;
+  background: rgba(20, 184, 166, 0.16);
+  color: #99f6e4;
 }
 
 @media (max-width: 480px) {

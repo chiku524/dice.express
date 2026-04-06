@@ -5,7 +5,7 @@ import LoadingSpinner from './LoadingSpinner'
 import ErrorState from './ErrorState'
 import { fetchMarkets } from '../services/marketsApi'
 import { useDebounce } from '../utils/useDebounce'
-import { MARKET_CATEGORIES, PREDICTION_STYLES, getSourceLabel, sourceForFilter, categoryForFilter, getCategoryDisplay, getMarketApiAttribution, getCategoryEmoji, getMarketOneLiner, getCardResolutionLine, findRelatedMarkets, getMarketDataConfidence, buildMarketShareDescription, DISCOVER_SOURCE_TO_CATEGORY } from '../constants/marketConfig'
+import { MARKET_CATEGORIES, PREDICTION_STYLES, getSourceLabel, sourceForFilter, categoryForFilter, getCategoryDisplay, getMarketApiAttribution, getCategoryEmoji, getMarketOneLiner, getCardResolutionLine, getMarketDataConfidence, buildMarketShareDescription, DISCOVER_SOURCE_TO_CATEGORY } from '../constants/marketConfig'
 import { formatPips } from '../constants/currency'
 import {
   isOutcomeBasedMarket,
@@ -462,8 +462,8 @@ export default function MarketsList({ source: sourceFromRoute, variant = 'defaul
       </>
     )
     : sourceFromRoute
-      ? `Markets from ${getSourceLabel(sourceFromRoute).toLowerCase()}. P2P limit orders match peer-to-peer; pools may have zero liquidity.`
-      : 'Trade with virtual Credits (Pips). P2P limit orders; browse without crypto.'
+      ? `Markets from ${getSourceLabel(sourceFromRoute).toLowerCase()}. Trade with Pips — P2P orders; pool liquidity varies by market.`
+      : 'Trade with Pips. Browse markets, place P2P orders, or use the pool when liquidity is available.'
 
   const scrollMarketsListToTop = () => {
     requestAnimationFrame(() => {
@@ -564,7 +564,7 @@ export default function MarketsList({ source: sourceFromRoute, variant = 'defaul
               <input
                 id="search"
                 type="text"
-                placeholder="Search by title, description, or market ID..."
+                placeholder="Search title, description, or market ID…"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="filter-input"
@@ -898,13 +898,6 @@ export default function MarketsList({ source: sourceFromRoute, variant = 'defaul
                   const stale = getMarketStaleness(market.payload)
                   const confidence = getMarketDataConfidence(market.payload, market.openOrderCount || 0)
                   const resolveLine = getCardResolutionLine(market.payload)
-                  const related = findRelatedMarkets(
-                    market.payload,
-                    markets,
-                    market.contractId,
-                    market.payload?.marketId,
-                    2
-                  )
                   const watched = isWatched(market.contractId) || isWatched(market.payload?.marketId)
                   const mid = market.payload?.marketId
                   const quickOpen = mid && expandedQuickTradeId === mid
@@ -985,15 +978,13 @@ export default function MarketsList({ source: sourceFromRoute, variant = 'defaul
                         </span>
                       </div>
                       <p className="market-card-oneliner" title={oneLiner}>
-                        🎯 {oneLiner.length > 72 ? oneLiner.slice(0, 72).trim() + '…' : oneLiner}
+                        {oneLiner.length > 72 ? oneLiner.slice(0, 72).trim() + '…' : oneLiner}
                       </p>
                       <p className="mt-md market-card-desc">
                         {market.payload.description ? (market.payload.description.length > 120 ? market.payload.description.substring(0, 120).trim() + '…' : market.payload.description) : ''}
                       </p>
                       {resolveLine && (
-                        <p className="market-card-resolves" style={{ fontSize: 'var(--font-size-xs)', color: 'var(--color-teal)', marginTop: 'var(--spacing-xs)' }}>
-                          ⏱️ {resolveLine}
-                        </p>
+                        <p className="market-card-resolves">{resolveLine}</p>
                       )}
                       <div className="mt-md" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 'auto' }}>
                         <span className="text-secondary" style={{ fontSize: 'var(--font-size-sm)' }}>
@@ -1005,21 +996,6 @@ export default function MarketsList({ source: sourceFromRoute, variant = 'defaul
                       </div>
                     </div>
                   </Link>
-                  {related.length > 0 && (
-                    <div className="market-card-related market-card-related--wrap">
-                      <span>Similar: </span>
-                      {related.map((r, i) => (
-                        <span key={r.contractId || r.payload?.marketId}>
-                          {i > 0 ? ' · ' : null}
-                          <Link to={`/market/${r.payload?.marketId}`}>
-                            {(r.payload?.title || 'Market').length > 36
-                              ? `${(r.payload.title || 'Market').slice(0, 36)}…`
-                              : (r.payload?.title || 'Market')}
-                          </Link>
-                        </span>
-                      ))}
-                    </div>
-                  )}
                   {mid && (
                     <div
                       className={[

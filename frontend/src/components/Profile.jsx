@@ -55,7 +55,7 @@ export default function Profile() {
 
   if (!wallet) {
     return (
-      <div className="card profile-gate" style={{ maxWidth: '420px', margin: '2rem auto', textAlign: 'center' }}>
+      <div className="card profile-gate">
         <h1>Profile</h1>
         <p className="text-secondary mt-sm">Sign in to view and edit your profile.</p>
         <button type="button" className="btn-primary mt-lg" onClick={openAccountModal}>

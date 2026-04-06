@@ -70,7 +70,7 @@ export default function Dashboard() {
 
   if (!wallet) {
     return (
-      <div className="card dashboard-gate" style={{ maxWidth: '420px', margin: '2rem auto', textAlign: 'center' }}>
+      <div className="card dashboard-gate">
         <h1>Your Dashboard</h1>
         <p className="text-secondary mt-sm">
           Sign in or create an account to get your own dashboard, profile, and portfolio.

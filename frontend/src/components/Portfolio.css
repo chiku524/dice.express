@@ -1,9 +1,41 @@
-/* Portfolio page — consistent with Dashboard/Profile user-hub layout */
+/* Portfolio — aligned with markets UI pass: calm panels, clear hierarchy */
+
+.portfolio-gate-card {
+  max-width: 420px;
+  margin: 2rem auto;
+  text-align: center;
+  border-radius: var(--radius-xl, 12px);
+}
 
 .portfolio-page {
   padding-bottom: var(--spacing-2xl);
   max-width: 960px;
   margin: 0 auto;
+}
+
+.portfolio-page .card {
+  border-radius: var(--radius-xl, 12px);
+  border-color: rgba(255, 255, 255, 0.08);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+}
+
+.portfolio-page .card:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
+}
+
+.portfolio-page .card h2 {
+  margin-top: 0;
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+  letter-spacing: -0.01em;
+}
+
+.portfolio-page .card h3 {
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
 }
 
 .portfolio-breadcrumb {
@@ -33,23 +65,81 @@
 
 .portfolio-header h1 {
   margin: 0 0 var(--spacing-xs);
-  font-size: var(--font-size-3xl);
+  font-size: clamp(1.5rem, 2.5vw, var(--font-size-3xl));
   font-weight: var(--font-weight-bold);
   color: var(--color-text-primary);
   letter-spacing: -0.02em;
+  line-height: 1.2;
 }
 
 .portfolio-header-desc {
   margin: 0;
   font-size: var(--font-size-base);
   color: var(--color-text-secondary);
-  line-height: 1.5;
+  line-height: 1.55;
+  max-width: 36rem;
 }
 
+/* Segmented tabs — lighter than full primary/secondary buttons */
 .portfolio-tabs {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--spacing-sm);
+  gap: var(--spacing-xs);
+  padding: var(--spacing-xs);
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: var(--radius-xl, 12px);
+  width: fit-content;
+  max-width: 100%;
+}
+
+.portfolio-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  padding: 0.5rem 1rem;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  font-family: var(--font-family-base);
+  color: var(--color-text-secondary);
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-lg, 10px);
+  cursor: pointer;
+  transition:
+    background var(--transition-base),
+    color var(--transition-base),
+    box-shadow var(--transition-base);
+}
+
+.portfolio-tab:hover {
+  color: var(--color-text-primary);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.portfolio-tab--active {
+  color: var(--color-text-primary);
+  background: rgba(20, 184, 166, 0.14);
+  box-shadow: 0 0 0 1px rgba(20, 184, 166, 0.25);
+}
+
+.portfolio-tab--active:hover {
+  background: rgba(20, 184, 166, 0.18);
+  color: var(--color-text-primary);
+}
+
+.portfolio-tab-count {
+  font-size: var(--font-size-xs);
+  opacity: 0.85;
+  font-weight: var(--font-weight-normal);
+}
+
+.portfolio-page .form-narrow {
+  max-width: 320px;
+}
+
+.portfolio-page .form-narrow-sm {
+  max-width: 280px;
 }
 
 @media (max-width: 768px) {
@@ -57,7 +147,13 @@
     padding-bottom: var(--spacing-xl);
   }
 
-  .portfolio-header h1 {
-    font-size: var(--font-size-2xl);
+  .portfolio-tabs {
+    width: 100%;
+  }
+
+  .portfolio-tab {
+    flex: 1 1 auto;
+    justify-content: center;
+    min-width: 0;
   }
 }

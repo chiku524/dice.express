@@ -320,7 +320,7 @@ export default function Portfolio() {
 
   if (!wallet) {
     return (
-      <div className="card" style={{ maxWidth: '420px', margin: '2rem auto', textAlign: 'center' }}>
+      <div className="card portfolio-gate-card">
         <h2>My Portfolio</h2>
         <p className="text-secondary mt-sm">Sign in to view your balance and positions.</p>
         <button type="button" className="btn-primary mt-lg" onClick={openAccountModal}>
@@ -699,13 +699,12 @@ export default function Portfolio() {
             type="button"
             role="tab"
             aria-selected={activeTab === tab.id}
-            className={activeTab === tab.id ? 'btn-primary' : 'btn-secondary'}
+            className={`portfolio-tab${activeTab === tab.id ? ' portfolio-tab--active' : ''}`}
             onClick={() => setActiveTab(tab.id)}
-            style={{ marginRight: 'var(--spacing-sm)' }}
           >
             {tab.label}
             {typeof tab.count === 'number' && tab.count > 0 && (
-              <span style={{ marginLeft: 'var(--spacing-sm)', opacity: 0.9 }}>({tab.count})</span>
+              <span className="portfolio-tab-count">({tab.count})</span>
             )}
           </button>
         ))}
@@ -740,7 +739,7 @@ export default function Portfolio() {
         <p className="text-muted mb-md" style={{ fontSize: 'var(--font-size-xs)' }}>
           <strong>Solana USDC:</strong> SPL token (6 decimals). You need a small amount of SOL in Phantom for network fees. Deposits use at least 0.01 PP (USDC) in the form below; withdrawals to Solana are USDC-only (see Withdraw).
         </p>
-        <div className="form-group" style={{ maxWidth: '320px' }}>
+        <div className="form-group form-narrow">
           <label>Asset</label>
           <select
             value={walletDepositToken}
@@ -753,7 +752,7 @@ export default function Portfolio() {
           </select>
         </div>
         {(walletDepositToken === 'usdc' || walletDepositToken === 'native') && (
-          <div className="form-group" style={{ maxWidth: '320px' }}>
+          <div className="form-group form-narrow">
             <label>EVM network</label>
             <select
               value={walletDepositEvmNetwork}
@@ -813,7 +812,7 @@ export default function Portfolio() {
             </button>
           </div>
         )}
-        <div className="form-group" style={{ maxWidth: '280px' }}>
+        <div className="form-group form-narrow-sm">
           <label>
             {walletDepositToken === 'native'
               ? `Amount (native ${EVM_NETWORK_LABEL[walletDepositEvmNetwork] || ''})`
@@ -920,7 +919,7 @@ export default function Portfolio() {
         <p className="text-secondary mb-md" style={{ fontSize: 'var(--font-size-sm)' }}>
           Withdraw USDC (EVM or Solana) or native EVM gas tokens to your address. USDC: 2% fee (min 1 PP). Native: 1 PP fee. Processing is immediate when the platform wallet sends on-chain.
         </p>
-        <div className="form-group" style={{ maxWidth: '280px' }}>
+        <div className="form-group form-narrow-sm">
           <label>Token</label>
           <select
             value={withdrawToken}
@@ -935,7 +934,7 @@ export default function Portfolio() {
             <option value="native">Native (EVM gas token)</option>
           </select>
         </div>
-        <div className="form-group" style={{ maxWidth: '320px' }}>
+        <div className="form-group form-narrow">
           <label>{withdrawToken === 'usdc' ? 'Amount (PP)' : 'Amount (native token)'}</label>
           <input
             type="number"
@@ -947,7 +946,7 @@ export default function Portfolio() {
             disabled={withdrawLoading}
           />
         </div>
-        <div className="form-group" style={{ maxWidth: '280px' }}>
+        <div className="form-group form-narrow-sm">
           <label>Network</label>
           <select value={withdrawNetwork} onChange={(e) => setWithdrawNetwork(e.target.value)} disabled={withdrawLoading}>
             {withdrawToken === 'usdc' && <option value="solana">Solana</option>}
@@ -958,7 +957,7 @@ export default function Portfolio() {
             ))}
           </select>
         </div>
-        <div className="form-group" style={{ maxWidth: '320px' }}>
+        <div className="form-group form-narrow">
           <label>Destination address</label>
           <input
             type="text"

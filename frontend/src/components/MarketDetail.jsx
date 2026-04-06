@@ -648,7 +648,7 @@ export default function MarketDetail() {
 
           {(marketData.resolutionCriteria || marketData.resolutionDeadline || outcomeSummaries.yes || resolutionSummary) && (
             <section className="market-detail-resolution" aria-label="How it resolves">
-              <h3 className="market-detail-resolution-title">📋 How it resolves</h3>
+              <h3 className="market-detail-resolution-title">How it resolves</h3>
               {marketData.resolutionDeadline && (
                 <p className="market-detail-resolution-deadline">
                   <span className="market-detail-resolution-label">⏱️ Resolves by</span>{' '}

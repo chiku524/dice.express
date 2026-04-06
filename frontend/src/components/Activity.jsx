@@ -114,7 +114,7 @@ export default function Activity() {
         <div className="card">
           <p>No stored records yet. Trade on a market — your positions and related entries will show here.</p>
           <Link to="/">
-            <button type="button" className="btn-primary" style={{ marginTop: '1rem' }}>
+            <button type="button" className="btn-primary mt-md">
               Browse markets
             </button>
           </Link>
