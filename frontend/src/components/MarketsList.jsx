@@ -21,6 +21,17 @@ import { getAbsoluteMarketUrl, copyTextToClipboard, canUseWebShare, shareMarketN
 
 const MARKETS_CACHE_KEY = 'dice.markets.cache.v1'
 
+/** Hide the one-liner when it duplicates the title (common when oneLiner is derived from title). */
+function oneLinerAddsBeyondTitle(title, oneLiner) {
+  const norm = (s) =>
+    (s || '')
+      .trim()
+      .replace(/\?+\s*$/u, '')
+      .replace(/\s+/gu, ' ')
+      .toLowerCase()
+  return norm(oneLiner) !== '' && norm(oneLiner) !== norm(title)
+}
+
 const CATEGORY_TOGGLE_OPTIONS = [
   { value: 'trending', label: 'Trending' },
   { value: 'all', label: 'All' },
@@ -53,6 +64,8 @@ export default function MarketsList({ source: sourceFromRoute, variant = 'defaul
   const [watchListVersion, setWatchListVersion] = useState(0)
   /** `marketId` of card with expanded quick trade (Discover / categories / watchlist). */
   const [expandedQuickTradeId, setExpandedQuickTradeId] = useState(null)
+  /** When opening from a card chip, seed Yes/No or multi outcome (see MarketQuickTrade `key`). */
+  const [quickTradeSeed, setQuickTradeSeed] = useState(null)
   const sortUserOverrideRef = useRef(false)
   const MARKETS_PER_PAGE = 12
 
@@ -112,6 +125,7 @@ export default function MarketsList({ source: sourceFromRoute, variant = 'defaul
 
   useEffect(() => {
     setExpandedQuickTradeId(null)
+    setQuickTradeSeed(null)
   }, [currentPage])
 
   /** Discover routes narrow by source; home (/) shows all sources. */
@@ -901,6 +915,14 @@ export default function MarketsList({ source: sourceFromRoute, variant = 'defaul
                   const watched = isWatched(market.contractId) || isWatched(market.payload?.marketId)
                   const mid = market.payload?.marketId
                   const quickOpen = mid && expandedQuickTradeId === mid
+                  const apiTooltip = apiAttr.same
+                    ? `Data source: ${apiAttr.creation}`
+                    : `Create: ${apiAttr.creation} · Resolve: ${apiAttr.resolution}`
+                  const showOneLiner = oneLinerAddsBeyondTitle(market.payload.title, oneLiner)
+                  const topicBody = (market.payload.description || '').trim()
+                  const isBinary = market.payload.marketType === 'Binary'
+                  const isMulti = market.payload.marketType === 'MultiOutcome'
+                  const multiChips = isMulti && Array.isArray(market.payload.outcomes) ? market.payload.outcomes.slice(0, 4) : []
                   return (
                   <div key={market.contractId} className="market-card-wrap">
                     <button
@@ -921,10 +943,10 @@ export default function MarketsList({ source: sourceFromRoute, variant = 'defaul
                     to={`/market/${market.payload.marketId}`}
                     className="market-card-link"
                   >
-                    <div className="market-card">
+                    <div className="market-card market-card--discover">
                       <div>
                         <div className="market-card-tags">
-                          <span className="market-card-tag market-card-tag-category">
+                          <span className="market-card-tag market-card-tag-category" title={apiTooltip}>
                             {getCategoryEmoji(categoryLabel)} {categoryLabel}
                           </span>
                           {(market.openOrderCount || 0) > 0 && (
@@ -934,29 +956,6 @@ export default function MarketsList({ source: sourceFromRoute, variant = 'defaul
                             >
                               P2P · {market.openOrderCount} open
                             </span>
-                          )}
-                          {apiAttr.same ? (
-                            <span
-                              className="market-card-tag market-card-tag-api"
-                              title="Data source for creating and resolving this market"
-                            >
-                              {apiAttr.creation}
-                            </span>
-                          ) : (
-                            <>
-                              <span
-                                className="market-card-tag market-card-tag-creation"
-                                title="Feed/API used when this market was created"
-                              >
-                                Create · {apiAttr.creation}
-                              </span>
-                              <span
-                                className="market-card-tag market-card-tag-resolution"
-                                title="Data source or process used to resolve this market"
-                              >
-                                Resolve · {apiAttr.resolution}
-                              </span>
-                            </>
                           )}
                           {stale === 'pending_resolution' && (
                             <span className="market-card-tag market-card-tag-stale" title="Past resolution time">
@@ -972,30 +971,88 @@ export default function MarketsList({ source: sourceFromRoute, variant = 'defaul
                             </span>
                           )}
                         </div>
-                        <h3>{market.payload.title}</h3>
-                        <span className={`status ${getStatusClass(market.payload.status)}`}>
-                          {market.payload.status}
-                        </span>
+                        <div className="market-card-title-row">
+                          <h3>{market.payload.title}</h3>
+                          <span className={`market-card-status-pill status ${getStatusClass(market.payload.status)}`}>
+                            {market.payload.status}
+                          </span>
+                        </div>
                       </div>
-                      <p className="market-card-oneliner" title={oneLiner}>
-                        {oneLiner.length > 72 ? oneLiner.slice(0, 72).trim() + '…' : oneLiner}
-                      </p>
-                      <p className="mt-md market-card-desc">
-                        {market.payload.description ? (market.payload.description.length > 120 ? market.payload.description.substring(0, 120).trim() + '…' : market.payload.description) : ''}
-                      </p>
+                      {showOneLiner && (
+                        <p className="market-card-oneliner" title={oneLiner}>
+                          {oneLiner}
+                        </p>
+                      )}
+                      {topicBody ? (
+                        <p className="market-card-topic" title={topicBody}>
+                          {topicBody}
+                        </p>
+                      ) : null}
                       {resolveLine && (
                         <p className="market-card-resolves">{resolveLine}</p>
                       )}
-                      <div className="mt-md" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 'auto' }}>
-                        <span className="text-secondary" style={{ fontSize: 'var(--font-size-sm)' }}>
+                      <div className="market-card-footer-meta">
+                        <span className="text-secondary">
                           Volume: {formatPips(market.payload.totalVolume ?? 0)}
                         </span>
-                        <span className="text-secondary" style={{ fontSize: 'var(--font-size-sm)' }}>
-                          {market.payload.marketType === 'Binary' ? (PREDICTION_STYLES.find(s => s.value === market.payload?.styleLabel)?.label || 'Binary') : 'Multi-Outcome'}
+                        <span className="text-secondary">
+                          {isBinary ? (PREDICTION_STYLES.find(s => s.value === market.payload?.styleLabel)?.label || 'Binary') : 'Multi-Outcome'}
                         </span>
                       </div>
                     </div>
                   </Link>
+                  {market.payload?.status === 'Active' && mid && isBinary && (
+                    <div className="market-card-predict-row" role="group" aria-label="Pick a side to quick trade">
+                      <button
+                        type="button"
+                        className="market-card-predict-chip market-card-predict-chip--yes"
+                        onClick={(e) => {
+                          e.preventDefault()
+                          e.stopPropagation()
+                          setQuickTradeSeed('Yes')
+                          setExpandedQuickTradeId(mid)
+                        }}
+                      >
+                        Yes
+                      </button>
+                      <button
+                        type="button"
+                        className="market-card-predict-chip market-card-predict-chip--no"
+                        onClick={(e) => {
+                          e.preventDefault()
+                          e.stopPropagation()
+                          setQuickTradeSeed('No')
+                          setExpandedQuickTradeId(mid)
+                        }}
+                      >
+                        No
+                      </button>
+                    </div>
+                  )}
+                  {market.payload?.status === 'Active' && mid && multiChips.length > 0 && (
+                    <div
+                      className="market-card-predict-row market-card-predict-row--wrap"
+                      role="group"
+                      aria-label="Pick an outcome to quick trade"
+                    >
+                      {multiChips.map((outcome) => (
+                        <button
+                          key={outcome}
+                          type="button"
+                          className="market-card-predict-chip"
+                          title={outcome}
+                          onClick={(e) => {
+                            e.preventDefault()
+                            e.stopPropagation()
+                            setQuickTradeSeed(outcome)
+                            setExpandedQuickTradeId(mid)
+                          }}
+                        >
+                          {outcome}
+                        </button>
+                      ))}
+                    </div>
+                  )}
                   {mid && (
                     <div
                       className={[
@@ -1044,7 +1101,14 @@ export default function MarketsList({ source: sourceFromRoute, variant = 'defaul
                           onClick={(e) => {
                             e.preventDefault()
                             e.stopPropagation()
-                            setExpandedQuickTradeId((id) => (id === mid ? null : mid))
+                            setExpandedQuickTradeId((id) => {
+                              if (id === mid) {
+                                setQuickTradeSeed(null)
+                                return null
+                              }
+                              setQuickTradeSeed(null)
+                              return mid
+                            })
                           }}
                         >
                           {quickOpen ? 'Close quick trade' : 'Quick trade'}
@@ -1053,7 +1117,12 @@ export default function MarketsList({ source: sourceFromRoute, variant = 'defaul
                     </div>
                   )}
                   {market.payload?.status === 'Active' && mid && quickOpen && (
-                    <MarketQuickTrade market={market} onTradeSuccess={refreshMarketsList} />
+                    <MarketQuickTrade
+                      key={`${mid}-${quickTradeSeed ?? 'default'}`}
+                      market={market}
+                      initialTradeSide={quickTradeSeed ?? undefined}
+                      onTradeSuccess={refreshMarketsList}
+                    />
                   )}
                   </div>
                   )

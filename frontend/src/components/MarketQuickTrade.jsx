@@ -30,10 +30,21 @@ import {
 } from '../utils/marketTradeForm'
 import './MarketQuickTrade.css'
 
+function resolveInitialTradeSide(payload, initialTradeSide) {
+  if (!payload) return 'Yes'
+  if (payload.marketType === 'MultiOutcome' && Array.isArray(payload.outcomes) && payload.outcomes.length > 0) {
+    if (initialTradeSide && payload.outcomes.includes(initialTradeSide)) return initialTradeSide
+    return payload.outcomes[0]
+  }
+  if (initialTradeSide === 'Yes' || initialTradeSide === 'No') return initialTradeSide
+  return 'Yes'
+}
+
 /**
  * Inline trade panel for Discover cards (binary + multi pool). Parent mounts when expanded.
+ * @param {{ market: object, onTradeSuccess?: () => void, initialTradeSide?: string }} props
  */
-export default function MarketQuickTrade({ market, onTradeSuccess }) {
+export default function MarketQuickTrade({ market, onTradeSuccess, initialTradeSide }) {
   const payload = market?.payload
   const marketId = payload?.marketId
   const { ammTradeEnabled } = usePublicConfig()
@@ -52,7 +63,7 @@ export default function MarketQuickTrade({ market, onTradeSuccess }) {
 
   const [pool, setPool] = useState(null)
   const [poolLoading, setPoolLoading] = useState(true)
-  const [tradeSide, setTradeSide] = useState('Yes')
+  const [tradeSide, setTradeSide] = useState(() => resolveInitialTradeSide(payload, initialTradeSide))
   const [tradeAmount, setTradeAmount] = useState('')
   const [tradeTab, setTradeTab] = useState('pool')
   const [orderSide, setOrderSide] = useState('buy')
@@ -102,9 +113,9 @@ export default function MarketQuickTrade({ market, onTradeSuccess }) {
   useEffect(() => {
     if (!payload) return
     if (payload.marketType === 'MultiOutcome' && Array.isArray(payload.outcomes) && payload.outcomes.length) {
-      setTradeSide(payload.outcomes[0])
-    } else {
-      setTradeSide('Yes')
+      setTradeSide((prev) => (payload.outcomes.includes(prev) ? prev : payload.outcomes[0]))
+    } else if (payload.marketType === 'Binary') {
+      setTradeSide((prev) => (prev === 'Yes' || prev === 'No' ? prev : 'Yes'))
     }
   }, [marketId, payload?.marketType, outcomesKey]) // eslint-disable-line react-hooks/exhaustive-deps -- market identity only
 
