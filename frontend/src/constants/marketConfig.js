@@ -336,6 +336,17 @@ export function getMarketOneLiner(payload) {
   return t.includes('?') ? t : `${t}?`
 }
 
+/** True when the one-liner adds information beyond the title (avoids duplicate lines on cards). */
+export function oneLinerAddsBeyondTitle(title, oneLiner) {
+  const norm = (s) =>
+    (s || '')
+      .trim()
+      .replace(/\?+\s*$/u, '')
+      .replace(/\s+/gu, ' ')
+      .toLowerCase()
+  return norm(oneLiner) !== '' && norm(oneLiner) !== norm(title)
+}
+
 /** Extract Yes/No outcome summaries from description for resolution section (e.g. "Yes = home wins"). */
 export function getResolutionOutcomeSummaries(payload) {
   const desc = payload?.description || ''

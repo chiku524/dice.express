@@ -208,6 +208,10 @@ html.desktop-app .app-main-desktop {
   gap: var(--spacing-md, 1rem);
 }
 
+.desktop-app .market-list {
+  gap: var(--spacing-sm, 0.75rem);
+}
+
 .desktop-app .card:hover,
 .desktop-app .market-card:hover {
   transform: translateY(-1px);

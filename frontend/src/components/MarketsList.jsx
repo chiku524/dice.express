@@ -1,35 +1,32 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react'
 import { Link } from 'react-router-dom'
-import { SkeletonMarketGrid } from './SkeletonLoader'
+import { SkeletonMarketGrid, SkeletonMarketList } from './SkeletonLoader'
 import LoadingSpinner from './LoadingSpinner'
 import ErrorState from './ErrorState'
 import { fetchMarkets } from '../services/marketsApi'
 import { useDebounce } from '../utils/useDebounce'
-import { MARKET_CATEGORIES, PREDICTION_STYLES, getSourceLabel, sourceForFilter, categoryForFilter, getCategoryDisplay, getMarketApiAttribution, getCategoryEmoji, getMarketOneLiner, getCardResolutionLine, getMarketDataConfidence, buildMarketShareDescription, DISCOVER_SOURCE_TO_CATEGORY } from '../constants/marketConfig'
-import { formatPips } from '../constants/currency'
+import { MARKET_CATEGORIES, getSourceLabel, sourceForFilter, categoryForFilter, getCategoryEmoji, buildMarketShareDescription, DISCOVER_SOURCE_TO_CATEGORY } from '../constants/marketConfig'
 import {
   isOutcomeBasedMarket,
-  getMarketStaleness,
   marketCreatedThisWeek,
   readWatchlist,
-  toggleWatchlist,
-  isWatched,
 } from '../utils/marketUX'
-import MarketQuickTrade from './MarketQuickTrade'
+import DiscoverMarketEntry from './DiscoverMarketEntry'
 import { useToastContext } from '../contexts/ToastContext'
 import { getAbsoluteMarketUrl, copyTextToClipboard, canUseWebShare, shareMarketNative } from '../utils/marketLinks'
 
 const MARKETS_CACHE_KEY = 'dice.markets.cache.v1'
+const MARKETS_LAYOUT_STORAGE_KEY = 'dice.markets.layout.v1'
+const VALID_MARKETS_LAYOUTS = new Set(['cards', 'list', 'compact'])
 
-/** Hide the one-liner when it duplicates the title (common when oneLiner is derived from title). */
-function oneLinerAddsBeyondTitle(title, oneLiner) {
-  const norm = (s) =>
-    (s || '')
-      .trim()
-      .replace(/\?+\s*$/u, '')
-      .replace(/\s+/gu, ' ')
-      .toLowerCase()
-  return norm(oneLiner) !== '' && norm(oneLiner) !== norm(title)
+function readMarketsLayout() {
+  try {
+    const v = localStorage.getItem(MARKETS_LAYOUT_STORAGE_KEY)
+    if (v && VALID_MARKETS_LAYOUTS.has(v)) return v
+  } catch {
+    /* ignore */
+  }
+  return 'cards'
 }
 
 const CATEGORY_TOGGLE_OPTIONS = [
@@ -66,6 +63,7 @@ export default function MarketsList({ source: sourceFromRoute, variant = 'defaul
   const [expandedQuickTradeId, setExpandedQuickTradeId] = useState(null)
   /** When opening from a card chip, seed Yes/No or multi outcome (see MarketQuickTrade `key`). */
   const [quickTradeSeed, setQuickTradeSeed] = useState(null)
+  const [marketsLayout, setMarketsLayout] = useState(() => readMarketsLayout())
   const sortUserOverrideRef = useRef(false)
   const MARKETS_PER_PAGE = 12
 
@@ -127,6 +125,14 @@ export default function MarketsList({ source: sourceFromRoute, variant = 'defaul
     setExpandedQuickTradeId(null)
     setQuickTradeSeed(null)
   }, [currentPage])
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(MARKETS_LAYOUT_STORAGE_KEY, marketsLayout)
+    } catch {
+      /* ignore */
+    }
+  }, [marketsLayout])
 
   /** Discover routes narrow by source; home (/) shows all sources. */
   const listSourceFilter = sourceFromRoute || 'all'
@@ -496,7 +502,7 @@ export default function MarketsList({ source: sourceFromRoute, variant = 'defaul
             progressSteps={['Rolling the dice…', 'Syncing markets…', 'Applying filters…', 'Almost ready…']}
           />
         </div>
-        <SkeletonMarketGrid count={6} />
+        {marketsLayout === 'cards' ? <SkeletonMarketGrid count={6} /> : <SkeletonMarketList count={8} />}
       </div>
     )
   }
@@ -816,18 +822,43 @@ export default function MarketsList({ source: sourceFromRoute, variant = 'defaul
           )}
 
           <div className="filter-results filter-results--markets">
-            <span className="filter-results-text">
-              {activeFilterCount > 0 && (
-                <span className="filter-badge filter-badge--inline">{activeFilterCount} active</span>
-              )}
-              {totalFiltered === 0
-                ? 'No markets match.'
-                : (
-                  <>
-                    Showing <strong>{(effectivePage - 1) * MARKETS_PER_PAGE + 1}</strong>–<strong>{Math.min(effectivePage * MARKETS_PER_PAGE, totalFiltered)}</strong> of <strong>{totalFiltered}</strong> markets{totalFiltered !== markets.length && ` (of ${markets.length} total)`}
-                  </>
+            <div className="filter-results-row">
+              <span className="filter-results-text">
+                {activeFilterCount > 0 && (
+                  <span className="filter-badge filter-badge--inline">{activeFilterCount} active</span>
                 )}
-            </span>
+                {totalFiltered === 0
+                  ? 'No markets match.'
+                  : (
+                    <>
+                      Showing <strong>{(effectivePage - 1) * MARKETS_PER_PAGE + 1}</strong>–<strong>{Math.min(effectivePage * MARKETS_PER_PAGE, totalFiltered)}</strong> of <strong>{totalFiltered}</strong> markets{totalFiltered !== markets.length && ` (of ${markets.length} total)`}
+                    </>
+                  )}
+              </span>
+              <div className="markets-layout-picker" role="group" aria-label="Market layout">
+                <span className="markets-layout-picker-label" id="markets-layout-label">
+                  View
+                </span>
+                <div className="markets-layout-picker-btns" aria-labelledby="markets-layout-label">
+                  {[
+                    { value: 'cards', label: 'Cards', title: 'Grid of cards' },
+                    { value: 'list', label: 'List', title: 'Rows with topic text' },
+                    { value: 'compact', label: 'Compact', title: 'Dense rows' },
+                  ].map((opt) => (
+                    <button
+                      key={opt.value}
+                      type="button"
+                      className={`markets-layout-btn${marketsLayout === opt.value ? ' markets-layout-btn--active' : ''}`}
+                      aria-pressed={marketsLayout === opt.value}
+                      title={opt.title}
+                      onClick={() => setMarketsLayout(opt.value)}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
             {activeFilterCount > 0 && filteredAndSortedMarkets.length === 0 && (
               <span className="filter-no-results">
                 No markets match your filters. Try adjusting your criteria.
@@ -904,229 +935,30 @@ export default function MarketsList({ source: sourceFromRoute, variant = 'defaul
             </div>
           ) : (
             <>
-              <div className="market-grid market-grid--below-toolbar">
-                {paginatedMarkets.map((market) => {
-                  const oneLiner = getMarketOneLiner(market.payload)
-                  const categoryLabel = getCategoryDisplay(market.payload)
-                  const apiAttr = getMarketApiAttribution(market.payload)
-                  const stale = getMarketStaleness(market.payload)
-                  const confidence = getMarketDataConfidence(market.payload, market.openOrderCount || 0)
-                  const resolveLine = getCardResolutionLine(market.payload)
-                  const watched = isWatched(market.contractId) || isWatched(market.payload?.marketId)
-                  const mid = market.payload?.marketId
-                  const quickOpen = mid && expandedQuickTradeId === mid
-                  const apiTooltip = apiAttr.same
-                    ? `Data source: ${apiAttr.creation}`
-                    : `Create: ${apiAttr.creation} · Resolve: ${apiAttr.resolution}`
-                  const showOneLiner = oneLinerAddsBeyondTitle(market.payload.title, oneLiner)
-                  const topicBody = (market.payload.description || '').trim()
-                  const isBinary = market.payload.marketType === 'Binary'
-                  const isMulti = market.payload.marketType === 'MultiOutcome'
-                  const multiChips = isMulti && Array.isArray(market.payload.outcomes) ? market.payload.outcomes.slice(0, 4) : []
-                  return (
-                  <div key={market.contractId} className="market-card-wrap">
-                    <button
-                      type="button"
-                      className={`market-card-watch${watched ? ' market-card-watch--on' : ''}`}
-                      title={watched ? 'Remove from watchlist' : 'Watchlist (saved in this browser)'}
-                      aria-label={watched ? 'Remove from watchlist' : 'Add to watchlist'}
-                      onClick={(e) => {
-                        e.preventDefault()
-                        e.stopPropagation()
-                        toggleWatchlist(market.payload?.marketId || market.contractId)
-                        setWatchListVersion((t) => t + 1)
-                      }}
-                    >
-                      {watched ? '★' : '☆'}
-                    </button>
-                  <Link
-                    to={`/market/${market.payload.marketId}`}
-                    className="market-card-link"
-                  >
-                    <div className="market-card market-card--discover">
-                      <div>
-                        <div className="market-card-tags">
-                          <span className="market-card-tag market-card-tag-category" title={apiTooltip}>
-                            {getCategoryEmoji(categoryLabel)} {categoryLabel}
-                          </span>
-                          {(market.openOrderCount || 0) > 0 && (
-                            <span
-                              className="market-card-tag market-card-tag-p2p"
-                              title="Open P2P limit orders on the book"
-                            >
-                              P2P · {market.openOrderCount} open
-                            </span>
-                          )}
-                          {stale === 'pending_resolution' && (
-                            <span className="market-card-tag market-card-tag-stale" title="Past resolution time">
-                              Pending resolution
-                            </span>
-                          )}
-                          {confidence.label && (
-                            <span
-                              className={`market-card-tag market-card-tag-confidence${confidence.level === 'thin' ? ' market-card-tag-confidence--thin' : ''}`}
-                              title={confidence.hint || undefined}
-                            >
-                              {confidence.label}
-                            </span>
-                          )}
-                        </div>
-                        <div className="market-card-title-row">
-                          <h3>{market.payload.title}</h3>
-                          <span className={`market-card-status-pill status ${getStatusClass(market.payload.status)}`}>
-                            {market.payload.status}
-                          </span>
-                        </div>
-                      </div>
-                      {showOneLiner && (
-                        <p className="market-card-oneliner" title={oneLiner}>
-                          {oneLiner}
-                        </p>
-                      )}
-                      {topicBody ? (
-                        <p className="market-card-topic" title={topicBody}>
-                          {topicBody}
-                        </p>
-                      ) : null}
-                      {resolveLine && (
-                        <p className="market-card-resolves">{resolveLine}</p>
-                      )}
-                      <div className="market-card-footer-meta">
-                        <span className="text-secondary">
-                          Volume: {formatPips(market.payload.totalVolume ?? 0)}
-                        </span>
-                        <span className="text-secondary">
-                          {isBinary ? (PREDICTION_STYLES.find(s => s.value === market.payload?.styleLabel)?.label || 'Binary') : 'Multi-Outcome'}
-                        </span>
-                      </div>
-                    </div>
-                  </Link>
-                  {market.payload?.status === 'Active' && mid && isBinary && (
-                    <div className="market-card-predict-row" role="group" aria-label="Pick a side to quick trade">
-                      <button
-                        type="button"
-                        className="market-card-predict-chip market-card-predict-chip--yes"
-                        onClick={(e) => {
-                          e.preventDefault()
-                          e.stopPropagation()
-                          setQuickTradeSeed('Yes')
-                          setExpandedQuickTradeId(mid)
-                        }}
-                      >
-                        Yes
-                      </button>
-                      <button
-                        type="button"
-                        className="market-card-predict-chip market-card-predict-chip--no"
-                        onClick={(e) => {
-                          e.preventDefault()
-                          e.stopPropagation()
-                          setQuickTradeSeed('No')
-                          setExpandedQuickTradeId(mid)
-                        }}
-                      >
-                        No
-                      </button>
-                    </div>
-                  )}
-                  {market.payload?.status === 'Active' && mid && multiChips.length > 0 && (
-                    <div
-                      className="market-card-predict-row market-card-predict-row--wrap"
-                      role="group"
-                      aria-label="Pick an outcome to quick trade"
-                    >
-                      {multiChips.map((outcome) => (
-                        <button
-                          key={outcome}
-                          type="button"
-                          className="market-card-predict-chip"
-                          title={outcome}
-                          onClick={(e) => {
-                            e.preventDefault()
-                            e.stopPropagation()
-                            setQuickTradeSeed(outcome)
-                            setExpandedQuickTradeId(mid)
-                          }}
-                        >
-                          {outcome}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                  {mid && (
-                    <div
-                      className={[
-                        'market-card-toolbar',
-                        market.payload?.status === 'Active' ? 'market-card-toolbar--split' : '',
-                        !webShareEnabled && market.payload?.status !== 'Active' ? 'market-card-toolbar--end' : '',
-                      ]
-                        .filter(Boolean)
-                        .join(' ')}
-                    >
-                      <div className="market-card-toolbar-actions">
-                        <button
-                          type="button"
-                          className="market-card-copy-link"
-                          title={getAbsoluteMarketUrl(mid)}
-                          aria-label={`Copy link to market: ${(market.payload.title || 'market').slice(0, 120)}`}
-                          onClick={(e) => {
-                            e.preventDefault()
-                            e.stopPropagation()
-                            void copyCardMarketLink(mid, market.payload.title || '')
-                          }}
-                        >
-                          Copy link
-                        </button>
-                        {webShareEnabled && (
-                          <button
-                            type="button"
-                            className="market-card-share-link"
-                            title="Share via your device (Messages, social apps, etc.)"
-                            aria-label={`Share market: ${(market.payload.title || 'market').slice(0, 120)}`}
-                            onClick={(e) => {
-                              e.preventDefault()
-                              e.stopPropagation()
-                              void shareCardMarket(market.payload)
-                            }}
-                          >
-                            Share…
-                          </button>
-                        )}
-                      </div>
-                      {market.payload?.status === 'Active' && (
-                        <button
-                          type="button"
-                          className={`market-card-quick-trade-btn${quickOpen ? ' market-card-quick-trade-btn--open' : ''}`}
-                          aria-expanded={quickOpen}
-                          onClick={(e) => {
-                            e.preventDefault()
-                            e.stopPropagation()
-                            setExpandedQuickTradeId((id) => {
-                              if (id === mid) {
-                                setQuickTradeSeed(null)
-                                return null
-                              }
-                              setQuickTradeSeed(null)
-                              return mid
-                            })
-                          }}
-                        >
-                          {quickOpen ? 'Close quick trade' : 'Quick trade'}
-                        </button>
-                      )}
-                    </div>
-                  )}
-                  {market.payload?.status === 'Active' && mid && quickOpen && (
-                    <MarketQuickTrade
-                      key={`${mid}-${quickTradeSeed ?? 'default'}`}
-                      market={market}
-                      initialTradeSide={quickTradeSeed ?? undefined}
-                      onTradeSuccess={refreshMarketsList}
-                    />
-                  )}
-                  </div>
-                  )
-                })}
+              <div
+                className={
+                  marketsLayout === 'cards'
+                    ? 'market-grid market-grid--below-toolbar'
+                    : 'market-list market-list--below-toolbar'
+                }
+              >
+                {paginatedMarkets.map((market) => (
+                  <DiscoverMarketEntry
+                    key={market.contractId}
+                    layout={marketsLayout}
+                    market={market}
+                    getStatusClass={getStatusClass}
+                    webShareEnabled={webShareEnabled}
+                    expandedQuickTradeId={expandedQuickTradeId}
+                    quickTradeSeed={quickTradeSeed}
+                    setExpandedQuickTradeId={setExpandedQuickTradeId}
+                    setQuickTradeSeed={setQuickTradeSeed}
+                    copyCardMarketLink={copyCardMarketLink}
+                    shareCardMarket={shareCardMarket}
+                    refreshMarketsList={refreshMarketsList}
+                    onWatchlistChanged={() => setWatchListVersion((t) => t + 1)}
+                  />
+                ))}
               </div>
               {totalPages > 1 && (
                 <nav className="pagination" aria-label="Markets pagination">

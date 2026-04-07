@@ -109,3 +109,65 @@ export function SkeletonMarketGrid({ count = 6 }) {
   )
 }
 
+const skeletonPulse = {
+  opacity: 0.7,
+  animation: 'pulse 1.5s ease-in-out infinite',
+}
+
+export function SkeletonMarketList({ count = 8 }) {
+  return (
+    <div className="market-list market-list--below-toolbar">
+      {Array.from({ length: count }).map((_, i) => (
+        <div
+          key={i}
+          className="market-list-skeleton-row"
+          style={{
+            ...skeletonPulse,
+            display: 'flex',
+            flexWrap: 'wrap',
+            gap: '1rem',
+            alignItems: 'center',
+            padding: 'var(--spacing-md) var(--spacing-lg)',
+            borderRadius: 'var(--radius-xl, 12px)',
+            border: '1px solid rgba(255, 255, 255, 0.08)',
+            background: 'rgba(255, 255, 255, 0.03)',
+          }}
+        >
+          <div style={{ flex: '1 1 200px', minWidth: 0 }}>
+            <div
+              style={{
+                height: '14px',
+                width: '40%',
+                background: 'rgba(255, 255, 255, 0.1)',
+                borderRadius: 4,
+                marginBottom: 10,
+              }}
+            />
+            <div
+              style={{
+                height: '20px',
+                width: '92%',
+                background: 'rgba(255, 255, 255, 0.1)',
+                borderRadius: 4,
+                marginBottom: 8,
+              }}
+            />
+            <div
+              style={{
+                height: '14px',
+                width: '75%',
+                background: 'rgba(255, 255, 255, 0.08)',
+                borderRadius: 4,
+              }}
+            />
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'flex-end' }}>
+            <div style={{ height: 14, width: 72, background: 'rgba(255, 255, 255, 0.1)', borderRadius: 4 }} />
+            <div style={{ height: 14, width: 56, background: 'rgba(255, 255, 255, 0.08)', borderRadius: 4 }} />
+          </div>
+        </div>
+      ))}
+    </div>
+  )
+}
+
