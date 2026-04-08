@@ -4,6 +4,11 @@ Summary of major cleanups and improvements. For current structure see [README](.
 
 ---
 
+## 1.0.37 — Engraved stone background (April 2026)
+
+- **Release:** Version **1.0.37**; tag **`v1.0.37`** for desktop CI and GitHub Releases.
+- **Frontend / desktop:** Replaced the canvas prediction-market animated background with an **engraved stone** SVG treatment — one continuous carved path, neon glow accents, motion along the groove, subtle parallax, and stone texture. **Tauri** bundles the same `frontend/dist` via `build:frontend:tauri`, so the desktop app picks this up automatically.
+
 ## 1.0.33 — Desktop docs layout (April 2026)
 
 - **Release:** Version **1.0.33**; tag **`v1.0.33`** for desktop CI and GitHub Releases.

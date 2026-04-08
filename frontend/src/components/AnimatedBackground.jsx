@@ -1,821 +1,233 @@
 import { useEffect, useRef } from 'react'
 import './AnimatedBackground.css'
 
+/** One continuous abstract path (viewBox 0 0 1000 2000) — meanders full height, all segments connected */
+const MAIN_PATH_D =
+  'M 480 0 C 720 120 920 280 820 420 S 520 520 320 640 S 80 820 280 960 S 520 1100 760 1240 S 820 1480 540 1660 S 280 1820 500 2000'
+
+/** Junction / accent nodes along the path (engraved gems + neon halos) */
+const PATH_NODES = [
+  { cx: 480, cy: 0 },
+  { cx: 820, cy: 420 },
+  { cx: 320, cy: 640 },
+  { cx: 280, cy: 960 },
+  { cx: 760, cy: 1240 },
+  { cx: 540, cy: 1660 },
+  { cx: 500, cy: 2000 },
+]
+
 /**
- * Animated background for prediction markets — bet on outcomes.
- * Elements tailored to: outcomes (Yes/No), odds shifting, market trends, resolution.
- * - Outcome forks: branching paths (choice); one branch can pulse like "winning" outcome
- * - Probability arcs: gauge-like arcs whose length suggests odds moving
- * - Outcome bars: horizontal fill 0→100% then reset (probability bar)
- * - Graph lines: price/odds trend moving across the view
- * - Ticker strips: live-odds / market-feed scroll
- * - Pulsing rings: resolution / settlement expanding then fading
- * - Particles: trades / data points; soft streaks: liquidity flow
+ * Background: stone-like engraved circuit — one connected carved path, neon glow accents,
+ * CSS/SVG motion (dash flow, pulse, slow drift) and light pointer parallax.
  */
 export default function AnimatedBackground() {
-  const canvasRef = useRef(null)
-  const animationFrameRef = useRef(null)
+  const parallaxRef = useRef(null)
 
   useEffect(() => {
-    const canvas = canvasRef.current
-    if (!canvas) {
-      console.error('[AnimatedBackground] Canvas ref is null')
-      return
+    const el = parallaxRef.current
+    if (!el) return
+
+    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)')
+    if (reduced.matches) return
+
+    let raf = 0
+    let targetX = 0
+    let targetY = 0
+    let currentX = 0
+    let currentY = 0
+
+    const onMove = (e) => {
+      const nx = (e.clientX / window.innerWidth - 0.5) * 28
+      const ny = (e.clientY / window.innerHeight - 0.5) * 28
+      targetX = nx
+      targetY = ny
     }
 
-    const ctx = canvas.getContext('2d')
-    if (!ctx) {
-      console.error('[AnimatedBackground] Could not get 2d context')
-      return
-    }
-    
-    let particles = []
-    let graphLines = []
-    let geometricShapes = []
-    let softStreaks = []
-    let outcomeForks = []
-    let probabilityArcs = []
-    let outcomeBars = []
-    let tickerStrips = []
-    let pulsingRings = []
-    let time = 0
-
-    // Set canvas size — match viewport so animation is always visible
-    const resizeCanvas = () => {
-      const rect = canvas.getBoundingClientRect()
-      const w = rect.width > 0 ? rect.width : window.innerWidth
-      const h = rect.height > 0 ? rect.height : window.innerHeight
-      canvas.width = w
-      canvas.height = h
-    }
-    resizeCanvas()
-    window.addEventListener('resize', resizeCanvas)
-
-    // Neon color palette — bright cyan, magenta, electric blue, hot pink (pops on black)
-    const colorPalettes = {
-      primary: [
-        { r: 0, g: 255, b: 255 },       // Neon cyan
-        { r: 255, g: 0, b: 255 },       // Neon magenta
-        { r: 0, g: 200, b: 255 },       // Electric blue
-        { r: 255, g: 0, b: 128 },       // Hot pink
-      ],
-      secondary: [
-        { r: 0, g: 255, b: 255 },       // Neon cyan
-        { r: 191, g: 0, b: 255 },       // Electric purple
-        { r: 0, g: 255, b: 200 },       // Neon teal
-        { r: 255, g: 50, b: 150 },      // Neon pink
-      ],
-      accent: [
-        { r: 255, g: 0, b: 255 },       // Magenta
-        { r: 0, g: 255, b: 255 },       // Cyan
-        { r: 204, g: 255, b: 0 },       // Neon lime
-        { r: 255, g: 100, b: 255 },     // Fuchsia
-      ],
-      subtle: [
-        { r: 0, g: 230, b: 255 },       // Soft neon cyan
-        { r: 200, g: 0, b: 255 },       // Soft neon purple
-        { r: 255, g: 0, b: 200 },       // Soft neon pink
-        { r: 0, g: 255, b: 230 },       // Soft neon teal
-      ]
-    }
-    
-    // Helper to get random color from a palette
-    const getColor = (palette = 'primary') => {
-      const colors = colorPalettes[palette]
-      return colors[Math.floor(Math.random() * colors.length)]
+    const smooth = () => {
+      currentX += (targetX - currentX) * 0.06
+      currentY += (targetY - currentY) * 0.06
+      el.style.transform = `translate3d(${currentX}px,${currentY}px,0)`
+      raf = requestAnimationFrame(smooth)
     }
 
-    const themeColors = { violet: { r: 139, g: 92, b: 246 }, cyan: { r: 34, g: 211, b: 238 } }
-
-    // Particle class for floating data points with varied opacity
-    class Particle {
-      constructor() {
-        this.reset()
-      }
-
-      reset() {
-        // More dynamic initial positions - cluster some, spread others
-        const cluster = Math.random() < 0.3 // 30% chance to cluster
-        if (cluster) {
-          const clusterX = Math.random() * canvas.width
-          const clusterY = Math.random() * canvas.height
-          const spread = 100
-          this.x = clusterX + (Math.random() - 0.5) * spread
-          this.y = clusterY + (Math.random() - 0.5) * spread
-        } else {
-          this.x = Math.random() * canvas.width
-          this.y = Math.random() * canvas.height
-        }
-        
-        this.size = Math.random() * 3 + 0.5
-        this.speedX = (Math.random() - 0.5) * 0.22
-        this.speedY = (Math.random() - 0.5) * 0.22
-        this.color = getColor('primary')
-        
-        // Varied opacity levels - some very subtle, some more visible
-        const opacityType = Math.random()
-        if (opacityType < 0.3) {
-          this.opacity = Math.random() * 0.15 + 0.05 // Very subtle (5-20%)
-        } else if (opacityType < 0.7) {
-          this.opacity = Math.random() * 0.25 + 0.15 // Medium (15-40%)
-        } else {
-          this.opacity = Math.random() * 0.3 + 0.4 // More visible (40-70%)
-        }
-        
-        this.pulseSpeed = Math.random() * 0.008 + 0.004
-        this.pulsePhase = Math.random() * Math.PI * 2
-        this.pulseAmplitude = Math.random() * 0.2 + 0.1
-      }
-
-      update() {
-        this.x += this.speedX
-        this.y += this.speedY
-        this.pulsePhase += this.pulseSpeed
-
-        // Wrap around edges
-        if (this.x < 0) this.x = canvas.width
-        if (this.x > canvas.width) this.x = 0
-        if (this.y < 0) this.y = canvas.height
-        if (this.y > canvas.height) this.y = 0
-
-        // Pulsing opacity with varied amplitude
-        this.currentOpacity = this.opacity + Math.sin(this.pulsePhase) * this.pulseAmplitude
-      }
-
-      draw() {
-        // Add subtle trail effect
-        const gradient = ctx.createRadialGradient(this.x, this.y, 0, this.x, this.y, this.size * 2)
-        gradient.addColorStop(0, `rgba(${this.color.r}, ${this.color.g}, ${this.color.b}, ${this.currentOpacity})`)
-        gradient.addColorStop(0.5, `rgba(${this.color.r}, ${this.color.g}, ${this.color.b}, ${this.currentOpacity * 0.5})`)
-        gradient.addColorStop(1, `rgba(${this.color.r}, ${this.color.g}, ${this.color.b}, 0)`)
-
-        ctx.beginPath()
-        ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2)
-        ctx.fillStyle = gradient
-        ctx.fill()
-
-        // Glow effect
-        ctx.shadowBlur = 8
-        ctx.shadowColor = `rgba(${this.color.r}, ${this.color.g}, ${this.color.b}, ${this.currentOpacity * 0.6})`
-        ctx.fill()
-        ctx.shadowBlur = 0
-      }
-    }
-
-    // Graph line class for market trend visualization - more dynamic and less distracting
-    class GraphLine {
-      constructor() {
-        this.reset()
-      }
-
-      reset() {
-        this.points = []
-        this.numPoints = 15 + Math.floor(Math.random() * 20) // Fewer points for smoother lines
-        
-        // More dynamic positioning - prefer edges and corners
-        const positionType = Math.random()
-        if (positionType < 0.4) {
-          // Start from edges
-          const edge = Math.floor(Math.random() * 4)
-          if (edge === 0) { // Top
-            this.startX = Math.random() * canvas.width
-            this.startY = -50
-          } else if (edge === 1) { // Right
-            this.startX = canvas.width + 50
-            this.startY = Math.random() * canvas.height
-          } else if (edge === 2) { // Bottom
-            this.startX = Math.random() * canvas.width
-            this.startY = canvas.height + 50
-          } else { // Left
-            this.startX = -50
-            this.startY = Math.random() * canvas.height
-          }
-        } else {
-          this.startX = Math.random() * canvas.width
-          this.startY = Math.random() * canvas.height
-        }
-        
-        this.amplitude = 20 + Math.random() * 80 // Smaller amplitude
-        this.frequency = 0.003 + Math.random() * 0.015 // Lower frequency for smoother waves
-        this.color = getColor('secondary')
-        
-        // Much more subtle opacity - make them less distracting
-        this.opacity = Math.random() * 0.12 + 0.05 // 5-17% - very subtle
-        this.baseOpacity = this.opacity
-        
-        this.speed = 0.015 + Math.random() * 0.06
-        this.offset = Math.random() * Math.PI * 2
-        this.life = 0
-        this.maxLife = Math.random() * 400 + 350
-        this.fadeIn = true
-
-        // Generate points for smooth curve
-        for (let i = 0; i < this.numPoints; i++) {
-          this.points.push({
-            x: this.startX + i * (canvas.width / this.numPoints),
-            y: this.startY
-          })
-        }
-      }
-
-      update() {
-        this.life++
-        this.offset += this.speed * 0.003
-
-        // Fade in/out effect for less distraction
-        const lifeProgress = this.life / this.maxLife
-        if (lifeProgress < 0.2) {
-          this.opacity = this.baseOpacity * (lifeProgress / 0.2) // Fade in
-        } else if (lifeProgress > 0.8) {
-          this.opacity = this.baseOpacity * (1 - (lifeProgress - 0.8) / 0.2) // Fade out
-        } else {
-          this.opacity = this.baseOpacity
-        }
-
-        // Reset when faded out
-        if (this.life > this.maxLife) {
-          this.reset()
-          this.life = 0
-        }
-
-        // Update points to create smoother, more organic wave motion
-        this.points.forEach((point, i) => {
-          // Use multiple sine waves for more organic movement
-          const wave1 = Math.sin(i * this.frequency + this.offset) * this.amplitude
-          const wave2 = Math.sin(i * this.frequency * 2 + this.offset * 1.5) * (this.amplitude * 0.3)
-          point.y = this.startY + wave1 + wave2
-          point.x += this.speed
-
-          // Wrap around smoothly
-          if (point.x > canvas.width + 50) {
-            point.x = -50
-            this.startX = -50
-          } else if (point.x < -50) {
-            point.x = canvas.width + 50
-            this.startX = canvas.width + 50
-          }
-        })
-      }
-
-      draw() {
-        // Only draw if opacity is significant
-        if (this.opacity < 0.02) return
-
-        ctx.beginPath()
-        ctx.moveTo(this.points[0].x, this.points[0].y)
-
-        // Draw smoother curve through points with better interpolation
-        for (let i = 1; i < this.points.length; i++) {
-          const prev = this.points[i - 1]
-          const curr = this.points[i]
-          const next = this.points[i + 1] || curr
-
-          // Better control points for smoother curves
-          const cp1x = prev.x + (curr.x - prev.x) * 0.6
-          const cp1y = prev.y + (curr.y - prev.y) * 0.6
-          const cp2x = curr.x - (next.x - curr.x) * 0.6
-          const cp2y = curr.y - (next.y - curr.y) * 0.6
-
-          ctx.bezierCurveTo(cp1x, cp1y, cp2x, cp2y, curr.x, curr.y)
-        }
-
-        // Thinner, more subtle lines
-        ctx.strokeStyle = `rgba(${this.color.r}, ${this.color.g}, ${this.color.b}, ${this.opacity})`
-        ctx.lineWidth = 1
-        ctx.shadowBlur = 10
-        ctx.shadowColor = `rgba(${this.color.r}, ${this.color.g}, ${this.color.b}, ${this.opacity * 0.3})`
-        ctx.stroke()
-        ctx.shadowBlur = 0
-      }
-    }
-
-    // Fewer particles — no connected-dots network; keep subtle floating points only
-    const numParticles = Math.max(12, Math.floor((canvas.width * canvas.height) / 28000))
-    for (let i = 0; i < numParticles; i++) {
-      particles.push(new Particle())
-    }
-
-    // Geometric Shape class - triangles, hexagons, etc.
-    class GeometricShape {
-      constructor() {
-        this.reset()
-      }
-
-      reset() {
-        // Dynamic positioning - prefer edges and corners
-        const positionType = Math.random()
-        if (positionType < 0.4) {
-          // Near edges
-          const edge = Math.floor(Math.random() * 4)
-          if (edge === 0) { // Top
-            this.x = Math.random() * canvas.width
-            this.y = Math.random() * 100
-          } else if (edge === 1) { // Right
-            this.x = canvas.width - Math.random() * 100
-            this.y = Math.random() * canvas.height
-          } else if (edge === 2) { // Bottom
-            this.x = Math.random() * canvas.width
-            this.y = canvas.height - Math.random() * 100
-          } else { // Left
-            this.x = Math.random() * 100
-            this.y = Math.random() * canvas.height
-          }
-        } else {
-          this.x = Math.random() * canvas.width
-          this.y = Math.random() * canvas.height
-        }
-
-        this.size = Math.random() * 15 + 5
-        this.rotation = Math.random() * Math.PI * 2
-        this.rotationSpeed = (Math.random() - 0.5) * 0.006
-        this.speedX = (Math.random() - 0.5) * 0.12
-        this.speedY = (Math.random() - 0.5) * 0.12
-        this.color = getColor('primary')
-        this.shapeType = Math.floor(Math.random() * 3) // 0: triangle, 1: hexagon, 2: diamond
-        
-        // Varied opacity
-        const opacityType = Math.random()
-        if (opacityType < 0.5) {
-          this.opacity = Math.random() * 0.15 + 0.08 // Subtle (8-23%)
-        } else {
-          this.opacity = Math.random() * 0.2 + 0.15 // Medium (15-35%)
-        }
-        this.pulsePhase = Math.random() * Math.PI * 2
-        this.pulseSpeed = Math.random() * 0.006 + 0.003
-      }
-
-      update() {
-        this.x += this.speedX
-        this.y += this.speedY
-        this.rotation += this.rotationSpeed
-        this.pulsePhase += this.pulseSpeed
-
-        // Wrap around
-        if (this.x < -50) this.x = canvas.width + 50
-        if (this.x > canvas.width + 50) this.x = -50
-        if (this.y < -50) this.y = canvas.height + 50
-        if (this.y > canvas.height + 50) this.y = -50
-
-        this.currentOpacity = this.opacity + Math.sin(this.pulsePhase) * 0.1
-      }
-
-      draw() {
-        ctx.save()
-        ctx.translate(this.x, this.y)
-        ctx.rotate(this.rotation)
-        ctx.globalAlpha = this.currentOpacity
-        ctx.strokeStyle = `rgba(${this.color.r}, ${this.color.g}, ${this.color.b}, ${this.currentOpacity})`
-        ctx.lineWidth = 1.5
-        ctx.shadowBlur = 20
-        ctx.shadowColor = `rgba(${this.color.r}, ${this.color.g}, ${this.color.b}, ${this.currentOpacity * 0.5})`
-
-        ctx.beginPath()
-        if (this.shapeType === 0) {
-          // Triangle
-          ctx.moveTo(0, -this.size)
-          ctx.lineTo(-this.size * 0.866, this.size * 0.5)
-          ctx.lineTo(this.size * 0.866, this.size * 0.5)
-          ctx.closePath()
-        } else if (this.shapeType === 1) {
-          // Hexagon
-          for (let i = 0; i < 6; i++) {
-            const angle = (Math.PI / 3) * i
-            const x = Math.cos(angle) * this.size
-            const y = Math.sin(angle) * this.size
-            if (i === 0) ctx.moveTo(x, y)
-            else ctx.lineTo(x, y)
-          }
-          ctx.closePath()
-        } else {
-          // Diamond
-          ctx.moveTo(0, -this.size)
-          ctx.lineTo(this.size, 0)
-          ctx.lineTo(0, this.size)
-          ctx.lineTo(-this.size, 0)
-          ctx.closePath()
-        }
-        ctx.stroke()
-        ctx.shadowBlur = 0
-        ctx.restore()
-      }
-    }
-
-    // Soft streak — liquidity flow; theme-aligned gradient line
-    class SoftStreak {
-      constructor() {
-        this.reset()
-      }
-
-      reset() {
-        this.x = Math.random() * canvas.width
-        this.y = Math.random() * canvas.height
-        this.length = 60 + Math.random() * 100
-        this.angle = Math.random() * Math.PI * 2
-        this.opacity = Math.random() * 0.06 + 0.03
-        this.speed = 0.02 + Math.random() * 0.04
-        this.phase = Math.random() * Math.PI * 2
-        this.useCyan = Math.random() < 0.5
-      }
-
-      update() {
-        this.phase += 0.008
-        this.x += Math.cos(this.angle) * this.speed
-        this.y += Math.sin(this.angle) * this.speed
-        if (this.x < -100) this.x = canvas.width + 100
-        if (this.x > canvas.width + 100) this.x = -100
-        if (this.y < -100) this.y = canvas.height + 100
-        if (this.y > canvas.height + 100) this.y = -100
-        this.currentOpacity = this.opacity * (0.6 + 0.4 * Math.sin(this.phase))
-      }
-
-      draw() {
-        const c = this.useCyan ? themeColors.cyan : themeColors.violet
-        const x2 = this.x + Math.cos(this.angle) * this.length
-        const y2 = this.y + Math.sin(this.angle) * this.length
-        const g = ctx.createLinearGradient(this.x, this.y, x2, y2)
-        g.addColorStop(0, `rgba(${c.r}, ${c.g}, ${c.b}, 0)`)
-        g.addColorStop(0.5, `rgba(${c.r}, ${c.g}, ${c.b}, ${this.currentOpacity})`)
-        g.addColorStop(1, `rgba(${c.r}, ${c.g}, ${c.b}, 0)`)
-        ctx.strokeStyle = g
-        ctx.lineWidth = 1.5
-        ctx.beginPath()
-        ctx.moveTo(this.x, this.y)
-        ctx.lineTo(x2, y2)
-        ctx.stroke()
-      }
-    }
-
-    // Outcome fork — Yes/No branching; one branch pulses brighter like "winning" outcome
-    class OutcomeFork {
-      constructor() {
-        this.reset()
-      }
-
-      reset() {
-        this.x = Math.random() * canvas.width
-        this.y = Math.random() * canvas.height
-        this.length = 50 + Math.random() * 70
-        this.angle = Math.random() * Math.PI * 2
-        this.spread = 0.35 + Math.random() * 0.45
-        this.color = getColor('secondary')
-        this.opacity = Math.random() * 0.1 + 0.06
-        this.phase = Math.random() * Math.PI * 2
-        this.phaseSpeed = 0.004 + Math.random() * 0.006
-        this.winBranch = Math.random() < 0.5 ? 'left' : 'right'
-      }
-
-      update() {
-        this.phase += this.phaseSpeed
-        this.currentOpacity = this.opacity * (0.75 + 0.25 * Math.sin(this.phase))
-        this.winPulse = 0.15 * Math.sin(this.phase * 1.3)
-      }
-
-      draw() {
-        const leftAngle = this.angle - this.spread
-        const rightAngle = this.angle + this.spread
-        const x2 = this.x + Math.cos(this.angle) * this.length * 0.35
-        const y2 = this.y + Math.sin(this.angle) * this.length * 0.35
-        const xL = this.x + Math.cos(leftAngle) * this.length
-        const yL = this.y + Math.sin(leftAngle) * this.length
-        const xR = this.x + Math.cos(rightAngle) * this.length
-        const yR = this.y + Math.sin(rightAngle) * this.length
-        const c = this.color
-        const o = this.currentOpacity
-        const oWin = Math.max(0, o + this.winPulse)
-        ctx.lineWidth = 1
-        ctx.beginPath()
-        ctx.moveTo(this.x, this.y)
-        ctx.lineTo(x2, y2)
-        ctx.strokeStyle = `rgba(${c.r}, ${c.g}, ${c.b}, ${o})`
-        ctx.stroke()
-        ctx.beginPath()
-        ctx.moveTo(x2, y2)
-        ctx.lineTo(xL, yL)
-        ctx.strokeStyle = `rgba(${c.r}, ${c.g}, ${c.b}, ${this.winBranch === 'left' ? oWin : o})`
-        ctx.stroke()
-        ctx.beginPath()
-        ctx.moveTo(x2, y2)
-        ctx.lineTo(xR, yR)
-        ctx.strokeStyle = `rgba(${c.r}, ${c.g}, ${c.b}, ${this.winBranch === 'right' ? oWin : o})`
-        ctx.stroke()
-      }
-    }
-
-    // Probability arc — odds gauge; arc length oscillates like odds shifting (e.g. 30%–70%)
-    class ProbabilityArc {
-      constructor() {
-        this.reset()
-      }
-
-      reset() {
-        this.x = Math.random() * canvas.width
-        this.y = Math.random() * canvas.height
-        this.radius = 30 + Math.random() * 45
-        this.startAngle = Math.random() * Math.PI * 2
-        this.baseLength = Math.PI * (0.25 + Math.random() * 0.2)
-        this.lengthAmplitude = Math.PI * 0.2
-        this.color = getColor('subtle')
-        this.opacity = Math.random() * 0.08 + 0.05
-        this.phase = Math.random() * Math.PI * 2
-        this.phaseSpeed = 0.008 + Math.random() * 0.006
-      }
-
-      update() {
-        this.phase += this.phaseSpeed
-        this.currentOpacity = this.opacity * (0.7 + 0.3 * Math.sin(this.phase))
-        this.arcLength = this.baseLength + this.lengthAmplitude * Math.sin(this.phase * 0.7)
-      }
-
-      draw() {
-        const c = this.color
-        const o = Math.min(1, this.currentOpacity * 1.2)
-        ctx.strokeStyle = `rgba(${c.r}, ${c.g}, ${c.b}, ${o})`
-        ctx.lineWidth = 1.5
-        ctx.beginPath()
-        ctx.arc(this.x, this.y, this.radius, this.startAngle, this.startAngle + this.arcLength)
-        ctx.stroke()
-      }
-    }
-
-    // Outcome bar — horizontal probability bar (0→100%) then reset; like odds settling
-    class OutcomeBar {
-      constructor() {
-        this.reset()
-      }
-
-      reset() {
-        this.x = Math.random() * (canvas.width * 0.5)
-        this.y = Math.random() * canvas.height
-        this.width = 80 + Math.random() * 120
-        this.progress = 0
-        this.speed = 0.003 + Math.random() * 0.005
-        this.color = themeColors.violet
-        this.useCyan = Math.random() < 0.5
-      }
-
-      update() {
-        this.progress += this.speed
-        if (this.progress >= 1) {
-          this.progress = 0
-          this.x = Math.random() * (canvas.width * 0.6)
-          this.y = Math.random() * canvas.height
-        }
-      }
-
-      draw() {
-        const c = this.useCyan ? themeColors.cyan : this.color
-        const trackO = 0.06 + 0.02 * Math.sin(time * 2)
-        const fillO = 0.1 + 0.05 * Math.sin(time * 2)
-        ctx.fillStyle = `rgba(${c.r}, ${c.g}, ${c.b}, ${trackO})`
-        ctx.fillRect(this.x, this.y - 2, this.width, 4)
-        ctx.fillStyle = `rgba(${c.r}, ${c.g}, ${c.b}, ${fillO})`
-        ctx.fillRect(this.x, this.y - 2, this.width * this.progress, 4)
-      }
-    }
-
-    // Ticker strip — live odds / market feed scrolling
-    class TickerStrip {
-      constructor() {
-        this.reset()
-      }
-
-      reset() {
-        this.y = Math.random() * canvas.height
-        this.segmentWidth = 10 + Math.random() * 14
-        this.gap = 4 + Math.random() * 6
-        this.speed = 0.5 + Math.random() * 0.8
-        this.offset = Math.random() * (this.segmentWidth + this.gap) * 10
-        this.color = getColor('subtle')
-        this.opacity = Math.random() * 0.05 + 0.025
-      }
-
-      update() {
-        this.offset += this.speed
-        if (this.offset > (this.segmentWidth + this.gap) * 2) this.offset = 0
-      }
-
-      draw() {
-        const c = this.color
-        const o = this.opacity
-        ctx.strokeStyle = `rgba(${c.r}, ${c.g}, ${c.b}, ${o})`
-        ctx.lineWidth = 1
-        for (let x = -this.offset; x < canvas.width + this.segmentWidth + this.gap; x += this.segmentWidth + this.gap) {
-          ctx.beginPath()
-          ctx.moveTo(x, this.y)
-          ctx.lineTo(x + this.segmentWidth, this.y)
-          ctx.stroke()
-        }
-      }
-    }
-
-    // Pulsing Ring class - expanding/contracting rings with multiple layers
-    class PulsingRing {
-      constructor() {
-        this.reset()
-      }
-
-      reset() {
-        // More strategic positioning - near particles or in interesting areas
-        const positionType = Math.random()
-        if (positionType < 0.4 && particles.length > 0) {
-          // Near a random particle
-          const particle = particles[Math.floor(Math.random() * particles.length)]
-          this.x = particle.x + (Math.random() - 0.5) * 100
-          this.y = particle.y + (Math.random() - 0.5) * 100
-        } else {
-          this.x = Math.random() * canvas.width
-          this.y = Math.random() * canvas.height
-        }
-        
-        this.maxRadius = Math.random() * 100 + 50
-        this.minRadius = this.maxRadius * 0.3
-        this.currentRadius = this.minRadius
-        this.speed = Math.random() * 0.05 + 0.03
-        this.color = getColor('accent')
-        this.opacity = Math.random() * 0.15 + 0.1 // More subtle - was 0.2-0.5, now 0.1-0.25
-        this.expanding = true
-        this.life = 0
-        this.maxLife = Math.random() * 400 + 300 // Longer life - was 80-230, now 300-700
-        this.numRings = 2 + Math.floor(Math.random() * 2) // 2-3 concentric rings
-      }
-
-      update() {
-        this.life++
-        if (this.life > this.maxLife) {
-          this.reset()
-          this.life = 0
-        }
-
-        if (this.expanding) {
-          this.currentRadius += this.speed
-          if (this.currentRadius >= this.maxRadius) {
-            this.expanding = false
-          }
-        } else {
-          this.currentRadius -= this.speed
-          if (this.currentRadius <= this.minRadius) {
-            this.expanding = true
-          }
-        }
-
-        // Very gradual fade in/out for subtlety
-        const lifeProgress = this.life / this.maxLife
-        if (lifeProgress < 0.4) {
-          this.currentOpacity = this.opacity * (lifeProgress / 0.4) // Slow fade in
-        } else if (lifeProgress > 0.6) {
-          this.currentOpacity = this.opacity * (1 - (lifeProgress - 0.6) / 0.4) // Slow fade out
-        } else {
-          this.currentOpacity = this.opacity // Full opacity in middle (only 20% of life)
-        }
-      }
-
-      draw() {
-        // Draw multiple concentric rings for more visibility
-        for (let i = 0; i < this.numRings; i++) {
-          const ringRadius = this.currentRadius - (i * 15)
-          if (ringRadius < this.minRadius) continue
-          
-          const ringOpacity = this.currentOpacity * (1 - i * 0.3)
-          ctx.strokeStyle = `rgba(${this.color.r}, ${this.color.g}, ${this.color.b}, ${ringOpacity})`
-          ctx.lineWidth = 2 + i * 0.5
-          ctx.shadowBlur = 20
-          ctx.shadowColor = `rgba(${this.color.r}, ${this.color.g}, ${this.color.b}, ${ringOpacity * 0.6})`
-          ctx.beginPath()
-          ctx.arc(this.x, this.y, ringRadius, 0, Math.PI * 2)
-          ctx.stroke()
-        }
-        ctx.shadowBlur = 0
-      }
-    }
-
-    // Graph lines — price/odds trend moving across view
-    const numGraphLines = 2 + Math.floor(Math.random() * 2)
-    for (let i = 0; i < numGraphLines; i++) {
-      graphLines.push(new GraphLine())
-    }
-
-    // Geometric shapes — light accent (fewer so outcome elements stand out)
-    const numShapes = 2 + Math.floor(Math.random() * 2)
-    for (let i = 0; i < numShapes; i++) {
-      geometricShapes.push(new GeometricShape())
-    }
-    
-    // Soft streaks — violet/cyan gradient lines, blend with theme
-    const numStreaks = 3 + Math.floor(Math.random() * 3)
-    for (let i = 0; i < numStreaks; i++) {
-      softStreaks.push(new SoftStreak())
-    }
-
-    // Outcome forks — Yes/No branching, prediction-market themed
-    const numForks = 3 + Math.floor(Math.random() * 3)
-    for (let i = 0; i < numForks; i++) {
-      outcomeForks.push(new OutcomeFork())
-    }
-
-    // Probability arcs — gauge-like semi-circles
-    const numArcs = 2 + Math.floor(Math.random() * 2)
-    for (let i = 0; i < numArcs; i++) {
-      probabilityArcs.push(new ProbabilityArc())
-    }
-
-    // Outcome bars — probability fill 0→100% then reset
-    const numOutcomeBars = 2 + Math.floor(Math.random() * 2)
-    for (let i = 0; i < numOutcomeBars; i++) {
-      outcomeBars.push(new OutcomeBar())
-    }
-
-    // Ticker strips — live odds / market feed scroll
-    const numTickers = 3
-    for (let i = 0; i < numTickers; i++) {
-      tickerStrips.push(new TickerStrip())
-    }
-
-    // Pulsing rings — resolution / settlement expanding then fading
-    const numRings = 4 + Math.floor(Math.random() * 3)
-    for (let i = 0; i < numRings; i++) {
-      pulsingRings.push(new PulsingRing())
-    }
-
-    // Animation loop
-    const animate = () => {
-      time += 0.01
-
-      // Clear with slight fade so outcome elements leave soft trails and stay visible
-      ctx.fillStyle = 'rgba(0, 0, 0, 0.32)'
-      ctx.fillRect(0, 0, canvas.width, canvas.height)
-
-      // Mid layer: graph lines
-      graphLines.forEach(line => {
-        line.update()
-        line.draw()
-      })
-
-      // Theme streaks (violet/cyan)
-      softStreaks.forEach(s => {
-        s.update()
-        s.draw()
-      })
-
-      // Outcome forks (Yes/No branches)
-      outcomeForks.forEach(f => {
-        f.update()
-        f.draw()
-      })
-
-      // Probability arcs
-      probabilityArcs.forEach(a => {
-        a.update()
-        a.draw()
-      })
-
-      // Ticker strips
-      tickerStrips.forEach(t => {
-        t.update()
-        t.draw()
-      })
-
-      // Outcome bars (probability bars)
-      outcomeBars.forEach(b => {
-        b.update()
-        b.draw()
-      })
-
-      // Foreground layer: geometric shapes
-      geometricShapes.forEach(shape => {
-        shape.update()
-        shape.draw()
-      })
-
-      // Foreground layer: particles
-      particles.forEach(particle => {
-        particle.update()
-        particle.draw()
-      })
-
-      // Top layer: pulsing rings (radial animation)
-      pulsingRings.forEach(ring => {
-        ring.update()
-        ring.draw()
-      })
-
-      animationFrameRef.current = requestAnimationFrame(animate)
-    }
-
-    animate()
+    window.addEventListener('pointermove', onMove, { passive: true })
+    raf = requestAnimationFrame(smooth)
 
     return () => {
-      window.removeEventListener('resize', resizeCanvas)
-      if (animationFrameRef.current) {
-        cancelAnimationFrame(animationFrameRef.current)
-      }
+      window.removeEventListener('pointermove', onMove)
+      cancelAnimationFrame(raf)
     }
   }, [])
 
   return (
     <div className="animated-background">
-      <canvas ref={canvasRef} className="animated-background-canvas" />
+      <div className="animated-background-stone" aria-hidden />
+
+      <svg
+        className="animated-background-svg"
+        viewBox="0 0 1000 2000"
+        preserveAspectRatio="xMidYMid slice"
+        xmlns="http://www.w3.org/2000/svg"
+        aria-hidden
+      >
+        <defs>
+          <linearGradient id="engraved-stroke" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stopColor="#5c5f6a" />
+            <stop offset="45%" stopColor="#8a8e9a" />
+            <stop offset="100%" stopColor="#4a4d56" />
+          </linearGradient>
+          <linearGradient id="neon-cyan" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stopColor="#22d3ee" />
+            <stop offset="100%" stopColor="#06b6d4" />
+          </linearGradient>
+          <linearGradient id="neon-magenta" x1="100%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stopColor="#e879f9" />
+            <stop offset="100%" stopColor="#a855f7" />
+          </linearGradient>
+          <filter id="neon-glow-cyan" x="-60%" y="-60%" width="220%" height="220%">
+            <feGaussianBlur in="SourceGraphic" stdDeviation="5" result="b" />
+            <feGaussianBlur in="b" stdDeviation="8" result="b2" />
+            <feMerge>
+              <feMergeNode in="b2" />
+              <feMergeNode in="b" />
+              <feMergeNode in="SourceGraphic" />
+            </feMerge>
+          </filter>
+          <filter id="neon-glow-violet" x="-60%" y="-60%" width="220%" height="220%">
+            <feGaussianBlur in="SourceGraphic" stdDeviation="4" result="b" />
+            <feGaussianBlur in="b" stdDeviation="7" result="b2" />
+            <feMerge>
+              <feMergeNode in="b2" />
+              <feMergeNode in="b" />
+              <feMergeNode in="SourceGraphic" />
+            </feMerge>
+          </filter>
+        </defs>
+
+        <g ref={parallaxRef} className="animated-background-parallax">
+          {/* Carved groove shadow (inset simulation) */}
+          <path
+            className="engraved-path engraved-path-shadow"
+            d={MAIN_PATH_D}
+            fill="none"
+            stroke="#08080a"
+            strokeWidth={10}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+          <path
+            className="engraved-path engraved-path-shadow"
+            d={MAIN_PATH_D}
+            fill="none"
+            stroke="#12141a"
+            strokeWidth={6}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            transform="translate(1.5 2)"
+          />
+          {/* Lit inner edge of groove */}
+          <path
+            className="engraved-path engraved-path-face"
+            d={MAIN_PATH_D}
+            fill="none"
+            stroke="url(#engraved-stroke)"
+            strokeWidth={2.8}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+
+          {/* Neon underlay — soft wide glow */}
+          <path
+            className="neon-ribbon neon-ribbon-cyan"
+            d={MAIN_PATH_D}
+            fill="none"
+            stroke="url(#neon-cyan)"
+            strokeWidth={5}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            filter="url(#neon-glow-cyan)"
+            opacity={0.55}
+          />
+          <path
+            className="neon-ribbon neon-ribbon-magenta"
+            d={MAIN_PATH_D}
+            fill="none"
+            stroke="url(#neon-magenta)"
+            strokeWidth={4}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            filter="url(#neon-glow-violet)"
+            opacity={0.4}
+          />
+
+          {/* Traveling dashes — energy along the carved line */}
+          <path
+            className="neon-dash neon-dash-forward"
+            d={MAIN_PATH_D}
+            fill="none"
+            stroke="#67e8f9"
+            strokeWidth={2}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            filter="url(#neon-glow-cyan)"
+          />
+          <path
+            className="neon-dash neon-dash-reverse"
+            d={MAIN_PATH_D}
+            fill="none"
+            stroke="#d8b4fe"
+            strokeWidth={1.5}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            filter="url(#neon-glow-violet)"
+          />
+
+          {/* Node accents */}
+          {PATH_NODES.map((n, i) => (
+            <g key={`node-${i}`} className="path-node">
+              <circle
+                cx={n.cx}
+                cy={n.cy}
+                r={9}
+                fill="none"
+                stroke="#050508"
+                strokeWidth={4}
+                className="path-node-crater"
+              />
+              <circle
+                cx={n.cx}
+                cy={n.cy}
+                r={5.5}
+                fill="none"
+                stroke="url(#engraved-stroke)"
+                strokeWidth={1.8}
+                className="path-node-ring"
+              />
+              <circle
+                cx={n.cx}
+                cy={n.cy}
+                r={4}
+                fill="none"
+                stroke="#22d3ee"
+                strokeWidth={1.2}
+                className="path-node-neon"
+                filter="url(#neon-glow-cyan)"
+              />
+              <circle
+                cx={n.cx}
+                cy={n.cy}
+                r={2.2}
+                fill="#a855f7"
+                fillOpacity={0.35}
+                className="path-node-core"
+                filter="url(#neon-glow-violet)"
+              />
+            </g>
+          ))}
+        </g>
+      </svg>
+
       <div className="animated-background-overlay" />
     </div>
   )
 }
-

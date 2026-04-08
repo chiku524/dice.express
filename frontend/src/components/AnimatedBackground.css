@@ -6,17 +6,179 @@
   height: 100vh;
   z-index: 0;
   overflow: hidden;
-  background: #000000;
+  background: #0c0b0e;
 }
 
-.animated-background-canvas {
+/* Slate / stone slab base */
+.animated-background-stone {
   position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse 120% 70% at 50% 0%, rgba(55, 48, 40, 0.45) 0%, transparent 55%),
+    radial-gradient(ellipse 90% 60% at 85% 75%, rgba(30, 35, 48, 0.5) 0%, transparent 50%),
+    radial-gradient(ellipse 80% 50% at 10% 60%, rgba(38, 36, 32, 0.35) 0%, transparent 45%),
+    linear-gradient(168deg, #141218 0%, #0e0d10 35%, #12141c 70%, #0a090c 100%);
+}
+
+.animated-background-stone::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  opacity: 0.14;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  mix-blend-mode: overlay;
+  pointer-events: none;
+}
+
+.animated-background-svg {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 140vmax;
+  height: 140vmax;
+  min-width: 100%;
+  min-height: 100%;
+  transform: translate(-50%, -50%);
   display: block;
   pointer-events: none;
+  animation: svg-breathe 24s ease-in-out infinite;
+}
+
+.animated-background-parallax {
+  will-change: transform;
+}
+
+.engraved-path {
+  vector-effect: non-scaling-stroke;
+}
+
+.neon-ribbon {
+  vector-effect: non-scaling-stroke;
+  animation: neon-pulse-opacity 5.5s ease-in-out infinite;
+}
+
+.neon-ribbon-magenta {
+  animation-delay: -2.75s;
+}
+
+@keyframes neon-pulse-opacity {
+  0%,
+  100% {
+    opacity: 0.35;
+  }
+  50% {
+    opacity: 0.75;
+  }
+}
+
+.neon-ribbon-cyan {
+  animation-duration: 6.2s;
+}
+
+.neon-dash {
+  fill: none;
+  vector-effect: non-scaling-stroke;
+  stroke-dasharray: 42 118;
+  stroke-dashoffset: 0;
+}
+
+.neon-dash-forward {
+  animation: neon-dash-flow 19s linear infinite;
+}
+
+.neon-dash-reverse {
+  stroke-dasharray: 28 92;
+  animation: neon-dash-flow-reverse 26s linear infinite;
+  opacity: 0.85;
+}
+
+@keyframes neon-dash-flow {
+  to {
+    stroke-dashoffset: -640;
+  }
+}
+
+@keyframes neon-dash-flow-reverse {
+  to {
+    stroke-dashoffset: 640;
+  }
+}
+
+.path-node-neon {
+  animation: node-glow 4s ease-in-out infinite;
+}
+
+g.path-node:nth-of-type(2) .path-node-neon {
+  animation-delay: -0.65s;
+}
+g.path-node:nth-of-type(3) .path-node-neon {
+  animation-delay: -1.3s;
+}
+g.path-node:nth-of-type(4) .path-node-neon {
+  animation-delay: -1.95s;
+}
+g.path-node:nth-of-type(5) .path-node-neon {
+  animation-delay: -2.6s;
+}
+g.path-node:nth-of-type(6) .path-node-neon {
+  animation-delay: -3.25s;
+}
+g.path-node:nth-of-type(7) .path-node-neon {
+  animation-delay: -3.9s;
+}
+
+@keyframes node-glow {
+  0%,
+  100% {
+    opacity: 0.65;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+.path-node-core {
+  animation: node-core-pulse 3.2s ease-in-out infinite;
+}
+
+@keyframes node-core-pulse {
+  0%,
+  100% {
+    fill-opacity: 0.22;
+  }
+  50% {
+    fill-opacity: 0.5;
+  }
+}
+
+g.path-node:nth-of-type(2) .path-node-core {
+  animation-delay: -0.5s;
+}
+g.path-node:nth-of-type(3) .path-node-core {
+  animation-delay: -1s;
+}
+g.path-node:nth-of-type(4) .path-node-core {
+  animation-delay: -1.5s;
+}
+g.path-node:nth-of-type(5) .path-node-core {
+  animation-delay: -2s;
+}
+g.path-node:nth-of-type(6) .path-node-core {
+  animation-delay: -2.5s;
+}
+g.path-node:nth-of-type(7) .path-node-core {
+  animation-delay: -3s;
+}
+
+@keyframes svg-breathe {
+  0%,
+  100% {
+    transform: translate(-50%, -50%) scale(1);
+  }
+  50% {
+    transform: translate(-50%, -50%) scale(1.03);
+  }
 }
 
 .animated-background-overlay {
@@ -26,56 +188,37 @@
   width: 100%;
   height: 100%;
   background:
-    /* Soft radial ambiance — violet/teal, prediction-market feel */
-    radial-gradient(ellipse 100% 80% at 70% 20%, rgba(139, 92, 246, 0.06) 0%, transparent 55%),
-    radial-gradient(ellipse 90% 70% at 30% 80%, rgba(34, 211, 238, 0.05) 0%, transparent 50%),
-    radial-gradient(circle at 50% 50%, rgba(139, 92, 246, 0.03) 0%, transparent 60%),
-    /* Outcome split — very subtle diagonal bands (two paths / Yes–No) */
-    linear-gradient(165deg, transparent 0%, rgba(139, 92, 246, 0.02) 48%, transparent 52%),
-    linear-gradient(195deg, transparent 0%, rgba(34, 211, 238, 0.015) 48%, transparent 52%),
-    /* Subtle grid — theme-aligned */
-    repeating-linear-gradient(
-      0deg,
-      transparent,
-      transparent 2px,
-      rgba(139, 92, 246, 0.028) 2px,
-      rgba(139, 92, 246, 0.028) 4px
-    ),
-    repeating-linear-gradient(
-      90deg,
-      transparent,
-      transparent 2px,
-      rgba(139, 92, 246, 0.028) 2px,
-      rgba(139, 92, 246, 0.028) 4px
-    );
+    radial-gradient(ellipse 100% 80% at 72% 18%, rgba(34, 211, 238, 0.05) 0%, transparent 52%),
+    radial-gradient(ellipse 90% 70% at 28% 82%, rgba(168, 85, 247, 0.045) 0%, transparent 48%),
+    linear-gradient(165deg, transparent 0%, rgba(0, 0, 0, 0.12) 50%, transparent 100%);
   pointer-events: none;
-  animation: overlayPulse 16s ease-in-out infinite;
+  animation: overlayPulse 18s ease-in-out infinite;
 }
 
 @keyframes overlayPulse {
-  0%, 100% {
+  0%,
+  100% {
     opacity: 1;
   }
   50% {
-    opacity: 0.9;
+    opacity: 0.88;
   }
 }
 
-/* Soft gradient bands — theme blend, no glowing orbs */
 .animated-background-overlay::before {
   content: '';
   position: absolute;
   inset: 0;
   background: linear-gradient(
-    135deg,
+    125deg,
     transparent 0%,
-    rgba(139, 92, 246, 0.03) 25%,
-    transparent 50%,
-    rgba(34, 211, 238, 0.02) 75%,
+    rgba(34, 211, 238, 0.025) 30%,
+    transparent 55%,
+    rgba(168, 85, 247, 0.02) 80%,
     transparent 100%
   );
   pointer-events: none;
-  animation: bandShift 25s ease-in-out infinite;
+  animation: bandShift 28s ease-in-out infinite;
 }
 
 .animated-background-overlay::after {
@@ -83,40 +226,52 @@
   position: absolute;
   inset: 0;
   background: linear-gradient(
-    315deg,
+    305deg,
     transparent 0%,
-    rgba(34, 211, 238, 0.02) 40%,
-    transparent 70%
+    rgba(168, 85, 247, 0.018) 42%,
+    transparent 72%
   );
   pointer-events: none;
-  animation: bandShift 30s ease-in-out infinite reverse;
+  animation: bandShift 34s ease-in-out infinite reverse;
 }
 
 @keyframes bandShift {
-  0%, 100% {
+  0%,
+  100% {
     opacity: 1;
   }
   50% {
-    opacity: 0.6;
+    opacity: 0.55;
   }
 }
 
-/* Ensure content is above background */
 .app {
   position: relative;
   z-index: 1;
 }
 
-/* Performance optimization */
-.animated-background-canvas {
-  will-change: contents;
-}
-
 @media (prefers-reduced-motion: reduce) {
+  .animated-background-svg,
+  .neon-ribbon,
+  .neon-dash,
+  .path-node-neon,
+  .path-node-core,
   .animated-background-overlay,
   .animated-background-overlay::before,
   .animated-background-overlay::after {
     animation: none;
   }
-}
 
+  .neon-dash-forward,
+  .neon-dash-reverse {
+    stroke-dashoffset: 0;
+  }
+
+  .neon-ribbon-cyan {
+    opacity: 0.5;
+  }
+
+  .neon-ribbon-magenta {
+    opacity: 0.38;
+  }
+}
