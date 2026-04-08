@@ -1,6 +1,6 @@
 {
   "name": "dice-express",
-  "version": "1.0.38",
+  "version": "1.0.39",
   "description": "dice.express — prediction markets with Pips on Cloudflare",
   "dependencies": {
     "@solana/spl-token": "^0.4.14",

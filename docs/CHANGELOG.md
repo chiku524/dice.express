@@ -4,6 +4,11 @@ Summary of major cleanups and improvements. For current structure see [README](.
 
 ---
 
+## 1.0.39 — Near-black background (April 2026)
+
+- **Release:** Version **1.0.39**; tag **`v1.0.39`** for desktop CI and GitHub Releases.
+- **Frontend:** **`AnimatedBackground`** base and stone stops darkened toward **near black** (#020203 family); softer radial lifts, black vignette overlay, lighter grain; engraved vein strokes and SVG opacity tuned to match.
+
 ## 1.0.38 — Boing-style backdrop + desktop background (April 2026)
 
 - **Release:** Version **1.0.38**; tag **`v1.0.38`** for desktop CI and GitHub Releases.

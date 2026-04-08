@@ -96,7 +96,7 @@ export default function AnimatedBackground() {
             className="ab-vein-shadow"
             d={MAIN_PATH_D}
             fill="none"
-            stroke="#020308"
+            stroke="#010102"
             strokeWidth={9}
             strokeLinecap="round"
             strokeLinejoin="round"
@@ -105,7 +105,7 @@ export default function AnimatedBackground() {
             className="ab-vein-shadow"
             d={MAIN_PATH_D}
             fill="none"
-            stroke="#0a0e14"
+            stroke="#040508"
             strokeWidth={5}
             strokeLinecap="round"
             strokeLinejoin="round"

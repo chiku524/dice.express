@@ -8,21 +8,22 @@
   height: 100vh;
   z-index: 0;
   overflow: hidden;
-  background: #06080c;
+  background: #020203;
 }
 
 .animated-background-stone {
   position: absolute;
   inset: 0;
   pointer-events: none;
-  --stone-deep: #06080c;
-  --stone-mid: #0c1018;
-  --stone-vein: #121a24;
+  /* Near-black slab — slightly cooler mid/vein so texture still reads */
+  --stone-deep: #020203;
+  --stone-mid: #050608;
+  --stone-vein: #080a0f;
   background:
-    radial-gradient(ellipse 100% 55% at 15% -5%, rgba(55, 68, 88, 0.22) 0%, transparent 52%),
-    radial-gradient(ellipse 80% 50% at 92% 12%, rgba(40, 48, 62, 0.18) 0%, transparent 48%),
-    radial-gradient(ellipse 70% 45% at 8% 88%, rgba(35, 42, 54, 0.2) 0%, transparent 50%),
-    radial-gradient(ellipse 90% 60% at 78% 96%, rgba(48, 58, 72, 0.15) 0%, transparent 55%),
+    radial-gradient(ellipse 100% 55% at 15% -5%, rgba(45, 55, 72, 0.12) 0%, transparent 52%),
+    radial-gradient(ellipse 80% 50% at 92% 12%, rgba(32, 40, 52, 0.1) 0%, transparent 48%),
+    radial-gradient(ellipse 70% 45% at 8% 88%, rgba(28, 34, 44, 0.11) 0%, transparent 50%),
+    radial-gradient(ellipse 90% 60% at 78% 96%, rgba(38, 46, 58, 0.09) 0%, transparent 55%),
     linear-gradient(168deg, var(--stone-deep) 0%, var(--stone-mid) 42%, var(--stone-vein) 100%);
 }
 
@@ -30,13 +31,13 @@
   content: '';
   position: absolute;
   inset: 0;
-  opacity: 0.35;
+  opacity: 0.42;
   background-image: repeating-linear-gradient(
     -18deg,
     transparent,
     transparent 2px,
-    rgba(0, 0, 0, 0.045) 2px,
-    rgba(0, 0, 0, 0.045) 3px
+    rgba(0, 0, 0, 0.06) 2px,
+    rgba(0, 0, 0, 0.06) 3px
   );
   mix-blend-mode: multiply;
   pointer-events: none;
@@ -45,7 +46,7 @@
 .animated-background-grain {
   position: absolute;
   inset: 0;
-  opacity: 0.07;
+  opacity: 0.055;
   background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
   mix-blend-mode: overlay;
   pointer-events: none;
@@ -312,7 +313,7 @@
   display: block;
   pointer-events: none;
   z-index: 0;
-  opacity: 0.55;
+  opacity: 0.48;
   animation: ab-svg-breathe 26s ease-in-out infinite;
 }
 
@@ -387,9 +388,9 @@
   height: 100%;
   z-index: 2;
   background:
-    radial-gradient(ellipse 100% 75% at 70% 15%, rgba(0, 232, 200, 0.04) 0%, transparent 50%),
-    radial-gradient(ellipse 85% 65% at 25% 85%, rgba(0, 180, 216, 0.035) 0%, transparent 48%),
-    linear-gradient(165deg, transparent 0%, rgba(5, 12, 24, 0.2) 50%, transparent 100%);
+    radial-gradient(ellipse 100% 75% at 70% 15%, rgba(0, 232, 200, 0.028) 0%, transparent 50%),
+    radial-gradient(ellipse 85% 65% at 25% 85%, rgba(0, 180, 216, 0.024) 0%, transparent 48%),
+    linear-gradient(165deg, transparent 0%, rgba(0, 0, 0, 0.28) 50%, transparent 100%);
   pointer-events: none;
   animation: ab-overlay-pulse 20s ease-in-out infinite;
 }
@@ -411,9 +412,9 @@
   background: linear-gradient(
     120deg,
     transparent 0%,
-    rgba(0, 232, 200, 0.02) 32%,
+    rgba(0, 232, 200, 0.014) 32%,
     transparent 58%,
-    rgba(90, 176, 255, 0.018) 82%,
+    rgba(90, 176, 255, 0.012) 82%,
     transparent 100%
   );
   pointer-events: none;
@@ -427,7 +428,7 @@
   background: linear-gradient(
     300deg,
     transparent 0%,
-    rgba(124, 108, 240, 0.015) 45%,
+    rgba(124, 108, 240, 0.01) 45%,
     transparent 75%
   );
   pointer-events: none;
