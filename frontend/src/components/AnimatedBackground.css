@@ -1,3 +1,5 @@
+/* Aligned with boing.express: --stone-deep / mid / vein, grain, scratch hatching, neon orbs */
+
 .animated-background {
   position: fixed;
   top: 0;
@@ -6,29 +8,296 @@
   height: 100vh;
   z-index: 0;
   overflow: hidden;
-  background: #0c0b0e;
+  background: #06080c;
 }
 
-/* Slate / stone slab base */
 .animated-background-stone {
   position: absolute;
   inset: 0;
   pointer-events: none;
+  --stone-deep: #06080c;
+  --stone-mid: #0c1018;
+  --stone-vein: #121a24;
   background:
-    radial-gradient(ellipse 120% 70% at 50% 0%, rgba(55, 48, 40, 0.45) 0%, transparent 55%),
-    radial-gradient(ellipse 90% 60% at 85% 75%, rgba(30, 35, 48, 0.5) 0%, transparent 50%),
-    radial-gradient(ellipse 80% 50% at 10% 60%, rgba(38, 36, 32, 0.35) 0%, transparent 45%),
-    linear-gradient(168deg, #141218 0%, #0e0d10 35%, #12141c 70%, #0a090c 100%);
+    radial-gradient(ellipse 100% 55% at 15% -5%, rgba(55, 68, 88, 0.22) 0%, transparent 52%),
+    radial-gradient(ellipse 80% 50% at 92% 12%, rgba(40, 48, 62, 0.18) 0%, transparent 48%),
+    radial-gradient(ellipse 70% 45% at 8% 88%, rgba(35, 42, 54, 0.2) 0%, transparent 50%),
+    radial-gradient(ellipse 90% 60% at 78% 96%, rgba(48, 58, 72, 0.15) 0%, transparent 55%),
+    linear-gradient(168deg, var(--stone-deep) 0%, var(--stone-mid) 42%, var(--stone-vein) 100%);
 }
 
 .animated-background-stone::after {
   content: '';
   position: absolute;
   inset: 0;
-  opacity: 0.14;
+  opacity: 0.35;
+  background-image: repeating-linear-gradient(
+    -18deg,
+    transparent,
+    transparent 2px,
+    rgba(0, 0, 0, 0.045) 2px,
+    rgba(0, 0, 0, 0.045) 3px
+  );
+  mix-blend-mode: multiply;
+  pointer-events: none;
+}
+
+.animated-background-grain {
+  position: absolute;
+  inset: 0;
+  opacity: 0.07;
   background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
   mix-blend-mode: overlay;
   pointer-events: none;
+}
+
+/* ---- Floating neon layer (boing-style orbs, arcs, dashes, dots) ---- */
+.animated-background-neon-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.ab-neon {
+  position: absolute;
+  will-change: transform, opacity;
+}
+
+.ab-neon-orb {
+  border-radius: 50%;
+  width: min(28vw, 220px);
+  height: min(28vw, 220px);
+  opacity: var(--ab-neon-base-o, 0.55);
+  animation-name: ab-neon-pulse;
+  animation-timing-function: ease-in-out;
+  animation-iteration-count: infinite;
+  animation-delay: var(--ab-neon-delay, 0s);
+}
+
+.ab-neon-a {
+  --ab-neon-c: #4a9fe8;
+  left: 8%;
+  top: 6%;
+  animation-duration: 8s;
+  --ab-neon-delay: 0s;
+  --ab-neon-base-o: 0.45;
+  background: radial-gradient(
+    circle at 35% 35%,
+    rgba(74, 159, 232, 0.22) 0%,
+    rgba(74, 159, 232, 0.06) 42%,
+    transparent 68%
+  );
+  box-shadow:
+    0 0 28px 12px rgba(74, 159, 232, 0.14),
+    0 0 56px 28px rgba(74, 159, 232, 0.07),
+    inset 0 0 22px rgba(74, 159, 232, 0.08);
+}
+
+.ab-neon-b {
+  --ab-neon-c: #7c6cf0;
+  right: 4%;
+  top: 22%;
+  width: min(22vw, 160px);
+  height: min(22vw, 160px);
+  animation-duration: 9.5s;
+  --ab-neon-delay: -2s;
+  --ab-neon-base-o: 0.38;
+  background: radial-gradient(
+    circle at 40% 40%,
+    rgba(124, 108, 240, 0.2) 0%,
+    rgba(124, 108, 240, 0.05) 45%,
+    transparent 70%
+  );
+  box-shadow:
+    0 0 24px 10px rgba(124, 108, 240, 0.12),
+    0 0 48px 22px rgba(124, 108, 240, 0.06),
+    inset 0 0 18px rgba(124, 108, 240, 0.07);
+}
+
+.ab-neon-c {
+  --ab-neon-c: #5ecf9a;
+  left: 2%;
+  bottom: 12%;
+  width: min(32vw, 240px);
+  height: min(32vw, 240px);
+  animation-duration: 10s;
+  --ab-neon-delay: -4.5s;
+  --ab-neon-base-o: 0.32;
+  background: radial-gradient(
+    circle at 30% 30%,
+    rgba(94, 207, 154, 0.18) 0%,
+    rgba(94, 207, 154, 0.05) 44%,
+    transparent 68%
+  );
+  box-shadow:
+    0 0 32px 14px rgba(94, 207, 154, 0.1),
+    0 0 60px 28px rgba(94, 207, 154, 0.05),
+    inset 0 0 20px rgba(94, 207, 154, 0.06);
+}
+
+.ab-neon-arc {
+  width: min(42vw, 320px);
+  height: min(42vw, 320px);
+  border-radius: 50%;
+  border: 1px solid rgba(90, 176, 255, 0.28);
+  background: transparent;
+  box-shadow:
+    0 0 14px 2px rgba(90, 176, 255, 0.12),
+    0 0 32px 8px rgba(90, 176, 255, 0.06),
+    inset 0 0 12px rgba(90, 176, 255, 0.05);
+  opacity: 0.4;
+  animation: ab-neon-drift 16s ease-in-out infinite;
+}
+
+.ab-neon-d {
+  right: -8%;
+  top: 38%;
+  clip-path: inset(0 48% 48% 0);
+  animation-delay: -1s;
+}
+
+.ab-neon-e {
+  --ab-neon-c: #b894f5;
+  left: -12%;
+  bottom: 18%;
+  clip-path: inset(48% 0 0 42%);
+  width: min(48vw, 360px);
+  height: min(48vw, 360px);
+  border-color: rgba(184, 148, 245, 0.26);
+  box-shadow:
+    0 0 16px 3px rgba(184, 148, 245, 0.1),
+    0 0 36px 10px rgba(184, 148, 245, 0.05),
+    inset 0 0 14px rgba(184, 148, 245, 0.05);
+  opacity: 0.32;
+  animation-duration: 18s;
+  animation-delay: -7s;
+}
+
+.ab-neon-dash {
+  height: 2px;
+  width: min(36vw, 280px);
+  border-radius: 999px;
+  opacity: 0.5;
+  animation: ab-neon-shimmer 6s ease-in-out infinite;
+}
+
+.ab-neon-f {
+  --ab-neon-c: #4a9fe8;
+  left: 18%;
+  top: 52%;
+  transform: rotate(-18deg);
+  animation-delay: -0.8s;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(74, 159, 232, 0.55) 22%,
+    rgba(74, 159, 232, 0.35) 78%,
+    transparent
+  );
+  box-shadow:
+    0 0 10px 3px rgba(74, 159, 232, 0.18),
+    0 0 24px 8px rgba(74, 159, 232, 0.08);
+}
+
+.ab-neon-g {
+  --ab-neon-c: #6ee0c0;
+  right: 12%;
+  bottom: 28%;
+  width: min(28vw, 200px);
+  transform: rotate(24deg);
+  animation-duration: 7s;
+  animation-delay: -3.2s;
+  opacity: 0.42;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(110, 224, 192, 0.5) 30%,
+    rgba(110, 224, 192, 0.3) 70%,
+    transparent
+  );
+  box-shadow:
+    0 0 10px 3px rgba(110, 224, 192, 0.15),
+    0 0 22px 7px rgba(110, 224, 192, 0.07);
+}
+
+.ab-neon-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: rgba(200, 230, 255, 0.85);
+  box-shadow:
+    0 0 8px 3px rgba(126, 184, 255, 0.35),
+    0 0 20px 6px rgba(126, 184, 255, 0.15);
+  opacity: 0.65;
+  animation: ab-neon-blink 3.2s ease-in-out infinite;
+}
+
+.ab-neon-h {
+  left: 72%;
+  top: 14%;
+  animation-duration: 4s;
+  animation-delay: -1.5s;
+}
+
+.ab-neon-i {
+  left: 42%;
+  bottom: 8%;
+  animation-duration: 3.6s;
+  animation-delay: -2.2s;
+  box-shadow:
+    0 0 8px 3px rgba(159, 143, 255, 0.35),
+    0 0 20px 6px rgba(159, 143, 255, 0.15);
+}
+
+@keyframes ab-neon-pulse {
+  0%,
+  100% {
+    opacity: var(--ab-neon-base-o, 0.5);
+    transform: scale(1) translate(0, 0);
+  }
+  50% {
+    opacity: calc(var(--ab-neon-base-o, 0.5) * 1.35);
+    transform: scale(1.06) translate(1%, -0.8%);
+  }
+}
+
+@keyframes ab-neon-drift {
+  0%,
+  100% {
+    opacity: 0.28;
+    transform: rotate(0) scale(1);
+  }
+  50% {
+    opacity: 0.48;
+    transform: rotate(6deg) scale(1.03);
+  }
+}
+
+@keyframes ab-neon-shimmer {
+  0%,
+  100% {
+    opacity: 0.35;
+    filter: brightness(0.92);
+  }
+  50% {
+    opacity: 0.62;
+    filter: brightness(1.08);
+  }
+}
+
+@keyframes ab-neon-blink {
+  0%,
+  100% {
+    opacity: 0.4;
+    transform: scale(1);
+  }
+  45%,
+  55% {
+    opacity: 0.85;
+    transform: scale(1.15);
+  }
 }
 
 .animated-background-svg {
@@ -42,142 +311,71 @@
   transform: translate(-50%, -50%);
   display: block;
   pointer-events: none;
-  animation: svg-breathe 24s ease-in-out infinite;
+  z-index: 0;
+  opacity: 0.55;
+  animation: ab-svg-breathe 26s ease-in-out infinite;
 }
 
 .animated-background-parallax {
   will-change: transform;
 }
 
-.engraved-path {
+.ab-vein-shadow,
+.ab-vein-face {
   vector-effect: non-scaling-stroke;
 }
 
-.neon-ribbon {
+.ab-trace-glow {
   vector-effect: non-scaling-stroke;
-  animation: neon-pulse-opacity 5.5s ease-in-out infinite;
+  animation: ab-trace-pulse 7s ease-in-out infinite;
 }
 
-.neon-ribbon-magenta {
-  animation-delay: -2.75s;
-}
-
-@keyframes neon-pulse-opacity {
-  0%,
-  100% {
-    opacity: 0.35;
-  }
-  50% {
-    opacity: 0.75;
-  }
-}
-
-.neon-ribbon-cyan {
-  animation-duration: 6.2s;
-}
-
-.neon-dash {
+.ab-trace-dash {
   fill: none;
   vector-effect: non-scaling-stroke;
-  stroke-dasharray: 42 118;
+  stroke-dasharray: 38 108;
   stroke-dashoffset: 0;
 }
 
-.neon-dash-forward {
-  animation: neon-dash-flow 19s linear infinite;
+.ab-trace-dash-forward {
+  animation: ab-dash-flow 21s linear infinite;
 }
 
-.neon-dash-reverse {
-  stroke-dasharray: 28 92;
-  animation: neon-dash-flow-reverse 26s linear infinite;
-  opacity: 0.85;
+.ab-trace-dash-reverse {
+  stroke-dasharray: 26 88;
+  animation: ab-dash-flow-reverse 29s linear infinite;
+  opacity: 0.75;
 }
 
-@keyframes neon-dash-flow {
-  to {
-    stroke-dashoffset: -640;
-  }
-}
-
-@keyframes neon-dash-flow-reverse {
-  to {
-    stroke-dashoffset: 640;
-  }
-}
-
-.path-node-neon {
-  animation: node-glow 4s ease-in-out infinite;
-}
-
-g.path-node:nth-of-type(2) .path-node-neon {
-  animation-delay: -0.65s;
-}
-g.path-node:nth-of-type(3) .path-node-neon {
-  animation-delay: -1.3s;
-}
-g.path-node:nth-of-type(4) .path-node-neon {
-  animation-delay: -1.95s;
-}
-g.path-node:nth-of-type(5) .path-node-neon {
-  animation-delay: -2.6s;
-}
-g.path-node:nth-of-type(6) .path-node-neon {
-  animation-delay: -3.25s;
-}
-g.path-node:nth-of-type(7) .path-node-neon {
-  animation-delay: -3.9s;
-}
-
-@keyframes node-glow {
+@keyframes ab-trace-pulse {
   0%,
   100% {
-    opacity: 0.65;
+    opacity: 0.28;
   }
   50% {
-    opacity: 1;
+    opacity: 0.42;
   }
 }
 
-.path-node-core {
-  animation: node-core-pulse 3.2s ease-in-out infinite;
-}
-
-@keyframes node-core-pulse {
-  0%,
-  100% {
-    fill-opacity: 0.22;
-  }
-  50% {
-    fill-opacity: 0.5;
+@keyframes ab-dash-flow {
+  to {
+    stroke-dashoffset: -620;
   }
 }
 
-g.path-node:nth-of-type(2) .path-node-core {
-  animation-delay: -0.5s;
-}
-g.path-node:nth-of-type(3) .path-node-core {
-  animation-delay: -1s;
-}
-g.path-node:nth-of-type(4) .path-node-core {
-  animation-delay: -1.5s;
-}
-g.path-node:nth-of-type(5) .path-node-core {
-  animation-delay: -2s;
-}
-g.path-node:nth-of-type(6) .path-node-core {
-  animation-delay: -2.5s;
-}
-g.path-node:nth-of-type(7) .path-node-core {
-  animation-delay: -3s;
+@keyframes ab-dash-flow-reverse {
+  to {
+    stroke-dashoffset: 620;
+  }
 }
 
-@keyframes svg-breathe {
+@keyframes ab-svg-breathe {
   0%,
   100% {
     transform: translate(-50%, -50%) scale(1);
   }
   50% {
-    transform: translate(-50%, -50%) scale(1.03);
+    transform: translate(-50%, -50%) scale(1.025);
   }
 }
 
@@ -187,21 +385,22 @@ g.path-node:nth-of-type(7) .path-node-core {
   left: 0;
   width: 100%;
   height: 100%;
+  z-index: 2;
   background:
-    radial-gradient(ellipse 100% 80% at 72% 18%, rgba(34, 211, 238, 0.05) 0%, transparent 52%),
-    radial-gradient(ellipse 90% 70% at 28% 82%, rgba(168, 85, 247, 0.045) 0%, transparent 48%),
-    linear-gradient(165deg, transparent 0%, rgba(0, 0, 0, 0.12) 50%, transparent 100%);
+    radial-gradient(ellipse 100% 75% at 70% 15%, rgba(0, 232, 200, 0.04) 0%, transparent 50%),
+    radial-gradient(ellipse 85% 65% at 25% 85%, rgba(0, 180, 216, 0.035) 0%, transparent 48%),
+    linear-gradient(165deg, transparent 0%, rgba(5, 12, 24, 0.2) 50%, transparent 100%);
   pointer-events: none;
-  animation: overlayPulse 18s ease-in-out infinite;
+  animation: ab-overlay-pulse 20s ease-in-out infinite;
 }
 
-@keyframes overlayPulse {
+@keyframes ab-overlay-pulse {
   0%,
   100% {
     opacity: 1;
   }
   50% {
-    opacity: 0.88;
+    opacity: 0.9;
   }
 }
 
@@ -210,15 +409,15 @@ g.path-node:nth-of-type(7) .path-node-core {
   position: absolute;
   inset: 0;
   background: linear-gradient(
-    125deg,
+    120deg,
     transparent 0%,
-    rgba(34, 211, 238, 0.025) 30%,
-    transparent 55%,
-    rgba(168, 85, 247, 0.02) 80%,
+    rgba(0, 232, 200, 0.02) 32%,
+    transparent 58%,
+    rgba(90, 176, 255, 0.018) 82%,
     transparent 100%
   );
   pointer-events: none;
-  animation: bandShift 28s ease-in-out infinite;
+  animation: ab-band-shift 30s ease-in-out infinite;
 }
 
 .animated-background-overlay::after {
@@ -226,16 +425,16 @@ g.path-node:nth-of-type(7) .path-node-core {
   position: absolute;
   inset: 0;
   background: linear-gradient(
-    305deg,
+    300deg,
     transparent 0%,
-    rgba(168, 85, 247, 0.018) 42%,
-    transparent 72%
+    rgba(124, 108, 240, 0.015) 45%,
+    transparent 75%
   );
   pointer-events: none;
-  animation: bandShift 34s ease-in-out infinite reverse;
+  animation: ab-band-shift 36s ease-in-out infinite reverse;
 }
 
-@keyframes bandShift {
+@keyframes ab-band-shift {
   0%,
   100% {
     opacity: 1;
@@ -252,26 +451,37 @@ g.path-node:nth-of-type(7) .path-node-core {
 
 @media (prefers-reduced-motion: reduce) {
   .animated-background-svg,
-  .neon-ribbon,
-  .neon-dash,
-  .path-node-neon,
-  .path-node-core,
+  .ab-trace-glow,
+  .ab-trace-dash,
   .animated-background-overlay,
   .animated-background-overlay::before,
-  .animated-background-overlay::after {
-    animation: none;
+  .animated-background-overlay::after,
+  .animated-background-neon-layer .ab-neon {
+    animation: none !important;
   }
 
-  .neon-dash-forward,
-  .neon-dash-reverse {
+  .ab-neon-orb {
+    opacity: calc(var(--ab-neon-base-o, 0.5) * 0.85);
+  }
+
+  .ab-neon-arc {
+    opacity: 0.32;
+  }
+
+  .ab-neon-dash {
+    opacity: 0.42;
+  }
+
+  .ab-neon-dot {
+    opacity: 0.55;
+  }
+
+  .ab-trace-dash-forward,
+  .ab-trace-dash-reverse {
     stroke-dashoffset: 0;
   }
 
-  .neon-ribbon-cyan {
-    opacity: 0.5;
-  }
-
-  .neon-ribbon-magenta {
-    opacity: 0.38;
+  .ab-trace-glow {
+    opacity: 0.32;
   }
 }

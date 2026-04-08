@@ -135,14 +135,18 @@ function RootLayout({ showWalletModal, setShowWalletModal }) {
 
   if (isTauri) {
     return (
-      <div className="app app--desktop-shell">
-        <DesktopSidebar />
-        <main className="app-main-desktop">{outlet}</main>
-        <WalletModal
-          isOpen={showWalletModal}
-          onClose={() => setShowWalletModal(false)}
-        />
-      </div>
+      <>
+        {/* Same full-viewport backdrop as web; was missing here so desktop never showed it */}
+        <AnimatedBackground />
+        <div className="app app--desktop-shell">
+          <DesktopSidebar />
+          <main className="app-main-desktop">{outlet}</main>
+          <WalletModal
+            isOpen={showWalletModal}
+            onClose={() => setShowWalletModal(false)}
+          />
+        </div>
+      </>
     )
   }
 

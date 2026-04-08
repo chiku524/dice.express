@@ -4,6 +4,12 @@ Summary of major cleanups and improvements. For current structure see [README](.
 
 ---
 
+## 1.0.38 — Boing-style backdrop + desktop background (April 2026)
+
+- **Release:** Version **1.0.38**; tag **`v1.0.38`** for desktop CI and GitHub Releases.
+- **Frontend:** Full-viewport background reworked toward **boing.express**-style cool stone slab, scratch hatching, grain, floating neon orbs/arcs/dashes/dots, and subtler engraved veins with motion.
+- **Desktop (Tauri):** **`AnimatedBackground`** now mounts in the main shell (was web/auth-only); **`app--desktop-shell`** background is **transparent** so the backdrop is visible behind the sidebar and content.
+
 ## 1.0.37 — Engraved stone background (April 2026)
 
 - **Release:** Version **1.0.37**; tag **`v1.0.37`** for desktop CI and GitHub Releases.

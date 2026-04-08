@@ -121,12 +121,8 @@ html.desktop-app .app.app--desktop-shell {
   width: 100%;
   margin: 0;
   padding: 0;
-  background: linear-gradient(
-    160deg,
-    rgba(6, 8, 14, 1) 0%,
-    rgba(10, 14, 24, 1) 45%,
-    rgba(8, 10, 18, 1) 100%
-  );
+  /* Let fixed AnimatedBackground (boing-style stone + neon) show through */
+  background: transparent;
 }
 
 .app-main-desktop {
