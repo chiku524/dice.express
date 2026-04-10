@@ -12,6 +12,7 @@ export const ODDS_SPORT_KEYS_SEED = [
   'soccer_epl',
   'soccer_usa_mls',
   'americanfootball_ncaaf',
+  'mma_mixed_martial_arts',
 ]
 
 /** GNews top-headlines categories (API-supported). */
@@ -49,6 +50,18 @@ export const NEWS_QUERY_ROTATION = [
   'rare earth minerals export',
   'Arctic ice extent record',
   'WHO pandemic preparedness',
+  'ocean shipping disruption',
+  'wildfire smoke air quality',
+  'student loan forgiveness court',
+  'quantum computing breakthrough',
+  'copper lithium mining Africa',
+  'humanitarian aid Gaza Sudan',
+  'bankruptcy regional lenders',
+  'solar tariff trade dispute',
+  'deepfake election disinformation',
+  'mRNA vaccine seasonal flu',
+  'Amazon labor union vote',
+  'F1 Grand Prix championship',
 ]
 
 /** ECB cross-rates for rotating FX threshold markets (Frankfurter). */

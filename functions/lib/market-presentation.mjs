@@ -68,6 +68,93 @@ function hookVariant(seed, variants) {
   return variants[h % variants.length]
 }
 
+/** Readable lane name for discovery copy (not an oracle contract). */
+function automationLaneLabel(ev) {
+  const oracle = String(ev?.oracleSource || ev?.source || '').trim()
+  const map = {
+    the_odds_api: 'Sports moneyline (The Odds API)',
+    alpha_vantage: 'U.S. equities (Alpha Vantage GLOBAL_QUOTE)',
+    alpha_vantage_trend: 'Equity trend threshold (Alpha Vantage)',
+    massive: 'U.S. equities (Massive daily aggregates)',
+    coingecko: 'Crypto spot (CoinGecko)',
+    coingecko_trend: 'Crypto short-horizon trend (CoinGecko)',
+    openweathermap: 'Weather forecast (OpenWeather)',
+    weatherapi: 'Weather forecast (WeatherAPI.com)',
+    gnews: 'News headlines (GNews)',
+    perigon: 'News search (Perigon)',
+    newsapi_ai: 'News search (NewsAPI.ai)',
+    newsdata_io: 'News search (NewsData.io)',
+    frankfurter: 'FX ECB reference (Frankfurter)',
+    fred: 'Macro rates (FRED)',
+    finnhub: 'Earnings calendar (Finnhub)',
+    usgs: 'Earthquake catalogue (USGS)',
+    fec: 'Campaign finance (OpenFEC)',
+    nasa_neo: 'Near-Earth objects (NASA NeoWs)',
+    congress_gov: 'Legislative metadata (Congress.gov)',
+    bls: 'Labor statistics (BLS)',
+    operator_manual: 'Operator-assisted news resolution',
+  }
+  if (map[oracle]) return map[oracle]
+  if (oracle) return oracle.replace(/_/g, ' ')
+  return 'Automated feed'
+}
+
+/**
+ * Structured, semantic anchor from event fields (oracle-neutral summary of what the contract references).
+ */
+function semanticAnchorLine(ev) {
+  if (!ev || typeof ev !== 'object') return ''
+  const oc = ev.oracleConfig && typeof ev.oracleConfig === 'object' ? ev.oracleConfig : {}
+  const oracle = String(ev.oracleSource || ev.source || '')
+
+  if (ev.homeTeam && ev.awayTeam) {
+    const league = ev.sportKey ? String(ev.sportKey).replace(/_/g, ' ') : 'scheduled fixture'
+    return `Matchup: ${ev.homeTeam} (home) vs ${ev.awayTeam} (away) · ${league}.`
+  }
+  if (ev.symbol != null && String(ev.symbol).trim() && ev.threshold != null) {
+    const unit = oracle === 'coingecko' || oracle === 'coingecko_trend' ? 'USD spot' : 'quoted threshold'
+    return `Instrument ${String(ev.symbol).trim()}; ${unit} $${ev.threshold}.`
+  }
+  if (ev.coinId && ev.threshold != null) {
+    const sym = ev.symbol ? String(ev.symbol) : String(ev.coinId)
+    return `${sym} (CoinGecko id ${ev.coinId}); strike $${ev.threshold} USD.`
+  }
+  if (ev.city && ev.date) {
+    return `Place & window: ${ev.city} · calendar date ${String(ev.date).slice(0, 10)} (UTC day boundary for resolution).`
+  }
+  if (oc.seriesId && oc.threshold != null && oracle === 'fred') {
+    return `FRED series ${oc.seriesId}; comparator ${oc.comparator || 'rule in criteria'}; horizon through ${oc.endDate || ev.endDate || 'deadline'}.`
+  }
+  if (oc.base && oc.quote && oc.threshold != null && oracle === 'frankfurter') {
+    return `ECB reference cross ${oc.base}/${oc.quote}; stored threshold ${oc.threshold}.`
+  }
+  if (oc.finnhubSymbol && oc.epsEstimate != null) {
+    return `${oc.finnhubSymbol} Q${oc.quarter} ${oc.year} EPS vs consensus floor $${oc.epsEstimate} (report ~${oc.reportDate || 'TBD'}).`
+  }
+  if (oc.outcomeResolutionKind === 'usgs_count') {
+    return `USGS FDSNWS count ${oc.usgsStartYmd}→${oc.usgsEndYmd}, M≥${oc.minMagnitude}, minimum ${oc.minCount} events.`
+  }
+  if (oc.outcomeResolutionKind === 'nasa_neo_count') {
+    return `NASA NeoWs element_count ${oc.nasaNeoStartYmd}→${oc.nasaNeoEndYmd}; minimum ${oc.neoMinCount}.`
+  }
+  if (oc.outcomeResolutionKind === 'bls_cpi') {
+    return `BLS CPI-U ${oc.blsSeriesId}; index floor ${oc.thresholdIndex} by ${oc.endDate || ev.endDate || 'deadline'}.`
+  }
+  if (oc.outcomeResolutionKind === 'congress_feed_count') {
+    return `Congress.gov session ${oc.congress}; first-page bill array must stay ≥ ${oc.minBillCount} rows.`
+  }
+  if (oc.outcomeResolutionKind === 'fec_presidential_lead') {
+    return `OpenFEC presidential receipts leader for ${oc.fecElectionYear}; anchored candidate ${oc.leaderCandidateId}.`
+  }
+  const seedQ = oc.seedQuery || oc.q
+  const cat = oc.category
+  const bits = []
+  if (cat) bits.push(`GNews-style category “${String(cat)}”`)
+  if (seedQ) bits.push(`discovery query “${clip(String(seedQ), 120)}”`)
+  if (bits.length) return `Headline pipeline: ${bits.join(' · ')}.`
+  return ''
+}
+
 function outcomeHookLine(ev) {
   const oc = ev?.oracleConfig && typeof ev.oracleConfig === 'object' ? ev.oracleConfig : {}
   if (oc.newsResolutionMode === 'feed_topic_continuation') {
@@ -80,6 +167,7 @@ function outcomeHookLine(ev) {
       'Yes and No map exactly to the published resolution criteria (oracle or feed logic)—not sentiment or voting.',
       'Settlement is automated from the stated data source and rules below; read the precise rule before trading.',
       'This is a binary contract: the resolution section defines sufficient conditions for Yes and for No.',
+      'Trade the rule, not the vibe: only the cited feeds and boolean tests in the criteria can settle the market.',
     ])
   }
   const crit = String(ev?.resolutionCriteria || '').trim()
@@ -91,9 +179,10 @@ function outcomeHookLine(ev) {
 }
 
 function contextLine(ev) {
+  const lane = automationLaneLabel(ev)
+  const anchor = semanticAnchorLine(ev)
   const parts = []
-  const src = String(ev?.source || '').replace(/_/g, ' ')
-  if (src) parts.push(`Seeded from "${src}" automation`)
+  if (lane) parts.push(`Automation lane: ${lane}`)
   const dl = ev?.resolutionDeadline || ev?.endDate
   if (dl && String(dl).length >= 10) {
     try {
@@ -105,12 +194,21 @@ function contextLine(ev) {
       /* ignore */
     }
   }
-  if (!parts.length) return ''
-  return hookVariant(`${src}-${dl || ''}`, [
-    `${parts.join(' · ')}. Read the full criteria before trading.`,
-    `${parts.join(' · ')}. Criteria and oracle fields on this card are authoritative.`,
-    `${parts.join(' · ')}. This text is a summary; the resolution block controls settlement.`,
-  ])
+  const seedKey = `${lane}-${dl || ''}-${anchor.slice(0, 40)}`
+  const base = parts.length ? `${parts.join(' · ')}.` : ''
+  const variants = anchor
+    ? [
+        `${base} ${anchor} Read the full criteria before trading.`,
+        `${base} ${anchor} The oracle block and resolution criteria override any informal wording.`,
+        `${base} ${anchor} Summary only—settlement follows the machine-readable rule text.`,
+      ]
+    : [
+        `${base} Read the full criteria before trading.`,
+        `${base} Criteria and oracle fields on this card are authoritative.`,
+        `${base} This blurb is a guide; the resolution block controls settlement.`,
+      ]
+  if (!base && !anchor) return ''
+  return hookVariant(seedKey, variants.map((s) => s.replace(/^\s*\./, '').trim()))
 }
 
 function mergeDescription(hook, context, existing, title) {
@@ -121,7 +219,9 @@ function mergeDescription(hook, context, existing, title) {
   if (context) blocks.push(context)
   if (ex && ex !== t) {
     const hookPrefix = hook ? hook.slice(0, 48) : ''
-    if (!hookPrefix || !ex.includes(hookPrefix)) blocks.push(ex)
+    const ctxPrefix = context ? context.slice(0, 48) : ''
+    const dupCtx = ctxPrefix && ex.includes(ctxPrefix)
+    if ((!hookPrefix || !ex.includes(hookPrefix)) && !dupCtx) blocks.push(ex)
   }
   return clip(blocks.filter(Boolean).join('\n\n'), 3500)
 }
@@ -140,8 +240,10 @@ export function applyPlayfulOutcomePresentation(ev) {
   }
   const context = contextLine(ev)
   if (oc.newsResolutionMode === 'feed_topic_continuation') {
+    const anchor = semanticAnchorLine(ev)
     const ex = String(ev.description || '').trim()
-    const description = clip([context, ex].filter(Boolean).join('\n\n'), 3500)
+    const lead = [context, anchor].filter(Boolean).join('\n\n')
+    const description = clip([lead, ex].filter(Boolean).join('\n\n'), 3500)
     return { ...ev, title, description }
   }
   const hook = outcomeHookLine(ev)

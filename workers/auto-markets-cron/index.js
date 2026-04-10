@@ -5,12 +5,11 @@
  * AUTO_MARKETS_NEWS_LIMIT (default 50), AUTO_MARKETS_SOURCE (single-source override),
  * AUTO_MARKETS_CRON_ACTIVATE_PENDING (call POST activate_pending after seed when true).
  *
- * Default seed_all uses every entry in `AUTO_MARKET_SOURCES` (including **sports**) on each tick.
+ * Default seed_all does not send `sources`; Pages uses `resolveDefaultSeedSources(env)` (same lanes as
+ * `AUTO_MARKET_SOURCES`, plus optional `stocks_trend` when `AUTO_MARKETS_INCLUDE_STOCKS_TREND=1` on Pages).
  * The Odds API free tier is ~500 req/month; at hourly cron that is roughly one sports request per hour
  * (~720/month) — use a paid Odds plan or set AUTO_MARKETS_SOURCE to a single non-sports source if needed.
  */
-
-import { AUTO_MARKET_SOURCES } from '../../functions/lib/data-sources.mjs'
 
 function clampLimit(n, max = 100) {
   const x = parseInt(String(n), 10)
@@ -42,7 +41,6 @@ export default {
         action: 'seed_all',
         perSourceLimit,
         newsEnrichedPerSourceLimit,
-        sources: [...AUTO_MARKET_SOURCES],
       }
     }
 

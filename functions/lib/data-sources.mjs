@@ -4,6 +4,7 @@
  * Keys are read from env; never hardcode keys.
  */
 
+import { envFlagTrue } from './auto-market-seed.mjs'
 import {
   FRANKFURTER_PAIR_ROTATION,
   deterministicShuffle,
@@ -79,6 +80,9 @@ export async function fetchAlphaVantageQuote(env, symbol = 'AAPL') {
   if (!key) throw new Error('ALPHA_VANTAGE_API_KEY not set')
   const url = `${ALPHA_VANTAGE_BASE}?function=GLOBAL_QUOTE&symbol=${encodeURIComponent(symbol)}&apikey=${key}`
   const data = await fetchApi(url)
+  if (data?.Note || data?.Information) {
+    console.warn('[data-sources] Alpha Vantage', symbol, String(data.Note || data.Information).slice(0, 200))
+  }
   const q = data?.['Global Quote']
   if (!q) return null
   return {
@@ -95,6 +99,9 @@ export async function fetchAlphaVantageQuote(env, symbol = 'AAPL') {
 
 /** List of symbols we can create markets for (sample). */
 export const ALPHA_VANTAGE_SYMBOLS = ['AAPL', 'MSFT', 'GOOGL', 'AMZN', 'NVDA', 'META', 'TSLA', 'BTC', 'ETH']
+
+/** GLOBAL_QUOTE is equity-oriented; BTC/ETH belong on the CoinGecko lane. */
+export const ALPHA_VANTAGE_EQUITY_SYMBOLS = ALPHA_VANTAGE_SYMBOLS.filter((s) => s !== 'BTC' && s !== 'ETH')
 
 /** Extra liquid tickers for news→outcome promotion (earnings + price). */
 export const NEWS_OUTCOME_EXTRA_TICKERS = [
@@ -120,6 +127,11 @@ export async function fetchCoinGeckoPrice(env, coinIds = ['bitcoin'], vsCurrenci
   const headers = key ? { 'x-cg-pro-api-key': key } : {}
   const data = await fetchApi(url, { headers })
   if (!data || typeof data !== 'object') return null
+  const errMsg = data?.status?.error_message || data?.error || data?.errors
+  if (errMsg) {
+    console.warn('[data-sources] CoinGecko simple/price', String(errMsg).slice(0, 200))
+    return null
+  }
   return data
 }
 
@@ -309,12 +321,49 @@ export async function fetchGNewsSearch(env, q = 'technology', lang = 'en', limit
 }
 
 // --- Perigon ---
-/** Search articles. env.PERIGON_API_KEY */
+/** Search articles. env.PERIGON_API_KEY (Bearer; falls back to legacy query apiKey). */
 export async function fetchPerigonSearch(env, q = 'technology', limit = 10) {
   const key = env.PERIGON_API_KEY
   if (!key) throw new Error('PERIGON_API_KEY not set')
-  const url = `${PERIGON_BASE}/all?q=${encodeURIComponent(q)}&size=${limit}&apiKey=${key}`
-  const data = await fetchApi(url)
+  const baseQs = `q=${encodeURIComponent(q)}&size=${limit}`
+  const tryFetch = async (url, init = {}) => {
+    const ctrl = new AbortController()
+    const t = setTimeout(() => ctrl.abort(), 15000)
+    try {
+      const res = await fetch(url, { ...init, signal: ctrl.signal })
+      clearTimeout(t)
+      const ct = res.headers.get('content-type') || ''
+      let data
+      if (ct.includes('application/json')) data = await res.json()
+      else {
+        const text = await res.text()
+        try {
+          data = JSON.parse(text)
+        } catch {
+          data = { message: text?.slice(0, 200) }
+        }
+      }
+      return { res, data }
+    } catch (e) {
+      clearTimeout(t)
+      throw e
+    }
+  }
+  const bearerInit = { headers: { Authorization: `Bearer ${key}`, Accept: 'application/json' } }
+  let { res, data } = await tryFetch(`${PERIGON_BASE}/all?${baseQs}`, bearerInit)
+  const articleCount = () => {
+    const a = data?.articles
+    const r = data?.results
+    return (Array.isArray(a) ? a.length : 0) + (Array.isArray(r) ? r.length : 0)
+  }
+  if (!res.ok || articleCount() === 0) {
+    const legacyUrl = `${PERIGON_BASE}/all?${baseQs}&apiKey=${encodeURIComponent(key)}`
+    ;({ res, data } = await tryFetch(legacyUrl))
+  }
+  if (!res.ok) {
+    console.warn('[data-sources] Perigon HTTP', res.status, data?.message || data?.error || '')
+    return []
+  }
   const articles = data?.articles ?? data?.results ?? []
   return Array.isArray(articles) ? articles : []
 }
@@ -480,7 +529,7 @@ export async function eventsFromFredFunds(env, limit = 2, horizonSlot = utcHourS
 /**
  * Upcoming earnings: EPS at or above Finnhub consensus for the next scheduled print.
  */
-export async function eventsFromFinnhubEarnings(env, symbols = ALPHA_VANTAGE_SYMBOLS.slice(0, 6), maxEvents = 6) {
+export async function eventsFromFinnhubEarnings(env, symbols = ALPHA_VANTAGE_EQUITY_SYMBOLS.slice(0, 6), maxEvents = 6) {
   if (!env.FINNHUB_API_KEY) return []
   const today = new Date()
   const fromYmd = today.toISOString().slice(0, 10)
@@ -906,8 +955,9 @@ export async function eventsFromCongressGovBillFeed(env, limit = 1) {
   }
   const bills = data?.bills || data?.results || []
   const n = Array.isArray(bills) ? bills.length : 0
-  if (n < 5) return []
-  const minBillCount = Math.max(5, Math.floor(n * 0.88))
+  if (n < 1) return []
+  // minBillCount must stay ≤ n or the market is impossible; old rule required n≥5 and broke on sparse pages.
+  const minBillCount = Math.max(1, Math.min(n, Math.floor(n * 0.88)))
   const end = new Date()
   end.setUTCDate(end.getUTCDate() + 30)
   const endYmd = end.toISOString().slice(0, 10)
@@ -1570,6 +1620,74 @@ export const AUTO_MARKET_SOURCES = [
 /** Same order as seed_all, minus sports (The Odds API monthly quota). Used by auto-markets cron Worker. */
 export const AUTO_MARKET_SOURCES_WITHOUT_SPORTS = AUTO_MARKET_SOURCES.filter((s) => s !== 'sports')
 
+/**
+ * Default `sources` for POST seed_all when the client omits an explicit `sources` array.
+ * Pages env: set **`AUTO_MARKETS_INCLUDE_STOCKS_TREND=1`** to append the Alpha Vantage trend lane
+ * (extra GLOBAL_QUOTE calls — mind the 25 req/day free tier alongside `stocks`).
+ */
+export function resolveDefaultSeedSources(env) {
+  const base = [...AUTO_MARKET_SOURCES]
+  if (envFlagTrue(env, 'AUTO_MARKETS_INCLUDE_STOCKS_TREND') && !base.includes('stocks_trend')) {
+    const idx = base.indexOf('stocks')
+    if (idx >= 0) base.splice(idx + 1, 0, 'stocks_trend')
+    else base.push('stocks_trend')
+  }
+  return base
+}
+
+/**
+ * Env keys shown on probe that never invoke `getEventsFromSource` (reserved / future hooks).
+ */
+export function probeKeysNotUsedInAutoMarketSeeding(env) {
+  const p = probeAutoMarketEnv(env)
+  const unused = []
+  if (p.RAPIDAPI_KEY) unused.push('RAPIDAPI_KEY')
+  return unused
+}
+
+/**
+ * When `bySource[src] === 0`, explains common causes (keys may still be "present").
+ * @param {Record<string, number>} bySource
+ * @param {Record<string, boolean>} [keysPresent]
+ */
+export function buildAutoMarketFetchDiagnostics(bySource, keysPresent = {}) {
+  if (!bySource || typeof bySource !== 'object') return {}
+  const k = (name) => keysPresent[name] === true
+  const hints = {
+    sports:
+      'No fixtures returned: Odds API monthly/day quota, invalid keys, off-season for rotated sports, or empty /odds responses.',
+    stocks: k('ALPHA_VANTAGE_API_KEY')
+      ? 'No GLOBAL_QUOTE rows: rate limit or “Note” throttling from Alpha Vantage, or symbol not quoted. Lane uses one equity ticker per tick (not crypto symbols).'
+      : 'ALPHA_VANTAGE_API_KEY not set on Pages.',
+    crypto: k('COINGECKO_API_KEY')
+      ? 'No CoinGecko prices: Pro auth error, rate limit, or unexpected JSON (see worker logs).'
+      : 'CoinGecko public tier may rate-limit Cloudflare egress; set COINGECKO_API_KEY for Pro.',
+    crypto_trend: 'Same as crypto: simple/price must return USD for rotated coin ids.',
+    weather: 'OpenWeather forecast empty or geocode failure for rotated cities (see logs).',
+    weatherapi: 'WeatherAPI forecast failed for a city or returned no forecastday rows.',
+    frankfurter: 'Rare: ECB rate fetch failed for rotated pairs (network or Frankfurter outage).',
+    usgs: 'Unexpected: USGS public API should return one synthetic count market.',
+    fec: 'OpenFEC presidential totals empty, DEMO_KEY throttled, or network error.',
+    nasa_neo: 'NASA NeoWs element_count failed or API key/DEMO_KEY blocked.',
+    congress_gov:
+      'Congress.gov bill list empty, HTTP error, or fewer than one bill on the first page for the configured session.',
+    bls: 'BLS CPI series missing or BLS_API_KEY invalid.',
+    fred: 'FRED DFF observation missing or FRED_API_KEY issue.',
+    finnhub: 'No upcoming earnings rows with positive EPS estimate for scanned symbols.',
+    news: 'GNews returned no articles for the rotated category.',
+    perigon: 'Perigon returned no articles for the rotated query, or auth still rejected after Bearer + legacy attempts.',
+    newsapi_ai: 'NewsAPI.ai returned no results for the rotated keyword (or throttled).',
+    newsdata_io: 'NewsData.io returned no results for the rotated query (or throttled).',
+    massive: 'Massive daily agg empty for a ticker (symbol, date window, or API error).',
+  }
+  /** @type {Record<string, string>} */
+  const out = {}
+  for (const [src, n] of Object.entries(bySource)) {
+    if (typeof n === 'number' && n === 0 && hints[src]) out[src] = hints[src]
+  }
+  return out
+}
+
 /** Default events requested per non-news source when seeding. */
 export const DEFAULT_SEED_PER_SOURCE_LIMIT = 25
 
@@ -1658,11 +1776,12 @@ export async function getEventsFromSource(env, source, opts = {}) {
       return interleaveArrays(lists).slice(0, limit)
     }
     if (source === 'alpha_vantage' || source === 'stocks') {
-      const syms = pickRotatingWindow(ALPHA_VANTAGE_SYMBOLS, 2, slotAv)
+      // One GLOBAL_QUOTE per seed tick keeps hourly cron under Alpha Vantage’s 25 calls/day free cap.
+      const syms = pickRotatingWindow(ALPHA_VANTAGE_EQUITY_SYMBOLS, 1, slotAv)
       return await eventsFromAlphaVantage(env, syms, { thresholdMix: slotAv })
     }
     if (source === 'stocks_trend') {
-      const syms = pickRotatingWindow(ALPHA_VANTAGE_SYMBOLS, 5, slotTrend)
+      const syms = pickRotatingWindow(ALPHA_VANTAGE_EQUITY_SYMBOLS, 5, slotTrend)
       return await eventsFromStocksTrend(env, syms, true, slotTrend)
     }
     if (source === 'crypto' || source === 'coingecko') {
@@ -1694,11 +1813,12 @@ export async function getEventsFromSource(env, source, opts = {}) {
     if (source === 'bls') return await eventsFromBlsCpi(env, 1)
     if (source === 'fred') return await eventsFromFredFunds(env, Math.min(limit, 2), slotMacro)
     if (source === 'finnhub') {
-      const syms = pickRotatingWindow(ALPHA_VANTAGE_SYMBOLS, 8, slotFh)
+      const syms = pickRotatingWindow(ALPHA_VANTAGE_EQUITY_SYMBOLS, 8, slotFh)
       return await eventsFromFinnhubEarnings(env, syms, Math.min(limit, 8))
     }
     if (source === 'massive') {
-      const syms = pickRotatingWindow(ALPHA_VANTAGE_SYMBOLS, 4, slotMassive)
+      const symCount = Math.min(6, Math.max(3, Math.round(limit / 6)))
+      const syms = pickRotatingWindow(ALPHA_VANTAGE_SYMBOLS, symCount, slotMassive)
       return await eventsFromMassive(env, syms, { thresholdMix: slotMassive })
     }
   } catch (err) {
@@ -1746,14 +1866,15 @@ export async function gatherEventsFromAllSources(env, sources = AUTO_MARKET_SOUR
       })
     })
   )
-  const allEvents = []
+  /** One array per source lane so we can interleave before the seed loop (fairer mix under maxScan). */
+  const laneArrays = []
   results.forEach((outcome, i) => {
     const src = sources[i]
     if (outcome.status === 'fulfilled') {
       const events = outcome.value
       bySource[src] = events.length
       sourceHealth[src] = { ok: true, count: events.length }
-      allEvents.push(...events)
+      if (events.length) laneArrays.push(events)
     } else {
       bySource[src] = 0
       const err = outcome.reason
@@ -1764,5 +1885,6 @@ export async function gatherEventsFromAllSources(env, sources = AUTO_MARKET_SOUR
       }
     }
   })
-  return { events: allEvents, bySource, limitsBySource, sourceHealth }
+  const interleaved = interleaveArrays(laneArrays)
+  return { events: interleaved, bySource, limitsBySource, sourceHealth }
 }

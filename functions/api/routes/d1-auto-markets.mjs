@@ -99,6 +99,7 @@ if (path === 'auto-markets') {
 
   if (method === 'GET' && action === 'probe') {
     let lastSeed = null
+    let lastSeedFetchDiagnostics = null
     let seedRunHistory = null
     let sourceHealthSnapshot = null
     if (kv) {
@@ -156,6 +157,12 @@ if (path === 'auto-markets') {
         })),
       }
     } catch (_) {}
+    if (lastSeed?.bySource && typeof lastSeed.bySource === 'object') {
+      lastSeedFetchDiagnostics = dataSources.buildAutoMarketFetchDiagnostics(
+        lastSeed.bySource,
+        dataSources.probeAutoMarketEnv(env)
+      )
+    }
     return jsonResponse({
       success: true,
       action: 'probe',
@@ -170,12 +177,19 @@ if (path === 'auto-markets') {
         sourcePauseFailureThreshold: sourcePauseFailureThreshold(env),
       },
       seedSources: dataSources.AUTO_MARKET_SOURCES,
+      seedSourcesEffective: dataSources.resolveDefaultSeedSources(env),
+      defaultSeedEnv: {
+        AUTO_MARKETS_INCLUDE_STOCKS_TREND: d1.envFlagTrue(env, 'AUTO_MARKETS_INCLUDE_STOCKS_TREND'),
+      },
+      probeKeysPresentButNotUsedInSeeding: dataSources.probeKeysNotUsedInAutoMarketSeeding(env),
       seedLimits: {
         defaultPerSource: dataSources.DEFAULT_SEED_PER_SOURCE_LIMIT,
         newsEnrichedPerSource: dataSources.NEWS_ENRICHED_PER_SOURCE_LIMIT,
         maxPerRequest: dataSources.MAX_SEED_EVENT_LIMIT,
       },
       ...(lastSeed && { lastSeed }),
+      ...(lastSeedFetchDiagnostics &&
+        Object.keys(lastSeedFetchDiagnostics).length > 0 && { lastSeedFetchDiagnostics }),
       ...(seedRunHistory && { seedRunHistory }),
       ...(sourceHealthSnapshot && typeof sourceHealthSnapshot === 'object' && { sourceHealthSnapshot }),
       ...(automationHeartbeat && { automationHeartbeat }),
@@ -240,7 +254,7 @@ if (path === 'auto-markets') {
     const sourcesList = Array.isArray(body?.sources)
       ? body.sources
       : action === 'seed_all' || body?.seed_all
-        ? [...dataSources.AUTO_MARKET_SOURCES]
+        ? [...dataSources.resolveDefaultSeedSources(env)]
         : null
     const seedLimitOpts = {
       defaultLimit: dataSources.clampSeedLimit(parseInt(body?.perSourceLimit ?? '25', 10) || 25),
@@ -650,6 +664,10 @@ if (path === 'auto-markets') {
             ...(eventsScanTrimmed > 0 ? { eventsScanTrimmed } : {}),
             ...(hitMaxCreate ? { hitMaxCreate: true } : {}),
             bySource: res.bySource ?? null,
+            fetchDiagnostics: dataSources.buildAutoMarketFetchDiagnostics(
+              res.bySource && typeof res.bySource === 'object' ? res.bySource : {},
+              dataSources.probeAutoMarketEnv(env)
+            ),
           })
         )
       } catch (_) {}
