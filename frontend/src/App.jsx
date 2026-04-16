@@ -10,6 +10,7 @@ import {
 import { WalletProvider, useWallet } from './contexts/WalletContext'
 import { Suspense } from 'react'
 import LoadingSpinner from './components/LoadingSpinner'
+import ExecutiveSummary from './components/ExecutiveSummary'
 import { lazyWithRetry } from './utils/lazyWithRetry'
 
 const MarketsList = lazyWithRetry(() => import('./components/MarketsList'))
@@ -28,7 +29,6 @@ const Download = lazyWithRetry(() => import('./components/Download'))
 const AutomationStatus = lazyWithRetry(() => import('./components/AutomationStatus'))
 const PrivacyPolicy = lazyWithRetry(() => import('./components/PrivacyPolicy'))
 const TermsOfService = lazyWithRetry(() => import('./components/TermsOfService'))
-const ExecutiveSummary = lazyWithRetry(() => import('./components/ExecutiveSummary'))
 import { analytics } from './utils/analytics'
 import AnimatedBackground from './components/AnimatedBackground'
 import WalletModal from './components/WalletModal'
