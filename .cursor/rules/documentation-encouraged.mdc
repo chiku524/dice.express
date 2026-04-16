@@ -1,0 +1,10 @@
+---
+description: Encourage keeping documentation current; revise docs proactively
+alwaysApply: true
+---
+
+# Documentation
+
+**Editing and revising documentation is always encouraged** — not only when the user explicitly asks.
+
+When making meaningful product or release changes, proactively update relevant docs (for example `docs/`, root or package `README` files, `CHANGELOG`, deployment or secrets checklists, and in-repo comments that serve as operational runbooks). Prefer accurate, concise docs that match the current behavior over leaving stale text.

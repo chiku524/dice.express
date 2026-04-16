@@ -122,6 +122,12 @@ export const SEO_PAGES = {
     description: 'Terms of service for the dice.express prediction markets platform. Trading, Pips, deposits, and withdrawals.',
     keywords: 'terms of service, dice.express, prediction markets',
   },
+  '/executive-summary': {
+    title: `Executive summary | ${BASE_TITLE}`,
+    description:
+      'Concise overview of dice.express: prediction markets, Pips, automated market coverage, portfolio and funding rails, positioning, and operating priorities.',
+    keywords: 'executive summary, dice.express, prediction markets, overview',
+  },
   '/sign-in': {
     title: `Sign In | ${BASE_TITLE}`,
     description: 'Sign in to your dice.express account. Trade prediction markets with Pips.',

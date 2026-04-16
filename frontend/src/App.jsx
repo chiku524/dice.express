@@ -28,6 +28,7 @@ const Download = lazyWithRetry(() => import('./components/Download'))
 const AutomationStatus = lazyWithRetry(() => import('./components/AutomationStatus'))
 const PrivacyPolicy = lazyWithRetry(() => import('./components/PrivacyPolicy'))
 const TermsOfService = lazyWithRetry(() => import('./components/TermsOfService'))
+const ExecutiveSummary = lazyWithRetry(() => import('./components/ExecutiveSummary'))
 import { analytics } from './utils/analytics'
 import AnimatedBackground from './components/AnimatedBackground'
 import WalletModal from './components/WalletModal'
@@ -289,6 +290,7 @@ function AppContent() {
           <Route path="/documentation" element={<Documentation />} />
           <Route path="/privacy" element={<PrivacyPolicy />} />
           <Route path="/terms" element={<TermsOfService />} />
+          <Route path="/executive-summary" element={<ExecutiveSummary />} />
           </Route>
         </Route>
       </Routes>
