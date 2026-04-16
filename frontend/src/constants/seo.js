@@ -112,6 +112,12 @@ export const SEO_PAGES = {
     description: 'dice.express API and platform documentation. Prediction markets, Pips, trading, and deposits.',
     keywords: 'documentation, API, prediction markets',
   },
+  '/whitepaper': {
+    title: `Whitepaper | ${BASE_TITLE}`,
+    description:
+      'dice.express whitepaper: Pips economy, market resolution, trading and liquidity, automation, architecture, security, risks, and glossary.',
+    keywords: 'whitepaper, dice.express, prediction markets, Pips, architecture',
+  },
   '/privacy': {
     title: `Privacy Policy | ${BASE_TITLE}`,
     description: 'Privacy policy for dice.express. How we collect, use, and protect your information when you trade prediction markets and use Pips.',

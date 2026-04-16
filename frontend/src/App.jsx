@@ -18,6 +18,7 @@ const MarketDetail = lazyWithRetry(() => import('./components/MarketDetail'))
 const AutomatedMarketsInfo = lazyWithRetry(() => import('./components/AutomatedMarketsInfo'))
 const Portfolio = lazyWithRetry(() => import('./components/Portfolio'))
 const Documentation = lazyWithRetry(() => import('./components/Documentation'))
+const Whitepaper = lazyWithRetry(() => import('./components/Whitepaper'))
 const Activity = lazyWithRetry(() => import('./components/Activity'))
 const Dashboard = lazyWithRetry(() => import('./components/Dashboard'))
 const Profile = lazyWithRetry(() => import('./components/Profile'))
@@ -288,6 +289,7 @@ function AppContent() {
           <Route path="/download" element={<Download />} />
           <Route path="/docs" element={<Documentation />} />
           <Route path="/documentation" element={<Documentation />} />
+          <Route path="/whitepaper" element={<Whitepaper />} />
           <Route path="/privacy" element={<PrivacyPolicy />} />
           <Route path="/terms" element={<TermsOfService />} />
           <Route path="/executive-summary" element={<ExecutiveSummary />} />

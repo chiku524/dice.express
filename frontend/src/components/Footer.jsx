@@ -20,6 +20,7 @@ export default function Footer() {
             <ul className="footer-links">
               <li><Link to="/download">Download</Link></li>
               <li><Link to="/docs">Docs</Link></li>
+              <li><Link to="/whitepaper">Whitepaper</Link></li>
               <li><Link to="/privacy">Privacy Policy</Link></li>
               <li><Link to="/terms">Terms of Service</Link></li>
             </ul>

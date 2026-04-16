@@ -59,7 +59,8 @@ export default function Navbar() {
     isActive('/download') ||
     isActive('/automation') ||
     isActive('/docs') ||
-    isActive('/documentation')
+    isActive('/documentation') ||
+    isActive('/whitepaper')
 
   const isDesktopApp = typeof window !== 'undefined' && window.__TAURI__
 
@@ -130,6 +131,9 @@ export default function Navbar() {
                   className={isActive('/documentation') || isActive('/docs') ? 'active' : ''}
                 >
                   Documentation
+                </Link>
+                <Link to="/whitepaper" className={isActive('/whitepaper') ? 'active' : ''}>
+                  Whitepaper
                 </Link>
                 <Link to="/download" className={isActive('/download') ? 'active' : ''}>
                   Download desktop

@@ -1,0 +1,49 @@
+/* Whitepaper: Tauri-only section control (in-page TOC hidden on desktop shell) */
+.whitepaper-tauri-jump {
+  margin: 0 0 1rem 0;
+}
+
+.whitepaper-tauri-jump label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.whitepaper-tauri-jump select {
+  max-width: 22rem;
+  padding: 0.5rem 0.65rem;
+  border-radius: 8px;
+  border: 1px solid rgba(139, 92, 246, 0.35);
+  background: rgba(15, 22, 35, 0.9);
+  color: rgba(255, 255, 255, 0.92);
+  font-size: 0.95rem;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.whitepaper-tauri-jump select:focus {
+  outline: 2px solid rgba(34, 211, 238, 0.45);
+  outline-offset: 2px;
+}
+
+.doc-section dl {
+  margin: 1rem 0;
+}
+
+.doc-section dt {
+  margin-top: 1rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.95);
+}
+
+.doc-section dd {
+  margin: 0.35rem 0 0 0;
+  padding-left: 0;
+  color: rgba(255, 255, 255, 0.82);
+  line-height: 1.6;
+}
