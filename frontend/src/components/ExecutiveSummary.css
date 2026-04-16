@@ -1,0 +1,179 @@
+/* Executive summary: pitch deck + live stats (extends legal-page tokens) */
+.executive-summary {
+  max-width: 880px;
+  margin: 0 auto;
+  padding: 0 var(--spacing-lg) var(--spacing-xl);
+}
+
+.executive-summary .legal-page {
+  max-width: none;
+  margin-bottom: var(--spacing-xl);
+}
+
+.executive-summary__section-title {
+  font-size: var(--font-size-xl, 1.25rem);
+  font-weight: var(--font-weight-bold, 700);
+  margin: 0 0 var(--spacing-md);
+  color: var(--color-text-primary);
+}
+
+.pitch-deck {
+  margin-bottom: var(--spacing-xl);
+}
+
+.pitch-deck__intro {
+  font-size: var(--font-size-sm, 0.875rem);
+  line-height: 1.55;
+  color: var(--color-text-secondary, rgba(255, 255, 255, 0.75));
+  margin: 0 0 var(--spacing-lg);
+}
+
+.pitch-slides {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+}
+
+.pitch-slide {
+  position: relative;
+  padding: var(--spacing-lg);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--color-border, rgba(139, 92, 246, 0.22));
+  background: linear-gradient(
+    145deg,
+    rgba(15, 23, 42, 0.92) 0%,
+    rgba(30, 27, 75, 0.35) 100%
+  );
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.2);
+}
+
+.pitch-slide__label {
+  display: inline-block;
+  font-size: var(--font-size-xs, 0.7rem);
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-aqua, #22d3ee);
+  margin-bottom: var(--spacing-sm);
+}
+
+.pitch-slide h3 {
+  font-size: var(--font-size-lg, 1.125rem);
+  font-weight: var(--font-weight-semibold, 600);
+  margin: 0 0 var(--spacing-sm);
+  color: var(--color-text-primary);
+}
+
+.pitch-slide p,
+.pitch-slide li {
+  font-size: var(--font-size-sm, 0.875rem);
+  line-height: 1.55;
+  color: var(--color-text-secondary);
+}
+
+.pitch-slide ul {
+  margin: 0;
+  padding-left: var(--spacing-lg);
+}
+
+.pitch-slide li {
+  margin-bottom: 0.35rem;
+}
+
+.market-stats {
+  margin-bottom: var(--spacing-xl);
+}
+
+.market-stats__status {
+  font-size: var(--font-size-sm, 0.875rem);
+  color: var(--color-text-muted, rgba(255, 255, 255, 0.55));
+  margin: 0 0 var(--spacing-md);
+}
+
+.market-stats__error {
+  font-size: var(--font-size-sm, 0.875rem);
+  color: #fca5a5;
+  background: rgba(127, 29, 29, 0.25);
+  border: 1px solid rgba(248, 113, 113, 0.35);
+  border-radius: var(--radius-md);
+  padding: var(--spacing-md);
+  margin-bottom: var(--spacing-md);
+}
+
+.stat-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: var(--spacing-md);
+  margin-bottom: var(--spacing-lg);
+}
+
+.stat-tile {
+  padding: var(--spacing-md);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border, rgba(139, 92, 246, 0.18));
+  background: var(--color-surface, rgba(15, 23, 42, 0.65));
+}
+
+.stat-tile__value {
+  font-size: var(--font-size-xl, 1.25rem);
+  font-weight: 700;
+  color: var(--color-text-primary);
+  line-height: 1.2;
+  margin-bottom: 0.25rem;
+}
+
+.stat-tile__label {
+  font-size: var(--font-size-xs, 0.75rem);
+  color: var(--color-text-muted);
+  line-height: 1.35;
+}
+
+.stats-breakdown {
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border, rgba(139, 92, 246, 0.18));
+  overflow: hidden;
+  background: rgba(0, 0, 0, 0.15);
+}
+
+.stats-breakdown__head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--spacing-sm) var(--spacing-md);
+  font-size: var(--font-size-xs, 0.75rem);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-text-muted);
+  border-bottom: 1px solid var(--color-border, rgba(139, 92, 246, 0.15));
+}
+
+.stats-breakdown__row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--spacing-md);
+  padding: var(--spacing-sm) var(--spacing-md);
+  font-size: var(--font-size-sm, 0.875rem);
+  color: var(--color-text-secondary);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.stats-breakdown__row:last-child {
+  border-bottom: none;
+}
+
+.stats-breakdown__cat {
+  color: var(--color-text-primary);
+}
+
+.stats-footnote {
+  font-size: var(--font-size-xs, 0.75rem);
+  color: var(--color-text-muted);
+  margin: var(--spacing-md) 0 0;
+  line-height: 1.45;
+}
+
+.executive-summary .legal-page + .legal-page {
+  margin-top: var(--spacing-lg);
+}
