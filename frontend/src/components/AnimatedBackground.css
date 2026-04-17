@@ -52,6 +52,156 @@
   pointer-events: none;
 }
 
+/* ---- Slow drift: diagonal sheens + rising motes (no pointer tracking) ---- */
+.animated-background-drift-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.ab-drift-line {
+  position: absolute;
+  width: 140%;
+  height: 1px;
+  left: -20%;
+  opacity: 0;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(0, 232, 200, 0.12) 38%,
+    rgba(90, 176, 255, 0.14) 52%,
+    transparent 100%
+  );
+  filter: blur(0.5px);
+  transform-origin: center;
+  will-change: transform, opacity;
+}
+
+.ab-drift-line-a {
+  top: 22%;
+  transform: rotate(-32deg);
+  animation: ab-drift-sweep 38s ease-in-out infinite;
+  animation-delay: -4s;
+}
+
+.ab-drift-line-b {
+  top: 58%;
+  transform: rotate(-28deg);
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(124, 108, 240, 0.1) 44%,
+    rgba(0, 232, 200, 0.08) 58%,
+    transparent 100%
+  );
+  animation: ab-drift-sweep-b 44s ease-in-out infinite;
+  animation-delay: -14s;
+}
+
+.ab-drift-line-c {
+  top: 78%;
+  transform: rotate(-35deg);
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(90, 176, 255, 0.1) 48%,
+    transparent 100%
+  );
+  animation: ab-drift-sweep-c 52s ease-in-out infinite;
+  animation-delay: -22s;
+}
+
+@keyframes ab-drift-sweep {
+  0%,
+  100% {
+    opacity: 0;
+    transform: rotate(-32deg) translateX(-8%);
+  }
+  20% {
+    opacity: 0.55;
+  }
+  50% {
+    opacity: 0.35;
+    transform: rotate(-32deg) translateX(8%);
+  }
+  80% {
+    opacity: 0.5;
+  }
+}
+
+@keyframes ab-drift-sweep-b {
+  0%,
+  100% {
+    opacity: 0;
+    transform: rotate(-28deg) translateX(10%);
+  }
+  25% {
+    opacity: 0.42;
+  }
+  55% {
+    opacity: 0.28;
+    transform: rotate(-28deg) translateX(-10%);
+  }
+  78% {
+    opacity: 0.38;
+  }
+}
+
+@keyframes ab-drift-sweep-c {
+  0%,
+  100% {
+    opacity: 0;
+    transform: rotate(-35deg) translateX(-6%);
+  }
+  30% {
+    opacity: 0.48;
+  }
+  50% {
+    opacity: 0.22;
+    transform: rotate(-35deg) translateX(12%);
+  }
+  72% {
+    opacity: 0.4;
+  }
+}
+
+.ab-mote {
+  position: absolute;
+  width: 2px;
+  height: 2px;
+  margin-left: -1px;
+  margin-top: -1px;
+  border-radius: 50%;
+  background: rgba(200, 235, 255, 0.55);
+  box-shadow:
+    0 0 6px 1px rgba(0, 232, 200, 0.22),
+    0 0 14px 3px rgba(90, 176, 255, 0.1);
+  opacity: 0;
+  animation-name: ab-mote-rise;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+  will-change: transform, opacity;
+}
+
+@keyframes ab-mote-rise {
+  0% {
+    opacity: 0;
+    transform: translate(0, 0) scale(0.6);
+  }
+  12% {
+    opacity: 0.55;
+  }
+  78% {
+    opacity: 0.35;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(var(--ab-mote-dx, 12px), -42vh) scale(1);
+  }
+}
+
 /* ---- Floating neon layer (boing-style orbs, arcs, dashes, dots) ---- */
 .animated-background-neon-layer {
   position: absolute;
@@ -317,8 +467,21 @@
   animation: ab-svg-breathe 26s ease-in-out infinite;
 }
 
-.animated-background-parallax {
+.animated-background-vein-motion {
+  transform-origin: 500px 1000px;
+  transform-box: fill-box;
+  animation: ab-vein-sway 24s ease-in-out infinite;
   will-change: transform;
+}
+
+@keyframes ab-vein-sway {
+  0%,
+  100% {
+    transform: translate(0, 0);
+  }
+  50% {
+    transform: translate(9px, -14px);
+  }
 }
 
 .ab-vein-shadow,
@@ -452,6 +615,9 @@
 
 @media (prefers-reduced-motion: reduce) {
   .animated-background-svg,
+  .animated-background-vein-motion,
+  .ab-drift-line,
+  .ab-mote,
   .ab-trace-glow,
   .ab-trace-dash,
   .animated-background-overlay,
@@ -459,6 +625,28 @@
   .animated-background-overlay::after,
   .animated-background-neon-layer .ab-neon {
     animation: none !important;
+  }
+
+  .animated-background-vein-motion {
+    transform: none;
+  }
+
+  .ab-mote {
+    opacity: 0.28;
+    transform: none;
+  }
+
+  .ab-drift-line {
+    opacity: 0.18;
+    transform: rotate(-32deg);
+  }
+
+  .ab-drift-line-b {
+    transform: rotate(-28deg);
+  }
+
+  .ab-drift-line-c {
+    transform: rotate(-35deg);
   }
 
   .ab-neon-orb {

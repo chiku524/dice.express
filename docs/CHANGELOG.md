@@ -4,6 +4,11 @@ Summary of major cleanups and improvements. For current structure see [README](.
 
 ---
 
+## 1.0.40 — Animated background drift (April 2026)
+
+- **Release:** Version **1.0.40**; tag **`v1.0.40`** for desktop CI and GitHub Releases.
+- **Frontend:** **`AnimatedBackground`** no longer uses pointer-tracking parallax on the engraved vein. The vein uses a slow CSS sway instead, with a new **drift layer**: diagonal teal/blue/violet sheen lines and rising light motes. **`prefers-reduced-motion`** disables the new motion with static fallbacks.
+
 ## 1.0.39 — Near-black background (April 2026)
 
 - **Release:** Version **1.0.39**; tag **`v1.0.39`** for desktop CI and GitHub Releases.

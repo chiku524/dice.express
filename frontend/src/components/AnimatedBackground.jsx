@@ -1,57 +1,51 @@
-import { useEffect, useRef } from 'react'
 import './AnimatedBackground.css'
 
 /** Primary engraved vein — continuous path (viewBox 0 0 1000 2000), boing.express-style slate + teal accent */
 const MAIN_PATH_D =
   'M 480 0 C 720 120 920 280 820 420 S 520 520 320 640 S 80 820 280 960 S 520 1100 760 1240 S 820 1480 540 1660 S 280 1820 500 2000'
 
+/** Soft dust motes: % positions, horizontal drift (px), delay (s), duration (s) */
+const BACKGROUND_MOTES = [
+  { left: 11, top: 88, dx: 14, delay: -0.8, duration: 22 },
+  { left: 24, top: 92, dx: -18, delay: -5.2, duration: 26 },
+  { left: 38, top: 85, dx: 10, delay: -2.4, duration: 20 },
+  { left: 52, top: 90, dx: -12, delay: -8.1, duration: 24 },
+  { left: 67, top: 87, dx: 20, delay: -3.6, duration: 21 },
+  { left: 79, top: 91, dx: -9, delay: -11.0, duration: 28 },
+  { left: 88, top: 84, dx: 16, delay: -6.5, duration: 23 },
+  { left: 6, top: 62, dx: -11, delay: -4.0, duration: 19 },
+  { left: 93, top: 58, dx: 13, delay: -9.3, duration: 25 },
+  { left: 45, top: 72, dx: -15, delay: -1.1, duration: 17 },
+]
+
 /**
  * Full-viewport backdrop inspired by boing.express: cool stone slab (#06080c family), fine grain,
  * diagonal micro-scratches, soft SVG veins, floating teal/blue/violet neon orbs and accents — with motion.
  */
 export default function AnimatedBackground() {
-  const parallaxRef = useRef(null)
-
-  useEffect(() => {
-    const el = parallaxRef.current
-    if (!el) return
-
-    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)')
-    if (reduced.matches) return
-
-    let raf = 0
-    let targetX = 0
-    let targetY = 0
-    let currentX = 0
-    let currentY = 0
-
-    const onMove = (e) => {
-      const nx = (e.clientX / window.innerWidth - 0.5) * 22
-      const ny = (e.clientY / window.innerHeight - 0.5) * 22
-      targetX = nx
-      targetY = ny
-    }
-
-    const smooth = () => {
-      currentX += (targetX - currentX) * 0.055
-      currentY += (targetY - currentY) * 0.055
-      el.style.transform = `translate3d(${currentX}px,${currentY}px,0)`
-      raf = requestAnimationFrame(smooth)
-    }
-
-    window.addEventListener('pointermove', onMove, { passive: true })
-    raf = requestAnimationFrame(smooth)
-
-    return () => {
-      window.removeEventListener('pointermove', onMove)
-      cancelAnimationFrame(raf)
-    }
-  }, [])
-
   return (
     <div className="animated-background">
       <div className="animated-background-stone" aria-hidden />
       <div className="animated-background-grain" aria-hidden />
+
+      <div className="animated-background-drift-layer" aria-hidden>
+        <div className="ab-drift-line ab-drift-line-a" />
+        <div className="ab-drift-line ab-drift-line-b" />
+        <div className="ab-drift-line ab-drift-line-c" />
+        {BACKGROUND_MOTES.map((m, i) => (
+          <span
+            key={i}
+            className="ab-mote"
+            style={{
+              left: `${m.left}%`,
+              top: `${m.top}%`,
+              '--ab-mote-dx': `${m.dx}px`,
+              animationDelay: `${m.delay}s`,
+              animationDuration: `${m.duration}s`,
+            }}
+          />
+        ))}
+      </div>
 
       <div className="animated-background-neon-layer" aria-hidden>
         <div className="ab-neon ab-neon-orb ab-neon-a" />
@@ -91,7 +85,7 @@ export default function AnimatedBackground() {
           </filter>
         </defs>
 
-        <g ref={parallaxRef} className="animated-background-parallax">
+        <g className="animated-background-vein-motion">
           <path
             className="ab-vein-shadow"
             d={MAIN_PATH_D}

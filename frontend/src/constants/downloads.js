@@ -7,8 +7,8 @@
  */
 const GITHUB_RELEASE_BASE = 'https://github.com/chiku524/dice.express/releases/download'
 
-export const DESKTOP_APP_VERSION = '1.0.39'
-const ASSET_VERSION = '1.0.39'
+export const DESKTOP_APP_VERSION = '1.0.40'
+const ASSET_VERSION = '1.0.40'
 
 function directDownloadUrl(filename) {
   return `${GITHUB_RELEASE_BASE}/v${DESKTOP_APP_VERSION}/${filename}`
