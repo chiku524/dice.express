@@ -3,7 +3,7 @@
  * See docs/AUTO_MARKETS.md → "Automation quality roadmap".
  */
 
-export const AUTO_MARKET_BUILDER_VERSION = '1'
+export const AUTO_MARKET_BUILDER_VERSION = '2'
 
 /** D1 row status: seeded but not yet promoted (hidden from default GET /api/markets). */
 export const CONTRACT_STATUS_AUTO_PENDING = 'AutoPending'

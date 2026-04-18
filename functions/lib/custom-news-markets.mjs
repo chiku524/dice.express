@@ -7,12 +7,31 @@
 
 const NEWS_SOURCES = new Set(['gnews', 'perigon', 'newsapi_ai', 'newsdata_io'])
 
+/** Collapse repeated words (case-insensitive) so retrieval anchors stay dense and semantic. */
+function dedupeSearchTerms(phrase) {
+  const parts = String(phrase || '')
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean)
+  const seen = new Set()
+  const out = []
+  for (const p of parts) {
+    const k = p.toLowerCase()
+    if (seen.has(k)) continue
+    seen.add(k)
+    out.push(p)
+  }
+  return out.join(' ')
+}
+
 /** Original feed id + query for automated operator_manual resolution (news search). */
 function operatorSeedMeta(ev, queryParts) {
-  const seedQuery = queryParts
-    .filter(Boolean)
-    .join(' ')
-    .replace(/\s+/g, ' ')
+  const seedQuery = dedupeSearchTerms(
+    queryParts
+      .filter(Boolean)
+      .join(' ')
+      .replace(/\s+/g, ' ')
+  )
     .trim()
     .slice(0, 220)
   return {

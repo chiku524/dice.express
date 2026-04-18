@@ -6,6 +6,7 @@
 /** Popular Odds API keys (in-season varies); invalid keys return [] from API. */
 export const ODDS_SPORT_KEYS_SEED = [
   'basketball_nba',
+  'basketball_wnba',
   'americanfootball_nfl',
   'baseball_mlb',
   'icehockey_nhl',
@@ -13,6 +14,7 @@ export const ODDS_SPORT_KEYS_SEED = [
   'soccer_usa_mls',
   'americanfootball_ncaaf',
   'mma_mixed_martial_arts',
+  'soccer_uefa_champs_league',
 ]
 
 /** GNews top-headlines categories (API-supported). */
@@ -62,7 +64,41 @@ export const NEWS_QUERY_ROTATION = [
   'mRNA vaccine seasonal flu',
   'Amazon labor union vote',
   'F1 Grand Prix championship',
+  'agriculture commodity drought',
+  'public education funding referendum',
+  'telecom spectrum auction FCC',
+  'rail freight labor negotiation',
+  'commercial aviation safety recall',
+  'grid battery storage deployment',
+  'water rights Colorado river',
+  'immigration border policy hearing',
+  'retail bankruptcy chapter 11',
+  'pharmacy drug pricing Medicare',
+  'steel aluminum tariff exemption',
+  'offshore wind lease auction',
+  'microchip CHIPS Act factory',
+  'sovereign debt restructuring IMF',
+  'military aid package vote',
+  'nuclear power plant lifespan',
+  'college athletics NIL revenue',
+  'port strike logistics backlog',
+  'avian influenza poultry outbreak',
+  'carbon credit voluntary market',
+  'central bank digital currency pilot',
+  'satellite internet constellation launch',
+  'mining tailings environmental ruling',
 ]
+
+/**
+ * Stable per-run variety anchor: all lanes in one POST share one value; distinct runs in the same
+ * UTC hour (manual replay, overlapping crons) still rotate queries, sports windows, and thresholds.
+ * @param {number} hourSlot - from utcHourSlot()
+ * @param {number | undefined} seedStartedAtMs - Date.now() at start of the seed request
+ */
+export function seedRunVarietyBaseSlot(hourSlot, seedStartedAtMs) {
+  if (seedStartedAtMs == null || !Number.isFinite(seedStartedAtMs)) return hourSlot
+  return varietyOffsetSlot(hourSlot, `seed:${seedStartedAtMs}`)
+}
 
 /** ECB cross-rates for rotating FX threshold markets (Frankfurter). */
 export const FRANKFURTER_PAIR_ROTATION = [

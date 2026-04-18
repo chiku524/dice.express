@@ -282,7 +282,10 @@ if (path === 'auto-markets') {
           200
         )
       }
-      const gathered = await dataSources.gatherEventsFromAllSources(env, filtered.sources, seedLimitOpts)
+      const gathered = await dataSources.gatherEventsFromAllSources(env, filtered.sources, {
+        ...seedLimitOpts,
+        seedStartedAtMs: seedStarted,
+      })
       await mergeSourceHealthSnapshot(kv, gathered.sourceHealth || {})
       events = gathered.events
       bySource = gathered.bySource
@@ -329,16 +332,18 @@ if (path === 'auto-markets') {
         const oneLimit = Number.isFinite(rawExplicit)
           ? dataSources.clampSeedLimit(rawExplicit)
           : defaultOne
-        const slot = dataSources.utcHourSlot()
+        const hourSlot = dataSources.utcHourSlot()
+        const varietySlot = dataSources.seedRunVarietyBaseSlot(hourSlot, seedStarted)
         events = await dataSources.getEventsFromSource(env, source, {
           limit: oneLimit,
           sportKey,
+          seedStartedAtMs: seedStarted,
           category:
             body?.category != null && String(body.category).trim() !== ''
               ? body.category
-              : dataSources.rotatedNewsCategory(slot),
+              : dataSources.rotatedNewsCategory(varietySlot),
           q:
-            body?.q != null && String(body.q).trim() !== '' ? body.q : dataSources.rotatedNewsQuery(slot),
+            body?.q != null && String(body.q).trim() !== '' ? body.q : dataSources.rotatedNewsQuery(varietySlot),
           ...(body?.sportsMix === 'single' ? { sportsMix: 'single' } : {}),
         })
         await mergeSourceHealthSnapshot(kv, { [source]: { ok: true, count: events.length } })
@@ -352,7 +357,7 @@ if (path === 'auto-markets') {
     }
 
     if (body?.deterministicEventOrder !== true) {
-      const shuffleSeed = dataSources.varietyOffsetSlot(dataSources.utcHourSlot(), 'seed-shuffle')
+      const shuffleSeed = dataSources.varietyOffsetSlot(dataSources.utcHourSlot(), `seed-shuffle:${seedStarted}`)
       events = dataSources.deterministicShuffle(events, shuffleSeed)
     }
 

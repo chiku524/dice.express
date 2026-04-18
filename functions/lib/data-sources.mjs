@@ -13,12 +13,14 @@ import {
   pickRotatingWindow,
   rotatedNewsCategory,
   rotatedNewsQuery,
+  seedRunVarietyBaseSlot,
   utcHourSlot,
   varietyOffsetSlot,
 } from './auto-market-variety.mjs'
 
 export {
   deterministicShuffle,
+  seedRunVarietyBaseSlot,
   utcHourSlot,
   rotatedNewsCategory,
   rotatedNewsQuery,
@@ -502,12 +504,17 @@ export async function eventsFromFredFunds(env, limit = 2, horizonSlot = utcHourS
     end.setUTCDate(end.getUTCDate() + days)
     const dateStr = end.toISOString().slice(0, 10)
     const threshold = Math.round(spot * 100) / 100
-    const title = `Will the effective federal funds rate (FRED: DFF) be at or above ${threshold}% on the last print on or before ${dateStr}?`
+    const seedKey = `fred-dff-${dateStr}-${days}d`
+    const title = pickVariant(seedKey, [
+      `Will the effective federal funds rate (FRED: DFF) be at or above ${threshold}% on the last print on or before ${dateStr}?`,
+      `FRED DFF macro check: last observation on or before ${dateStr} ≥ ${threshold}%?`,
+      `By ${dateStr}, will the Fed’s effective funds rate (DFF) still read ≥ ${threshold}% on the latest FRED print?`,
+    ])
     events.push({
       id: `fred-dff-${dateStr}-${days}d`,
       source: 'fred',
       title,
-      description: `${title} Latest observation ${spot}% as of ${current.date}. Data source: FRED.`,
+      description: `${title} Spot when seeded: ${spot}% (observation date ${current.date}). Comparator ≥ ${threshold}%. Data: FRED.`,
       resolutionCriteria: `Yes if the latest FRED series DFF observation on or before ${dateStr} (UTC calendar) is ≥ ${threshold}%. No if it is below. Missing/invalid prints: market stays open until data is available.`,
       oneLiner: `DFF last print on or before ${dateStr} is ≥ ${threshold}%; otherwise No.`,
       endDate: dateStr,
@@ -1746,7 +1753,7 @@ export function resolveSeedLimitForSource(source, opts = {}) {
 export async function getEventsFromSource(env, source, opts = {}) {
   const limit = clampSeedLimit(opts.limit ?? DEFAULT_SEED_PER_SOURCE_LIMIT)
   const sportKey = opts.sportKey ?? 'basketball_nba'
-  const baseSlot = utcHourSlot()
+  const baseSlot = seedRunVarietyBaseSlot(utcHourSlot(), opts.seedStartedAtMs)
   const vKey = typeof opts.varietySourceKey === 'string' ? opts.varietySourceKey : source
   const vIdx = Number.isFinite(opts.varietyIndex) ? opts.varietyIndex : 0
 
@@ -1830,8 +1837,9 @@ export async function getEventsFromSource(env, source, opts = {}) {
 
 /**
  * Gather events from multiple sources in parallel. On failure (e.g. no key, rate limit) returns [] for that source.
- * @param {number | { defaultLimit?: number, newsEnrichedLimit?: number, overrides?: Record<string, number>, sportKey?: string }} [limitOpts]
+ * @param {number | { defaultLimit?: number, newsEnrichedLimit?: number, overrides?: Record<string, number>, sportKey?: string, seedStartedAtMs?: number }} [limitOpts]
  *        If a number, that limit is used for every source (legacy). Otherwise default/news/overrides from resolveSeedLimitForSource.
+ *        Pass **`seedStartedAtMs`** (seed request `Date.now()`) so each run rotates news queries, sports windows, and thresholds even under the same UTC hour.
  * Returns { events, bySource: { [source]: count }, limitsBySource }.
  */
 export async function gatherEventsFromAllSources(env, sources = AUTO_MARKET_SOURCES, limitOpts = {}) {
@@ -1849,6 +1857,10 @@ export async function gatherEventsFromAllSources(env, sources = AUTO_MARKET_SOUR
         }
   const sportKey = typeof limitOpts === 'object' && limitOpts !== null ? limitOpts.sportKey : undefined
   const sportsMix = typeof limitOpts === 'object' && limitOpts !== null && limitOpts.sportsMix === 'single' ? 'single' : undefined
+  const seedStartedAtMs =
+    typeof limitOpts === 'object' && limitOpts !== null && limitOpts.seedStartedAtMs != null
+      ? Number(limitOpts.seedStartedAtMs)
+      : undefined
   const bySource = {}
   const limitsBySource = {}
   /** @type {Record<string, { ok: boolean, count: number, error?: string }>} */
@@ -1861,6 +1873,7 @@ export async function gatherEventsFromAllSources(env, sources = AUTO_MARKET_SOUR
         limit: lim,
         varietyIndex: i,
         varietySourceKey: src,
+        ...(Number.isFinite(seedStartedAtMs) ? { seedStartedAtMs } : {}),
         ...(sportKey ? { sportKey } : {}),
         ...(sportsMix ? { sportsMix } : {}),
       })

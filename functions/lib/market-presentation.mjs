@@ -75,7 +75,11 @@ function punchyDescriptionLine(ev, titleForDedupe) {
   const oracle = String(ev.oracleSource || ev.source || '')
 
   if (ev.homeTeam && ev.awayTeam) {
-    return clip(`${em} ${ev.homeTeam} vs ${ev.awayTeam} · final on Odds API`, 160)
+    const league = ev.sportKey ? String(ev.sportKey).replace(/_/g, ' ') : ''
+    return clip(
+      `${em} ${ev.homeTeam} vs ${ev.awayTeam}${league ? ` · ${league}` : ''} · Odds API final`,
+      160
+    )
   }
   if (ev.symbol != null && String(ev.symbol).trim() && ev.threshold != null) {
     const sym = String(ev.symbol).trim()
@@ -117,6 +121,11 @@ function punchyDescriptionLine(ev, titleForDedupe) {
     const ex = String(ev.description || '').trim()
     if (ex && ex !== titleForDedupe) return clip(`${em} ${ex}`, 200)
     return clip(`${em} Headline topic · operator feed`, 80)
+  }
+
+  const rawArticleTitle = oc.title && String(oc.title).trim() && oc.title !== ev?.title ? String(oc.title).trim() : ''
+  if (rawArticleTitle && oracle === 'operator_manual') {
+    return clip(`${em} Thread: ${clip(rawArticleTitle, 100)}`, 160)
   }
 
   const seedQ = oc.seedQuery || oc.q
