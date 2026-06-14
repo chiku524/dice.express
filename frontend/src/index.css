@@ -1,6 +1,7 @@
 /* @import must be first (Vite/CSS spec) */
 @import './styles/fonts.css';
 @import './styles/theme.css';
+@import './styles/responsive.css';
 
 /* Brand font: Comfortaa from /public/fonts — applied app-wide */
 html {
@@ -32,17 +33,19 @@ body {
   margin: 0;
   display: flex;
   place-items: center;
-  min-width: 320px;
+  min-width: var(--viewport-min-width, 320px);
   min-height: 100vh;
   background-color: var(--color-background, #000000);
   overflow-x: hidden;
   position: relative;
 }
 
-/* Prevent body scrolling on documentation page */
-body:has(.documentation-container) {
-  overflow: hidden !important;
-  height: 100vh !important;
+/* Prevent body scrolling on documentation page (desktop only — md+1 = 769px) */
+@media (min-width: 769px) {
+  body:has(.documentation-container) {
+    overflow: hidden !important;
+    height: 100vh !important;
+  }
 }
 
 #root {

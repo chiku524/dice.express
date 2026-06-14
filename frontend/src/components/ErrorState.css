@@ -35,3 +35,9 @@
 .error-state-btn {
   margin: 0;
 }
+
+@media (max-width: 480px) {
+  .error-state {
+    padding: var(--spacing-xl) var(--spacing-md);
+  }
+}

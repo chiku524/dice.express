@@ -195,6 +195,33 @@
   font-weight: var(--font-weight-semibold);
 }
 
+@media (max-width: 480px) {
+  .wallet-modal-overlay {
+    padding: var(--spacing-sm);
+    align-items: flex-end;
+  }
+
+  .wallet-modal {
+    max-height: 92dvh;
+    border-radius: 16px 16px 0 0;
+  }
+
+  .wallet-modal-header,
+  .wallet-modal-content {
+    padding: var(--spacing-lg);
+  }
+
+  .wallet-modal-actions {
+    flex-direction: column;
+  }
+
+  .wallet-modal-actions .btn-primary,
+  .wallet-modal-actions .btn-secondary {
+    width: 100%;
+    min-width: 0;
+  }
+}
+
 .wallet-info {
   background: rgba(139, 92, 246, 0.08);
   padding: var(--spacing-md);

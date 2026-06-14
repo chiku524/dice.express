@@ -406,6 +406,17 @@
   .market-detail-actions {
     grid-template-columns: 1fr;
   }
+
+  .market-detail-trade-unified,
+  .market-detail-trade,
+  .market-detail-orders {
+    padding: var(--spacing-md);
+  }
+
+  .market-detail-outcome-pill {
+    min-width: 0;
+    flex: 1 1 calc(50% - var(--spacing-sm));
+  }
 }
 
 /* Unified binary trade card */
@@ -741,7 +752,7 @@
   grid-column: 1 / -1;
 }
 
-@media (max-width: 600px) {
+@media (max-width: 640px) {
   .market-detail-order-form {
     grid-template-columns: 1fr;
   }

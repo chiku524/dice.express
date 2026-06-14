@@ -68,3 +68,9 @@
   transform: translateY(-50%);
   border-right-color: var(--color-border, rgba(100, 108, 255, 0.2));
 }
+
+@media (max-width: 480px) {
+  .tooltip {
+    max-width: min(250px, calc(100vw - 2rem));
+  }
+}

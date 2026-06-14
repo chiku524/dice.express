@@ -45,8 +45,18 @@
 }
 
 @media (max-width: 480px) {
+  .user-hub-nav-inner {
+    display: flex;
+    flex-wrap: wrap;
+    width: 100%;
+    justify-content: center;
+  }
+
   .user-hub-tab {
-    padding: 8px 14px;
+    padding: 8px 12px;
     font-size: var(--font-size-xs);
+    flex: 1 1 auto;
+    text-align: center;
+    min-width: 0;
   }
 }

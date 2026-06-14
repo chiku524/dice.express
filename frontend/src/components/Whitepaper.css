@@ -47,3 +47,9 @@
   color: rgba(255, 255, 255, 0.82);
   line-height: 1.6;
 }
+
+@media (max-width: 768px) {
+  .whitepaper-tauri-jump select {
+    max-width: 100%;
+  }
+}

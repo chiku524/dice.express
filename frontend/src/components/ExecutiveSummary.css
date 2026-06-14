@@ -177,3 +177,31 @@
 .executive-summary .legal-page + .legal-page {
   margin-top: var(--spacing-lg);
 }
+
+@media (max-width: 768px) {
+  .executive-summary {
+    padding: 0 var(--spacing-md) var(--spacing-lg);
+  }
+
+  .stat-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--spacing-sm);
+  }
+
+  .stats-breakdown__head,
+  .stats-breakdown__row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.25rem;
+  }
+
+  .pitch-slide {
+    padding: var(--spacing-md);
+  }
+}
+
+@media (max-width: 480px) {
+  .stat-grid {
+    grid-template-columns: 1fr;
+  }
+}

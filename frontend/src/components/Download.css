@@ -160,3 +160,35 @@
 .download-releases a:hover {
   text-decoration: underline;
 }
+
+@media (max-width: 768px) {
+  .download-page {
+    padding: var(--spacing-lg) var(--spacing-md) var(--spacing-2xl);
+  }
+
+  .download-title {
+    font-size: 1.4rem;
+  }
+
+  .download-item {
+    flex-direction: column;
+    align-items: flex-start;
+    padding: var(--spacing-md);
+  }
+
+  .download-item-content {
+    width: 100%;
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .download-item-buttons {
+    width: 100%;
+  }
+
+  .download-btn {
+    width: 100%;
+    text-align: center;
+    box-sizing: border-box;
+  }
+}

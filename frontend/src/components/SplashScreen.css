@@ -8,6 +8,7 @@
   justify-content: center;
   background: var(--color-background, #0a0a0f);
   overflow: hidden;
+  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
 }
 
 .splash-screen__content {
@@ -103,5 +104,15 @@
   to {
     opacity: 1;
     transform: scale(1);
+  }
+}
+
+@media (max-width: 480px) {
+  .splash-screen__content {
+    padding: var(--spacing-lg, 1.5rem);
+  }
+
+  .splash-screen__name {
+    font-size: 1.25rem;
   }
 }

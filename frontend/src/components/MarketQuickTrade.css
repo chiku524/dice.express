@@ -293,3 +293,17 @@
   opacity: 0.5;
   cursor: default;
 }
+
+@media (max-width: 480px) {
+  .market-quick-trade {
+    padding: var(--spacing-sm);
+  }
+
+  .market-quick-outcome-pills:not(.market-quick-outcome-pills--wrap) {
+    flex-direction: column;
+  }
+
+  .market-quick-pill {
+    flex: 1 1 auto;
+  }
+}

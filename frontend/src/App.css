@@ -1506,3 +1506,68 @@
   flex: 1 1 12rem;
 }
 
+/* ---- Responsive: app shell, markets toolbar, header ---- */
+@media (max-width: 900px) {
+  .app-header .container {
+    padding: 0 var(--spacing-md);
+    gap: var(--spacing-sm);
+  }
+
+  .logo-tagline {
+    display: none;
+  }
+}
+
+@media (max-width: 768px) {
+  .app-main {
+    margin-top: 56px;
+    padding: var(--spacing-lg) 0 var(--spacing-xl);
+  }
+
+  .markets-filters-quick-row {
+    flex-direction: column;
+    align-items: stretch;
+    padding: var(--spacing-sm) var(--spacing-md);
+    gap: var(--spacing-sm);
+  }
+
+  .markets-filter-dropdown {
+    max-width: none;
+    flex: 1 1 100%;
+    min-width: 0;
+  }
+
+  .filter-results--markets .filter-results-row {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .markets-layout-picker {
+    width: 100%;
+  }
+
+  .market-list-row {
+    padding: var(--spacing-sm) var(--spacing-md);
+    padding-right: 2.5rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .app-header .container {
+    padding: 0 var(--spacing-sm);
+  }
+
+  .logo-name {
+    font-size: 0.9rem;
+  }
+
+  .markets-category-toggles-row {
+    gap: 0.35rem;
+  }
+
+  .markets-category-toggle {
+    padding: 0.35rem 0.5rem;
+    font-size: 0.7rem;
+  }
+}
+

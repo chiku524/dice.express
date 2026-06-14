@@ -54,3 +54,14 @@
 .legal-page li strong {
   color: var(--color-text-primary);
 }
+
+@media (max-width: 768px) {
+  .legal-page {
+    padding: var(--spacing-md);
+    border-radius: var(--radius-md);
+  }
+
+  .legal-page h1 {
+    font-size: var(--font-size-xl, 1.25rem);
+  }
+}

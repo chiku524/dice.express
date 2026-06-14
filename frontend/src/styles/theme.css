@@ -97,6 +97,8 @@
   
   /* Layout */
   --container-max-width: 1200px;
+  --viewport-min-width: 320px;
+  --desktop-sidebar-width: 232px;
   --card-padding: 1.5rem;
   --section-spacing: 2rem;
   
@@ -1052,6 +1054,10 @@ html {
   
   .container {
     padding: 0 var(--spacing-md);
+  }
+  
+  .app-header .wallet-info {
+    flex-wrap: wrap;
   }
   
   .card,

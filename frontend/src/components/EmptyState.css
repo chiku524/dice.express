@@ -40,3 +40,9 @@
 .empty-state-btn {
   margin: 0;
 }
+
+@media (max-width: 480px) {
+  .empty-state {
+    padding: var(--spacing-xl) var(--spacing-md);
+  }
+}

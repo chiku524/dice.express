@@ -13,6 +13,7 @@ export default function Navbar() {
   const location = useLocation()
   const [showDiscoverMenu, setShowDiscoverMenu] = useState(false)
   const [showResourcesMenu, setShowResourcesMenu] = useState(false)
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [balanceFormatted, setBalanceFormatted] = useState(null)
   const discoverMenuRef = useRef(null)
   const resourcesMenuRef = useRef(null)
@@ -45,10 +46,11 @@ export default function Navbar() {
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
 
-  // Close dropdowns when route changes
+  // Close dropdowns and mobile menu when route changes
   useEffect(() => {
     setShowDiscoverMenu(false)
     setShowResourcesMenu(false)
+    setMobileMenuOpen(false)
   }, [location.pathname, location.hash])
 
   const isActive = (path) => location.pathname === path
@@ -72,7 +74,7 @@ export default function Navbar() {
   }
 
   return (
-    <header className="app-header">
+    <header className={`app-header${mobileMenuOpen ? ' app-header--menu-open' : ''}`}>
       <div className="container">
         <Link to="/" className="logo" {...(isDesktopApp ? { 'data-tauri-drag-region': true } : {})}>
           <img src="/logo.svg" alt="" className="logo-img" width="36" height="36" />
@@ -81,7 +83,19 @@ export default function Navbar() {
             <span className="logo-tagline">{BRAND_TAGLINE}</span>
           </span>
         </Link>
-        <nav>
+        <button
+          type="button"
+          className="nav-mobile-toggle"
+          aria-expanded={mobileMenuOpen}
+          aria-controls="primary-nav"
+          aria-label={mobileMenuOpen ? 'Close menu' : 'Open menu'}
+          onClick={() => setMobileMenuOpen((open) => !open)}
+        >
+          <span className="nav-mobile-toggle-bar" aria-hidden="true" />
+          <span className="nav-mobile-toggle-bar" aria-hidden="true" />
+          <span className="nav-mobile-toggle-bar" aria-hidden="true" />
+        </button>
+        <nav id="primary-nav" className={mobileMenuOpen ? 'nav-open' : ''}>
           {/* Discover: markets only */}
           <div className="nav-dropdown" ref={discoverMenuRef}>
             <button

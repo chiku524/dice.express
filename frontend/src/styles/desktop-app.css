@@ -89,9 +89,7 @@ html.desktop-app .app--auth .auth-page {
 }
 
 /* ---- Main Tauri window: sidebar + content ---- */
-.desktop-app {
-  --desktop-sidebar-width: 232px;
-}
+/* Sidebar width: --desktop-sidebar-width in theme.css */
 
 /* Sidebar stays viewport-height; nav scrolls inside (see DesktopSidebar.css) */
 html.desktop-app .desktop-sidebar {
@@ -272,5 +270,35 @@ html.desktop-app .app-main-desktop {
 @media (max-width: 900px) {
   .desktop-app .market-grid {
     grid-template-columns: 1fr;
+  }
+
+  .desktop-app .desktop-main-inner {
+    padding: var(--spacing-md, 1rem) var(--spacing-md, 1rem);
+  }
+
+  .desktop-app .market-detail-outcome-pill {
+    min-width: 0;
+  }
+}
+
+@media (max-width: 768px) {
+  .desktop-app .automation-status-dl {
+    grid-template-columns: 1fr;
+    gap: 0.25rem 0;
+  }
+
+  .desktop-app .automation-status-dl dt {
+    margin-top: 0.5rem;
+  }
+
+  .desktop-app .automation-status-dl dt:first-of-type {
+    margin-top: 0;
+  }
+
+  .desktop-app .stats-breakdown__head,
+  .desktop-app .stats-breakdown__row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.25rem;
   }
 }

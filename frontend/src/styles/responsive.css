@@ -1,0 +1,102 @@
+/**
+ * Responsive design system
+ *
+ * Breakpoint scale — use these exact px values in @media (CSS cannot use var() in queries):
+ *   480px  xs   phones, full-width buttons, stacked actions
+ *   640px  sm   profile forms, single-column market grid (web), compact order forms
+ *   768px  md   primary tablet / mobile layout collapse
+ *   900px  lg   nav drawer, auth split, desktop market grid → 1 col
+ *   1100px xl   market grid 3 → 2 columns
+ *
+ * Layout tokens: --viewport-min-width, --desktop-sidebar-width (in theme.css :root)
+ */
+
+/* ---- Shared utilities ---- */
+
+.scroll-x-touch {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+
+.scroll-x-touch::-webkit-scrollbar {
+  display: none;
+}
+
+.table-scroll-wrap {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  max-width: 100%;
+}
+
+.page-shell {
+  max-width: var(--container-max-width, 1200px);
+  margin-inline: auto;
+  padding-inline: var(--spacing-xl, 2rem);
+}
+
+@media (max-width: 768px) {
+  .page-shell {
+    padding-inline: var(--spacing-md, 1rem);
+  }
+
+  .table-scroll-wrap--bleed {
+    margin-inline: calc(-1 * var(--spacing-md, 1rem));
+    padding-inline: var(--spacing-md, 1rem);
+  }
+}
+
+@media (max-width: 480px) {
+  .page-shell {
+    padding-inline: var(--spacing-sm, 0.5rem);
+  }
+}
+
+/* ---- Cross-page patterns (md) ---- */
+
+@media (max-width: 768px) {
+  .markets-quick-filters-row,
+  .markets-spotlight-strip {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 0.25rem;
+    scrollbar-width: none;
+  }
+
+  .markets-quick-filters-row::-webkit-scrollbar,
+  .markets-spotlight-strip::-webkit-scrollbar {
+    display: none;
+  }
+
+  .markets-quick-filter-btn,
+  .markets-spotlight-btn {
+    flex-shrink: 0;
+  }
+
+  .portfolio-table-wrap {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    margin-inline: calc(-1 * var(--spacing-md, 1rem));
+    padding-inline: var(--spacing-md, 1rem);
+  }
+}
+
+/* ---- Stacked action rows (xs) ---- */
+
+@media (max-width: 480px) {
+  .empty-state-actions,
+  .error-state-actions {
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .empty-state-actions .btn-primary,
+  .empty-state-actions .btn-secondary,
+  .empty-state-actions .empty-state-btn,
+  .error-state-actions .btn-primary,
+  .error-state-actions .btn-secondary,
+  .error-state-actions .error-state-btn {
+    width: 100%;
+  }
+}

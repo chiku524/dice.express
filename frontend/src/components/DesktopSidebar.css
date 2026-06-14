@@ -1,3 +1,7 @@
+/**
+ * Desktop sidebar — fixed width from --desktop-sidebar-width (theme.css).
+ * Flyouts use viewport-relative max-width for narrow windows.
+ */
 .desktop-sidebar {
   display: flex;
   flex-direction: column;
