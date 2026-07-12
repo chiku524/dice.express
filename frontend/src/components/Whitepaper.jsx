@@ -6,6 +6,7 @@ import {
   WHITEPAPER_SECTIONS,
   whitepaperHashToSectionId,
 } from '../constants/whitepaperSections'
+import { isTauriApp } from '../utils/platform'
 import './Documentation.css'
 import './Whitepaper.css'
 
@@ -16,15 +17,11 @@ function hashForWhitepaper(location) {
   return win
 }
 
-function isTauriShell() {
-  return typeof window !== 'undefined' && !!window.__TAURI__
-}
-
 export default function Whitepaper() {
   const location = useLocation()
   const navigate = useNavigate()
   const mainRef = useRef(null)
-  const tauriShell = isTauriShell()
+  const tauriShell = isTauriApp()
   const [activeSection, setActiveSection] = useState(() => {
     if (typeof window === 'undefined') return 'abstract'
     return whitepaperHashToSectionId(window.location.hash)

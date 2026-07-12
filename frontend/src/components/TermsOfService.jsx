@@ -28,7 +28,7 @@ export default function TermsOfService() {
 
       <h2>Trading and Pips</h2>
       <p>
-        You deposit (crypto or card) to receive Pips and trade on outcomes. Withdrawals of earnings are subject to a fee. Outcomes, payouts, and fees are described on the relevant market pages. Past performance does not guarantee future results; trading involves risk.
+        You deposit crypto to receive Pips and trade on outcomes. Withdrawals of earnings are subject to a fee. Outcomes, payouts, and fees are described on the relevant market pages. Past performance does not guarantee future results; trading involves risk.
       </p>
 
       <h2>Fees</h2>

@@ -9,6 +9,49 @@ import {
 } from '../../lib/amm.mjs'
 import * as marketDedupe from '../../lib/market-dedupe.mjs'
 import { upsertMarketEmbedding } from '../../lib/market-embeddings.mjs'
+import { findRelatedMarkets } from '../../lib/related-markets.mjs'
+
+function mapMarketRow(r, orderCounts = {}) {
+  return {
+    contractId: r.contractId,
+    templateId: r.templateId,
+    payload: {
+      ...(r.payload || {}),
+      status: r.status === 'Approved' ? 'Active' : r.status,
+      source: r.payload?.source ?? 'user',
+    },
+    party: r.party,
+    status: r.status,
+    createdAt: r.createdAt,
+    openOrderCount: orderCounts[r.contractId] || 0,
+  }
+}
+
+function isMarketTemplate(r) {
+  return (
+    r.contractId !== d1.CRON_HEARTBEAT_CONTRACT_ID &&
+    (r.templateId === d1.TEMPLATE_VIRTUAL_MARKET || (r.templateId && r.templateId.includes('Market')))
+  )
+}
+
+/** Resolve by contract id, market-* prefix, or payload.marketId scan. */
+async function resolveMarketContract(db, marketId) {
+  const id = String(marketId || '').trim()
+  if (!id) return null
+  let row = await storage.getContractById(db, id)
+  if (!row && !id.startsWith('market-')) {
+    row = await storage.getContractById(db, `market-${id}`)
+  }
+  if (row && isMarketTemplate(row)) return row
+  const all = await storage.getContracts(db, { limit: 500 })
+  return (
+    all.find(
+      (r) =>
+        isMarketTemplate(r) &&
+        (r.contractId === id || (r.payload && String(r.payload.marketId) === id))
+    ) || null
+  )
+}
 
 export async function tryD1MarketsRoutes(ctx) {
   const { db, kv, r2, env, request, path, method, query, body, requestId, jsonResponse } = ctx
@@ -18,7 +61,36 @@ export async function tryD1MarketsRoutes(ctx) {
 // GET/POST /api/markets
 if (path === 'markets') {
   if (method === 'GET') {
-    const { source, status } = query
+    const { source, status, marketId } = query
+    const relatedLimit = Math.min(8, Math.max(0, parseInt(String(query.related || '0'), 10) || 0))
+
+    // Single-market detail (+ optional related) — avoids shipping the full list to the client
+    if (marketId) {
+      const row = await resolveMarketContract(db, marketId)
+      if (!row) return jsonResponse({ error: 'Market not found' }, 404)
+      const orderCounts = await storage.getOpenP2pOrderCountsByMarket(db)
+      const market = mapMarketRow(row, orderCounts)
+      let related = []
+      if (relatedLimit > 0) {
+        const cached = kv ? await storage.getMarketsCache(kv, 'all') : null
+        let candidates = Array.isArray(cached?.markets) ? cached.markets : null
+        if (!candidates) {
+          const all = await storage.getContracts(db, { limit: 200 })
+          candidates = all
+            .filter((r) => isMarketTemplate(r) && ['Active', 'Approved'].includes(r.status))
+            .map((r) => mapMarketRow(r, orderCounts))
+        }
+        related = findRelatedMarkets(
+          market.payload,
+          candidates,
+          market.contractId,
+          market.payload?.marketId,
+          relatedLimit
+        )
+      }
+      return jsonResponse({ success: true, market, related, count: 1 })
+    }
+
     const sortRaw = (query.sort || '').toString().toLowerCase()
     const useActivitySort = sortRaw === 'activity' || sortRaw === 'p2p'
     const cached =
@@ -27,23 +99,11 @@ if (path === 'markets') {
 
     const all = await storage.getContracts(db, { limit: 500 })
     const orderCounts = await storage.getOpenP2pOrderCountsByMarket(db)
-    const marketRows = all.filter(
-      (r) =>
-        r.contractId !== d1.CRON_HEARTBEAT_CONTRACT_ID &&
-        (r.templateId === d1.TEMPLATE_VIRTUAL_MARKET || (r.templateId && r.templateId.includes('Market')))
-    )
+    const marketRows = all.filter(isMarketTemplate)
     const statusFilter = status ? [status] : ['Active', 'Approved']
     let markets = marketRows
       .filter((r) => statusFilter.includes(r.status))
-      .map((r) => ({
-        contractId: r.contractId,
-        templateId: r.templateId,
-        payload: { ...(r.payload || {}), status: r.status === 'Approved' ? 'Active' : r.status, source: r.payload?.source ?? 'user' },
-        party: r.party,
-        status: r.status,
-        createdAt: r.createdAt,
-        openOrderCount: orderCounts[r.contractId] || 0,
-      }))
+      .map((r) => mapMarketRow(r, orderCounts))
     if (source && source !== 'all') {
       markets = markets.filter((m) => (m.payload?.source ?? 'user') === source)
     }

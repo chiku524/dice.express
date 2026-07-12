@@ -4,6 +4,16 @@ Summary of major cleanups and improvements. For current structure see [README](.
 
 ---
 
+## 1.0.41 — App polish, perf, Markets IA & deep links (July 2026)
+
+- **Release:** Version **1.0.41**; tag **`v1.0.41`** for desktop CI and GitHub Releases.
+- **Browse without sign-in:** Markets, market detail, docs, download, and legal pages are public; account hub routes stay gated. Trade still prompts for an account when signed out.
+- **Perf:** `GET /api/markets?marketId=…&related=5`; Vite splits `viem` / Solana chunks; memoized Discover rows.
+- **Desktop:** Deep links (`diceexpress://market/<id>`), notification click → market, baked `VITE_API_ORIGIN`, full-width account pages.
+- **Markets IA:** Single Markets page with `/?source=` pills; legacy `/discover/*` redirects; navbar **Markets**.
+- **Splits:** `MarketDetailTradePanel`, related markets, Portfolio positions/activity tabs.
+- **Auto-markets:** Clearer titles (operator/news/sports); quality gate for vague copy.
+
 ## 1.0.40 — Animated background drift (April 2026)
 
 - **Release:** Version **1.0.40**; tag **`v1.0.40`** for desktop CI and GitHub Releases.

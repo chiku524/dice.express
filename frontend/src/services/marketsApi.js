@@ -5,6 +5,18 @@ import { apiUrl } from './apiBase'
 
 const MARKETS_API = apiUrl('markets')
 
+function normalizeMarketRow(m) {
+  return {
+    contractId: m.contractId,
+    templateId: m.templateId,
+    payload: { ...m.payload, status: m.payload?.status ?? 'Active', source: m.payload?.source ?? 'user' },
+    party: m.party,
+    status: m.status,
+    createdAt: m.createdAt,
+    openOrderCount: typeof m.openOrderCount === 'number' ? m.openOrderCount : 0,
+  }
+}
+
 /**
  * @param {string | null} [source] - API source filter (optional; Discover often filters client-side)
  * @param {{ sort?: 'activity' | 'p2p' }} [options] - sort=activity hits API P2P ordering and fresh openOrderCount (skips KV cache server-side)
@@ -31,15 +43,33 @@ export async function fetchMarkets(source = null, options = {}) {
     throw new Error(detail)
   }
   const data = await res.json().catch(() => ({}))
-  return (data.markets || []).map((m) => ({
-    contractId: m.contractId,
-    templateId: m.templateId,
-    payload: { ...m.payload, status: m.payload?.status ?? 'Active', source: m.payload?.source ?? 'user' },
-    party: m.party,
-    status: m.status,
-    createdAt: m.createdAt,
-    openOrderCount: typeof m.openOrderCount === 'number' ? m.openOrderCount : 0,
-  }))
+  return (data.markets || []).map(normalizeMarketRow)
+}
+
+/**
+ * Load one market (and optional related) without downloading the full list.
+ * @param {string} marketId - contractId or payload.marketId
+ * @param {{ related?: number }} [options]
+ * @returns {Promise<{ market: object, related: object[] }>}
+ */
+export async function fetchMarketById(marketId, options = {}) {
+  const id = String(marketId || '').trim()
+  if (!id) throw new Error('marketId required')
+  const params = new URLSearchParams({ marketId: id })
+  const related = Number(options.related)
+  if (Number.isFinite(related) && related > 0) params.set('related', String(Math.min(8, related)))
+  const res = await fetch(`${MARKETS_API}?${params}`, {
+    method: 'GET',
+    headers: { 'Content-Type': 'application/json' },
+  })
+  if (res.status === 404) throw new Error('Market not found')
+  if (!res.ok) throw new Error('Failed to fetch market')
+  const data = await res.json().catch(() => ({}))
+  if (!data.market) throw new Error('Market not found')
+  return {
+    market: normalizeMarketRow(data.market),
+    related: Array.isArray(data.related) ? data.related.map(normalizeMarketRow) : [],
+  }
 }
 
 export async function createMarket(body) {

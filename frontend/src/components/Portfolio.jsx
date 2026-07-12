@@ -18,6 +18,8 @@ import LoadingDiceProgress from './LoadingDiceProgress'
 import SubmitDiceLabel from './SubmitDiceLabel'
 import UserHubNav from './UserHubNav'
 import ErrorState from './ErrorState'
+import PortfolioPositionsTab from './PortfolioPositionsTab'
+import PortfolioActivityTab from './PortfolioActivityTab'
 import { formatPips, PLATFORM_CURRENCY_SYMBOL } from '../constants/currency'
 import {
   EVM_USDC_CONTRACT,
@@ -268,7 +270,7 @@ export default function Portfolio() {
   useEffect(() => {
     if (!wallet) return
     const params = new URLSearchParams(window.location.search)
-    if (params.get('deposit') === '1' || params.get('deposit') === 'card') {
+    if (params.get('deposit') === '1') {
       setActiveTab('balance')
       window.history.replaceState({}, '', window.location.pathname)
       requestAnimationFrame(() => {
@@ -1012,121 +1014,22 @@ export default function Portfolio() {
       )}
 
       {activeTab === 'positions' && (
-        positions.length === 0 ? (
-        <div className="card">
-          <h2 className="mb-md">Positions</h2>
-          <p className="text-secondary">No positions yet. Browse markets and buy Yes or No to get started.</p>
-          <Link to="/">
-            <button className="btn-primary mt-md">
-              Browse markets
-            </button>
-          </Link>
-        </div>
-      ) : (
-        <div>
-          <h2 className="mb-md">My Positions</h2>
-          {exposureByMarket.length > 0 && (
-            <div className="card mb-md">
-              <h3 className="mb-sm">Open exposure by market</h3>
-              <p className="text-secondary" style={{ fontSize: 'var(--font-size-sm)', marginBottom: '0.75rem' }}>
-                Sum of position sizes (shares) per market — quick view of where you have prediction risk.
-              </p>
-              <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
-                {exposureByMarket.slice(0, 12).map(([mid, sum]) => (
-                  <li key={mid} className="mb-xs" style={{ display: 'flex', justifyContent: 'space-between', gap: '1rem' }}>
-                    <Link to={`/market/${mid}`} style={{ color: 'var(--color-primary)', textDecoration: 'none' }}>
-                      {marketTitles[mid] || mid}
-                    </Link>
-                    <span>{sum.toFixed(2)} shares</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-            {positions.map((position) => (
-              <div key={position.contractId} className="card mb-md">
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start' }}>
-                  <div style={{ flex: 1 }}>
-                    <h3>
-                      <Link to={`/market/${position.payload?.marketId}`} style={{ color: 'inherit', textDecoration: 'none' }}>
-                        {marketTitles[position.payload?.marketId] || position.payload?.marketId || 'Unknown Market'}
-                      </Link>
-                    </h3>
-                    {marketTitles[position.payload?.marketId] && (
-                      <p className="text-muted" style={{ fontSize: 'var(--font-size-xs)', marginTop: 'var(--spacing-xs)', marginBottom: 'var(--spacing-sm)' }}>
-                        Market ID: {position.payload?.marketId}
-                      </p>
-                    )}
-                    <div className="grid-auto-fit-xs mt-sm">
-                      <div>
-                        <strong>Type:</strong> {formatPositionType(position.payload?.positionType)}
-                      </div>
-                      <div>
-                        <strong>Amount:</strong> {formatPips(position.payload?.amount ?? 0)}
-                      </div>
-                      <div>
-                        <strong>Price:</strong> {position.payload?.price || '0'}
-                      </div>
-                      {position.payload?.depositAmount && (
-                        <div>
-                          <strong>Deposit:</strong> {formatPips(position.payload.depositAmount)}
-                        </div>
-                      )}
-                      <div>
-                        <strong>Created:</strong> {formatDate(position.createdAt || position.created_at)}
-                      </div>
-                    </div>
-                  </div>
-                  <Link to={`/market/${position.payload?.marketId}`} style={{ marginLeft: '1rem' }}>
-                    <button className="btn-secondary">View Market</button>
-                  </Link>
-                </div>
-              </div>
-            ))}
-        </div>
-      ) )}
+        <PortfolioPositionsTab
+          positions={positions}
+          exposureByMarket={exposureByMarket}
+          marketTitles={marketTitles}
+          formatPositionType={formatPositionType}
+          formatDate={formatDate}
+        />
+      )}
 
       {activeTab === 'activity' && (
-          <div className="card">
-            <h2 className="mb-md">Activity</h2>
-            {activityLog.length === 0 ? (
-              <p className="text-secondary">No activity yet. Your trades and positions will appear here.</p>
-            ) : (
-              <div style={{ maxHeight: '400px', overflowY: 'auto' }}>
-                {activityLog.map((activity) => (
-                  <div 
-                    key={activity.id} 
-                    className="activity-item"
-                  >
-                    <div className="activity-content">
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-sm)', marginBottom: 'var(--spacing-sm)' }}>
-                        <strong>Position Created</strong>
-                        {activity.position?.depositAmount && (
-                          <span className="activity-badge">
-                            {formatPips(activity.position.depositAmount)} deposited
-                          </span>
-                        )}
-                      </div>
-                      <div className="text-secondary" style={{ fontSize: 'var(--font-size-sm)', marginBottom: 'var(--spacing-xs)' }}>
-                        Market: {marketTitles[activity.position?.marketId] || activity.position?.marketId || 'Unknown'}
-                      </div>
-                      <div className="text-secondary" style={{ fontSize: 'var(--font-size-sm)', marginBottom: 'var(--spacing-xs)' }}>
-                        Type: {formatPositionType(activity.position?.positionType)} | Amount: {activity.position?.amount || '0'} | Price: {activity.position?.price || '0'}
-                      </div>
-                      <div className="text-muted" style={{ fontSize: 'var(--font-size-xs)' }}>
-                        {formatDate(activity.timestamp)}
-                      </div>
-                    </div>
-                    <Link to={`/market/${activity.position?.marketId}`} style={{ marginLeft: 'var(--spacing-md)' }}>
-                      <button className="btn-secondary" style={{ fontSize: 'var(--font-size-sm)', padding: 'var(--spacing-sm) var(--spacing-md)' }}>
-                        View
-                      </button>
-                    </Link>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
+        <PortfolioActivityTab
+          activityLog={activityLog}
+          marketTitles={marketTitles}
+          formatPositionType={formatPositionType}
+          formatDate={formatDate}
+        />
       )}
     </div>
   )

@@ -1,6 +1,6 @@
 /**
  * Platform currency: Pips.
- * Users deposit (crypto / card) to receive Pips; they trade and withdraw earnings (withdrawal fee applies).
+ * Users deposit crypto to receive Pips; they trade and withdraw earnings (withdrawal fee applies).
  */
 export const PLATFORM_CURRENCY = {
   name: 'Pips',

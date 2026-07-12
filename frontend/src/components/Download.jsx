@@ -33,7 +33,7 @@ export default function Download() {
         <img src="/logo.svg" alt="" className="download-logo" width={64} height={64} />
         <h1 className="download-title">Download dice.express</h1>
         <p className="download-lead">
-          Desktop app for Windows and macOS. Same prediction markets, native experience — with a quick intro and a focused sign-in.
+          Desktop app for Windows and macOS. Same prediction markets, native experience — with a quick intro, then markets you can browse before signing in.
         </p>
         <p className="download-version">
           {loading ? (
@@ -92,7 +92,7 @@ export default function Download() {
       <section className="download-section download-section--info">
         <h2 className="download-heading">What you get</h2>
         <ul className="download-features">
-          <li>Frameless intro animation, then the main app at sign-in</li>
+          <li>Frameless intro animation, then markets (sign in when you trade)</li>
           <li>Same markets, Pips, and trading as the web app</li>
           <li>dice.express icon in the taskbar/dock</li>
         </ul>

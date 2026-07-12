@@ -19,6 +19,15 @@ export default defineConfig({
           ) {
             return 'react-vendor'
           }
+          if (id.includes('node_modules/viem') || id.includes('node_modules/ox/')) {
+            return 'viem-vendor'
+          }
+          if (
+            id.includes('node_modules/@solana/') ||
+            id.includes('node_modules/@spl-token')
+          ) {
+            return 'solana-vendor'
+          }
         },
       },
     },

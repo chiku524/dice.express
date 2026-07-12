@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, Suspense } from 'react'
 import {
   BrowserRouter as Router,
   Routes,
@@ -7,11 +7,10 @@ import {
   Navigate,
   Outlet,
 } from 'react-router-dom'
-import { WalletProvider, useWallet } from './contexts/WalletContext'
-import { Suspense } from 'react'
+import { WalletProvider } from './contexts/WalletContext'
 import LoadingSpinner from './components/LoadingSpinner'
-import ExecutiveSummary from './components/ExecutiveSummary'
 import { lazyWithRetry } from './utils/lazyWithRetry'
+import { isTauriApp } from './utils/platform'
 
 const MarketsList = lazyWithRetry(() => import('./components/MarketsList'))
 const MarketDetail = lazyWithRetry(() => import('./components/MarketDetail'))
@@ -30,6 +29,7 @@ const Download = lazyWithRetry(() => import('./components/Download'))
 const AutomationStatus = lazyWithRetry(() => import('./components/AutomationStatus'))
 const PrivacyPolicy = lazyWithRetry(() => import('./components/PrivacyPolicy'))
 const TermsOfService = lazyWithRetry(() => import('./components/TermsOfService'))
+const ExecutiveSummary = lazyWithRetry(() => import('./components/ExecutiveSummary'))
 import { analytics } from './utils/analytics'
 import AnimatedBackground from './components/AnimatedBackground'
 import WalletModal from './components/WalletModal'
@@ -39,6 +39,8 @@ import Footer from './components/Footer'
 import DesktopSidebar from './components/DesktopSidebar'
 import TauriTrayBridge from './components/TauriTrayBridge'
 import MarketAlertsPoller from './components/MarketAlertsPoller'
+import NotificationActionBridge from './components/NotificationActionBridge'
+import DeepLinkBridge from './components/DeepLinkBridge'
 import PageSEO from './components/PageSEO'
 import { ToastContainer } from './components/Toast'
 import { ToastProvider, useToastContext } from './contexts/ToastContext'
@@ -50,14 +52,12 @@ import './App.css'
 /* After App.css so .app--desktop-shell wins over .app { flex-direction: column } */
 import './styles/desktop-app.css'
 
-if (typeof document !== 'undefined' && typeof window !== 'undefined' && window.__TAURI__) {
-  document.documentElement.classList.add('desktop-app')
-} else if (typeof document !== 'undefined') {
-  document.documentElement.classList.remove('desktop-app')
-}
-
-function isTauriApp() {
-  return typeof window !== 'undefined' && window.__TAURI__
+if (typeof document !== 'undefined') {
+  if (isTauriApp()) {
+    document.documentElement.classList.add('desktop-app')
+  } else {
+    document.documentElement.classList.remove('desktop-app')
+  }
 }
 
 function PageViewTracker() {
@@ -75,16 +75,6 @@ function PageViewTracker() {
   }, [location.pathname])
 
   return null
-}
-
-/** Redirects to sign-in when not authenticated; otherwise renders child routes. */
-function RequireAuth() {
-  const { wallet } = useWallet()
-  const location = useLocation()
-  if (!wallet) {
-    return <Navigate to="/sign-in" state={{ from: location }} replace />
-  }
-  return <Outlet />
 }
 
 /** Full-viewport shell for sign-in/register (no Navbar/Footer/sidebar). */
@@ -219,29 +209,57 @@ function AppContent() {
             </AuthLayout>
           }
         />
-        <Route element={<RequireAuth />}>
+        {/* Markets, detail, and docs are public; trade/account actions open the account modal. */}
+        <Route
+          element={
+            <RootLayout
+              showWalletModal={showWalletModal}
+              setShowWalletModal={setShowWalletModal}
+            />
+          }
+        >
+          <Route path="/" element={<MarketsList />} />
+          <Route path="/discover/active" element={<Navigate to="/?source=active" replace />} />
+          <Route path="/discover/sports" element={<Navigate to="/?source=sports" replace />} />
+          <Route path="/discover/global-events" element={<Navigate to="/?source=global_events" replace />} />
+          <Route path="/discover/industry" element={<Navigate to="/?source=industry" replace />} />
+          <Route path="/discover/tech-ai" element={<Navigate to="/?source=tech_ai" replace />} />
+          <Route path="/discover/politics" element={<Navigate to="/?source=politics" replace />} />
+          <Route path="/discover/entertainment" element={<Navigate to="/?source=entertainment" replace />} />
+          <Route path="/discover/science" element={<Navigate to="/?source=science" replace />} />
+          <Route path="/discover/virtual-realities" element={<Navigate to="/?source=virtual_realities" replace />} />
+          <Route path="/discover/user" element={<Navigate to="/?source=user" replace />} />
+          <Route path="/discover/*" element={<Navigate to="/" replace />} />
+          <Route path="/market/:marketId" element={<MarketDetail />} />
+          <Route path="/create" element={<AutomatedMarketsInfo />} />
+          <Route path="/automation" element={<AutomationStatus />} />
+          <Route path="/download" element={<Download />} />
+          <Route path="/docs" element={<Documentation />} />
+          <Route path="/documentation" element={<Documentation />} />
+          <Route path="/whitepaper" element={<Whitepaper />} />
+          <Route path="/privacy" element={<PrivacyPolicy />} />
+          <Route path="/terms" element={<TermsOfService />} />
+          <Route path="/executive-summary" element={<ExecutiveSummary />} />
+          <Route path="/admin" element={<Navigate to="/" replace />} />
+          <Route path="/account" element={<Navigate to="/dashboard" replace />} />
+          <Route path="/history" element={<Navigate to="/activity" replace />} />
+
           <Route
+            path="/watchlist"
             element={
-              <RootLayout
-                showWalletModal={showWalletModal}
-                setShowWalletModal={setShowWalletModal}
-              />
+              <ProtectedRoute>
+                <MarketsList variant="watchlist" />
+              </ProtectedRoute>
             }
-          >
-            <Route path="/" element={<MarketsList />} />
-            <Route path="/discover/active" element={<MarketsList source="active" />} />
-            <Route path="/discover/sports" element={<MarketsList source="sports" />} />
-            <Route path="/discover/global-events" element={<MarketsList source="global_events" />} />
-            <Route path="/discover/industry" element={<MarketsList source="industry" />} />
-            <Route path="/discover/tech-ai" element={<MarketsList source="tech_ai" />} />
-            <Route path="/discover/politics" element={<MarketsList source="politics" />} />
-            <Route path="/discover/entertainment" element={<MarketsList source="entertainment" />} />
-            <Route path="/discover/science" element={<MarketsList source="science" />} />
-            <Route path="/discover/virtual-realities" element={<MarketsList source="virtual_realities" />} />
-            <Route path="/discover/user" element={<MarketsList source="user" />} />
-            <Route path="/watchlist" element={<MarketsList variant="watchlist" />} />
-            <Route path="/market/:marketId" element={<MarketDetail />} />
-            <Route path="/account" element={<Navigate to="/dashboard" replace />} />
+          />
+          <Route
+            path="/activity"
+            element={
+              <ProtectedRoute>
+                <Activity />
+              </ProtectedRoute>
+            }
+          />
           <Route
             path="/dashboard"
             element={
@@ -258,23 +276,6 @@ function AppContent() {
               </ProtectedRoute>
             }
           />
-            <Route path="/create" element={<AutomatedMarketsInfo />} />
-            <Route
-              path="/automation"
-              element={
-                <Suspense
-                  fallback={
-                    <LoadingSpinner
-                      message="Loading…"
-                      sublabel="Opening automation status."
-                      progressSteps={['Rolling the dice…', 'Loading module…', 'Almost ready…']}
-                    />
-                  }
-                >
-                  <AutomationStatus />
-                </Suspense>
-              }
-            />
           <Route
             path="/portfolio"
             element={
@@ -283,17 +284,6 @@ function AppContent() {
               </ProtectedRoute>
             }
           />
-          <Route path="/admin" element={<Navigate to="/" replace />} />
-          <Route path="/activity" element={<Activity />} />
-          <Route path="/history" element={<Navigate to="/activity" replace />} />
-          <Route path="/download" element={<Download />} />
-          <Route path="/docs" element={<Documentation />} />
-          <Route path="/documentation" element={<Documentation />} />
-          <Route path="/whitepaper" element={<Whitepaper />} />
-          <Route path="/privacy" element={<PrivacyPolicy />} />
-          <Route path="/terms" element={<TermsOfService />} />
-          <Route path="/executive-summary" element={<ExecutiveSummary />} />
-          </Route>
         </Route>
       </Routes>
     </>
@@ -308,6 +298,8 @@ function App() {
           <WalletProvider>
             <Web3WalletProvider>
               <TauriTrayBridge />
+              <NotificationActionBridge />
+              <DeepLinkBridge />
               <MarketAlertsPoller />
               <AppContent />
             </Web3WalletProvider>

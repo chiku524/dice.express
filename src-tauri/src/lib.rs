@@ -169,6 +169,7 @@ pub fn run() {
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_process::init())
+        .plugin(tauri_plugin_deep_link::init())
         .manage(Mutex::new(SplashState {
             frontend_done: false,
             backend_done: false,
@@ -177,6 +178,7 @@ pub fn run() {
 
     #[cfg(desktop)]
     {
+        // deep-link feature forwards argv URLs into the running instance
         builder = builder.plugin(tauri_plugin_single_instance::init(|app, _argv, _cwd| {
             show_and_focus_main(app);
         }));

@@ -137,6 +137,21 @@ Pair **`AUTO_MARKETS_PENDING_ACTIVATION`** with **`activate_pending`** so policy
 
 ---
 
+## Title copy standards
+
+Automated **titles** are user-facing questions. Keep them short, punchy, and semantic. Put provider/API mechanics in **`resolutionCriteria`** (and optional **`oneLiner`**), not in the question.
+
+| Do | Don't |
+|----|--------|
+| Name the story, teams, ticker, or entity (`Will Lakers beat Celtics?`, `Will FDA action on “…” be confirmed by …?`) | Vague pointers (`referenced in this headline`, `described in this news thread`) |
+| Ask a clear yes/no question | Stuff a raw news headline into broken grammar (`Will {full headline} by end of Olympics?`) |
+| Keep titles under ~110 chars before emoji polish | Embed `GLOBAL_QUOTE`, “home on card”, or long feed-query clauses in the title |
+| Skip election enrich when no candidate entity is extractable | Fall back to `the leading candidate` |
+
+Quality gates reject titles matching built-in vague patterns (`title_vague_copy`), in addition to optional **`AUTO_MARKETS_TITLE_BLOCKLIST_REGEX`**. Presentation still prepends an emoji and clips to 130 characters in `market-presentation.mjs`.
+
+---
+
 ## Troubleshooting
 
 ### Where secrets must live

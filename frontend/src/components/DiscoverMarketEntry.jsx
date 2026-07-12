@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom'
+import { memo } from 'react'
 import {
   PREDICTION_STYLES,
   getCategoryDisplay,
@@ -15,7 +16,7 @@ import MarketQuickTrade from './MarketQuickTrade'
 import { getAbsoluteMarketUrl } from '../utils/marketLinks'
 
 /** Single market row/card on the discover list (layout: cards | list | compact). */
-export default function DiscoverMarketEntry({
+function DiscoverMarketEntry({
   layout,
   market,
   getStatusClass,
@@ -303,3 +304,5 @@ export default function DiscoverMarketEntry({
     </article>
   )
 }
+
+export default memo(DiscoverMarketEntry)

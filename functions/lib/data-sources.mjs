@@ -506,9 +506,9 @@ export async function eventsFromFredFunds(env, limit = 2, horizonSlot = utcHourS
     const threshold = Math.round(spot * 100) / 100
     const seedKey = `fred-dff-${dateStr}-${days}d`
     const title = pickVariant(seedKey, [
-      `Will the effective federal funds rate (FRED: DFF) be at or above ${threshold}% on the last print on or before ${dateStr}?`,
-      `FRED DFF macro check: last observation on or before ${dateStr} ≥ ${threshold}%?`,
-      `By ${dateStr}, will the Fed’s effective funds rate (DFF) still read ≥ ${threshold}% on the latest FRED print?`,
+      `Will the Fed funds rate (DFF) be ≥ ${threshold}% by ${dateStr}?`,
+      `DFF ≥ ${threshold}% on the last print by ${dateStr}?`,
+      `Will effective funds stay at or above ${threshold}% through ${dateStr}?`,
     ])
     events.push({
       id: `fred-dff-${dateStr}-${days}d`,
@@ -562,7 +562,7 @@ export async function eventsFromFinnhubEarnings(env, symbols = ALPHA_VANTAGE_EQU
     const q = upcoming.quarter
     const y = upcoming.year
     const reportDate = String(upcoming.date).slice(0, 10)
-    const title = `Will ${symbol} report EPS of at least $${epsEst.toFixed(2)} for Q${q} ${y} (Finnhub consensus)?`
+    const title = `Will ${symbol} report EPS ≥ $${epsEst.toFixed(2)} for Q${q} ${y}?`
     const id = `fh-earn-${symbol}-${y}-Q${q}-${reportDate}`
     events.push({
       id,
@@ -631,9 +631,9 @@ export async function eventsFromFrankfurterForex(env, limit = 4, rotateSlot = ut
       const mult = 10 ** decimals
       const threshold = Math.round(cur.rate * 0.998 * mult) / mult
       const title = pickVariant(`${base}-${quote}-${dateStr}-fx`, [
-        `Frankfurter ECB rate: On ${dateStr}, will 1 ${base} buy at least ${threshold} ${quote}?`,
-        `FX (${base}/${quote}): ≥ ${threshold} on ${dateStr} per Frankfurter (ECB)?`,
-        `Will ${base}/${quote} be ≥ ${threshold} on ${dateStr} using Frankfurter’s ECB feed?`,
+        `Will 1 ${base} buy at least ${threshold} ${quote} on ${dateStr}?`,
+        `${base}/${quote} ≥ ${threshold} on ${dateStr}?`,
+        `Will ${base}/${quote} clear ${threshold} by ${dateStr}?`,
       ])
       const id = `fx-${base}-${quote}-${dateStr}`
       events.push({
@@ -895,7 +895,7 @@ export async function eventsFromBlsCpi(env, limit = 1) {
   const end = new Date()
   end.setUTCDate(end.getUTCDate() + 45)
   const endYmd = end.toISOString().slice(0, 10)
-  const title = `Will CPI-U (all items, seasonally adjusted, BLS ${seriesId}) stay at or above index ${threshold} on the latest print on or before ${endYmd}?`
+  const title = `Will CPI-U stay at or above ${threshold} by ${endYmd}?`
   return [
     {
       id: `bls-cpi-${seriesId}-${endYmd}`,
@@ -968,7 +968,7 @@ export async function eventsFromCongressGovBillFeed(env, limit = 1) {
   const end = new Date()
   end.setUTCDate(end.getUTCDate() + 30)
   const endYmd = end.toISOString().slice(0, 10)
-  const title = `Will Congress.gov still return at least ${minBillCount} bills (first page, updateDate desc) for the ${congress}th Congress on ${endYmd}?`
+  const title = `Will the ${congress}th Congress still show ≥${minBillCount} bills on ${endYmd}?`
   return [
     {
       id: `congress-feed-${congress}-${endYmd}`,
@@ -1062,9 +1062,9 @@ export async function eventsFromOdds(env, sportKey = 'basketball_nba', limit = 2
     const eventStart = formatEventStart(e.commence_time)
     const seedKey = `${e.id}-${e.home_team}`
     const title = pickVariant(seedKey, [
-      `Will ${e.home_team} (home on card) defeat ${e.away_team} per The Odds API final score?`,
-      `Will ${e.home_team} beat ${e.away_team} as the winning side on The Odds API’s completed fixture?`,
-      `Moneyline (home): Will ${e.home_team} finish ahead of ${e.away_team} when The Odds API marks the game complete?`,
+      `Will ${e.home_team} beat ${e.away_team}?`,
+      `Will ${e.home_team} win vs ${e.away_team}?`,
+      `${e.home_team} over ${e.away_team} on the final score?`,
     ])
     const description = `${title} Scheduled start (local format): ${eventStart}. Teams and home/away roles follow this Odds API event id (${e.id}). Resolution uses only The Odds API /scores for sport ${e.sport_key || 'TBD'}—no manual picks.`
     const resolutionCriteria = `Yes if The Odds API reports the fixture complete and the score for ${e.home_team} (home_team) is strictly greater than the score for ${e.away_team} (away_team). No if away scores higher, scores are equal (including draws), the event is cancelled or not completed in the API, or scores are missing. Commence time (API): ${e.commence_time || 'TBD'}.`
@@ -1106,9 +1106,9 @@ export async function eventsFromMassive(env, symbols = ALPHA_VANTAGE_SYMBOLS.sli
       const mult = mults[(i + mix) % mults.length]
       const threshold = Math.round(q.price * mult)
       const title = pickVariant(`${symbol}-${dateStr}-m`, [
-        `Will ${symbol}’s latest Massive daily bar close be ≥ $${threshold} after ${dateStr} (UTC calendar)?`,
-        `After ${dateStr}, will Massive’s most recent completed 1D close for ${symbol} reach at least $${threshold}?`,
-        `Massive 1D close: Will ${symbol} show ≥ $${threshold} when resolved after the deadline?`,
+        `Will ${symbol} close ≥ $${threshold} after ${dateStr}?`,
+        `${symbol} ≥ $${threshold} by ${dateStr}?`,
+        `Will ${symbol} hit $${threshold} after ${dateStr}?`,
       ])
       events.push({
         id: `massive-${symbol}-${dateStr}`,
@@ -1146,9 +1146,9 @@ export async function eventsFromAlphaVantage(env, symbols = ALPHA_VANTAGE_SYMBOL
       const mult = mults[(i + mix) % mults.length]
       const threshold = Math.round(q.price * mult)
       const title = pickVariant(`${symbol}-${dateStr}-av`, [
-        `Will Alpha Vantage’s GLOBAL_QUOTE price for ${symbol} be ≥ $${threshold} after ${dateStr} (UTC)?`,
-        `After ${dateStr}, will ${symbol} quote at or above $${threshold} on Alpha Vantage GLOBAL_QUOTE?`,
-        `${symbol} ≥ $${threshold} on Alpha Vantage (post–${dateStr} resolution check)?`,
+        `Will ${symbol} quote ≥ $${threshold} after ${dateStr}?`,
+        `${symbol} ≥ $${threshold} by ${dateStr}?`,
+        `Will ${symbol} hit $${threshold} after ${dateStr}?`,
       ])
       events.push({
         id: `av-${symbol}-${dateStr}`,
@@ -1190,9 +1190,9 @@ export async function eventsFromCoinGecko(env, coins = COINGECKO_COINS.slice(0, 
     const mult = mults[(i + mix) % mults.length]
     const threshold = Math.round(price * mult)
     const title = pickVariant(`${id}-${dateStr}-cg`, [
-      `Will CoinGecko USD spot for ${sym} (${id}) be ≥ $${threshold} after ${dateStr} (UTC)?`,
-      `After ${dateStr}, will ${sym} trade at or above $${threshold} on CoinGecko simple/price?`,
-      `Crypto spot: ${sym} ≥ $${threshold} on CoinGecko when resolved past ${dateStr}?`,
+      `Will ${sym} trade ≥ $${threshold} after ${dateStr}?`,
+      `${sym} ≥ $${threshold} by ${dateStr}?`,
+      `Will ${sym} hit $${threshold} after ${dateStr}?`,
     ])
     events.push({
       id: `cg-${id}-${dateStr}`,
@@ -1274,9 +1274,9 @@ export async function eventsFromOpenWeather(env, cities = WEATHER_CITIES.slice(0
       const list = forecast?.list || []
       const dayList = list.filter((x) => x.dt_txt && x.dt_txt.startsWith(dateStr))
       const title = pickVariant(`${city}-${dateStr}-ow`, [
-        `Will OpenWeather show rain, drizzle, or >50% POP for ${city} on ${dateStr} (UTC date)?`,
-        `OpenWeather (${city}, ${dateStr}): rain, drizzle, or high precipitation probability?`,
-        `Will ${city} hit the OpenWeather rain/drizzle/high-POP rule on ${dateStr}?`,
+        `Will it rain in ${city} on ${dateStr}?`,
+        `Rain in ${city} on ${dateStr}?`,
+        `Will ${city} see rain or drizzle on ${dateStr}?`,
       ])
       events.push({
         id: `ow-${city.replace(/\s+/g, '-')}-${dateStr}`,
@@ -1308,9 +1308,9 @@ export async function eventsFromWeatherApi(env, cities = WEATHER_CITIES.slice(0,
     try {
       await fetchWeatherApiForecast(env, city, 3)
       const title = pickVariant(`${city}-${dateStr}-wa`, [
-        `Will WeatherAPI flag measurable rain for ${city} on ${dateStr}?`,
-        `WeatherAPI daily_will_it_rain = 1 for ${city} on ${dateStr}?`,
-        `Rain day (${city}): does WeatherAPI’s daily forecast say it will rain on ${dateStr}?`,
+        `Will it rain in ${city} on ${dateStr}?`,
+        `Rain day in ${city} on ${dateStr}?`,
+        `Will ${city} get measurable rain on ${dateStr}?`,
       ])
       events.push({
         id: `wa-${city.replace(/\s+/g, '-')}-${dateStr}`,
@@ -1498,9 +1498,9 @@ export async function eventsFromStocksTrend(
       const pctUp = pcts[(i + mixSeed) % pcts.length]
       const threshold = Math.round(q.price * (1 + pctUp) * 100) / 100
       const title = pickVariant(`${symbol}-${dateStr}-tr`, [
-        `Trend: Will ${symbol}’s Alpha Vantage GLOBAL_QUOTE be ≥ $${threshold} after ${dateStr} (US close window)?`,
-        `Will ${symbol} quote ≥ $${threshold} on Alpha Vantage once ${dateStr} has passed (trend lane)?`,
-        `${symbol} ≥ $${threshold} on Alpha Vantage after ${dateStr}—trend threshold market?`,
+        `Will ${symbol} quote ≥ $${threshold} after ${dateStr}?`,
+        `${symbol} ≥ $${threshold} by ${dateStr}?`,
+        `Trend: will ${symbol} hit $${threshold} after ${dateStr}?`,
       ])
       events.push({
         id: `av-trend-${symbol}-${dateStr}`,
@@ -1546,9 +1546,9 @@ export async function eventsFromCryptoTrend(env, coins = COINGECKO_COINS.slice(0
     const dateOnly = settle.toISOString().slice(0, 10)
     const threshold = Math.round(price * (1 + pctUp) * 100) / 100
     const title = pickVariant(`${id}-${settlementHours}-ctr`, [
-      `Will ${sym} (CoinGecko ${id}) be ≥ $${threshold} USD by UTC end of ${dateOnly}?`,
-      `CoinGecko trend: ${sym} ≥ $${threshold} after UTC calendar day ${dateOnly}?`,
-      `By end of ${dateOnly} (UTC): ${sym} spot ≥ $${threshold} on CoinGecko?`,
+      `Will ${sym} be ≥ $${threshold} by end of ${dateOnly}?`,
+      `${sym} ≥ $${threshold} after ${dateOnly}?`,
+      `Will ${sym} hit $${threshold} by ${dateOnly}?`,
     ])
     events.push({
       id: `cg-trend-${id}-${dateOnly}-${settlementHours}h`,

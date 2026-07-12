@@ -12,8 +12,8 @@ import {
   writeLastSeenIds,
   setSeededBaseline,
   dispatchAlertsPrefsChanged,
-  isTauriApp,
 } from '../utils/marketAlerts'
+import { isTauriApp } from '../utils/platform'
 
 /**
  * Notification preferences (Profile → Notification settings only).
@@ -45,7 +45,9 @@ export default function MarketAlertSettings() {
     if (r !== 'granted') {
       showToast(
         r === 'unsupported'
-          ? 'This browser does not support notifications.'
+          ? isTauriApp()
+            ? 'Notifications are not available in this desktop build.'
+            : 'This browser does not support notifications.'
           : 'Notification permission was not granted.',
         'error'
       )
@@ -84,7 +86,10 @@ export default function MarketAlertSettings() {
         )}
         <span className="market-alerts-perm text-muted" style={{ fontSize: 'var(--font-size-sm)' }}>
           {perm === 'granted' && 'Permission: granted'}
-          {perm === 'denied' && 'Permission: blocked — enable in browser site settings'}
+          {perm === 'denied' &&
+            (isTauriApp()
+              ? 'Permission: blocked — enable in system notification settings'
+              : 'Permission: blocked — enable in browser site settings')}
           {perm === 'default' && prefs.desktopEnabled && 'Permission: pending'}
           {perm === 'unsupported' && 'Not supported here'}
         </span>

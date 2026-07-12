@@ -94,6 +94,8 @@
   font-weight: 500;
   color: var(--color-text-primary);
   text-align: left;
+  text-decoration: none;
+  box-sizing: border-box;
   background: rgba(139, 92, 246, 0.12);
   border: 1px solid rgba(139, 92, 246, 0.28);
   cursor: pointer;
@@ -101,6 +103,13 @@
     background 0.2s ease,
     border-color 0.2s ease,
     transform 0.15s ease;
+}
+
+.desktop-sidebar__markets-trigger--sub {
+  background: transparent;
+  border-color: rgba(255, 255, 255, 0.1);
+  font-weight: 400;
+  color: var(--color-text-secondary);
 }
 
 .desktop-sidebar__markets-trigger:hover {

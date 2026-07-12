@@ -1,6 +1,6 @@
 {
   "productName": "dice.express",
-  "version": "1.0.40",
+  "version": "1.0.41",
   "identifier": "com.dice.express",
   "build": {
     "beforeDevCommand": "npm run start:frontend",
@@ -63,6 +63,11 @@
     "category": "Finance"
   },
   "plugins": {
+    "deep-link": {
+      "desktop": {
+        "schemes": ["diceexpress"]
+      }
+    },
     "updater": {
       "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEVCODY2OTY4Rjg2MUI2NDgKUldSSXRtSDRhR21HNjdLZGZqb0VkWXJJOUY0SHRGS1Z1NWR6cDMyTkU0bXZWTDVGRGY3QVBCYkUK",
       "endpoints": [

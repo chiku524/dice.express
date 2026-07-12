@@ -35,7 +35,12 @@ function findRepoRoot() {
 const root = findRepoRoot()
 const frontend = path.join(root, 'frontend')
 
-const env = { ...process.env, CI: 'false' }
+const env = {
+  ...process.env,
+  CI: 'false',
+  // Production API for the installed app (relative /api would hit the asset origin).
+  VITE_API_ORIGIN: process.env.VITE_API_ORIGIN || 'https://dice.express',
+}
 
 execSync('npm run build', {
   cwd: frontend,

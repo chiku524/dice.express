@@ -489,10 +489,78 @@
   cursor: not-allowed;
 }
 
-/* Markets filters card: calm panel, no hover lift */
+/* Markets filters card: calm panel, no hover lift; mobile toggle for collapse */
+/* Browse source pills (single Markets page / ?source=) */
+.markets-browse-sources {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: var(--spacing-lg);
+}
+
+.markets-browse-source-btn {
+  min-height: 36px;
+  padding: 0.35rem 0.75rem;
+  border-radius: var(--radius-md, 8px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(15, 23, 42, 0.45);
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+  cursor: pointer;
+}
+
+.markets-browse-source-btn:hover {
+  border-color: rgba(255, 255, 255, 0.22);
+  color: var(--color-text-primary);
+}
+
+.markets-browse-source-btn--active {
+  border-color: rgba(100, 108, 255, 0.45);
+  background: rgba(100, 108, 255, 0.16);
+  color: var(--color-text-primary);
+  font-weight: var(--font-weight-semibold);
+}
+
 .card.markets-filters-card {
+  padding-top: var(--spacing-md);
   border-radius: var(--radius-xl, 12px);
   border-color: rgba(255, 255, 255, 0.08);
+}
+
+.markets-filters-toggle-row {
+  display: none;
+  margin-bottom: var(--spacing-sm);
+}
+
+.markets-filters-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 0.5rem 1rem;
+  border-radius: var(--radius-md, 8px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(15, 23, 42, 0.55);
+  color: var(--color-text-primary);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  cursor: pointer;
+  width: 100%;
+}
+
+.markets-filters-toggle:hover {
+  border-color: rgba(255, 255, 255, 0.22);
+}
+
+.markets-filters-panel--collapsed {
+  display: none;
+}
+
+@media (min-width: 769px) {
+  /* Desktop always shows filters even if state was collapsed on a narrow viewport */
+  .markets-filters-panel.markets-filters-panel--collapsed {
+    display: block;
+  }
 }
 
 .card.markets-filters-card:hover {
@@ -1522,6 +1590,10 @@
   .app-main {
     margin-top: 56px;
     padding: var(--spacing-lg) 0 var(--spacing-xl);
+  }
+
+  .markets-filters-toggle-row {
+    display: block;
   }
 
   .markets-filters-quick-row {

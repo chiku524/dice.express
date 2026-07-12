@@ -21,7 +21,7 @@ When you **do** set **`PRIVILEGED_API_SECRET`** on Pages, set the **same** value
 | Method | Path | Notes |
 |--------|------|--------|
 | `GET` | `/api/health` | Liveness. |
-| `GET` | `/api/markets` | Lists virtual markets. Query: `source`, `status`. **`sort=activity`** or **`sort=p2p`** sorts by open P2P limit-order count (skips KV cache for fresh counts). Each market includes **`openOrderCount`**. |
+| `GET` | `/api/markets` | Lists virtual markets. Query: `source`, `status`. **`sort=activity`** or **`sort=p2p`** sorts by open P2P limit-order count (skips KV cache for fresh counts). Each market includes **`openOrderCount`**. **`marketId`** returns a single market (`{ market, related? }`); optional **`related=1..8`** adds title-overlap related markets without requiring the client to download the full list. |
 | `POST` | `/api/markets` | Creates a market (**`source: 'user'`** is rejected). Automated creation uses **`/api/auto-markets`**. |
 | `GET` | `/api/pools?marketId=…` | Liquidity pool state (AMM). |
 | `POST` | `/api/trade` | AMM trade (may be disabled when pools have zero liquidity). |

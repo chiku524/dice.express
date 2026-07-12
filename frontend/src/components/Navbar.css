@@ -61,7 +61,7 @@
   color: #2dd4bf;
 }
 
-/* Disconnect — slate/gray (not purple) */
+/* Disconnect / Sign out — slate/gray (not purple) */
 .wallet-info .nav-disconnect-btn {
   background: transparent;
   border: 1px solid rgba(100, 116, 139, 0.5);

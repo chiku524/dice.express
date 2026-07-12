@@ -1,5 +1,6 @@
 import { useEffect, useState, useRef } from 'react'
 import { BRAND_NAME, BRAND_TAGLINE } from '../constants/brand'
+import { isTauriApp } from '../utils/platform'
 import DesktopUpdateOverlay from './DesktopUpdateOverlay'
 import MultiDiceLoader from './MultiDiceLoader'
 import './SplashScreen.css'
@@ -24,7 +25,7 @@ export default function SplashScreen() {
   const [updateVersion, setUpdateVersion] = useState(null)
   const cancelledRef = useRef(false)
 
-  const isTauri = typeof window !== 'undefined' && window.__TAURI__
+  const isTauri = isTauriApp()
 
   // Intro animation: minimal fade-in, then move to checking
   useEffect(() => {
@@ -50,7 +51,8 @@ export default function SplashScreen() {
       } catch {
         // ignore invalid stored wallet
       }
-      return '/sign-in'
+      // Browse markets without forcing sign-in
+      return '/'
     }
 
     const run = async () => {

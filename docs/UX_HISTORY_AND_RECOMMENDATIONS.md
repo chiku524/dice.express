@@ -56,21 +56,21 @@ Theme, color palette, and background animations are left as-is. These recommenda
 
 **Reduce gate friction (sign-in)**
 
-- **Option A (recommended):** Allow **browsing without signing in**. Show markets list, market detail (read-only), and docs. When the user taps “Trade”, “Create Market”, or “Portfolio”, prompt for account (inline or modal).
+- **Option A (recommended, implemented):** Allow **browsing without signing in**. Show markets list, market detail (read-only), and docs. When the user taps “Trade”, “Create Market”, or “Portfolio”, prompt for account (inline or modal).
 - **Option B:** Reframe copy: **“Get started”**, short line that trading uses **Pips** / account ID, optional **“Continue as guest”**.
 
-**Copy:** Prefer **“Account”** over “Connect Wallet” where it implies a crypto wallet; keep balance visible.
+**Copy:** Prefer **“Account”** / **Sign out** over “Connect Wallet” / “Disconnect” where it implies a crypto wallet; keep balance visible.
 
 ### 2.2 Navigation & information architecture
 
-- **Discover:** Consider a single **Markets** entry with source filters as tabs/pills on the page to shorten the nav.
+- **Discover / Markets:** Implemented as a single **Markets** page with source pills (`/?source=…`); legacy `/discover/*` paths redirect. Navbar uses **Markets** instead of a Discover dropdown.
 - **Resources:** Consider renaming **Contract History** to **Activity** or **History** if it’s user activity, not smart contracts.
 - **Balance:** Show balance when signed in; label clearly (**Pips** / **PP**).
 - **Account ID in nav:** Truncate with ellipsis; tooltip with full ID and copy.
 
 ### 2.3 Markets list
 
-- **Filters:** Consider default collapsed filters on mobile; clear **Clear all** vs chips mental model.
+- **Filters:** Default **collapsed on mobile** (Show filters toggle); clear **Clear all** vs chips mental model.
 - **Sort:** **Ending soon** if settlement dates exist; else **Newest** / **Volume**.
 - **Cards:** Clear primary CTA; title, status, volume, implied probability when available; short empty states.
 

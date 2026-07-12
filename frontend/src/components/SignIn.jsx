@@ -68,7 +68,7 @@ export default function SignIn() {
           </p>
           <ul className="auth-brand-features">
             <li>Trade on real-world outcomes with Pips</li>
-            <li>Deposit via crypto or card, withdraw anytime</li>
+            <li>Deposit via crypto, withdraw anytime</li>
             <li>Your choice. Your chance.</li>
           </ul>
         </div>

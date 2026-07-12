@@ -4,21 +4,18 @@ import { useWallet } from '../contexts/WalletContext'
 import { useToastContext } from '../contexts/ToastContext'
 import { getVirtualBalance } from '../services/balance'
 import { BRAND_NAME, BRAND_TAGLINE } from '../constants/brand'
-import { MARKET_SOURCES, getDiscoverPathForSource } from '../constants/marketConfig'
+import { isTauriApp } from '../utils/platform'
 import './Navbar.css'
 
 export default function Navbar() {
   const { wallet, disconnectWallet } = useWallet()
   const { showToast } = useToastContext()
   const location = useLocation()
-  const [showDiscoverMenu, setShowDiscoverMenu] = useState(false)
   const [showResourcesMenu, setShowResourcesMenu] = useState(false)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [balanceFormatted, setBalanceFormatted] = useState(null)
-  const discoverMenuRef = useRef(null)
   const resourcesMenuRef = useRef(null)
 
-  // Fetch virtual balance when wallet is connected
   useEffect(() => {
     if (!wallet?.party) {
       setBalanceFormatted(null)
@@ -31,30 +28,24 @@ export default function Navbar() {
     return () => { cancelled = true }
   }, [wallet?.party])
 
-  // Close dropdowns when clicking outside
   useEffect(() => {
     const handleClickOutside = (event) => {
-      if (discoverMenuRef.current && !discoverMenuRef.current.contains(event.target)) {
-        setShowDiscoverMenu(false)
-      }
       if (resourcesMenuRef.current && !resourcesMenuRef.current.contains(event.target)) {
         setShowResourcesMenu(false)
       }
     }
-
     document.addEventListener('mousedown', handleClickOutside)
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
 
-  // Close dropdowns and mobile menu when route changes
   useEffect(() => {
-    setShowDiscoverMenu(false)
     setShowResourcesMenu(false)
     setMobileMenuOpen(false)
-  }, [location.pathname, location.hash])
+  }, [location.pathname, location.hash, location.search])
 
   const isActive = (path) => location.pathname === path
-  const isDiscoverActive = () => isActive('/') || location.pathname.startsWith('/discover') || location.pathname.startsWith('/market')
+  const isMarketsActive =
+    isActive('/') || location.pathname.startsWith('/discover') || location.pathname.startsWith('/market')
   const isResourcesActive = () =>
     isActive('/activity') ||
     isActive('/history') ||
@@ -64,76 +55,47 @@ export default function Navbar() {
     isActive('/documentation') ||
     isActive('/whitepaper')
 
-  const isDesktopApp = typeof window !== 'undefined' && window.__TAURI__
+  const isDesktopApp = isTauriApp()
 
   const copyDisplayName = () => {
     if (!wallet?.party) return
-    navigator.clipboard?.writeText(wallet.party).then(() => {
-      showToast('Display name copied', 'success')
-    }).catch(() => {})
+    navigator.clipboard?.writeText(wallet.party).then(
+      () => showToast('Display name copied', 'success'),
+      () => showToast('Could not copy', 'error')
+    )
   }
 
   return (
-    <header className={`app-header${mobileMenuOpen ? ' app-header--menu-open' : ''}`}>
+    <header className="app-header">
       <div className="container">
-        <Link to="/" className="logo" {...(isDesktopApp ? { 'data-tauri-drag-region': true } : {})}>
-          <img src="/logo.svg" alt="" className="logo-img" width="36" height="36" />
+        <Link to="/" className="logo" data-tauri-drag-region={isDesktopApp ? true : undefined}>
+          <img src="/logo.svg" alt="" className="logo-mark" width={32} height={32} />
           <span className="logo-text">
             <span className="logo-name">{BRAND_NAME}</span>
             <span className="logo-tagline">{BRAND_TAGLINE}</span>
           </span>
         </Link>
+
         <button
           type="button"
-          className="nav-mobile-toggle"
+          className={`nav-mobile-toggle${mobileMenuOpen ? ' is-open' : ''}`}
           aria-expanded={mobileMenuOpen}
           aria-controls="primary-nav"
-          aria-label={mobileMenuOpen ? 'Close menu' : 'Open menu'}
-          onClick={() => setMobileMenuOpen((open) => !open)}
+          onClick={() => setMobileMenuOpen((o) => !o)}
         >
           <span className="nav-mobile-toggle-bar" aria-hidden="true" />
           <span className="nav-mobile-toggle-bar" aria-hidden="true" />
           <span className="nav-mobile-toggle-bar" aria-hidden="true" />
         </button>
         <nav id="primary-nav" className={mobileMenuOpen ? 'nav-open' : ''}>
-          {/* Discover: markets only */}
-          <div className="nav-dropdown" ref={discoverMenuRef}>
-            <button
-              className={`nav-dropdown-toggle ${isDiscoverActive() ? 'active' : ''}`}
-              onClick={() => {
-                setShowDiscoverMenu(!showDiscoverMenu)
-                setShowResourcesMenu(false)
-              }}
-            >
-              Discover
-              <span className="dropdown-arrow">▼</span>
-            </button>
-            {showDiscoverMenu && (
-              <div className="nav-dropdown-menu">
-                {MARKET_SOURCES.filter(s => s.value === 'all' || (s.value !== 'user')).map((source) => {
-                  const path = getDiscoverPathForSource(source.value)
-                  return (
-                    <Link
-                      key={source.value}
-                      to={path}
-                      className={isActive(path) ? 'active' : ''}
-                    >
-                      {source.label}
-                    </Link>
-                  )
-                })}
-              </div>
-            )}
-          </div>
+          <Link to="/" className={isMarketsActive ? 'active' : ''}>
+            Markets
+          </Link>
 
-          {/* Resources */}
           <div className="nav-dropdown nav-dropdown-resources" ref={resourcesMenuRef}>
             <button
               className={`nav-dropdown-toggle ${isResourcesActive() ? 'active' : ''}`}
-              onClick={() => {
-                setShowResourcesMenu(!showResourcesMenu)
-                setShowDiscoverMenu(false)
-              }}
+              onClick={() => setShowResourcesMenu(!showResourcesMenu)}
             >
               Resources
               <span className="dropdown-arrow">▼</span>
@@ -165,7 +127,6 @@ export default function Navbar() {
             )}
           </div>
 
-          {/* Wallet Section */}
           {wallet ? (
             <div className="wallet-info">
               {balanceFormatted != null && (
@@ -190,7 +151,7 @@ export default function Navbar() {
                   📋
                 </button>
               </span>
-              <button type="button" className="nav-disconnect-btn" onClick={disconnectWallet}>Disconnect</button>
+              <button type="button" className="nav-disconnect-btn" onClick={disconnectWallet}>Sign out</button>
             </div>
           ) : (
             <>

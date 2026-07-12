@@ -1,7 +1,9 @@
 /**
  * Auto-market seeding: quality gates, creation audit metadata, KV history / source health.
- * See docs/AUTO_MARKETS.md → "Automation quality roadmap".
+ * See docs/AUTO_MARKETS.md → "Title copy standards" and quality-gate env vars.
  */
+
+import { titleHasVagueCopy } from './market-title-copy.mjs'
 
 export const AUTO_MARKET_BUILDER_VERSION = '2'
 
@@ -141,6 +143,8 @@ export function evaluateAutoMarketQualityGates(payload, env) {
       /* invalid regex — ignore */
     }
   }
+
+  if (titleHasVagueCopy(title)) reasons.push('title_vague_copy')
 
   if (!payload?.oracleConfig || typeof payload.oracleConfig !== 'object') {
     reasons.push('missing_oracle_config')

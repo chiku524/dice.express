@@ -168,17 +168,26 @@ export default function DesktopSidebar() {
           ref={marketsBlockRef}
         >
           <p className="desktop-sidebar__section-label">Markets</p>
+          <NavLink
+            to="/"
+            end
+            className={({ isActive }) =>
+              `desktop-sidebar__markets-trigger${isActive || discoverActive ? ' desktop-sidebar__markets-trigger--active' : ''}`
+            }
+          >
+            <span className="desktop-sidebar__markets-trigger-label">All markets</span>
+          </NavLink>
           <button
             ref={triggerRef}
             type="button"
-            className={`desktop-sidebar__markets-trigger${discoverActive ? ' desktop-sidebar__markets-trigger--active' : ''}`}
+            className="desktop-sidebar__markets-trigger desktop-sidebar__markets-trigger--sub"
             aria-expanded={marketsMenuOpen}
             aria-haspopup="true"
             aria-controls="desktop-markets-flyout"
             id="desktop-markets-trigger"
             onClick={() => setMarketsMenuOpen((o) => !o)}
           >
-            <span className="desktop-sidebar__markets-trigger-label">Browse categories</span>
+            <span className="desktop-sidebar__markets-trigger-label">Categories</span>
             <span className="desktop-sidebar__markets-trigger-chevron" aria-hidden>
               {marketsMenuOpen ? '▾' : '▸'}
             </span>
@@ -201,13 +210,19 @@ export default function DesktopSidebar() {
                 <ul className="desktop-sidebar__flyout-list">
                   {discoverSources.map((source) => {
                     const path = getDiscoverPathForSource(source.value)
+                    const sourceQ = source.value === 'all' ? null : source.value
+                    const isActive =
+                      location.pathname === '/' &&
+                      (sourceQ
+                        ? new URLSearchParams(location.search).get('source') === sourceQ
+                        : !new URLSearchParams(location.search).get('source'))
                     return (
                       <li key={source.value} role="none">
                         <NavLink
                           role="menuitem"
                           to={path}
                           end={path === '/'}
-                          className={({ isActive }) =>
+                          className={() =>
                             `desktop-sidebar__flyout-link${isActive ? ' desktop-sidebar__flyout-link--active' : ''}`
                           }
                           onClick={() => setMarketsMenuOpen(false)}

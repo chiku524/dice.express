@@ -1,6 +1,7 @@
 import { useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useWallet } from '../contexts/WalletContext'
+import { isTauriApp } from '../utils/platform'
 
 /**
  * Desktop (Tauri): react to system tray "Sign out" — clear local account and go to sign-in.
@@ -11,7 +12,7 @@ export default function TauriTrayBridge() {
   const { disconnectWallet } = useWallet()
 
   useEffect(() => {
-    if (typeof window === 'undefined' || !window.__TAURI__) return undefined
+    if (!isTauriApp()) return undefined
 
     let unlistenFn
     let cancelled = false

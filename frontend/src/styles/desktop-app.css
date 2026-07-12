@@ -251,10 +251,13 @@ html.desktop-app .app-main-desktop {
 
 .desktop-app .portfolio-page,
 .desktop-app .dashboard-page,
+.desktop-app .profile-page,
 .desktop-app .documentation-container {
   width: 100%;
   min-width: 0;
   max-width: 100%;
+  margin-left: 0;
+  margin-right: 0;
 }
 
 .desktop-app .portfolio-header,

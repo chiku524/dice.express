@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useWallet } from '../contexts/WalletContext'
+import { isTauriApp } from '../utils/platform'
 import './DesktopLaunch.css'
 
 const WALLET_STORAGE_KEY = 'virtual_account'
@@ -8,19 +9,18 @@ const INITIAL_PATH_KEY = 'desktop_initial_path'
 
 /**
  * Main window entry: shown after the frameless splash closes.
- * Only redirects to home or sign-in (path was set by the splash before opening this window).
+ * Redirects to home (or a path stored by the splash). Markets are browsable without sign-in.
  */
 export default function DesktopLaunch() {
   const navigate = useNavigate()
   const { wallet } = useWallet()
   const doneRef = useRef(false)
 
-  const isTauri = typeof window !== 'undefined' && window.__TAURI__
+  const isTauri = isTauriApp()
 
   useEffect(() => {
     if (!isTauri) {
-      const target = wallet?.party ? '/' : '/sign-in'
-      navigate(target, { replace: true })
+      navigate('/', { replace: true })
       return
     }
 
@@ -45,7 +45,7 @@ export default function DesktopLaunch() {
       } catch {
         // ignore invalid stored wallet
       }
-      return '/sign-in'
+      return '/'
     }
 
     const target = getTarget()

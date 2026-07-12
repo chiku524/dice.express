@@ -3,8 +3,14 @@
  * Stored locally only (no server). SMS would need Twilio + backend + verified phone.
  */
 import { categoryForFilter } from '../constants/marketConfig'
+import { isTauriApp } from './platform'
+
+export { isTauriApp }
 
 const PREFIX = 'dice.alerts.v1'
+
+/** Shared with NotificationActionBridge so click-to-open works on desktop. */
+export const NOTIFICATION_ACTION_TYPE_ID = 'dice-market-open'
 
 const KEYS = {
   desktopEnabled: `${PREFIX}.desktopEnabled`,
@@ -128,10 +134,6 @@ export function setSeededBaseline(done) {
   writeBool(KEYS.seeded, done)
 }
 
-export function isTauriApp() {
-  return typeof window !== 'undefined' && !!window.__TAURI__
-}
-
 export function notificationSupport() {
   if (typeof window === 'undefined') return 'unsupported'
   if (typeof Notification === 'undefined') return 'unsupported'
@@ -169,13 +171,18 @@ export async function showDesktopNotification(title, body, options = {}) {
 
   if (isTauriApp()) {
     try {
-      const { sendNotification } = await import('@tauri-apps/plugin-notification')
-      if (Notification.permission !== 'granted') return
+      const { sendNotification, isPermissionGranted } = await import('@tauri-apps/plugin-notification')
+      const granted =
+        (typeof Notification !== 'undefined' && Notification.permission === 'granted') ||
+        (await isPermissionGranted().catch(() => false))
+      if (!granted) return
       sendNotification({
         title,
         body,
         icon,
         group: tag,
+        actionTypeId: NOTIFICATION_ACTION_TYPE_ID,
+        autoCancel: true,
         extra: options.url ? { url: String(options.url) } : undefined,
       })
     } catch {

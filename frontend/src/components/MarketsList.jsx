@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import { SkeletonMarketGrid, SkeletonMarketList } from './SkeletonLoader'
 import LoadingSpinner from './LoadingSpinner'
 import ErrorState from './ErrorState'
@@ -37,6 +37,13 @@ const CATEGORY_TOGGLE_OPTIONS = [
 
 export default function MarketsList({ source: sourceFromRoute, variant = 'default' }) {
   const { showToast } = useToastContext()
+  const [searchParams, setSearchParams] = useSearchParams()
+  const sourceFromQuery = searchParams.get('source')
+  /** Prefer explicit route prop, then `?source=` on home (single Markets page). */
+  const effectiveSource =
+    sourceFromRoute ||
+    (variant === 'default' && sourceFromQuery ? sourceFromQuery : null) ||
+    null
   const isWatchlistPage = variant === 'watchlist'
   const [markets, setMarkets] = useState([])
   const [loading, setLoading] = useState(true)
@@ -64,8 +71,17 @@ export default function MarketsList({ source: sourceFromRoute, variant = 'defaul
   /** When opening from a card chip, seed Yes/No or multi outcome (see MarketQuickTrade `key`). */
   const [quickTradeSeed, setQuickTradeSeed] = useState(null)
   const [marketsLayout, setMarketsLayout] = useState(() => readMarketsLayout())
+  /** Expanded by default on desktop; collapsed on mobile so markets appear sooner. */
+  const [filtersExpanded, setFiltersExpanded] = useState(() => {
+    if (typeof window === 'undefined') return true
+    return !window.matchMedia('(max-width: 768px)').matches
+  })
   const sortUserOverrideRef = useRef(false)
   const MARKETS_PER_PAGE = 12
+
+  const bumpWatchlistVersion = useCallback(() => {
+    setWatchListVersion((t) => t + 1)
+  }, [])
 
   const copyCardMarketLink = useCallback(
     async (id, titleHint) => {
@@ -134,8 +150,8 @@ export default function MarketsList({ source: sourceFromRoute, variant = 'defaul
     }
   }, [marketsLayout])
 
-  /** Discover routes narrow by source; home (/) shows all sources. */
-  const listSourceFilter = sourceFromRoute || 'all'
+  /** Discover / `?source=` narrow the list; home with no source shows all. */
+  const listSourceFilter = effectiveSource || 'all'
 
   useEffect(() => {
     if (isWatchlistPage) setQuickFilter('watchlist')
@@ -143,17 +159,17 @@ export default function MarketsList({ source: sourceFromRoute, variant = 'defaul
 
   useEffect(() => {
     sortUserOverrideRef.current = false
-  }, [sourceFromRoute, variant])
+  }, [effectiveSource, variant])
 
   useEffect(() => {
     if (sortUserOverrideRef.current || isWatchlistPage) return
-    const src = sourceFromRoute || 'all'
+    const src = effectiveSource || 'all'
     if (src === 'sports') setSortBy('ending_soon')
     else if (src === 'industry') setSortBy('p2p')
     else if (DISCOVER_SOURCE_TO_CATEGORY[src]) setSortBy('newest')
     else if (src === 'global_events' || src === 'virtual_realities' || src === 'user') setSortBy('newest')
     else setSortBy('volume')
-  }, [sourceFromRoute, variant, isWatchlistPage])
+  }, [effectiveSource, variant, isWatchlistPage])
 
   // Debounce search query for better performance
   const debouncedSearchQuery = useDebounce(searchQuery, 300)
@@ -471,8 +487,8 @@ export default function MarketsList({ source: sourceFromRoute, variant = 'defaul
 
   const pageTitle = isWatchlistPage
     ? 'Watchlist'
-    : sourceFromRoute
-      ? getSourceLabel(sourceFromRoute)
+    : effectiveSource
+      ? getSourceLabel(effectiveSource)
       : 'Prediction Markets'
   const pageSubtitle = isWatchlistPage
     ? (
@@ -481,10 +497,22 @@ export default function MarketsList({ source: sourceFromRoute, variant = 'defaul
         <Link to="/profile#notification-settings">Profile → Notification settings</Link>.
       </>
     )
-    : sourceFromRoute
-      ? `Markets from ${getSourceLabel(sourceFromRoute).toLowerCase()}. Trade with Pips — P2P orders; pool liquidity varies by market.`
+    : effectiveSource
+      ? `Markets from ${getSourceLabel(effectiveSource).toLowerCase()}. Trade with Pips — P2P orders; pool liquidity varies by market.`
       : 'Trade with Pips. Browse markets, place P2P orders, or use the pool when liquidity is available.'
 
+  const setBrowseSource = useCallback(
+    (value) => {
+      if (sourceFromRoute) return
+      if (!value || value === 'all') {
+        setSearchParams({}, { replace: true })
+      } else {
+        setSearchParams({ source: value }, { replace: true })
+      }
+      setCurrentPage(1)
+    },
+    [sourceFromRoute, setSearchParams]
+  )
   const scrollMarketsListToTop = () => {
     requestAnimationFrame(() => {
       marketsListTopRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
@@ -534,15 +562,50 @@ export default function MarketsList({ source: sourceFromRoute, variant = 'defaul
         <p>{pageSubtitle}</p>
       </div>
 
+      {!isWatchlistPage && !sourceFromRoute && (
+        <div className="markets-browse-sources" role="navigation" aria-label="Market browse">
+          {MARKET_SOURCES.filter((s) => s.value !== 'user').map((source) => {
+            const active = (effectiveSource || 'all') === source.value
+            return (
+              <button
+                key={source.value}
+                type="button"
+                className={`markets-browse-source-btn${active ? ' markets-browse-source-btn--active' : ''}`}
+                aria-pressed={active}
+                onClick={() => setBrowseSource(source.value)}
+              >
+                {source.label}
+              </button>
+            )
+          })}
+        </div>
+      )}
+
       {fromCacheBanner && (
         <div className="alert-info mb-md" role="status">
           Showing saved markets from your last successful load. Reconnect to refresh live data.
         </div>
       )}
       
-      {/* Filters: always visible; Market Type, Status, Sort as separate dropdowns above the grid */}
+      {/* Filters: collapsible on mobile; Market Type, Status, Sort as separate dropdowns above the grid */}
       {(!loading && !error) && (
         <div className="card mb-xl filters-card markets-filters-card">
+          <div className="markets-filters-toggle-row">
+            <button
+              type="button"
+              className="markets-filters-toggle"
+              aria-expanded={filtersExpanded}
+              aria-controls="markets-filters-panel"
+              onClick={() => setFiltersExpanded((v) => !v)}
+            >
+              {filtersExpanded ? 'Hide filters' : 'Show filters'}
+              {activeFilterCount > 0 ? ` (${activeFilterCount})` : ''}
+            </button>
+          </div>
+          <div
+            id="markets-filters-panel"
+            className={`markets-filters-panel${filtersExpanded ? '' : ' markets-filters-panel--collapsed'}`}
+          >
           {!isWatchlistPage && (
             <div className="markets-spotlight-strip" role="group" aria-label="Quick discovery">
               <span className="markets-spotlight-label">Spotlight</span>
@@ -820,6 +883,7 @@ export default function MarketsList({ source: sourceFromRoute, variant = 'defaul
               </button>
             </div>
           )}
+          </div>
 
           <div className="filter-results filter-results--markets">
             <div className="filter-results-row">
@@ -902,8 +966,8 @@ export default function MarketsList({ source: sourceFromRoute, variant = 'defaul
                       : activeFilterCount > 0
                         ? 'No watched markets match your current filters. Try clearing search or other filters.'
                         : 'None of your watched markets appear in the current list. They may have been removed, or try refreshing after reconnecting.'
-                    : sourceFromRoute && sourceFromRoute !== 'active'
-                      ? `No markets in "${getSourceLabel(sourceFromRoute)}" yet. Markets are added automatically — check back soon or browse All Markets.`
+                    : effectiveSource && effectiveSource !== 'active'
+                      ? `No markets in "${getSourceLabel(effectiveSource)}" yet. Markets are added automatically — check back soon or browse All Markets.`
                       : activeFilterCount > 0
                         ? 'No markets match your current filters. Try adjusting your search criteria.'
                         : 'No markets available yet. Markets are added automatically — check back soon or try clearing filters.'}
@@ -956,7 +1020,7 @@ export default function MarketsList({ source: sourceFromRoute, variant = 'defaul
                     copyCardMarketLink={copyCardMarketLink}
                     shareCardMarket={shareCardMarket}
                     refreshMarketsList={refreshMarketsList}
-                    onWatchlistChanged={() => setWatchListVersion((t) => t + 1)}
+                    onWatchlistChanged={bumpWatchlistVersion}
                   />
                 ))}
               </div>

@@ -5,6 +5,7 @@ import {
   documentationBasePath,
   documentationHashToSectionId,
 } from '../constants/documentationSections'
+import { isTauriApp } from '../utils/platform'
 import './Documentation.css'
 
 function hashForDocsSection(location) {
@@ -15,16 +16,12 @@ function hashForDocsSection(location) {
   return win
 }
 
-function isTauriShell() {
-  return typeof window !== 'undefined' && !!window.__TAURI__
-}
-
 export default function Documentation() {
   const location = useLocation()
   const navigate = useNavigate()
   const mainRef = useRef(null)
   const docsPath = documentationBasePath(location.pathname)
-  const tauriShell = isTauriShell()
+  const tauriShell = isTauriApp()
   const [activeSection, setActiveSection] = useState(() => {
     if (typeof window === 'undefined') return 'getting-started'
     return documentationHashToSectionId(window.location.hash)
@@ -162,7 +159,7 @@ function GettingStartedContent() {
       <ol>
         <li><strong>Create account:</strong> Use <strong>Create account</strong>, enter email, password, confirm password, and display name. On <strong>Fund your account</strong>, pick <strong>Crypto</strong> (deposit later from Portfolio) or <strong>Add funds later</strong>.</li>
         <li><strong>Deposit:</strong> Open <strong>Portfolio</strong> → Balance → <strong>Deposit from wallet</strong> (sign message after transfer) or <strong>Deposit with crypto</strong> (send to the shown address; include your account ID in the memo when asked).</li>
-        <li><strong>Discover:</strong> Use <strong>Discover</strong> in the nav (web) or <strong>Browse categories</strong> (desktop) — see <a href="#product-map">Product map</a> for every category path.</li>
+        <li><strong>Markets:</strong> Use <strong>Markets</strong> in the nav (web) or <strong>All markets</strong> / Categories (desktop). Filter with source pills or <code>/?source=sports</code> — see <a href="#product-map">Product map</a>. Legacy <code>/discover/*</code> URLs redirect.</li>
         <li><strong>Trade:</strong> Open a market → <strong>Buy shares</strong> (AMM) and/or <strong>Limit orders</strong> (Yes/No book). Positions and balance appear under <strong>Portfolio</strong>.</li>
       </ol>
 
@@ -185,7 +182,7 @@ function ProductMapContent() {
 
       <h2>Web app (browser)</h2>
       <ul>
-        <li><strong>Top navigation:</strong> Logo → home (<code>/</code>). <strong>Discover</strong> dropdown lists every public browse path (see table). <strong>Documentation</strong> (hover) opens the full section list; <strong>Resources</strong> → Download desktop, Activity (<code>/activity</code>; <code>/history</code> redirects here). When signed in: Pips balance → Portfolio, display name → Dashboard, copy button, Disconnect.</li>
+        <li><strong>Top navigation:</strong> Logo → home (<code>/</code>). <strong>Markets</strong> opens the browse page; use source pills or <code>/?source=…</code> for categories. <strong>Documentation</strong> (hover) opens the full section list; <strong>Resources</strong> → Download desktop, Activity (<code>/activity</code>; <code>/history</code> redirects here). When signed in: Pips balance → Portfolio, display name → Dashboard, copy button, Sign out.</li>
         <li><strong>Auth:</strong> <code>/register</code> (wizard), <code>/sign-in</code> — full-page flows without main chrome.</li>
         <li><strong>Markets:</strong> <code>/market/:marketId</code> — resolution details, AMM trade, limit orders (binary active markets), volumes.</li>
         <li><strong>Account hub (signed in):</strong> <code>/dashboard</code> (summary, account ID copy, links to Profile and Portfolio, <strong>Tip Pips</strong> to another display name). <code>/profile</code> — edit display name, account metadata, sign out. <code>/portfolio</code> — Balance, Positions, Activity tabs; crypto deposit and withdraw.</li>
@@ -198,8 +195,8 @@ function ProductMapContent() {
         Same React app inside a native shell. <code>/splashscreen</code> and <code>/launch</code> are intro/onboarding routes. The main shell uses a <strong>left sidebar</strong> (Markets flyout, Account: Dashboard / Portfolio / Profile, More: Create market, <strong>Documentation</strong> flyout with all sections, Activity) instead of the top nav + footer. There is no Download link in the sidebar — open <code>/download</code> directly if you need installers inside the app. The system tray can trigger <strong>Sign out</strong> (clears session and navigates to sign-in).
       </p>
 
-      <h2>Discover categories</h2>
-      <p>Labels match the UI; paths are stable URLs.</p>
+      <h2>Market categories</h2>
+      <p>Labels match the UI. Prefer query paths on home; legacy <code>/discover/*</code> URLs still redirect.</p>
       <table className="docs-table" style={{ width: '100%', borderCollapse: 'collapse', marginTop: '1rem' }}>
         <thead>
           <tr style={{ borderBottom: '2px solid var(--color-border)' }}>
@@ -210,15 +207,15 @@ function ProductMapContent() {
         <tbody>
           {[
             ['All Markets', '/'],
-            ['With volume', '/discover/active'],
-            ['Sports', '/discover/sports'],
-            ['Weather & News', '/discover/global-events'],
-            ['Finance & Crypto', '/discover/industry'],
-            ['Tech & AI', '/discover/tech-ai'],
-            ['Politics', '/discover/politics'],
-            ['Entertainment', '/discover/entertainment'],
-            ['Science', '/discover/science'],
-            ['Virtual Realities', '/discover/virtual-realities'],
+            ['With volume', '/?source=active'],
+            ['Sports', '/?source=sports'],
+            ['Weather & News', '/?source=global_events'],
+            ['Finance & Crypto', '/?source=industry'],
+            ['Tech & AI', '/?source=tech_ai'],
+            ['Politics', '/?source=politics'],
+            ['Entertainment', '/?source=entertainment'],
+            ['Science', '/?source=science'],
+            ['Virtual Realities', '/?source=virtual_realities'],
           ].map(([label, path]) => (
             <tr key={path} style={{ borderBottom: '1px solid var(--color-border)' }}>
               <td style={{ padding: '0.75rem' }}>{label}</td>
@@ -228,7 +225,7 @@ function ProductMapContent() {
         </tbody>
       </table>
       <p className="docs-note" style={{ marginTop: '1rem', opacity: 0.9 }}>
-        A <strong>User-Created</strong> filter exists in config (<code>/discover/user</code>) but is hidden from the default Discover menu; use it if your deployment surfaces user-submitted markets.
+        A <strong>User-Created</strong> filter exists in config (<code>/?source=user</code>) but is hidden from the default Categories menu; use it if your deployment surfaces user-submitted markets.
       </p>
 
       <h2>Activity vs Portfolio</h2>
@@ -259,7 +256,7 @@ function WalletAuthenticationContent() {
 
       <h2>Signing in</h2>
       <p>
-        <strong>Sign in</strong> with email and password. Protected routes (e.g. Dashboard, Portfolio) require an active session. <strong>Disconnect</strong> / <strong>Sign out</strong> clears the local session.
+        <strong>Sign in</strong> with email and password. Markets, market detail, and docs are browsable without an account; trading and portfolio require a session. <strong>Sign out</strong> clears the local session.
       </p>
 
       <h2>Dashboard</h2>
@@ -703,7 +700,7 @@ function SecurityContent() {
 
       <h2>Authentication</h2>
       <p>
-        Email and password authenticate you to the product. After sign-in, the browser stores session fields in <code>localStorage</code> under a virtual-account key. <strong>Sign out / Disconnect</strong> clears it; on desktop, the tray can also sign you out.
+        Email and password authenticate you to the product. After sign-in, the browser stores session fields in <code>localStorage</code> under a virtual-account key. <strong>Sign out</strong> clears it; on desktop, the tray can also sign you out.
       </p>
       <ul>
         <li>Use a strong, unique password.</li>

@@ -144,7 +144,7 @@ async function tryPromoteEarnings(env, ev, text, headline) {
   const q = upcoming.quarter
   const y = upcoming.year
   const reportDate = String(upcoming.date).slice(0, 10)
-  const title = `Will ${sym} report EPS of at least $${epsEst.toFixed(2)} for Q${q} ${y} (Finnhub consensus)?`
+  const title = `Will ${sym} report EPS ≥ $${epsEst.toFixed(2)} for Q${q} ${y}?`
   const id = `on-fh-${sym}-${y}-Q${q}-${reportDate}-eps${idPartNumber(epsEst)}`
   const seedSnippet = headline.length > 120 ? `${headline.slice(0, 117)}…` : headline
   return {
@@ -207,8 +207,8 @@ async function tryPromoteFred(env, ev, text, headline) {
   const dateStr = end.toISOString().slice(0, 10)
   const title =
     comparator === 'lte'
-      ? `Will the effective federal funds rate (FRED: DFF) be at or below ${threshold}% on the last print on or before ${dateStr}?`
-      : `Will the effective federal funds rate (FRED: DFF) be at or above ${threshold}% on the last print on or before ${dateStr}?`
+      ? `Will the Fed funds rate (DFF) be ≤ ${threshold}% by ${dateStr}?`
+      : `Will the Fed funds rate (DFF) be ≥ ${threshold}% by ${dateStr}?`
   const id = `on-fred-dff-${dateStr}-${shortHash(headline)}`
   const seedSnippet = headline.length > 120 ? `${headline.slice(0, 117)}…` : headline
   return {

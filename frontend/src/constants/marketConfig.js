@@ -31,20 +31,27 @@ export const MARKET_SOURCES = [
   { value: 'user', label: 'User-Created' },
 ]
 
-/** URL path segment for Discover routes (must match App.jsx Route paths). Use for Navbar links. */
+/** URL for Markets browse (query `source` on home). Prefer over legacy `/discover/*` routes. */
 export function getDiscoverPathForSource(sourceValue) {
-  if (sourceValue === 'all') return '/'
-  if (sourceValue === 'sports') return '/discover/sports'
-  if (sourceValue === 'global_events') return '/discover/global-events'
-  if (sourceValue === 'industry') return '/discover/industry'
-  if (sourceValue === 'tech_ai') return '/discover/tech-ai'
-  if (sourceValue === 'politics') return '/discover/politics'
-  if (sourceValue === 'entertainment') return '/discover/entertainment'
-  if (sourceValue === 'science') return '/discover/science'
-  if (sourceValue === 'virtual_realities') return '/discover/virtual-realities'
-  if (sourceValue === 'active') return '/discover/active'
-  if (sourceValue === 'user') return '/discover/user'
-  return `/discover/${sourceValue}`
+  if (!sourceValue || sourceValue === 'all') return '/'
+  return `/?source=${encodeURIComponent(sourceValue)}`
+}
+
+/** Legacy path segment → source value (for redirects). */
+export function discoverPathSegmentToSource(segment) {
+  const map = {
+    active: 'active',
+    sports: 'sports',
+    'global-events': 'global_events',
+    industry: 'industry',
+    'tech-ai': 'tech_ai',
+    politics: 'politics',
+    entertainment: 'entertainment',
+    science: 'science',
+    'virtual-realities': 'virtual_realities',
+    user: 'user',
+  }
+  return map[String(segment || '')] || null
 }
 
 /** Discover options that filter by category instead of API source. Maps source value → category value. */

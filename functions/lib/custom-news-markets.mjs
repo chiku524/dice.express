@@ -5,6 +5,8 @@
  * markets across articles or cron runs (D1 key `market-${id}`).
  */
 
+import { clipMarketTitle, makeTopicLabel, operatorTopicTitle } from './market-title-copy.mjs'
+
 const NEWS_SOURCES = new Set(['gnews', 'perigon', 'newsapi_ai', 'newsdata_io'])
 
 /** Collapse repeated words (case-insensitive) so retrieval anchors stay dense and semantic. */
@@ -300,44 +302,47 @@ export function enrichNewsEvent(ev, options = {}) {
   const used = options.usedCustomTypes || {}
 
   // ---- Elections (only hot: year + presidential/candidate, and at most one per batch) ----
+  // Skip when no named entity — avoid “the leading candidate” filler titles.
   if (isHotElection(text) && !used.election) {
-    used.election = true
-    const year = extractYear(text) || new Date().getFullYear()
-    const deadline = ELECTION_DEADLINES[year] || `${year}-12-31T23:59:59.000Z`
     const entity = extractElectionEntity(text)
-    const electionName = inferElectionName(text, year)
-    const who = entity || 'the leading candidate'
-    const tier = electionTierSlug(text)
-    const entSlug = electionEntitySlug(who)
-    const stableArticleId = `election-${year}-${tier}-${entSlug}`
-    const title = `Will ${who} win the ${electionName}?`
-    const resolutionCriteria = `Yes if ${who} is certified or officially declared winner of the ${electionName} by major outlets (e.g. AP, Reuters) or official certification.`
-    const oneLiner = `${who} wins ${electionName}; otherwise No.`
-    const sm = operatorSeedMeta(ev, [who, electionName, String(year), rawTitle])
-    return {
-      ...ev,
-      id: stableArticleId,
-      source: 'operator_manual',
-      oracleSource: 'operator_manual',
-      categoryHint: 'Politics',
-      title,
-      description: ev.description || title,
-      resolutionCriteria,
-      oneLiner,
-      resolutionDeadline: deadline,
-      endDate: deadline.slice(0, 10),
-      customType: 'election',
-      seedNewsSource: sm.seedNewsSource,
-      oracleConfig: {
-        ...(ev.oracleConfig || {}),
+    if (entity) {
+      used.election = true
+      const year = extractYear(text) || new Date().getFullYear()
+      const deadline = ELECTION_DEADLINES[year] || `${year}-12-31T23:59:59.000Z`
+      const electionName = inferElectionName(text, year)
+      const who = entity
+      const tier = electionTierSlug(text)
+      const entSlug = electionEntitySlug(who)
+      const stableArticleId = `election-${year}-${tier}-${entSlug}`
+      const title = clipMarketTitle(`Will ${who} win the ${electionName}?`)
+      const resolutionCriteria = `Yes if ${who} is certified or officially declared winner of the ${electionName} by major outlets (e.g. AP, Reuters) or official certification.`
+      const oneLiner = `${who} wins ${electionName}; otherwise No.`
+      const sm = operatorSeedMeta(ev, [who, electionName, String(year), rawTitle])
+      return {
+        ...ev,
+        id: stableArticleId,
+        source: 'operator_manual',
+        oracleSource: 'operator_manual',
+        categoryHint: 'Politics',
+        title,
+        description: ev.description || title,
+        resolutionCriteria,
+        oneLiner,
+        resolutionDeadline: deadline,
+        endDate: deadline.slice(0, 10),
         customType: 'election',
-        outcomeResolutionKind: 'operator_manual',
-        seedHeadline: rawTitle,
-        electionYear: year,
-        electionTier: tier,
-        electionEntitySlug: entSlug,
-        ...sm,
-      },
+        seedNewsSource: sm.seedNewsSource,
+        oracleConfig: {
+          ...(ev.oracleConfig || {}),
+          customType: 'election',
+          outcomeResolutionKind: 'operator_manual',
+          seedHeadline: rawTitle,
+          electionYear: year,
+          electionTier: tier,
+          electionEntitySlug: entSlug,
+          ...sm,
+        },
+      }
     }
   }
 
@@ -346,22 +351,20 @@ export function enrichNewsEvent(ev, options = {}) {
     used.olympics = true
     const year = extractYear(text) || new Date().getFullYear()
     const deadline = OLYMPICS_DEADLINES[year] || (year <= 2024 ? OLYMPICS_DEADLINES[2024] : `${year}-08-15T23:59:59.000Z`)
-    const shortHeadline = rawTitle.replace(/^Will\s+"(.+)"\s+be\s+.+$/i, '$1').replace(/^Will\s+/i, '').slice(0, 80)
+    const topic = makeTopicLabel(rawTitle, 52)
     const olySub = olympicsSubtopicSlug(text, year)
     const stableArticleId = `olympics-${year}-${olySub}`
-    const title = shortHeadline.includes('Olympic') || shortHeadline.includes('medal')
-      ? `Will ${shortHeadline} by end of ${year} Olympics?`
-      : `Will ${shortHeadline} be confirmed by end of ${year} Olympics?`
-    const resolutionCriteria = `Yes if the outcome is confirmed by end of the ${year} Olympics per official results or major news.`
-    const oneLiner = `Outcome confirmed by end of ${year} Olympics; otherwise No.`
-    const sm = operatorSeedMeta(ev, [shortHeadline, String(year), 'Olympics', rawTitle])
+    const title = operatorTopicTitle({ kind: 'olympics', headline: rawTitle, byDate: deadline.slice(0, 10), olympicsYear: year })
+    const resolutionCriteria = `Yes if the outcome about “${topic}” is confirmed by end of the ${year} Olympics per official results or major news.`
+    const oneLiner = `“${topic}” confirmed by end of ${year} Olympics; otherwise No.`
+    const sm = operatorSeedMeta(ev, [topic, String(year), 'Olympics', rawTitle])
     return {
       ...ev,
       id: stableArticleId,
       source: 'operator_manual',
       oracleSource: 'operator_manual',
       categoryHint: 'Sports',
-      title: title.length > 120 ? title.slice(0, 117) + '…' : title,
+      title,
       description: ev.description || title,
       resolutionCriteria,
       oneLiner,
@@ -390,7 +393,7 @@ export function enrichNewsEvent(ev, options = {}) {
     const slug = canonicalConflictSlug(conflict)
     const stableArticleId = `conflict-${slug}-${ym}`
     const dedupeKey = `conflict:${slug}:${ym}`
-    const title = `Will the ${conflict} end by ${ym}?`
+    const title = clipMarketTitle(`Will the ${conflict} end by ${ym}?`)
     const resolutionCriteria = `Yes if a formal ceasefire or peace agreement is announced, or major combat is widely reported over for ${conflict}, per major news (e.g. AP, Reuters).`
     const oneLiner = `Ceasefire or end of major combat for ${conflict} by deadline; otherwise No.`
     const sm = operatorSeedMeta(ev, [conflict, ym, 'ceasefire', rawTitle])
@@ -427,8 +430,9 @@ export function enrichNewsEvent(ev, options = {}) {
     const deadline = stableDeadlineEndOfMonthFromDaysAhead(200)
     const ym = deadline.slice(0, 7)
     const stableArticleId = `fda-drug-op-${ym}`
-    const title = `Will the FDA regulatory outcome described in this news thread be confirmed by ${deadline.slice(0, 10)}?`
-    const resolutionCriteria = `Yes if FDA approval, clearance, rejection, or formal action matching the headline is confirmed by FDA communications or major outlets (e.g. AP, Reuters). Otherwise No.`
+    const title = operatorTopicTitle({ kind: 'fda_drug', headline: rawTitle, byDate: deadline.slice(0, 10) })
+    const topic = makeTopicLabel(rawTitle, 52)
+    const resolutionCriteria = `Yes if FDA approval, clearance, rejection, or formal action matching “${topic}” is confirmed by FDA communications or major outlets (e.g. AP, Reuters). Otherwise No.`
     const sm = operatorSeedMeta(ev, ['FDA', rawTitle, ym])
     return {
       ...ev,
@@ -439,7 +443,7 @@ export function enrichNewsEvent(ev, options = {}) {
       title,
       description: ev.description || title,
       resolutionCriteria,
-      oneLiner: `FDA outcome as described in criteria by deadline; otherwise No.`,
+      oneLiner: `FDA outcome on “${topic}” by deadline; otherwise No.`,
       resolutionDeadline: deadline,
       endDate: deadline.slice(0, 10),
       customType: 'fda_drug',
@@ -465,8 +469,9 @@ export function enrichNewsEvent(ev, options = {}) {
     const deadline = stableDeadlineEndOfMonthFromDaysAhead(240)
     const ym = deadline.slice(0, 7)
     const stableArticleId = `court-op-${ym}`
-    const title = `Will the court outcome referenced in this headline be confirmed by ${deadline.slice(0, 10)}?`
-    const resolutionCriteria = `Yes if the decision or order described is issued and reported by official court sources or major outlets. Otherwise No.`
+    const title = operatorTopicTitle({ kind: 'court', headline: rawTitle, byDate: deadline.slice(0, 10) })
+    const topic = makeTopicLabel(rawTitle, 52)
+    const resolutionCriteria = `Yes if the decision or order about “${topic}” is issued and reported by official court sources or major outlets. Otherwise No.`
     const sm = operatorSeedMeta(ev, ['Supreme Court', 'court', rawTitle, ym])
     return {
       ...ev,
@@ -477,7 +482,7 @@ export function enrichNewsEvent(ev, options = {}) {
       title,
       description: ev.description || title,
       resolutionCriteria,
-      oneLiner: `Court outcome per criteria by deadline; otherwise No.`,
+      oneLiner: `Court outcome on “${topic}” by deadline; otherwise No.`,
       resolutionDeadline: deadline,
       endDate: deadline.slice(0, 10),
       customType: 'court',
@@ -503,8 +508,9 @@ export function enrichNewsEvent(ev, options = {}) {
     const deadline = stableDeadlineEndOfMonthFromDaysAhead(150)
     const ym = deadline.slice(0, 7)
     const stableArticleId = `legislation-op-${ym}`
-    const title = `Will the legislative outcome described in this headline occur by ${deadline.slice(0, 10)}?`
-    const resolutionCriteria = `Yes if the bill or action described becomes law, fails a decisive vote, or is vetoed as claimed, per Congress.gov / official sources or major outlets. Otherwise No.`
+    const title = operatorTopicTitle({ kind: 'legislation', headline: rawTitle, byDate: deadline.slice(0, 10) })
+    const topic = makeTopicLabel(rawTitle, 52)
+    const resolutionCriteria = `Yes if the bill or action in “${topic}” becomes law, fails a decisive vote, or is vetoed as claimed, per Congress.gov / official sources or major outlets. Otherwise No.`
     const sm = operatorSeedMeta(ev, ['Congress', 'Senate', 'House', rawTitle, ym])
     return {
       ...ev,
@@ -515,7 +521,7 @@ export function enrichNewsEvent(ev, options = {}) {
       title,
       description: ev.description || title,
       resolutionCriteria,
-      oneLiner: `Legislative outcome per criteria; otherwise No.`,
+      oneLiner: `Legislative outcome on “${topic}”; otherwise No.`,
       resolutionDeadline: deadline,
       endDate: deadline.slice(0, 10),
       customType: 'legislation',
@@ -540,8 +546,9 @@ export function enrichNewsEvent(ev, options = {}) {
     const deadline = stableDeadlineEndOfMonthFromDaysAhead(180)
     const ym = deadline.slice(0, 7)
     const stableArticleId = `mna-ipo-op-${ym}`
-    const title = `Will the corporate transaction referenced in this headline close or price as described by ${deadline.slice(0, 10)}?`
-    const resolutionCriteria = `Yes if the deal, listing, or transaction outcome matches the headline’s claim per SEC filings, exchange notices, or major outlets. Otherwise No.`
+    const title = operatorTopicTitle({ kind: 'mna_ipo', headline: rawTitle, byDate: deadline.slice(0, 10) })
+    const topic = makeTopicLabel(rawTitle, 52)
+    const resolutionCriteria = `Yes if the deal, listing, or transaction in “${topic}” matches the claim per SEC filings, exchange notices, or major outlets. Otherwise No.`
     const sm = operatorSeedMeta(ev, ['merger', 'IPO', 'acquisition', rawTitle, ym])
     return {
       ...ev,
@@ -552,7 +559,7 @@ export function enrichNewsEvent(ev, options = {}) {
       title,
       description: ev.description || title,
       resolutionCriteria,
-      oneLiner: `Transaction outcome per criteria; otherwise No.`,
+      oneLiner: `Transaction in “${topic}” per criteria; otherwise No.`,
       resolutionDeadline: deadline,
       endDate: deadline.slice(0, 10),
       customType: 'mna_ipo',
@@ -579,8 +586,9 @@ export function enrichNewsEvent(ev, options = {}) {
     const deadline = stableDeadlineEndOfMonthFromDaysAhead(60)
     const ym = deadline.slice(0, 7)
     const stableArticleId = `macro-data-op-${ym}`
-    const title = `Will the macroeconomic print referenced in this headline match the direction implied (vs prior / consensus) by ${deadline.slice(0, 10)}?`
-    const resolutionCriteria = `Yes if the official release (BLS, BEA, or primary source) plus major coverage support the headline’s implied surprise direction. Operator applies published rubric. Otherwise No.`
+    const title = operatorTopicTitle({ kind: 'macro_data', headline: rawTitle, byDate: deadline.slice(0, 10) })
+    const topic = makeTopicLabel(rawTitle, 52)
+    const resolutionCriteria = `Yes if the official release (BLS, BEA, or primary source) plus major coverage support the direction implied by “${topic}”. Operator applies published rubric. Otherwise No.`
     const sm = operatorSeedMeta(ev, ['CPI', 'jobs', 'GDP', 'inflation', rawTitle, ym])
     return {
       ...ev,
@@ -591,7 +599,7 @@ export function enrichNewsEvent(ev, options = {}) {
       title,
       description: ev.description || title,
       resolutionCriteria,
-      oneLiner: `Macro print direction per criteria; otherwise No.`,
+      oneLiner: `Macro print direction for “${topic}”; otherwise No.`,
       resolutionDeadline: deadline,
       endDate: deadline.slice(0, 10),
       customType: 'macro_data',
@@ -613,8 +621,9 @@ export function enrichNewsEvent(ev, options = {}) {
     const deadline = stableDeadlineEndOfMonthFromDaysAhead(60)
     const ym = deadline.slice(0, 7)
     const stableArticleId = `fed-operator-op-${ym}`
-    const title = `Will Federal Reserve policy developments match the headline’s implication by ${deadline.slice(0, 10)}?`
-    const resolutionCriteria = `Yes if FOMC actions, statements, and subsequent market-standard interpretation align with the headline’s implied path (cut/hike/hold) per FOMC materials and major outlets. Operator-settled.`
+    const title = operatorTopicTitle({ kind: 'fed_operator', headline: rawTitle, byDate: deadline.slice(0, 10) })
+    const topic = makeTopicLabel(rawTitle, 52)
+    const resolutionCriteria = `Yes if FOMC actions, statements, and subsequent market-standard interpretation align with the path implied by “${topic}” (cut/hike/hold) per FOMC materials and major outlets. Operator-settled.`
     const sm = operatorSeedMeta(ev, ['Federal Reserve', 'FOMC', 'interest rates', rawTitle, ym])
     return {
       ...ev,
@@ -625,7 +634,7 @@ export function enrichNewsEvent(ev, options = {}) {
       title,
       description: ev.description || title,
       resolutionCriteria,
-      oneLiner: `Fed policy path per criteria; otherwise No.`,
+      oneLiner: `Fed policy path for “${topic}”; otherwise No.`,
       resolutionDeadline: deadline,
       endDate: deadline.slice(0, 10),
       customType: 'fed_operator',
@@ -650,8 +659,9 @@ export function enrichNewsEvent(ev, options = {}) {
     const deadline = stableDeadlineEndOfMonthFromDaysAhead(120)
     const ym = deadline.slice(0, 7)
     const stableArticleId = `summit-op-${ym}`
-    const title = `Will the diplomatic outcome suggested in this headline materialize by ${deadline.slice(0, 10)}?`
-    const resolutionCriteria = `Yes if the agreement, meeting, or ceasefire described is confirmed by official communiqués or major outlets. Otherwise No.`
+    const title = operatorTopicTitle({ kind: 'summit', headline: rawTitle, byDate: deadline.slice(0, 10) })
+    const topic = makeTopicLabel(rawTitle, 52)
+    const resolutionCriteria = `Yes if the agreement, meeting, or ceasefire in “${topic}” is confirmed by official communiqués or major outlets. Otherwise No.`
     const sm = operatorSeedMeta(ev, ['G7', 'G20', 'NATO', 'summit', 'diplomatic', rawTitle, ym])
     return {
       ...ev,
@@ -662,7 +672,7 @@ export function enrichNewsEvent(ev, options = {}) {
       title,
       description: ev.description || title,
       resolutionCriteria,
-      oneLiner: `Diplomatic outcome per criteria; otherwise No.`,
+      oneLiner: `Diplomatic outcome for “${topic}”; otherwise No.`,
       resolutionDeadline: deadline,
       endDate: deadline.slice(0, 10),
       customType: 'summit',
@@ -689,8 +699,14 @@ export function enrichNewsEvent(ev, options = {}) {
     const ym = deadline.slice(0, 7)
     const co = extractTechAntitrustCompanySlug(text)
     const stableArticleId = `tech-antitrust-${co}-${ym}`
-    const title = `Will the regulatory or antitrust outcome referenced in this headline be confirmed by ${deadline.slice(0, 10)}?`
-    const resolutionCriteria = `Yes if the enforcement action, ruling, or settlement described is finalized per agencies, courts, or major outlets. Otherwise No.`
+    const title = operatorTopicTitle({
+      kind: 'tech_antitrust',
+      headline: rawTitle,
+      byDate: deadline.slice(0, 10),
+      companySlug: co,
+    })
+    const topic = makeTopicLabel(rawTitle, 52)
+    const resolutionCriteria = `Yes if the enforcement action, ruling, or settlement about “${topic}” is finalized per agencies, courts, or major outlets. Otherwise No.`
     const sm = operatorSeedMeta(ev, [co, 'antitrust', 'regulatory', rawTitle, ym])
     return {
       ...ev,
@@ -701,7 +717,7 @@ export function enrichNewsEvent(ev, options = {}) {
       title,
       description: ev.description || title,
       resolutionCriteria,
-      oneLiner: `Antitrust/regulatory outcome per criteria; otherwise No.`,
+      oneLiner: `Antitrust/regulatory outcome for “${topic}”; otherwise No.`,
       resolutionDeadline: deadline,
       endDate: deadline.slice(0, 10),
       customType: 'tech_antitrust',

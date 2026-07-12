@@ -126,17 +126,18 @@ export function finalizeNewsFeedTopicMarket(ev) {
       ? `“${category}” top-headlines (English)`
       : `“${seedQuery || 'technology'}” search results (English)`
 
-  const title = `Will an article title similar to “${topicLabel}” still appear in ${provider} ${feedClause} by end of ${dateStr} (UTC)?`
-  const safeTitle = title.length > 158 ? `${title.slice(0, 155)}…` : title
+  const title = `Will “${topicLabel}” still show up in ${provider} by ${dateStr}?`
+  const safeTitle = title.length > 130 ? `${title.slice(0, 127)}…` : title
 
   const description =
-    `Binary, rule-based market: Yes if, by end of ${dateStr} UTC, the ${provider} API (same parameters as stored) returns at least one article whose title overlaps the seed headline by the token rule in the resolution criteria; otherwise No. ` +
-    `“Similar” means the deterministic token-overlap count in the criteria—not editorial judgment. Anchor text: “${topicLabel}”.`
+    `Yes if the ${provider} feed still surfaces a similar headline by end of ${dateStr} UTC; otherwise No. Anchor: “${topicLabel}”.`
 
   const resolutionCriteria =
     `Automated resolution after end of calendar day ${dateStr} (UTC). ` +
     `(1) The platform re-calls the same ${provider} API used at creation with the same parameters stored in oracleConfig ` +
-    `(GNews: category “${category}”; others: keyword “${seedQuery || 'technology'}”), requesting up to ${resolutionCheckLimit} articles. ` +
+    `(GNews: category “${category}”; others: keyword “${seedQuery || 'technology'}”), requesting up to ${resolutionCheckLimit} articles` +
+    (feedClause ? ` — feed: ${feedClause}` : '') +
+    `. ` +
     `(2) Yes if any returned article title shares at least ${minTokenOverlap} distinct significant tokens with the seed headline’s word set ` +
     `(lowercase, punctuation stripped, English stopwords removed, minimum length 3; trailing “s” dropped on tokens longer than 3 characters for matching). ` +
     `(3) No if no title meets that threshold. ` +
