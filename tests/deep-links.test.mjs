@@ -15,6 +15,16 @@ describe('pathFromDeepLinkUrl', () => {
     assert.strictEqual(pathFromDeepLinkUrl('https://dice.express/market/m1'), '/market/m1')
   })
 
+  it('does not map intro route words to /market/…', () => {
+    assert.strictEqual(pathFromDeepLinkUrl('diceexpress://launch'), '/launch')
+    assert.strictEqual(pathFromDeepLinkUrl('diceexpress://splashscreen'), '/splashscreen')
+    assert.strictEqual(pathFromDeepLinkUrl('diceexpress://register'), '/register')
+  })
+
+  it('maps plausible bare market ids', () => {
+    assert.strictEqual(pathFromDeepLinkUrl('diceexpress://mkt_abc123'), '/market/mkt_abc123')
+  })
+
   it('rejects unknown hosts', () => {
     assert.strictEqual(pathFromDeepLinkUrl('https://evil.example/market/m1'), null)
   })

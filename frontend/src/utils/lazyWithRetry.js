@@ -3,6 +3,21 @@
 
 import { lazy } from 'react'
 
+function isChunkLoadError(error) {
+  if (!error) return false
+  const msg = String(error.message || '')
+  return (
+    msg.includes('Failed to fetch dynamically imported module') ||
+    msg.includes('Loading chunk') ||
+    msg.includes('Loading CSS chunk') ||
+    msg.includes('Failed to load page component') ||
+    msg.includes('error loading dynamically imported module') ||
+    msg.includes('Importing a module script failed') ||
+    error.name === 'ChunkLoadError' ||
+    error.code === 'CHUNK_LOAD_ERROR'
+  )
+}
+
 /**
  * Create a lazy component with retry logic for failed chunk loads
  * @param {Function} importFunc - Function that returns a dynamic import
@@ -19,43 +34,32 @@ export function lazyWithRetry(importFunc, maxRetries = 3, retryDelay = 1000) {
         importFunc()
           .then(resolve)
           .catch((error) => {
-            // Check if it's a chunk loading error
-            const isChunkError = 
-              error.message?.includes('Failed to fetch dynamically imported module') ||
-              error.message?.includes('Loading chunk') ||
-              error.message?.includes('Loading CSS chunk') ||
-              error.name === 'ChunkLoadError' ||
-              error.code === 'CHUNK_LOAD_ERROR'
-
-            if (isChunkError && retries < maxRetries) {
+            if (isChunkLoadError(error) && retries < maxRetries) {
               retries++
               console.warn(`[lazyWithRetry] Chunk load failed, retrying (${retries}/${maxRetries})...`, error.message)
-              
-              // Clear cache and retry
+
               if ('caches' in window) {
-                caches.keys().then(names => {
-                  names.forEach(name => {
+                caches.keys().then((names) => {
+                  names.forEach((name) => {
                     if (name.includes('vite') || name.includes('workbox') || name.includes('assets')) {
                       caches.delete(name)
                     }
                   })
                 })
               }
-              
-              // Retry after delay
-              setTimeout(attemptImport, retryDelay * retries) // Exponential backoff
+
+              setTimeout(attemptImport, retryDelay * retries)
             } else {
-              // Max retries reached or not a chunk error
               console.error('[lazyWithRetry] Failed to load chunk after retries:', error)
-              
-              // Try to reload the page as last resort for chunk errors
-              if (isChunkError) {
-                console.warn('[lazyWithRetry] Attempting page reload to fix chunk loading issue...')
-                // Don't auto-reload, let user decide
-                reject(new Error(
+              if (isChunkLoadError(error)) {
+                const wrapped = new Error(
                   'Failed to load page component. This may be due to a network issue or outdated cache. ' +
-                  'Please refresh the page or clear your browser cache.'
-                ))
+                    'Please refresh the page or clear your browser cache.'
+                )
+                wrapped.name = 'ChunkLoadError'
+                wrapped.code = 'CHUNK_LOAD_ERROR'
+                wrapped.cause = error
+                reject(wrapped)
               } else {
                 reject(error)
               }

@@ -4,6 +4,12 @@ Summary of major cleanups and improvements. For current structure see [README](.
 
 ---
 
+## 1.0.42 — Desktop startup crash fix (July 2026)
+
+- **Release:** Version **1.0.42**; tag **`v1.0.42`** for desktop CI and GitHub Releases.
+- **Desktop:** Do not register deep-link / notification / tray bridges on splash or launch windows; harden deep-link path parsing so intro routes are not rewritten to `/market/…`; resolve API origin at call time; show ErrorBoundary details on desktop and auto-reload once on chunk-load failures after updates.
+- **Splash:** Prefer `@tauri-apps/api/core` `invoke` to close splash (fallback to global `__TAURI__`).
+
 ## 1.0.41 — App polish, perf, Markets IA & deep links (July 2026)
 
 - **Release:** Version **1.0.41**; tag **`v1.0.41`** for desktop CI and GitHub Releases.

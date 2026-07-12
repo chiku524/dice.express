@@ -17,13 +17,21 @@ export default function TauriTrayBridge() {
     let unlistenFn
     let cancelled = false
 
-    const setup = import('@tauri-apps/api/event').then(async ({ listen }) => {
-      if (cancelled) return
-      unlistenFn = await listen('tray-sign-out', () => {
-        disconnectWallet()
-        navigate('/sign-in', { replace: true })
+    const setup = import('@tauri-apps/api/event')
+      .then(async ({ listen }) => {
+        if (cancelled) return
+        unlistenFn = await listen('tray-sign-out', () => {
+          disconnectWallet()
+          navigate('/sign-in', { replace: true })
+        })
+        if (cancelled && typeof unlistenFn === 'function') {
+          unlistenFn()
+          unlistenFn = undefined
+        }
       })
-    })
+      .catch(() => {
+        /* API unavailable */
+      })
 
     return () => {
       cancelled = true

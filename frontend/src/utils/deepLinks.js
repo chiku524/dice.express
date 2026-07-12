@@ -6,6 +6,30 @@
 
 const APP_HOSTS = new Set(['dice.express', 'www.dice.express', 'dice-express.pages.dev'])
 
+/** Routes that must never be rewritten to /market/<segment>. */
+const APP_ROUTE_PREFIXES = [
+  '/market/',
+  '/discover/',
+  '/docs',
+  '/documentation',
+  '/portfolio',
+  '/watchlist',
+  '/dashboard',
+  '/profile',
+  '/activity',
+  '/sign-in',
+  '/register',
+  '/download',
+  '/create',
+  '/automation',
+  '/whitepaper',
+  '/privacy',
+  '/terms',
+  '/executive-summary',
+  '/splashscreen',
+  '/launch',
+]
+
 /**
  * @param {string} raw
  * @returns {string | null} React Router path (e.g. `/market/abc`) or null
@@ -30,9 +54,9 @@ export function pathFromDeepLinkUrl(raw) {
       const host = (url.hostname || '').toLowerCase()
       const path = url.pathname || '/'
       if (host && host !== 'localhost') {
-        return normalizeAppPath(`/${host}${path === '/' ? '' : path}`)
+        return normalizeAppPath(`/${host}${path === '/' ? '' : path}${url.search || ''}${url.hash || ''}`)
       }
-      return normalizeAppPath(path || '/')
+      return normalizeAppPath(`${path || '/'}${url.search || ''}${url.hash || ''}`)
     }
 
     if (scheme === 'http' || scheme === 'https') {
@@ -53,19 +77,57 @@ function normalizeAppPath(path) {
   let p = String(path || '/').trim()
   if (!p.startsWith('/')) p = `/${p}`
   p = p.replace(/\/{2,}/g, '/')
-  if (p === '/' || p.startsWith('/market/') || p.startsWith('/discover/') || p.startsWith('/docs') || p.startsWith('/portfolio') || p.startsWith('/watchlist')) {
+
+  if (p === '/') return p
+
+  const pathOnly = p.split(/[?#]/)[0]
+  if (APP_ROUTE_PREFIXES.some((prefix) => pathOnly === prefix || pathOnly.startsWith(prefix.endsWith('/') ? prefix : `${prefix}/`) || pathOnly === prefix)) {
     return p
   }
-  const bare = p.replace(/^\//, '')
-  if (bare && !bare.includes('/') && /^[a-zA-Z0-9_.:-]+$/.test(bare)) {
-    return `/market/${bare}`
+  // Exact known app routes (no trailing content)
+  if (
+    pathOnly === '/docs' ||
+    pathOnly === '/documentation' ||
+    pathOnly === '/splashscreen' ||
+    pathOnly === '/launch' ||
+    pathOnly === '/sign-in' ||
+    pathOnly === '/register' ||
+    pathOnly === '/download' ||
+    pathOnly === '/create' ||
+    pathOnly === '/automation' ||
+    pathOnly === '/whitepaper' ||
+    pathOnly === '/privacy' ||
+    pathOnly === '/terms' ||
+    pathOnly === '/executive-summary' ||
+    pathOnly === '/portfolio' ||
+    pathOnly === '/watchlist' ||
+    pathOnly === '/dashboard' ||
+    pathOnly === '/profile' ||
+    pathOnly === '/activity'
+  ) {
+    return p
+  }
+
+  // Bare market-like ids only (avoid mapping "launch" / "register" → /market/…)
+  const bare = pathOnly.replace(/^\//, '')
+  if (bare && !bare.includes('/') && isPlausibleMarketId(bare)) {
+    return `/market/${bare}${p.slice(pathOnly.length)}`
   }
   return null
 }
 
+/** Prefer real market ids over short route words mistaken as hosts. */
+function isPlausibleMarketId(id) {
+  const s = String(id || '')
+  if (s.length < 6) return false
+  if (/^(launch|splashscreen|signin|sign-in|register|docs|download|create|portfolio|profile|activity|watchlist|dashboard|markets|market)$/i.test(s)) {
+    return false
+  }
+  return /^[a-zA-Z0-9_.:-]+$/.test(s)
+}
+
 /**
  * Discover source value → home query path (mirrors marketConfig.getDiscoverPathForSource).
- * Kept here so Node tests can import without Vite path resolution.
  * @param {string} sourceValue
  */
 export function marketsPathForSource(sourceValue) {

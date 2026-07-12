@@ -166,12 +166,22 @@ function AppContent() {
   const location = useLocation()
   const skipMarketingChrome =
     location.pathname === '/splashscreen' || location.pathname === '/launch'
+  /** Intro webviews should not register deep-link / notification / tray listeners. */
+  const skipDesktopBridges = skipMarketingChrome
 
   return (
     <>
       <PageViewTracker />
       {!skipMarketingChrome && <PageSEO />}
       <ToastContainer toasts={toasts} onRemove={removeToast} />
+      {!skipDesktopBridges && (
+        <>
+          <TauriTrayBridge />
+          <NotificationActionBridge />
+          <DeepLinkBridge />
+          <MarketAlertsPoller />
+        </>
+      )}
       <Routes>
         <Route
           path="/splashscreen"
@@ -297,10 +307,6 @@ function App() {
         <ToastProvider>
           <WalletProvider>
             <Web3WalletProvider>
-              <TauriTrayBridge />
-              <NotificationActionBridge />
-              <DeepLinkBridge />
-              <MarketAlertsPoller />
               <AppContent />
             </Web3WalletProvider>
           </WalletProvider>

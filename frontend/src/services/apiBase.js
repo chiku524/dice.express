@@ -8,7 +8,14 @@ const ENV_ORIGIN = typeof import.meta !== 'undefined' && import.meta.env?.VITE_A
   ? String(import.meta.env.VITE_API_ORIGIN).replace(/\/$/, '')
   : ''
 const DEFAULT_DESKTOP_API = 'https://dice.express'
-export const API_ORIGIN = ENV_ORIGIN || (isTauriApp() ? DEFAULT_DESKTOP_API : '')
+
+/** Resolve at call time so Tauri globals are visible (module load can race with injection). */
+export function getApiOrigin() {
+  return ENV_ORIGIN || (isTauriApp() ? DEFAULT_DESKTOP_API : '')
+}
+
+/** @deprecated Prefer getApiOrigin() — kept for any external callers. */
+export const API_ORIGIN = getApiOrigin()
 
 /**
  * @param {string} path - e.g. 'sign-in', 'markets', 'account'
@@ -17,6 +24,6 @@ export const API_ORIGIN = ENV_ORIGIN || (isTauriApp() ? DEFAULT_DESKTOP_API : ''
 export function apiUrl(path) {
   const p = path.startsWith('/') ? path : `/${path}`
   const suffix = p.startsWith('/api') ? p.slice(4) : p
-  const base = API_ORIGIN || ''
+  const base = getApiOrigin() || ''
   return base ? `${base}/api${suffix}` : `/api${suffix}`
 }

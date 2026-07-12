@@ -1,16 +1,21 @@
 import { useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
 import { isTauriApp } from '../utils/platform'
 import { pathFromDeepLinkUrl } from '../utils/deepLinks'
 
 /**
  * Desktop: open diceexpress://… (and https://dice.express/…) deep links in the SPA.
+ * Skipped on splash/launch so cold-start getCurrent cannot yank the intro webview off-route.
  */
 export default function DeepLinkBridge() {
   const navigate = useNavigate()
+  const location = useLocation()
 
   useEffect(() => {
     if (!isTauriApp()) return undefined
+    if (location.pathname === '/splashscreen' || location.pathname === '/launch') {
+      return undefined
+    }
 
     let cancelled = false
     let unlisten
@@ -19,10 +24,13 @@ export default function DeepLinkBridge() {
       const list = Array.isArray(urls) ? urls : [urls]
       for (const raw of list) {
         const path = pathFromDeepLinkUrl(raw)
-        if (path) {
-          navigate(path, { replace: false })
-          break
+        if (!path) continue
+        // Never deep-link into intro shells
+        if (path === '/splashscreen' || path === '/launch' || path.startsWith('/splashscreen') || path.startsWith('/launch')) {
+          continue
         }
+        navigate(path, { replace: false })
+        break
       }
     }
 
@@ -36,9 +44,14 @@ export default function DeepLinkBridge() {
         } catch {
           /* cold start may have no URL */
         }
+        if (cancelled) return
         unlisten = await onOpenUrl((urls) => {
           if (!cancelled) go(urls)
         })
+        if (cancelled && typeof unlisten === 'function') {
+          unlisten()
+          unlisten = undefined
+        }
       } catch {
         /* plugin missing in web builds */
       }
@@ -55,7 +68,7 @@ export default function DeepLinkBridge() {
         }
       })
     }
-  }, [navigate])
+  }, [navigate, location.pathname])
 
   return null
 }

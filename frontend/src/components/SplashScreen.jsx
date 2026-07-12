@@ -93,9 +93,15 @@ export default function SplashScreen() {
         // localStorage may be unavailable
       }
 
-      const tauri = window.__TAURI__
-      if (tauri?.core?.invoke) {
-        await tauri.core.invoke('close_splash_and_show_main').catch(() => {})
+      try {
+        const { invoke } = await import('@tauri-apps/api/core')
+        await invoke('close_splash_and_show_main')
+      } catch {
+        // Fall back to global injection (withGlobalTauri)
+        const tauri = window.__TAURI__
+        if (tauri?.core?.invoke) {
+          await tauri.core.invoke('close_splash_and_show_main').catch(() => {})
+        }
       }
     }
 

@@ -1,17 +1,22 @@
 import { useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
 import { isTauriApp } from '../utils/platform'
 import { NOTIFICATION_ACTION_TYPE_ID } from '../utils/marketAlerts'
 
 /**
  * Desktop: listen for notification clicks and navigate to the market URL in `extra.url`.
  * Registers a default action type so the OS delivers actionPerformed events.
+ * Not mounted on splash/launch (avoids plugin work in the intro webview).
  */
 export default function NotificationActionBridge() {
   const navigate = useNavigate()
+  const location = useLocation()
 
   useEffect(() => {
     if (!isTauriApp()) return undefined
+    if (location.pathname === '/splashscreen' || location.pathname === '/launch') {
+      return undefined
+    }
 
     let cancelled = false
     let unlisten
@@ -41,6 +46,10 @@ export default function NotificationActionBridge() {
             /* ignore bad urls */
           }
         })
+        if (cancelled && typeof unlisten === 'function') {
+          unlisten()
+          unlisten = undefined
+        }
       } catch {
         /* plugin unavailable */
       }
@@ -57,7 +66,7 @@ export default function NotificationActionBridge() {
         }
       })
     }
-  }, [navigate])
+  }, [navigate, location.pathname])
 
   return null
 }
