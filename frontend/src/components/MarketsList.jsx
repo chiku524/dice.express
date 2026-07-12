@@ -5,7 +5,7 @@ import LoadingSpinner from './LoadingSpinner'
 import ErrorState from './ErrorState'
 import { fetchMarkets } from '../services/marketsApi'
 import { useDebounce } from '../utils/useDebounce'
-import { MARKET_CATEGORIES, getSourceLabel, sourceForFilter, categoryForFilter, getCategoryEmoji, buildMarketShareDescription, DISCOVER_SOURCE_TO_CATEGORY } from '../constants/marketConfig'
+import { MARKET_CATEGORIES, MARKET_SOURCES, getSourceLabel, sourceForFilter, categoryForFilter, getCategoryEmoji, buildMarketShareDescription, DISCOVER_SOURCE_TO_CATEGORY } from '../constants/marketConfig'
 import {
   isOutcomeBasedMarket,
   marketCreatedThisWeek,

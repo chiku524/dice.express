@@ -765,7 +765,6 @@ export default function MarketDetail() {
           setOrderSide={setOrderSide}
           orderAmount={orderAmount}
           setOrderAmount={setOrderAmount}
-          orderPrice={orderPrice}
           setOrderPrice={setOrderPrice}
           orderLoading={orderLoading}
           handlePlaceOrder={handlePlaceOrder}

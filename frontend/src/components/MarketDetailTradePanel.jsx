@@ -43,7 +43,6 @@ export default function MarketDetailTradePanel({
   setOrderSide,
   orderAmount,
   setOrderAmount,
-  orderPrice,
   setOrderPrice,
   orderLoading,
   handlePlaceOrder,
