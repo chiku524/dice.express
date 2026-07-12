@@ -32,7 +32,7 @@ A prediction markets platform powered by **Pips**. Users deposit (crypto) to get
 
 ## Prerequisites
 
-- Node.js 18+ and npm
+- Node.js 22+ and npm (GitHub Actions / wrangler Pages deploy; Node 20 may still build the frontend locally)
 - **Backend**: **Cloudflare** only — D1 (SQL), KV (cache), R2 (backup). All API in `functions/`. No Vercel, Supabase, or Canton.
 
 ## Setup

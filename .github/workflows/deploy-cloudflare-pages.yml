@@ -30,7 +30,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: "22"
           cache: "npm"
 
       - name: Install root dependencies
@@ -81,10 +81,11 @@ jobs:
 
       # Wrangler bundles `functions/` against repo-root `node_modules` (viem, Solana, etc.).
       # Without this install, direct upload fails with "Could not resolve" for those packages.
+      # Wrangler 4.x requires Node.js >= 22.
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: "22"
           cache: "npm"
 
       - name: Install root dependencies (Pages Functions)
@@ -102,8 +103,8 @@ jobs:
           for i in 1 2 3 4 5; do
             echo "Deploy attempt $i of 5..."
             npx wrangler@latest pages deploy frontend/dist --project-name=dice-express && exit 0
-            echo "Deploy failed (often 504). Waiting 90s before retry..."
+            echo "Deploy failed (Node/API). Waiting 90s before retry..."
             sleep 90
           done
-          echo "::error::All 5 deploy attempts failed. Your dice-express project and env vars are unchanged. Try running 'npm run pages:deploy' from your machine (often works when CI times out), or see docs/DEPLOYMENT.md."
+          echo "::error::All 5 deploy attempts failed. Your dice-express project and env vars are unchanged. Ensure CI uses Node.js 22+ (wrangler requirement), or run 'npm run pages:deploy' locally. See docs/DEPLOYMENT.md."
           exit 1
