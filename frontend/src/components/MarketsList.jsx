@@ -5,7 +5,7 @@ import LoadingSpinner from './LoadingSpinner'
 import ErrorState from './ErrorState'
 import { fetchMarkets } from '../services/marketsApi'
 import { useDebounce } from '../utils/useDebounce'
-import { MARKET_CATEGORIES, MARKET_SOURCES, getSourceLabel, sourceForFilter, categoryForFilter, getCategoryEmoji, buildMarketShareDescription, DISCOVER_SOURCE_TO_CATEGORY } from '../constants/marketConfig'
+import { MARKET_SOURCES, getSourceLabel, sourceForFilter, categoryForFilter, buildMarketShareDescription, DISCOVER_SOURCE_TO_CATEGORY } from '../constants/marketConfig'
 import {
   isOutcomeBasedMarket,
   marketCreatedThisWeek,
@@ -29,12 +29,6 @@ function readMarketsLayout() {
   return 'cards'
 }
 
-const CATEGORY_TOGGLE_OPTIONS = [
-  { value: 'trending', label: 'Trending' },
-  { value: 'all', label: 'All' },
-  ...MARKET_CATEGORIES.map((c) => ({ value: c.value, label: c.label })),
-]
-
 export default function MarketsList({ source: sourceFromRoute, variant = 'default' }) {
   const { showToast } = useToastContext()
   const [searchParams, setSearchParams] = useSearchParams()
@@ -54,11 +48,10 @@ export default function MarketsList({ source: sourceFromRoute, variant = 'defaul
   const marketsListTopRef = useRef(null)
   
   const [searchQuery, setSearchQuery] = useState('')
-  const [selectedCategory, setSelectedCategory] = useState('trending')
   const [selectedTopic, setSelectedTopic] = useState('all')
   const [selectedType, setSelectedType] = useState('all')
   const [selectedStatus, setSelectedStatus] = useState('all')
-  const [sortBy, setSortBy] = useState('volume') // 'volume', 'p2p', 'newest', 'oldest', 'ending_soon'
+  const [sortBy, setSortBy] = useState('trending') // 'trending', 'volume', 'p2p', 'newest', 'oldest', 'ending_soon'
   const [currentPage, setCurrentPage] = useState(1)
   const [retryCount, setRetryCount] = useState(0)
   const [quickFilter, setQuickFilter] = useState('all')
@@ -73,6 +66,11 @@ export default function MarketsList({ source: sourceFromRoute, variant = 'defaul
   const [marketsLayout, setMarketsLayout] = useState(() => readMarketsLayout())
   /** Expanded by default on desktop; collapsed on mobile so markets appear sooner. */
   const [filtersExpanded, setFiltersExpanded] = useState(() => {
+    if (typeof window === 'undefined') return true
+    return !window.matchMedia('(max-width: 768px)').matches
+  })
+  /** Type / status / sort dropdowns: expanded on desktop, collapsed on mobile. */
+  const [dropdownsExpanded, setDropdownsExpanded] = useState(() => {
     if (typeof window === 'undefined') return true
     return !window.matchMedia('(max-width: 768px)').matches
   })
@@ -168,7 +166,7 @@ export default function MarketsList({ source: sourceFromRoute, variant = 'defaul
     else if (src === 'industry') setSortBy('p2p')
     else if (DISCOVER_SOURCE_TO_CATEGORY[src]) setSortBy('newest')
     else if (src === 'global_events' || src === 'virtual_realities' || src === 'user') setSortBy('newest')
-    else setSortBy('volume')
+    else setSortBy('trending')
   }, [effectiveSource, variant, isWatchlistPage])
 
   // Debounce search query for better performance
@@ -195,7 +193,6 @@ export default function MarketsList({ source: sourceFromRoute, variant = 'defaul
   const activeFilterCount = useMemo(() => {
     let count = 0
     if (debouncedSearchQuery.trim()) count++
-    if (selectedCategory !== 'all' && selectedCategory !== 'trending') count++
     if (selectedTopic !== 'all') count++
     if (selectedType !== 'all') count++
     if (selectedStatus !== 'all') count++
@@ -204,7 +201,16 @@ export default function MarketsList({ source: sourceFromRoute, variant = 'defaul
     if (quickCounts) count++
     if (stripFilter !== 'all') count++
     return count
-  }, [debouncedSearchQuery, selectedCategory, selectedTopic, selectedType, selectedStatus, quickFilter, stripFilter, isWatchlistPage])
+  }, [debouncedSearchQuery, selectedTopic, selectedType, selectedStatus, quickFilter, stripFilter, isWatchlistPage])
+
+  const dropdownsActiveCount = useMemo(() => {
+    let count = 0
+    if (selectedTopic !== 'all') count++
+    if (selectedType !== 'all') count++
+    if (selectedStatus !== 'all') count++
+    if (sortBy !== 'trending') count++
+    return count
+  }, [selectedTopic, selectedType, selectedStatus, sortBy])
 
   useEffect(() => {
     isMountedRef.current = true
@@ -353,12 +359,8 @@ export default function MarketsList({ source: sourceFromRoute, variant = 'defaul
     } else if (DISCOVER_SOURCE_TO_CATEGORY[effectiveSource]) {
       const category = DISCOVER_SOURCE_TO_CATEGORY[effectiveSource]
       filtered = filtered.filter(market => categoryForFilter(market.payload) === category)
-    } else if (effectiveSource !== 'all') {
+    } else     if (effectiveSource !== 'all') {
       filtered = filtered.filter(market => sourceForFilter(market.payload) === effectiveSource)
-    }
-
-    if (selectedCategory !== 'all' && selectedCategory !== 'trending') {
-      filtered = filtered.filter(market => categoryForFilter(market.payload) === selectedCategory)
     }
 
     // Apply topic filter
@@ -424,7 +426,7 @@ export default function MarketsList({ source: sourceFromRoute, variant = 'defaul
       filtered = filtered.filter((m) => (m.openOrderCount || 0) >= 2)
     }
     
-    const effectiveSort = selectedCategory === 'trending' ? 'trending_blend' : sortBy
+    const effectiveSort = sortBy === 'trending' ? 'trending_blend' : sortBy
     filtered.sort((a, b) => {
       if (effectiveSort === 'trending_blend') {
         const aO = a.openOrderCount || 0
@@ -469,7 +471,7 @@ export default function MarketsList({ source: sourceFromRoute, variant = 'defaul
     return filtered
   },
   // eslint-disable-next-line react-hooks/exhaustive-deps -- watchListVersion invalidates watchlist filter without appearing in body
-  [markets, debouncedSearchQuery, selectedCategory, selectedTopic, selectedType, selectedStatus, listSourceFilter, sortBy, quickFilter, stripFilter, watchListVersion])
+  [markets, debouncedSearchQuery, selectedTopic, selectedType, selectedStatus, listSourceFilter, sortBy, quickFilter, stripFilter, watchListVersion])
 
   // Pagination: slice to current page and reset page when results change
   const totalFiltered = filteredAndSortedMarkets.length
@@ -483,7 +485,7 @@ export default function MarketsList({ source: sourceFromRoute, variant = 'defaul
   // Reset to page 1 when filters or sort change
   useEffect(() => {
     setCurrentPage(1)
-  }, [debouncedSearchQuery, selectedCategory, selectedTopic, selectedType, selectedStatus, sortBy, quickFilter, stripFilter])
+  }, [debouncedSearchQuery, selectedTopic, selectedType, selectedStatus, sortBy, quickFilter, stripFilter])
 
   const pageTitle = isWatchlistPage
     ? 'Watchlist'
@@ -587,7 +589,7 @@ export default function MarketsList({ source: sourceFromRoute, variant = 'defaul
         </div>
       )}
       
-      {/* Filters: collapsible on mobile; Market Type, Status, Sort as separate dropdowns above the grid */}
+      {/* Filters: collapsible on mobile; type/status/sort dropdowns have their own toggle */}
       {(!loading && !error) && (
         <div className="card mb-xl filters-card markets-filters-card">
           <div className="markets-filters-toggle-row">
@@ -654,52 +656,6 @@ export default function MarketsList({ source: sourceFromRoute, variant = 'defaul
               />
             </div>
 
-            <div className="markets-category-toggles" role="group" aria-label="Category">
-              <span className="markets-category-toggles-label" id="markets-category-label">
-                Category
-              </span>
-              <div className="markets-category-toggles-row" aria-labelledby="markets-category-label">
-                {CATEGORY_TOGGLE_OPTIONS.map((opt) => {
-                  const isActive = selectedCategory === opt.value
-                  const emoji =
-                    opt.value === 'trending' ? '🔥' : opt.value === 'all' ? '🌐' : getCategoryEmoji(opt.value)
-                  return (
-                    <button
-                      key={opt.value}
-                      type="button"
-                      className={`markets-category-toggle${isActive ? ' markets-category-toggle--active' : ''}`}
-                      aria-pressed={isActive}
-                      onClick={() => setSelectedCategory(opt.value)}
-                    >
-                      <span className="markets-category-toggle-emoji" aria-hidden>
-                        {emoji}
-                      </span>
-                      {opt.label}
-                    </button>
-                  )
-                })}
-              </div>
-            </div>
-
-            {availableTopics.length > 0 && (
-              <div className="filters-container markets-filters-secondary">
-                <div className="filter-group">
-                  <label htmlFor="topic">Topic</label>
-                  <select
-                    id="topic"
-                    value={selectedTopic}
-                    onChange={(e) => setSelectedTopic(e.target.value)}
-                    className="filter-select"
-                  >
-                    <option value="all">All Topics</option>
-                    {availableTopics.map(topic => (
-                      <option key={topic} value={topic}>{topic}</option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-            )}
-
             {!isWatchlistPage && (
               <div className="markets-quick-filters mb-md" role="group" aria-label="Quick filters">
                 <span className="markets-category-toggles-label">Quick</span>
@@ -725,56 +681,99 @@ export default function MarketsList({ source: sourceFromRoute, variant = 'defaul
               </div>
             )}
 
-            <div
-              className="markets-filters-quick-row"
-              role="group"
-              aria-label="Market type, status, and sort"
-            >
-              <div className="markets-filter-dropdown">
-                <label htmlFor="type">Market Type</label>
-                <select
-                  id="type"
-                  value={selectedType}
-                  onChange={(e) => setSelectedType(e.target.value)}
-                  className="filter-select"
+            <div className="markets-dropdowns-section">
+              <button
+                type="button"
+                className="markets-dropdowns-toggle"
+                aria-expanded={dropdownsExpanded}
+                aria-controls="markets-dropdowns-panel"
+                onClick={() => setDropdownsExpanded((v) => !v)}
+              >
+                <span className="markets-dropdowns-toggle-label">
+                  {dropdownsExpanded ? 'Hide type, status & sort' : 'Type, status & sort'}
+                </span>
+                {dropdownsActiveCount > 0 && (
+                  <span className="markets-dropdowns-toggle-count">{dropdownsActiveCount}</span>
+                )}
+                <span className="markets-dropdowns-toggle-chevron" aria-hidden>
+                  {dropdownsExpanded ? '▴' : '▾'}
+                </span>
+              </button>
+              <div
+                id="markets-dropdowns-panel"
+                className={`markets-dropdowns-panel${dropdownsExpanded ? '' : ' markets-dropdowns-panel--collapsed'}`}
+              >
+                {availableTopics.length > 0 && (
+                  <div className="filters-container markets-filters-secondary">
+                    <div className="filter-group">
+                      <label htmlFor="topic">Topic</label>
+                      <select
+                        id="topic"
+                        value={selectedTopic}
+                        onChange={(e) => setSelectedTopic(e.target.value)}
+                        className="filter-select"
+                      >
+                        <option value="all">All Topics</option>
+                        {availableTopics.map(topic => (
+                          <option key={topic} value={topic}>{topic}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                )}
+                <div
+                  className="markets-filters-quick-row"
+                  role="group"
+                  aria-label="Market type, status, and sort"
                 >
-                  <option value="all">All Types</option>
-                  <option value="binary">Binary</option>
-                  <option value="multi">Multi-Outcome</option>
-                </select>
-              </div>
-              <div className="markets-filter-dropdown">
-                <label htmlFor="status">Status</label>
-                <select
-                  id="status"
-                  value={selectedStatus}
-                  onChange={(e) => setSelectedStatus(e.target.value)}
-                  className="filter-select"
-                >
-                  <option value="all">All Statuses</option>
-                  <option value="Active">Active</option>
-                  <option value="Resolving">Resolving</option>
-                  <option value="Settled">Settled</option>
-                  <option value="PendingApproval">Pending Approval</option>
-                </select>
-              </div>
-              <div className="markets-filter-dropdown">
-                <label htmlFor="sort">Sort By</label>
-                <select
-                  id="sort"
-                  value={sortBy}
-                  onChange={(e) => {
-                    sortUserOverrideRef.current = true
-                    setSortBy(e.target.value)
-                  }}
-                  className="filter-select"
-                >
-                  <option value="volume">Volume (High to Low)</option>
-                  <option value="p2p">P2P activity (open orders)</option>
-                  <option value="newest">Newest First</option>
-                  <option value="oldest">Oldest First</option>
-                  <option value="ending_soon">Ending Soon</option>
-                </select>
+                  <div className="markets-filter-dropdown">
+                    <label htmlFor="type">Market Type</label>
+                    <select
+                      id="type"
+                      value={selectedType}
+                      onChange={(e) => setSelectedType(e.target.value)}
+                      className="filter-select"
+                    >
+                      <option value="all">All Types</option>
+                      <option value="binary">Binary</option>
+                      <option value="multi">Multi-Outcome</option>
+                    </select>
+                  </div>
+                  <div className="markets-filter-dropdown">
+                    <label htmlFor="status">Status</label>
+                    <select
+                      id="status"
+                      value={selectedStatus}
+                      onChange={(e) => setSelectedStatus(e.target.value)}
+                      className="filter-select"
+                    >
+                      <option value="all">All Statuses</option>
+                      <option value="Active">Active</option>
+                      <option value="Resolving">Resolving</option>
+                      <option value="Settled">Settled</option>
+                      <option value="PendingApproval">Pending Approval</option>
+                    </select>
+                  </div>
+                  <div className="markets-filter-dropdown">
+                    <label htmlFor="sort">Sort By</label>
+                    <select
+                      id="sort"
+                      value={sortBy}
+                      onChange={(e) => {
+                        sortUserOverrideRef.current = true
+                        setSortBy(e.target.value)
+                      }}
+                      className="filter-select"
+                    >
+                      <option value="trending">Trending</option>
+                      <option value="volume">Volume (High to Low)</option>
+                      <option value="p2p">P2P activity (open orders)</option>
+                      <option value="newest">Newest First</option>
+                      <option value="oldest">Oldest First</option>
+                      <option value="ending_soon">Ending Soon</option>
+                    </select>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -789,19 +788,6 @@ export default function MarketsList({ source: sourceFromRoute, variant = 'defaul
                     onClick={() => setSearchQuery('')}
                     className="filter-chip-remove"
                     aria-label="Remove search filter"
-                  >
-                    ×
-                  </button>
-                </span>
-              )}
-              {selectedCategory !== 'all' && selectedCategory !== 'trending' && (
-                <span className="filter-chip">
-                  Category: {selectedCategory}
-                  <button
-                    type="button"
-                    onClick={() => setSelectedCategory('trending')}
-                    className="filter-chip-remove"
-                    aria-label="Remove category filter"
                   >
                     ×
                   </button>
@@ -869,11 +855,10 @@ export default function MarketsList({ source: sourceFromRoute, variant = 'defaul
                 className="filter-chip-clear-all"
                 onClick={() => {
                   setSearchQuery('')
-                  setSelectedCategory('trending')
                   setSelectedTopic('all')
                   setSelectedType('all')
                   setSelectedStatus('all')
-                  setSortBy('volume')
+                  setSortBy('trending')
                   setQuickFilter(isWatchlistPage ? 'watchlist' : 'all')
                   setStripFilter('all')
                   sortUserOverrideRef.current = false
@@ -982,11 +967,10 @@ export default function MarketsList({ source: sourceFromRoute, variant = 'defaul
                     className="btn-secondary mt-md"
                     onClick={() => {
                       setSearchQuery('')
-                      setSelectedCategory('trending')
                       setSelectedTopic('all')
                       setSelectedType('all')
                       setSelectedStatus('all')
-                      setSortBy('volume')
+                      setSortBy('trending')
                       setQuickFilter(isWatchlistPage ? 'watchlist' : 'all')
                       setStripFilter('all')
                       sortUserOverrideRef.current = false

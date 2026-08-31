@@ -159,7 +159,7 @@ function GettingStartedContent() {
       <ol>
         <li><strong>Create account:</strong> Use <strong>Create account</strong>, enter email, password, confirm password, and display name. On <strong>Fund your account</strong>, pick <strong>Crypto</strong> (deposit later from Portfolio) or <strong>Add funds later</strong>.</li>
         <li><strong>Deposit:</strong> Open <strong>Portfolio</strong> → Balance → <strong>Deposit from wallet</strong> (sign message after transfer) or <strong>Deposit with crypto</strong> (send to the shown address; include your account ID in the memo when asked).</li>
-        <li><strong>Markets:</strong> Use <strong>Markets</strong> in the nav (web) or <strong>All markets</strong> / Categories (desktop). Filter with source pills or <code>/?source=sports</code> — see <a href="#product-map">Product map</a>. Legacy <code>/discover/*</code> URLs redirect.</li>
+        <li><strong>Markets:</strong> Use <strong>Markets</strong> in the nav (web) or <strong>All markets</strong> / Categories (desktop). Filter with source pills or <code>/?source=sports</code> — see <a href="#product-map">Product map</a>. Type, status, and sort are under a collapsible control on the list. Legacy <code>/discover/*</code> URLs redirect.</li>
         <li><strong>Trade:</strong> Open a market → <strong>Buy shares</strong> (AMM) and/or <strong>Limit orders</strong> (Yes/No book). Positions and balance appear under <strong>Portfolio</strong>.</li>
       </ol>
 
@@ -196,7 +196,7 @@ function ProductMapContent() {
       </p>
 
       <h2>Market categories</h2>
-      <p>Labels match the UI. Prefer query paths on home; legacy <code>/discover/*</code> URLs still redirect.</p>
+      <p>Labels match the UI source pills on Markets. Prefer query paths on home; legacy <code>/discover/*</code> URLs still redirect. The list page does not repeat these as a second category chip row — type, status, and sort are a collapsible control.</p>
       <table className="docs-table" style={{ width: '100%', borderCollapse: 'collapse', marginTop: '1rem' }}>
         <thead>
           <tr style={{ borderBottom: '2px solid var(--color-border)' }}>

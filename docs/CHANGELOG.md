@@ -4,6 +4,10 @@ Summary of major cleanups and improvements. For current structure see [README](.
 
 ---
 
+## Unreleased
+
+- **Markets browse:** Removed the duplicate category chip row (source pills remain the category filter). Type, status, topic, and sort live in a collapsible **Type, status & sort** section; **Trending** is a Sort option (default).
+
 ## 1.0.42 — Desktop startup crash fix (July 2026)
 
 - **Release:** Version **1.0.42**; tag **`v1.0.42`** for desktop CI and GitHub Releases.

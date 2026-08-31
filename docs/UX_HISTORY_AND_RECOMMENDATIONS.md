@@ -63,14 +63,14 @@ Theme, color palette, and background animations are left as-is. These recommenda
 
 ### 2.2 Navigation & information architecture
 
-- **Discover / Markets:** Implemented as a single **Markets** page with source pills (`/?source=…`); legacy `/discover/*` paths redirect. Navbar uses **Markets** instead of a Discover dropdown.
+- **Discover / Markets:** Implemented as a single **Markets** page with source pills (`/?source=…`); legacy `/discover/*` paths redirect. Navbar uses **Markets** instead of a Discover dropdown. Category browse lives on those pills only (no second category chip row on the list).
 - **Resources:** Consider renaming **Contract History** to **Activity** or **History** if it’s user activity, not smart contracts.
 - **Balance:** Show balance when signed in; label clearly (**Pips** / **PP**).
 - **Account ID in nav:** Truncate with ellipsis; tooltip with full ID and copy.
 
 ### 2.3 Markets list
 
-- **Filters:** Default **collapsed on mobile** (Show filters toggle); clear **Clear all** vs chips mental model.
+- **Filters:** Default **collapsed on mobile** (Show filters toggle); **Type, status & sort** is a separate collapsible on all viewports. Clear **Clear all** vs chips mental model.
 - **Sort:** **Ending soon** if settlement dates exist; else **Newest** / **Volume**.
 - **Cards:** Clear primary CTA; title, status, volume, implied probability when available; short empty states.
 
