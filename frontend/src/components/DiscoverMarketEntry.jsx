@@ -12,7 +12,6 @@ import {
 } from '../constants/marketConfig'
 import { formatPips } from '../constants/currency'
 import { getMarketStaleness, toggleWatchlist, isWatched } from '../utils/marketUX'
-import MarketQuickTrade from './MarketQuickTrade'
 import { getAbsoluteMarketUrl } from '../utils/marketLinks'
 
 /** Single market row/card on the discover list (layout: cards | list | compact). */
@@ -22,12 +21,10 @@ function DiscoverMarketEntry({
   getStatusClass,
   webShareEnabled,
   expandedQuickTradeId,
-  quickTradeSeed,
   setExpandedQuickTradeId,
   setQuickTradeSeed,
   copyCardMarketLink,
   shareCardMarket,
-  refreshMarketsList,
   onWatchlistChanged,
 }) {
   const oneLiner = getMarketOneLiner(market.payload)
@@ -185,20 +182,10 @@ function DiscoverMarketEntry({
               })
             }}
           >
-            {quickOpen ? 'Close quick trade' : 'Quick trade'}
+            Quick trade
           </button>
         )}
       </div>
-    ) : null
-
-  const quickTradePanel =
-    market.payload?.status === 'Active' && mid && quickOpen ? (
-      <MarketQuickTrade
-        key={`${mid}-${quickTradeSeed ?? 'default'}`}
-        market={market}
-        initialTradeSide={quickTradeSeed ?? undefined}
-        onTradeSuccess={refreshMarketsList}
-      />
     ) : null
 
   const watchBtn = (
@@ -255,7 +242,6 @@ function DiscoverMarketEntry({
         {predictBinaryRow}
         {predictMultiRow}
         {toolbar}
-        {quickTradePanel}
       </div>
     )
   }
@@ -299,7 +285,6 @@ function DiscoverMarketEntry({
         {predictBinaryRow}
         {predictMultiRow}
         {toolbar}
-        {quickTradePanel}
       </div>
     </article>
   )

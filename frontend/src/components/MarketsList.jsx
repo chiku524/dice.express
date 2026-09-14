@@ -12,6 +12,7 @@ import {
   readWatchlist,
 } from '../utils/marketUX'
 import DiscoverMarketEntry from './DiscoverMarketEntry'
+import MarketQuickTradeModal from './MarketQuickTradeModal'
 import { useToastContext } from '../contexts/ToastContext'
 import { getAbsoluteMarketUrl, copyTextToClipboard, canUseWebShare, shareMarketNative } from '../utils/marketLinks'
 
@@ -59,7 +60,7 @@ export default function MarketsList({ source: sourceFromRoute, variant = 'defaul
   const [stripFilter, setStripFilter] = useState('all')
   const [fromCacheBanner, setFromCacheBanner] = useState(false)
   const [watchListVersion, setWatchListVersion] = useState(0)
-  /** `marketId` of card with expanded quick trade (Discover / categories / watchlist). */
+  /** `marketId` of the market whose Quick trade modal is open. */
   const [expandedQuickTradeId, setExpandedQuickTradeId] = useState(null)
   /** When opening from a card chip, seed Yes/No or multi outcome (see MarketQuickTrade `key`). */
   const [quickTradeSeed, setQuickTradeSeed] = useState(null)
@@ -134,6 +135,16 @@ export default function MarketsList({ source: sourceFromRoute, variant = 'defaul
       console.warn('[MarketsList] refresh after trade failed', err?.message)
     }
   }, [])
+
+  const closeQuickTrade = useCallback(() => {
+    setExpandedQuickTradeId(null)
+    setQuickTradeSeed(null)
+  }, [])
+
+  const quickTradeMarket = useMemo(() => {
+    if (!expandedQuickTradeId) return null
+    return markets.find((m) => m.payload?.marketId === expandedQuickTradeId) || null
+  }, [expandedQuickTradeId, markets])
 
   useEffect(() => {
     setExpandedQuickTradeId(null)
@@ -998,12 +1009,10 @@ export default function MarketsList({ source: sourceFromRoute, variant = 'defaul
                     getStatusClass={getStatusClass}
                     webShareEnabled={webShareEnabled}
                     expandedQuickTradeId={expandedQuickTradeId}
-                    quickTradeSeed={quickTradeSeed}
                     setExpandedQuickTradeId={setExpandedQuickTradeId}
                     setQuickTradeSeed={setQuickTradeSeed}
                     copyCardMarketLink={copyCardMarketLink}
                     shareCardMarket={shareCardMarket}
-                    refreshMarketsList={refreshMarketsList}
                     onWatchlistChanged={bumpWatchlistVersion}
                   />
                 ))}
@@ -1044,6 +1053,14 @@ export default function MarketsList({ source: sourceFromRoute, variant = 'defaul
             </>
           )}
         </>
+      )}
+      {quickTradeMarket && (
+        <MarketQuickTradeModal
+          market={quickTradeMarket}
+          initialTradeSide={quickTradeSeed ?? undefined}
+          onClose={closeQuickTrade}
+          onTradeSuccess={refreshMarketsList}
+        />
       )}
     </div>
   )

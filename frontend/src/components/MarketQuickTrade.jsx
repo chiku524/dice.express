@@ -41,10 +41,10 @@ function resolveInitialTradeSide(payload, initialTradeSide) {
 }
 
 /**
- * Inline trade panel for Discover cards (binary + multi pool). Parent mounts when expanded.
- * @param {{ market: object, onTradeSuccess?: () => void, initialTradeSide?: string }} props
+ * Trade form for Discover (binary + multi pool). Mounted in MarketQuickTradeModal.
+ * @param {{ market: object, onTradeSuccess?: () => void, initialTradeSide?: string, inModal?: boolean }} props
  */
-export default function MarketQuickTrade({ market, onTradeSuccess, initialTradeSide }) {
+export default function MarketQuickTrade({ market, onTradeSuccess, initialTradeSide, inModal = false }) {
   const payload = market?.payload
   const marketId = payload?.marketId
   const { ammTradeEnabled } = usePublicConfig()
@@ -380,9 +380,11 @@ export default function MarketQuickTrade({ market, onTradeSuccess, initialTradeS
 
   const detailHref = `/market/${marketId}`
 
+  const shellClass = `market-quick-trade${inModal ? ' market-quick-trade--in-modal' : ''}`
+
   if (!isActive) {
     return (
-      <div className="market-quick-trade market-quick-trade--inactive">
+      <div className={`${shellClass} market-quick-trade--inactive`}>
         <p className="market-quick-trade-muted">Trading is closed for this market.</p>
         <Link to={detailHref} className="market-quick-trade-link">View market</Link>
       </div>
@@ -391,7 +393,7 @@ export default function MarketQuickTrade({ market, onTradeSuccess, initialTradeS
 
   if (poolLoading) {
     return (
-      <div className="market-quick-trade market-quick-trade--loading">
+      <div className={`${shellClass} market-quick-trade--loading`}>
         <span className="market-quick-trade-muted">Loading pool…</span>
       </div>
     )
@@ -399,7 +401,7 @@ export default function MarketQuickTrade({ market, onTradeSuccess, initialTradeS
 
   if (isBinary && !pool) {
     return (
-      <div className="market-quick-trade market-quick-trade--inactive">
+      <div className={`${shellClass} market-quick-trade--inactive`}>
         <p className="market-quick-trade-muted">Pool unavailable. Open the market page to retry.</p>
         <Link to={detailHref} className="market-quick-trade-link">View market</Link>
       </div>
@@ -408,7 +410,7 @@ export default function MarketQuickTrade({ market, onTradeSuccess, initialTradeS
 
   if (isMulti && isActive && !pool) {
     return (
-      <div className="market-quick-trade market-quick-trade--inactive">
+      <div className={`${shellClass} market-quick-trade--inactive`}>
         <p className="market-quick-trade-muted">Pool not loaded. Try the full market page.</p>
         <Link to={detailHref} className="market-quick-trade-link">View market</Link>
       </div>
@@ -427,12 +429,14 @@ export default function MarketQuickTrade({ market, onTradeSuccess, initialTradeS
 
   if (isActiveBinary) {
     return (
-      <div className="market-quick-trade">
+      <div className={shellClass}>
         <div className="visually-hidden" aria-live="polite" aria-atomic="true">{tradeA11y}</div>
-        <div className="market-quick-trade-head">
-          <span className="market-quick-trade-title">Quick trade</span>
-          <Link to={detailHref} className="market-quick-trade-link">Full page</Link>
-        </div>
+        {!inModal && (
+          <div className="market-quick-trade-head">
+            <span className="market-quick-trade-title">Quick trade</span>
+            <Link to={detailHref} className="market-quick-trade-link">Full page</Link>
+          </div>
+        )}
 
         {!ammTradeEnabled && (
           <p className="market-quick-trade-note">Pool off — limit orders only.</p>
@@ -657,7 +661,7 @@ export default function MarketQuickTrade({ market, onTradeSuccess, initialTradeS
 
   if (isActiveMultiPool && !ammTradeEnabled) {
     return (
-      <div className="market-quick-trade market-quick-trade--inactive">
+      <div className={`${shellClass} market-quick-trade--inactive`}>
         <p className="market-quick-trade-muted">Multi-outcome pool trading is off. Use binary markets for limits.</p>
         <Link to={detailHref} className="market-quick-trade-link">View market</Link>
       </div>
@@ -666,12 +670,14 @@ export default function MarketQuickTrade({ market, onTradeSuccess, initialTradeS
 
   if (isActiveMultiPool && ammTradeEnabled) {
     return (
-      <div className="market-quick-trade">
+      <div className={shellClass}>
         <div className="visually-hidden" aria-live="polite" aria-atomic="true">{tradeA11y}</div>
-        <div className="market-quick-trade-head">
-          <span className="market-quick-trade-title">Quick buy (pool)</span>
-          <Link to={detailHref} className="market-quick-trade-link">Full page</Link>
-        </div>
+        {!inModal && (
+          <div className="market-quick-trade-head">
+            <span className="market-quick-trade-title">Quick buy (pool)</span>
+            <Link to={detailHref} className="market-quick-trade-link">Full page</Link>
+          </div>
+        )}
         <div className="market-quick-outcome-pills market-quick-outcome-pills--wrap">
           {(pool.outcomes || payload.outcomes || []).map((o) => (
             <button
@@ -741,7 +747,7 @@ export default function MarketQuickTrade({ market, onTradeSuccess, initialTradeS
   }
 
   return (
-    <div className="market-quick-trade market-quick-trade--inactive">
+    <div className={`${shellClass} market-quick-trade--inactive`}>
       <Link to={detailHref} className="market-quick-trade-link">View market to trade</Link>
     </div>
   )
