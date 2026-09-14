@@ -6,8 +6,11 @@ Summary of major cleanups and improvements. For current structure see [README](.
 
 ## Unreleased
 
-- **Markets browse:** Removed the duplicate category chip row (source pills remain the category filter). Type, status, topic, and sort live in a collapsible **Type, status & sort** section; **Trending** is a Sort option (default).
+## 1.0.43 — Quick trade modal (September 2026)
+
+- **Release:** Version **1.0.43**; tag **`v1.0.43`** for desktop CI and GitHub Releases.
 - **Quick trade:** Opens in a centered modal (Escape / overlay / × to close) instead of expanding under the market card. Yes/No chips and **Quick trade** still seed the same form.
+- **Markets browse:** Removed the duplicate category chip row (source pills remain the category filter). Type, status, topic, and sort live in a collapsible **Type, status & sort** section; **Trending** is a Sort option (default).
 
 ## 1.0.42 — Desktop startup crash fix (July 2026)
 
