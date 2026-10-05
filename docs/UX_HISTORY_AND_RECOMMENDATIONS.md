@@ -70,14 +70,15 @@ Theme, color palette, and background animations are left as-is. These recommenda
 
 ### 2.3 Markets list
 
-- **Filters:** Default **collapsed on mobile** (Show filters toggle); **Type, status & sort** is a separate collapsible on all viewports. Clear **Clear all** vs chips mental model.
-- **Sort:** **Ending soon** if settlement dates exist; else **Newest** / **Volume**.
-- **Cards:** Clear primary CTA; title, status, volume, implied probability when available; short empty states.
+- **Filters:** One **Filter** chip row (New / Ending soon / Hot P2P / Outcome / Watchlist); **More filters** (type, status, topic, sort) collapsed by default. Search stays in the filters panel (Show filters on mobile).
+- **Layouts:** Cards / List / Compact (persisted). Prefer short one-liners over long descriptions on cards; primary CTA is **Trade** (modal).
+- **Similar markets:** Only on **market detail**, never on browse/list.
+- **Sort:** Default **Trending**; **Ending soon** / **Volume** / **P2P** available under More filters.
 
 ### 2.4 Market detail & trading
 
-- **AMM vs manual position:** Prefer an explicit **Trade** / **Buy Yes** / **Buy No** flow using pool quote and **`POST /api/trade`** where applicable; reduce reliance on manual price entry where it confuses users.
-- **Layout:** Resolution criteria and current pool / probability above the fold.
+- **Trade column:** Short ack + outcome pills + pool/limit tabs; odds near the title for a faster read before trading.
+- **Layout:** About + collapsible “Why this market”; resolution rules; volumes; **Similar markets** at the bottom of the info column.
 - **Feedback:** Prefer **toasts** over **`alert()`** for errors and success (the app already has toast infrastructure).
 
 ### 2.5 Create market, portfolio, account modal

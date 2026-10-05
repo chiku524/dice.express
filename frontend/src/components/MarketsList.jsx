@@ -8,7 +8,6 @@ import { useDebounce } from '../utils/useDebounce'
 import { MARKET_SOURCES, getSourceLabel, sourceForFilter, categoryForFilter, buildMarketShareDescription, DISCOVER_SOURCE_TO_CATEGORY } from '../constants/marketConfig'
 import {
   isOutcomeBasedMarket,
-  marketCreatedThisWeek,
   readWatchlist,
 } from '../utils/marketUX'
 import DiscoverMarketEntry from './DiscoverMarketEntry'
@@ -55,9 +54,8 @@ export default function MarketsList({ source: sourceFromRoute, variant = 'defaul
   const [sortBy, setSortBy] = useState('trending') // 'trending', 'volume', 'p2p', 'newest', 'oldest', 'ending_soon'
   const [currentPage, setCurrentPage] = useState(1)
   const [retryCount, setRetryCount] = useState(0)
+  /** Single quick-filter row (merged former Spotlight + Quick chips). */
   const [quickFilter, setQuickFilter] = useState('all')
-  /** Spotlight row: narrows list without changing sort (composable with Quick filters). */
-  const [stripFilter, setStripFilter] = useState('all')
   const [fromCacheBanner, setFromCacheBanner] = useState(false)
   const [watchListVersion, setWatchListVersion] = useState(0)
   /** `marketId` of the market whose Quick trade modal is open. */
@@ -70,17 +68,24 @@ export default function MarketsList({ source: sourceFromRoute, variant = 'defaul
     if (typeof window === 'undefined') return true
     return !window.matchMedia('(max-width: 768px)').matches
   })
-  /** Type / status / sort dropdowns: expanded on desktop, collapsed on mobile. */
-  const [dropdownsExpanded, setDropdownsExpanded] = useState(() => {
-    if (typeof window === 'undefined') return true
-    return !window.matchMedia('(max-width: 768px)').matches
-  })
+  /** Type / status / sort: collapsed by default so markets stay front-and-center. */
+  const [dropdownsExpanded, setDropdownsExpanded] = useState(false)
   const sortUserOverrideRef = useRef(false)
   const MARKETS_PER_PAGE = 12
 
   const bumpWatchlistVersion = useCallback(() => {
     setWatchListVersion((t) => t + 1)
   }, [])
+
+  const clearAllFilters = useCallback(() => {
+    setSearchQuery('')
+    setSelectedTopic('all')
+    setSelectedType('all')
+    setSelectedStatus('all')
+    setSortBy('trending')
+    setQuickFilter(isWatchlistPage ? 'watchlist' : 'all')
+    sortUserOverrideRef.current = false
+  }, [isWatchlistPage])
 
   const copyCardMarketLink = useCallback(
     async (id, titleHint) => {
@@ -210,9 +215,8 @@ export default function MarketsList({ source: sourceFromRoute, variant = 'defaul
     const quickCounts =
       quickFilter !== 'all' && !(isWatchlistPage && quickFilter === 'watchlist')
     if (quickCounts) count++
-    if (stripFilter !== 'all') count++
     return count
-  }, [debouncedSearchQuery, selectedTopic, selectedType, selectedStatus, quickFilter, stripFilter, isWatchlistPage])
+  }, [debouncedSearchQuery, selectedTopic, selectedType, selectedStatus, quickFilter, isWatchlistPage])
 
   const dropdownsActiveCount = useMemo(() => {
     let count = 0
@@ -403,27 +407,20 @@ export default function MarketsList({ source: sourceFromRoute, variant = 'defaul
     if (quickFilter === 'outcome_only') {
       filtered = filtered.filter((m) => isOutcomeBasedMarket(m.payload))
     }
-    if (quickFilter === 'new_week') {
-      filtered = filtered.filter((m) => marketCreatedThisWeek(m.payload))
-    }
-    if (quickFilter === 'high_vol') {
-      filtered = filtered.filter((m) => (parseFloat(m.payload?.totalVolume) || 0) >= 25)
-    }
     if (quickFilter === 'watchlist') {
       const w = readWatchlist()
       filtered = filtered.filter(
         (m) => w.includes(m.contractId) || w.includes(m.payload?.marketId)
       )
     }
-
-    if (stripFilter === 'new_24h') {
+    if (quickFilter === 'new_24h') {
       const cutoff = Date.now() - 24 * 3600 * 1000
       filtered = filtered.filter((m) => {
         const t = m.payload?.createdAt ? new Date(m.payload.createdAt).getTime() : 0
         return t >= cutoff
       })
     }
-    if (stripFilter === 'resolves_48h') {
+    if (quickFilter === 'resolves_48h') {
       const now = Date.now()
       const end = now + 48 * 3600 * 1000
       filtered = filtered.filter((m) => {
@@ -433,7 +430,7 @@ export default function MarketsList({ source: sourceFromRoute, variant = 'defaul
         return t >= now && t <= end
       })
     }
-    if (stripFilter === 'hot_p2p') {
+    if (quickFilter === 'hot_p2p') {
       filtered = filtered.filter((m) => (m.openOrderCount || 0) >= 2)
     }
     
@@ -482,7 +479,7 @@ export default function MarketsList({ source: sourceFromRoute, variant = 'defaul
     return filtered
   },
   // eslint-disable-next-line react-hooks/exhaustive-deps -- watchListVersion invalidates watchlist filter without appearing in body
-  [markets, debouncedSearchQuery, selectedTopic, selectedType, selectedStatus, listSourceFilter, sortBy, quickFilter, stripFilter, watchListVersion])
+  [markets, debouncedSearchQuery, selectedTopic, selectedType, selectedStatus, listSourceFilter, sortBy, quickFilter, watchListVersion])
 
   // Pagination: slice to current page and reset page when results change
   const totalFiltered = filteredAndSortedMarkets.length
@@ -496,23 +493,23 @@ export default function MarketsList({ source: sourceFromRoute, variant = 'defaul
   // Reset to page 1 when filters or sort change
   useEffect(() => {
     setCurrentPage(1)
-  }, [debouncedSearchQuery, selectedTopic, selectedType, selectedStatus, sortBy, quickFilter, stripFilter])
+  }, [debouncedSearchQuery, selectedTopic, selectedType, selectedStatus, sortBy, quickFilter])
 
   const pageTitle = isWatchlistPage
     ? 'Watchlist'
     : effectiveSource
       ? getSourceLabel(effectiveSource)
-      : 'Prediction Markets'
+      : 'Markets'
   const pageSubtitle = isWatchlistPage
     ? (
       <>
-        Markets you have starred on this device. Turn on watchlist alerts under{' '}
-        <Link to="/profile#notification-settings">Profile → Notification settings</Link>.
+        Starred on this device.{' '}
+        <Link to="/profile#notification-settings">Alert settings</Link>
       </>
     )
     : effectiveSource
-      ? `Markets from ${getSourceLabel(effectiveSource).toLowerCase()}. Trade with Pips — P2P orders; pool liquidity varies by market.`
-      : 'Trade with Pips. Browse markets, place P2P orders, or use the pool when liquidity is available.'
+      ? `${getSourceLabel(effectiveSource)} — trade with Pips.`
+      : 'Pick a market. Trade with Pips.'
 
   const setBrowseSource = useCallback(
     (value) => {
@@ -619,33 +616,10 @@ export default function MarketsList({ source: sourceFromRoute, variant = 'defaul
             id="markets-filters-panel"
             className={`markets-filters-panel${filtersExpanded ? '' : ' markets-filters-panel--collapsed'}`}
           >
-          {!isWatchlistPage && (
-            <div className="markets-spotlight-strip" role="group" aria-label="Quick discovery">
-              <span className="markets-spotlight-label">Spotlight</span>
-              {[
-                { id: 'new_24h', label: 'New (24h)' },
-                { id: 'resolves_48h', label: 'Resolves in 48h' },
-                { id: 'hot_p2p', label: 'Hot P2P (2+ orders)' },
-              ].map(({ id, label }) => (
-                <button
-                  key={id}
-                  type="button"
-                  className={`markets-spotlight-btn${stripFilter === id ? ' markets-spotlight-btn--active' : ''}`}
-                  aria-pressed={stripFilter === id}
-                  onClick={() => {
-                    setStripFilter((f) => (f === id ? 'all' : id))
-                    setCurrentPage(1)
-                  }}
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
-          )}
           <div className="markets-filters-toolbar">
             <div className="filter-group filter-group-full">
               <label htmlFor="search">
-                <span>Search Markets</span>
+                <span>Search</span>
                 {searchQuery && (
                   <button
                     type="button"
@@ -660,7 +634,7 @@ export default function MarketsList({ source: sourceFromRoute, variant = 'defaul
               <input
                 id="search"
                 type="text"
-                placeholder="Search title, description, or market ID…"
+                placeholder="Title, description, or ID…"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="filter-input"
@@ -669,13 +643,14 @@ export default function MarketsList({ source: sourceFromRoute, variant = 'defaul
 
             {!isWatchlistPage && (
               <div className="markets-quick-filters mb-md" role="group" aria-label="Quick filters">
-                <span className="markets-category-toggles-label">Quick</span>
+                <span className="markets-category-toggles-label">Filter</span>
                 <div className="markets-quick-filters-row">
                   {[
                     { value: 'all', label: 'All' },
-                    { value: 'outcome_only', label: 'Outcome-based' },
-                    { value: 'new_week', label: 'New (7d)' },
-                    { value: 'high_vol', label: 'Volume 25+' },
+                    { value: 'new_24h', label: 'New' },
+                    { value: 'resolves_48h', label: 'Ending soon' },
+                    { value: 'hot_p2p', label: 'Hot P2P' },
+                    { value: 'outcome_only', label: 'Outcome' },
                     { value: 'watchlist', label: 'Watchlist' },
                   ].map((opt) => (
                     <button
@@ -701,7 +676,7 @@ export default function MarketsList({ source: sourceFromRoute, variant = 'defaul
                 onClick={() => setDropdownsExpanded((v) => !v)}
               >
                 <span className="markets-dropdowns-toggle-label">
-                  {dropdownsExpanded ? 'Hide type, status & sort' : 'Type, status & sort'}
+                  {dropdownsExpanded ? 'Hide more filters' : 'More filters'}
                 </span>
                 {dropdownsActiveCount > 0 && (
                   <span className="markets-dropdowns-toggle-count">{dropdownsActiveCount}</span>
@@ -843,19 +818,22 @@ export default function MarketsList({ source: sourceFromRoute, variant = 'defaul
                   </button>
                 </span>
               )}
-              {stripFilter !== 'all' && (
+              {quickFilter !== 'all' && !(isWatchlistPage && quickFilter === 'watchlist') && (
                 <span className="filter-chip">
-                  Spotlight:{' '}
-                  {stripFilter === 'new_24h'
-                    ? 'New (24h)'
-                    : stripFilter === 'resolves_48h'
-                      ? 'Resolves in 48h'
-                      : 'Hot P2P'}
+                  {quickFilter === 'new_24h'
+                    ? 'New'
+                    : quickFilter === 'resolves_48h'
+                      ? 'Ending soon'
+                      : quickFilter === 'hot_p2p'
+                        ? 'Hot P2P'
+                        : quickFilter === 'outcome_only'
+                          ? 'Outcome'
+                          : 'Watchlist'}
                   <button
                     type="button"
-                    onClick={() => setStripFilter('all')}
+                    onClick={() => setQuickFilter(isWatchlistPage ? 'watchlist' : 'all')}
                     className="filter-chip-remove"
-                    aria-label="Remove spotlight filter"
+                    aria-label="Remove quick filter"
                   >
                     ×
                   </button>
@@ -864,18 +842,9 @@ export default function MarketsList({ source: sourceFromRoute, variant = 'defaul
               <button
                 type="button"
                 className="filter-chip-clear-all"
-                onClick={() => {
-                  setSearchQuery('')
-                  setSelectedTopic('all')
-                  setSelectedType('all')
-                  setSelectedStatus('all')
-                  setSortBy('trending')
-                  setQuickFilter(isWatchlistPage ? 'watchlist' : 'all')
-                  setStripFilter('all')
-                  sortUserOverrideRef.current = false
-                }}
+                onClick={clearAllFilters}
               >
-                Clear All
+                Clear all
               </button>
             </div>
           )}
@@ -888,10 +857,11 @@ export default function MarketsList({ source: sourceFromRoute, variant = 'defaul
                   <span className="filter-badge filter-badge--inline">{activeFilterCount} active</span>
                 )}
                 {totalFiltered === 0
-                  ? 'No markets match.'
+                  ? 'No matches.'
                   : (
                     <>
-                      Showing <strong>{(effectivePage - 1) * MARKETS_PER_PAGE + 1}</strong>–<strong>{Math.min(effectivePage * MARKETS_PER_PAGE, totalFiltered)}</strong> of <strong>{totalFiltered}</strong> markets{totalFiltered !== markets.length && ` (of ${markets.length} total)`}
+                      <strong>{(effectivePage - 1) * MARKETS_PER_PAGE + 1}</strong>–<strong>{Math.min(effectivePage * MARKETS_PER_PAGE, totalFiltered)}</strong> of <strong>{totalFiltered}</strong>
+                      {totalFiltered !== markets.length ? ` · ${markets.length} total` : ''}
                     </>
                   )}
               </span>
@@ -921,7 +891,7 @@ export default function MarketsList({ source: sourceFromRoute, variant = 'defaul
             </div>
             {activeFilterCount > 0 && filteredAndSortedMarkets.length === 0 && (
               <span className="filter-no-results">
-                No markets match your filters. Try adjusting your criteria.
+                No matches — clear filters or try another search.
               </span>
             )}
           </div>
@@ -944,9 +914,9 @@ export default function MarketsList({ source: sourceFromRoute, variant = 'defaul
         </div>
       ) : markets.length === 0 ? (
         <div className="card">
-          <p>No markets available yet. Markets are added automatically — check back soon or try clearing filters.</p>
+          <p>No markets yet — check back soon.</p>
           <Link to="/">
-            <button className="btn-primary mt-md">View all markets</button>
+            <button className="btn-primary mt-md">Browse markets</button>
           </Link>
         </div>
       ) : (
@@ -958,36 +928,27 @@ export default function MarketsList({ source: sourceFromRoute, variant = 'defaul
                 <p>
                   {isWatchlistPage
                     ? readWatchlist().length === 0
-                      ? 'You have not starred any markets yet. Browse all markets and use the star on a card to add it here.'
+                      ? 'Star a market from browse to see it here.'
                       : activeFilterCount > 0
-                        ? 'No watched markets match your current filters. Try clearing search or other filters.'
-                        : 'None of your watched markets appear in the current list. They may have been removed, or try refreshing after reconnecting.'
+                        ? 'Nothing matches — clear filters.'
+                        : 'Watched markets aren’t in the current list. Try refreshing.'
                     : effectiveSource && effectiveSource !== 'active'
-                      ? `No markets in "${getSourceLabel(effectiveSource)}" yet. Markets are added automatically — check back soon or browse All Markets.`
+                      ? `Nothing in ${getSourceLabel(effectiveSource)} yet. Browse all markets or check back soon.`
                       : activeFilterCount > 0
-                        ? 'No markets match your current filters. Try adjusting your search criteria.'
-                        : 'No markets available yet. Markets are added automatically — check back soon or try clearing filters.'}
+                        ? 'Nothing matches — clear filters or try another search.'
+                        : 'No markets yet — check back soon.'}
                 </p>
                 <Link to="/">
                   <button className="btn-primary mt-md" style={{ marginRight: 'var(--spacing-sm)' }}>
-                    All Markets
+                    All markets
                   </button>
                 </Link>
                 {activeFilterCount > 0 && (
                   <button
                     className="btn-secondary mt-md"
-                    onClick={() => {
-                      setSearchQuery('')
-                      setSelectedTopic('all')
-                      setSelectedType('all')
-                      setSelectedStatus('all')
-                      setSortBy('trending')
-                      setQuickFilter(isWatchlistPage ? 'watchlist' : 'all')
-                      setStripFilter('all')
-                      sortUserOverrideRef.current = false
-                    }}
+                    onClick={clearAllFilters}
                   >
-                    Clear All Filters
+                    Clear filters
                   </button>
                 )}
               </div>

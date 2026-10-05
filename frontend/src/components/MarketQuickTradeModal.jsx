@@ -79,7 +79,7 @@ export default function MarketQuickTradeModal({ market, initialTradeSide, onClos
       >
         <div className="market-quick-trade-modal-header">
           <div className="market-quick-trade-modal-heading">
-            <p className="market-quick-trade-modal-kicker">Quick trade</p>
+            <p className="market-quick-trade-modal-kicker">Trade</p>
             <h2 id={titleId} className="market-quick-trade-modal-title">
               {title}
             </h2>

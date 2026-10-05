@@ -433,7 +433,7 @@ export default function MarketQuickTrade({ market, onTradeSuccess, initialTradeS
         <div className="visually-hidden" aria-live="polite" aria-atomic="true">{tradeA11y}</div>
         {!inModal && (
           <div className="market-quick-trade-head">
-            <span className="market-quick-trade-title">Quick trade</span>
+            <span className="market-quick-trade-title">Trade</span>
             <Link to={detailHref} className="market-quick-trade-link">Full page</Link>
           </div>
         )}
