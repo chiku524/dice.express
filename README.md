@@ -5,7 +5,7 @@ A prediction markets platform powered by **Pips**. Users deposit (crypto) to get
 ## Features
 
 - **Pips**: Platform currency. Deposit → receive Pips → trade → withdraw (fee applies).
-- **Markets**: Created via API; filter by source (global_events, industry, user, etc.).
+- **Markets**: Automated seeding + **user-created** markets (`/create`); filter by source (global_events, industry, user, etc.).
 - **P2P**: Place orders (buy/sell Yes or No); when two orders match, positions are created and settlement pays winners (2% fee). `GET /api/orders?marketId=`, `POST /api/orders`.
 - **AMM**: Optional; in `functions/lib/amm.mjs`. **Production config keeps P2P-first:** `DISABLE_AMM_TRADE=1` and `AUTO_MARKETS_ZERO_LIQUIDITY=1` in `wrangler.toml` until you accept pool risk (e.g. after revenue). Settlement code still pays **AMM** winners when trading is re-enabled.
 - **Prediction styles**: Yes/No, True/False, Happens/Doesn't, Multi-outcome.

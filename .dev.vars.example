@@ -39,7 +39,12 @@
 # DEPOSIT_VERIFICATION_USDC_CONTRACT=0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48
 
 # Platform wallets are in wrangler.toml [vars]:
-# PLATFORM_WALLET_ADDRESS (EVM), PLATFORM_WALLET_SOL (Solana)
+# PLATFORM_WALLET_ADDRESS (EVM), PLATFORM_WALLET_SOL (Solana), PLATFORM_WALLET_BTC (Bitcoin bech32)
+# Example production values (also in wrangler.toml [vars]):
+# PLATFORM_WALLET_ADDRESS=0xDde8Ec0A27467a8Eb6E7a3245e07d2D67B6B56bb
+# PLATFORM_WALLET_SOL=3u2DbBkCqoSQmcreHfwQWDekJ8HPctgns3v6L3LdupwW
+# PLATFORM_WALLET_BTC=bc1q27glxg2fr0f3jrl6m3vyy3ynuaclzwd4ya7jxq
+# USER_MARKET_CREATION_STAKE_PIPS=10
 
 # ----- Withdrawals (sending from platform wallet) -----
 # Private key for the platform EVM wallet (0x...). Required for POST /api/process-withdrawals to send USDC/native on EVM.

@@ -163,6 +163,13 @@ export async function setMarketsCache(kv, source, list, ttlSeconds = KV_CACHE_TT
   await kv.put(key, JSON.stringify(list), { expirationTtl: ttlSeconds })
 }
 
+/** Drop cached market lists so newly created markets show up promptly. */
+export async function clearMarketsCache(kv) {
+  if (!kv) return
+  const keys = ['markets:all', 'markets:user']
+  await Promise.all(keys.map((k) => kv.delete(k).catch(() => {})))
+}
+
 /** Optional: write contract payload to R2 for backup (key = contract_id). bucketName is for reference; R2 put uses the binding. */
 export async function backupContractToR2(r2, _bucketName, contractId, payload) {
   if (!r2) return
@@ -422,6 +429,27 @@ export async function updateWithdrawalStatus(db, requestId, status, txHash = nul
 export async function getUserByEmail(db, email) {
   const row = await db.prepare(`SELECT * FROM ${USERS_TABLE} WHERE email = ?`).bind(String(email).trim().toLowerCase()).first()
   return row ? { id: row.id, email: row.email, password_hash: row.password_hash, salt: row.salt, account_id: row.account_id, display_name: row.display_name, fund_choice: row.fund_choice, onboarding_completed: row.onboarding_completed, created_at: row.created_at, updated_at: row.updated_at } : null
+}
+
+/** @param {D1Database} db */
+export async function getUserByAccountId(db, accountId) {
+  const id = String(accountId || '').trim()
+  if (!id) return null
+  const row = await db.prepare(`SELECT * FROM ${USERS_TABLE} WHERE account_id = ?`).bind(id).first()
+  return row
+    ? {
+        id: row.id,
+        email: row.email,
+        password_hash: row.password_hash,
+        salt: row.salt,
+        account_id: row.account_id,
+        display_name: row.display_name,
+        fund_choice: row.fund_choice,
+        onboarding_completed: row.onboarding_completed,
+        created_at: row.created_at,
+        updated_at: row.updated_at,
+      }
+    : null
 }
 
 /** @param {D1Database} db */

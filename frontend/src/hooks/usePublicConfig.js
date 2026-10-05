@@ -10,6 +10,7 @@ export function usePublicConfig() {
       ammTradeEnabled: true,
       tradingMode: 'amm_and_p2p',
       smsAlertsAvailable: false,
+      userMarketCreationStakePips: 10,
     }
   )
 
@@ -25,6 +26,8 @@ export function usePublicConfig() {
             ammTradeEnabled: d.ammTradeEnabled !== false,
             tradingMode: d.tradingMode === 'p2p_only' ? 'p2p_only' : 'amm_and_p2p',
             smsAlertsAvailable: Boolean(d.smsAlertsAvailable),
+            userMarketCreationStakePips:
+              typeof d.userMarketCreationStakePips === 'number' ? d.userMarketCreationStakePips : 10,
           }
           return cached
         })
@@ -32,6 +35,7 @@ export function usePublicConfig() {
           ammTradeEnabled: true,
           tradingMode: 'amm_and_p2p',
           smsAlertsAvailable: false,
+          userMarketCreationStakePips: 10,
         }))
         .finally(() => {
           inflight = null

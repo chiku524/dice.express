@@ -2,6 +2,7 @@
  * D1 API: d1-public
  */
 import * as d1 from '../lib/d1-shared.mjs'
+import { resolveUserMarketCreationStakePips } from '../../lib/user-market-create.mjs'
 
 export async function tryD1PublicRoutes(ctx) {
   const { db, kv, r2, env, request, path, method, query, body, requestId, jsonResponse } = ctx
@@ -30,6 +31,8 @@ if (path === 'public-config' && method === 'GET') {
     smsAlertsAvailable: Boolean(
       (env.TWILIO_ACCOUNT_SID || '').toString().trim() && (env.TWILIO_AUTH_TOKEN || '').toString().trim()
     ),
+    /** Pips charged when publishing a user market (0 = free). */
+    userMarketCreationStakePips: resolveUserMarketCreationStakePips(env),
   })
 }
 

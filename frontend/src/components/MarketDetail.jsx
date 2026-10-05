@@ -7,6 +7,7 @@ import { fetchMarketById, fetchPool, executeTrade } from '../services/marketsApi
 import { apiUrl } from '../services/apiBase'
 import { fetchOpenOrders, placeOrder, cancelOrder } from '../services/ordersApi'
 import MarketResolution from './MarketResolution'
+import UserMarketResolve from './UserMarketResolve'
 import MarketDetailRelated from './MarketDetailRelated'
 import MarketDetailTradePanel from './MarketDetailTradePanel'
 import LoadingSpinner from './LoadingSpinner'
@@ -783,6 +784,15 @@ export default function MarketDetail() {
           userPositions={userPositions}
         />
       </div>
+
+      {marketData.status === 'Active' && marketData.source === 'user' && (
+        <UserMarketResolve
+          market={market}
+          onResolved={() => {
+            setRetryCount((c) => c + 1)
+          }}
+        />
+      )}
 
       {marketData.status === 'Active' && wallet?.party === 'Admin' && (
         <MarketResolution market={market} onResolved={() => window.location.reload()} />

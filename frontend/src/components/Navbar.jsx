@@ -91,6 +91,9 @@ export default function Navbar() {
           <Link to="/" className={isMarketsActive ? 'active' : ''}>
             Markets
           </Link>
+          <Link to="/create" className={isActive('/create') ? 'active' : ''}>
+            Create
+          </Link>
 
           <div className="nav-dropdown nav-dropdown-resources" ref={resourcesMenuRef}>
             <button

@@ -1,0 +1,64 @@
+/* Create market — shared web + desktop shell */
+.create-market.hub-info-card {
+  max-width: 40rem;
+  margin-inline: auto;
+}
+
+.create-market__header h1 {
+  margin: 0;
+  font-size: clamp(1.5rem, 2.5vw, 1.85rem);
+  letter-spacing: -0.02em;
+}
+
+.create-market__form {
+  margin-top: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.create-market__error {
+  margin-bottom: 0.75rem;
+}
+
+.create-market__hint {
+  margin: 0.35rem 0 0;
+  font-size: var(--font-size-xs, 0.75rem);
+  color: var(--color-text-muted, rgba(255, 255, 255, 0.5));
+  text-align: right;
+}
+
+.create-market__grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.75rem 1rem;
+}
+
+@media (max-width: 640px) {
+  .create-market__grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.create-market__notes {
+  margin: 0.5rem 0 1rem;
+  padding-left: 1.15rem;
+  font-size: var(--font-size-sm, 0.875rem);
+  line-height: 1.45;
+}
+
+.create-market__notes li + li {
+  margin-top: 0.25rem;
+}
+
+.create-market__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+/* Desktop sidebar shell: keep create form readable at full column width */
+.app--desktop-shell .create-market.hub-info-card {
+  max-width: min(40rem, 100%);
+}
