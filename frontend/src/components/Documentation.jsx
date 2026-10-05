@@ -284,7 +284,7 @@ function MarketCreationContent() {
       <h1>Markets &amp; discovery</h1>
 
       <p>
-        Markets are <strong>seeded automatically</strong> from external data (sports, stocks, crypto, weather, news, etc.) via <code>POST /api/auto-markets</code>. Signed-in users can also <strong>create their own markets</strong> at <code>/create</code> (<code>POST /api/markets</code> with <code>source: 'user'</code>); the creator settles manually with <code>POST /api/resolve-user-market</code>.
+        Markets are <strong>seeded automatically</strong> from external data (sports, stocks, crypto, weather, news, etc.) via <code>POST /api/auto-markets</code>. Signed-in users can also <strong>create their own markets</strong> at <code>/create</code> (<code>POST /api/markets</code> with <code>source: &apos;user&apos;</code>); the creator settles manually with <code>POST /api/resolve-user-market</code>.
       </p>
 
       <h2>How to trade</h2>
