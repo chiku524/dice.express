@@ -10,7 +10,7 @@ This page is the **single overview** operators and developers should read first.
 
 1. **Account** — Register and sign in; balance and positions are stored per user identity in D1.
 2. **Pips** — Virtual currency used for orders, positions, and fees. Users can add Pips via **test top-up** (`POST /api/add-credits`) or, in production, **crypto deposit** after you wire `**POST /api/deposit-crypto`** and a watcher (see `**PIPS_DEPOSIT_WITHDRAW_FLOW.md**`).
-3. **Markets** — Browse `**GET /api/markets`** (often `**sort=activity**` for P2P depth). Markets are **created by automation** (`POST /api/auto-markets`); **end-user market creation is disabled** (`source: 'user'` rejected).
+3. **Markets** — Browse `**GET /api/markets`** (often `**sort=activity**` for P2P depth). Markets are **seeded by automation** (`POST /api/auto-markets`) and can also be **created by signed-in users** (`POST /api/markets` with `source: 'user'`; UI at `/create` on web and desktop).
 4. **Trading** — **P2P limit orders** (`/api/orders`) match two users; **AMM** (`/api/trade`) trades against a pool when liquidity exists. Production `**wrangler.toml`** defaults favor **P2P-first** (`**AUTO_MARKETS_ZERO_LIQUIDITY`**, `**DISABLE_AMM_TRADE**`) so the platform does not seed pool risk until you opt in.
 5. **Resolution** — `**POST /api/resolve-markets`** (cron, e.g. from `**workers/auto-markets-cron**`) resolves due markets from price/sports/weather/news APIs; **custom news** markets use `**operator_manual`** logic (`**OPERATOR_MANUAL_RESOLUTION.md**`). Settlement applies a **2% fee** on the P2P settlement path; **Void** refunds stakes.
 

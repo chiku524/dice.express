@@ -85,6 +85,20 @@ export async function createMarket(body) {
   return res.json()
 }
 
+/** Creator settles a user-created market (manual resolution). */
+export async function resolveUserMarket({ marketId, accountId, resolvedOutcome }) {
+  const res = await fetch(apiUrl('resolve-user-market'), {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ marketId, accountId, resolvedOutcome }),
+  })
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}))
+    throw new Error(err.message || err.error || 'Failed to resolve market')
+  }
+  return res.json()
+}
+
 export async function fetchPool(marketId) {
   const res = await fetch(`${apiUrl('pools')}?marketId=${encodeURIComponent(marketId)}`)
   if (!res.ok) return null

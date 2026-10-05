@@ -14,7 +14,7 @@ import { isTauriApp } from './utils/platform'
 
 const MarketsList = lazyWithRetry(() => import('./components/MarketsList'))
 const MarketDetail = lazyWithRetry(() => import('./components/MarketDetail'))
-const AutomatedMarketsInfo = lazyWithRetry(() => import('./components/AutomatedMarketsInfo'))
+const CreateMarket = lazyWithRetry(() => import('./components/CreateMarket'))
 const Portfolio = lazyWithRetry(() => import('./components/Portfolio'))
 const Documentation = lazyWithRetry(() => import('./components/Documentation'))
 const Whitepaper = lazyWithRetry(() => import('./components/Whitepaper'))
@@ -241,7 +241,7 @@ function AppContent() {
           <Route path="/discover/user" element={<Navigate to="/?source=user" replace />} />
           <Route path="/discover/*" element={<Navigate to="/" replace />} />
           <Route path="/market/:marketId" element={<MarketDetail />} />
-          <Route path="/create" element={<AutomatedMarketsInfo />} />
+          <Route path="/create" element={<CreateMarket />} />
           <Route path="/automation" element={<AutomationStatus />} />
           <Route path="/download" element={<Download />} />
           <Route path="/docs" element={<Documentation />} />

@@ -186,7 +186,7 @@ function ProductMapContent() {
         <li><strong>Auth:</strong> <code>/register</code> (wizard), <code>/sign-in</code> — full-page flows without main chrome.</li>
         <li><strong>Markets:</strong> <code>/market/:marketId</code> — resolution details, AMM trade, limit orders (binary active markets), volumes.</li>
         <li><strong>Account hub (signed in):</strong> <code>/dashboard</code> (summary, account ID copy, links to Profile and Portfolio, <strong>Tip Pips</strong> to another display name). <code>/profile</code> — edit display name, account metadata, sign out. <code>/portfolio</code> — Balance, Positions, Activity tabs; crypto deposit and withdraw.</li>
-        <li><strong>Create market:</strong> <code>/create</code> — explains that markets are automated; link back to browse (no builder).</li>
+        <li><strong>Create market:</strong> <code>/create</code> — signed-in users publish a community market (shared web + desktop UI); guests are prompted to sign in.</li>
         <li><strong>Marketing / legal:</strong> <code>/download</code> — desktop installers. <code>/privacy</code>, <code>/terms</code>.</li>
       </ul>
 
@@ -284,7 +284,7 @@ function MarketCreationContent() {
       <h1>Markets &amp; discovery</h1>
 
       <p>
-        Markets are <strong>seeded automatically</strong> from external data (sports, stocks, crypto, weather, news, etc.). Operators call <code>POST /api/auto-markets</code> (cron, script, or admin tool) — there is <strong>no in-app wizard</strong> for creating markets. The <code>/create</code> page explains this and links back to browse.
+        Markets are <strong>seeded automatically</strong> from external data (sports, stocks, crypto, weather, news, etc.) via <code>POST /api/auto-markets</code>. Signed-in users can also <strong>create their own markets</strong> at <code>/create</code> (<code>POST /api/markets</code> with <code>source: 'user'</code>); the creator settles manually with <code>POST /api/resolve-user-market</code>.
       </p>
 
       <h2>How to trade</h2>

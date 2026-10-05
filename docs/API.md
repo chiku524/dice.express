@@ -22,7 +22,8 @@ When you **do** set **`PRIVILEGED_API_SECRET`** on Pages, set the **same** value
 |--------|------|--------|
 | `GET` | `/api/health` | Liveness. |
 | `GET` | `/api/markets` | Lists virtual markets. Query: `source`, `status`. **`sort=activity`** or **`sort=p2p`** sorts by open P2P limit-order count (skips KV cache for fresh counts). Each market includes **`openOrderCount`**. **`marketId`** returns a single market (`{ market, related? }`); optional **`related=1..8`** adds title-overlap related markets without requiring the client to download the full list. |
-| `POST` | `/api/markets` | Creates a market (**`source: 'user'`** is rejected). Automated creation uses **`/api/auto-markets`**. |
+| `POST` | `/api/markets` | Creates a market. **`source: 'user'`** (default): requires registered **`accountId`**, validates fields, rate-limits creates. Non-`user` source remains for ops/scripts. Automated seeding uses **`/api/auto-markets`**. |
+| `POST` | `/api/resolve-user-market` | Creator settles a user market (`accountId`, `marketId`, `resolvedOutcome` or `Void`). |
 | `GET` | `/api/pools?marketId=…` | Liquidity pool state (AMM). |
 | `POST` | `/api/trade` | AMM trade (may be disabled when pools have zero liquidity). |
 | `GET` / `POST` | `/api/orders` | P2P limit orders: list, place, cancel. |

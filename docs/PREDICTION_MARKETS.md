@@ -1,6 +1,6 @@
 # Prediction Markets: Styles, Topics/APIs & Automated Creation
 
-This doc covers **prediction styles** (Yes/No, True/False, Multi-outcome, etc.), **free/cheap APIs** by topic (sports, weather, crypto, news), and **automated market creation** (cron Worker, no user-created markets).
+This doc covers **prediction styles** (Yes/No, True/False, Multi-outcome, etc.), **free/cheap APIs** by topic (sports, weather, crypto, news), **automated market creation** (cron Worker), and **user-created markets** (`POST /api/markets` with `source: 'user'`).
 
 ---
 
@@ -148,11 +148,22 @@ The Discover UI calls **`GET /api/markets?sort=activity`** so lists load with **
 
 ## User-facing behavior
 
-- **/create** → "Markets are automated" and link to browse markets. No create form.
-- **POST /api/markets** with `source: 'user'` (or no source) → **403** "User-created markets are disabled."
-- Only **POST /api/auto-markets** (seed / seed_all / sources) can create markets.
+- **/create** → Create-market form (web + Tauri desktop share the same React route). Requires a **registered** signed-in account (`accountId` from email/password). Guests are prompted to sign in.
+- **`POST /api/markets`** with `source: 'user'` (default) → creates a community market when `accountId` matches a row in **`users`**. Validates title/description/criteria/category/deadline; rate-limits **5 markets / account / day**. Payload sets `source: 'user'`, `oracleSource: 'manual'`, `settlementTrigger: Manual`, `creatorAccountId`.
+- **`POST /api/resolve-user-market`** → creator settles with `resolvedOutcome` (one of `outcomes`, or **`Void`** for refunds). Same 2% P2P settlement fee path as other markets.
+- Automated seeding remains via **`POST /api/auto-markets`** (cron + ops). Both user and automated markets appear in Discover; filter **User-Created** (`source=user`).
 
-All live markets come from the automated pipeline (cron + integrated APIs), not from users.
+### User market defaults
+
+| Field | Default / rule |
+|-------|----------------|
+| Style | Yes/No, True/False, Happens/Doesn't, or Multi-Outcome (2–8 labels) |
+| Category | Finance, Crypto, Sports, Politics, Weather, News, Entertainment, Science, Tech & AI, Other |
+| Deadline | ≥ 1 hour from now, ≤ 365 days; date-only → end of that UTC day |
+| Liquidity | Same as auto-markets (`AUTO_MARKETS_ZERO_LIQUIDITY` / P2P-first) |
+| Resolution | Manual by creator (not auto-oracle) |
+
+All live markets can come from the automated pipeline **or** from signed-in users.
 
 ---
 

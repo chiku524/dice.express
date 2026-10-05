@@ -67,9 +67,9 @@ export const SEO_PAGES = {
     keywords: 'prediction market, trade yes no, binary market, Pips',
   },
   '/create': {
-    title: `How Markets Work | ${BASE_TITLE}`,
-    description: 'Markets are created automatically from real-world events (sports, weather, crypto, news). Browse and trade with Pips — no need to create a market yourself.',
-    keywords: 'prediction markets, automated markets, trade outcomes',
+    title: `Create a Market | ${BASE_TITLE}`,
+    description: 'Open your own prediction market: punchy question, clear resolution rule, pick a category and deadline. Trade with Pips on web or desktop.',
+    keywords: 'create prediction market, user markets, community markets, Pips',
   },
   '/dashboard': {
     title: `Dashboard — Balance & Positions | ${BASE_TITLE}`,
