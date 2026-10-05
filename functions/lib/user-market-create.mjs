@@ -40,6 +40,25 @@ export const USER_MARKET_LIMITS = {
   maxDeadlineDays: 365,
   /** Max user markets created per account per rolling day */
   maxPerDay: 5,
+  /**
+   * Default Pips charged when publishing a user market (non-refundable platform stake).
+   * Override with env USER_MARKET_CREATION_STAKE_PIPS.
+   * Chosen as 10 PP: above the 1 PP withdrawal-fee floor, meaningful spam deterrent, still low for serious creators.
+   */
+  creationStakePipsDefault: 10,
+}
+
+/**
+ * Resolve creation stake from env (non-negative number). 0 disables the charge.
+ * @param {Record<string, unknown> | undefined | null} env
+ * @returns {number}
+ */
+export function resolveUserMarketCreationStakePips(env) {
+  const raw = env?.USER_MARKET_CREATION_STAKE_PIPS
+  if (raw == null || String(raw).trim() === '') return USER_MARKET_LIMITS.creationStakePipsDefault
+  const n = parseFloat(String(raw))
+  if (!Number.isFinite(n) || n < 0) return USER_MARKET_LIMITS.creationStakePipsDefault
+  return Math.round(n * 100) / 100
 }
 
 const SPAM_PATTERNS = [

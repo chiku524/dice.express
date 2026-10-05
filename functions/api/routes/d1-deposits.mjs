@@ -152,6 +152,7 @@ if (path === 'deposit-crypto' && method === 'POST') {
 if (path === 'deposit-addresses' && method === 'GET') {
   const evm = env.PLATFORM_WALLET_ADDRESS || null
   const solAddr = env.PLATFORM_WALLET_SOL || null
+  const btcAddr = env.PLATFORM_WALLET_BTC || null
   const evmNetworkIds = listAlchemyNetworkIdsForDisplay()
   return jsonResponse({
     success: true,
@@ -169,6 +170,13 @@ if (path === 'deposit-addresses' && method === 'GET') {
             address: solAddr,
             asset: 'USDC (SPL)',
             note: 'Send SPL USDC (mainnet mint EPjF… if using default). Crediting uses POST /api/deposit-crypto with networkId "solana" and SOLANA_RPC_URL set.',
+          }
+        : null,
+      btc: btcAddr
+        ? {
+            address: btcAddr,
+            asset: 'BTC (on-chain)',
+            note: 'Send Bitcoin to this address. Crediting is manual/watcher-based until automated BTC verification is wired.',
           }
         : null,
     },

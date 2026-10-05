@@ -2,11 +2,13 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useWallet } from '../contexts/WalletContext'
 import { useToastContext } from '../contexts/ToastContext'
+import { usePublicConfig } from '../hooks/usePublicConfig'
 import {
   MARKET_CATEGORIES,
   PREDICTION_STYLES,
   getDefaultOutcomesForStyle,
 } from '../constants/marketConfig'
+import { formatPips } from '../constants/currency'
 import { createMarket } from '../services/marketsApi'
 import SubmitDiceLabel from './SubmitDiceLabel'
 import './CreateMarket.css'
@@ -32,6 +34,11 @@ export default function CreateMarket() {
   const { wallet } = useWallet()
   const { showToast } = useToastContext()
   const navigate = useNavigate()
+  const { userMarketCreationStakePips } = usePublicConfig()
+  const creationStake =
+    typeof userMarketCreationStakePips === 'number' && userMarketCreationStakePips >= 0
+      ? userMarketCreationStakePips
+      : 10
 
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
@@ -243,7 +250,11 @@ export default function CreateMarket() {
         </div>
 
         <ul className="create-market__notes text-muted">
-          <li>Manual resolution — you settle the winning outcome after the deadline.</li>
+          <li>
+            Creation stake: <strong>{formatPips(creationStake)}</strong> charged when you publish
+            (non-refundable).
+          </li>
+          <li>Manual resolution — you settle the winning outcome (early settle OK if the outcome is clear).</li>
           <li>P2P trading uses the same rules as automated markets (2% fee on settlement).</li>
           <li>Limit: 5 new markets per day per account.</li>
         </ul>

@@ -149,7 +149,7 @@ The Discover UI calls **`GET /api/markets?sort=activity`** so lists load with **
 ## User-facing behavior
 
 - **/create** → Create-market form (web + Tauri desktop share the same React route). Requires a **registered** signed-in account (`accountId` from email/password). Guests are prompted to sign in.
-- **`POST /api/markets`** with `source: 'user'` (default) → creates a community market when `accountId` matches a row in **`users`**. Validates title/description/criteria/category/deadline; rate-limits **5 markets / account / day**. Payload sets `source: 'user'`, `oracleSource: 'manual'`, `settlementTrigger: Manual`, `creatorAccountId`.
+- **`POST /api/markets`** with `source: 'user'` (default) → creates a community market when `accountId` matches a row in **`users`**. Validates title/description/criteria/category/deadline; rate-limits **5 markets / account / day**; charges a **creation stake** in Pips (default **10 PP**, env `USER_MARKET_CREATION_STAKE_PIPS`). Payload sets `source: 'user'`, `oracleSource: 'manual'`, `settlementTrigger: Manual`, `creatorAccountId`, `creationStakePips`. Markets go **Active** immediately.
 - **`POST /api/resolve-user-market`** → creator settles with `resolvedOutcome` (one of `outcomes`, or **`Void`** for refunds). Same 2% P2P settlement fee path as other markets.
 - Automated seeding remains via **`POST /api/auto-markets`** (cron + ops). Both user and automated markets appear in Discover; filter **User-Created** (`source=user`).
 
@@ -161,7 +161,9 @@ The Discover UI calls **`GET /api/markets?sort=activity`** so lists load with **
 | Category | Finance, Crypto, Sports, Politics, Weather, News, Entertainment, Science, Tech & AI, Other |
 | Deadline | ≥ 1 hour from now, ≤ 365 days; date-only → end of that UTC day |
 | Liquidity | Same as auto-markets (`AUTO_MARKETS_ZERO_LIQUIDITY` / P2P-first) |
-| Resolution | Manual by creator (not auto-oracle) |
+| Creation stake | **10 PP** by default (`USER_MARKET_CREATION_STAKE_PIPS`); non-refundable; debited from creator balance on publish |
+| Resolution | Manual by creator (early settle allowed; not auto-oracle) |
+| Status | **Active** immediately (no moderation queue) |
 
 All live markets can come from the automated pipeline **or** from signed-in users.
 

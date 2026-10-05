@@ -112,7 +112,17 @@ describe('validateUserMarketResolve', () => {
     assert.equal(r.ok, false)
   })
 
-  it('documents daily create limit constant', () => {
+  it('documents daily create limit and default creation stake', () => {
     assert.equal(USER_MARKET_LIMITS.maxPerDay, 5)
+    assert.equal(USER_MARKET_LIMITS.creationStakePipsDefault, 10)
+  })
+})
+
+describe('resolveUserMarketCreationStakePips', () => {
+  it('defaults to 10 PP', async () => {
+    const { resolveUserMarketCreationStakePips } = await import('../functions/lib/user-market-create.mjs')
+    assert.equal(resolveUserMarketCreationStakePips({}), 10)
+    assert.equal(resolveUserMarketCreationStakePips({ USER_MARKET_CREATION_STAKE_PIPS: '25' }), 25)
+    assert.equal(resolveUserMarketCreationStakePips({ USER_MARKET_CREATION_STAKE_PIPS: '0' }), 0)
   })
 })

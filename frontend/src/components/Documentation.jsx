@@ -146,7 +146,7 @@ function GettingStartedContent() {
 
       <h2>Overview</h2>
       <p>
-        Trade on prediction markets. Deposit with <strong>crypto</strong> (connected wallet or platform deposit address) to get <strong>Pips</strong> (1 PP = $1 USD). Spend Pips on <strong>AMM pool trades</strong> (instant price from liquidity) or <strong>limit orders</strong> (peer matching). Withdraw to crypto (fee applies). New markets are <strong>seeded automatically</strong> from external data APIs — there is no end-user market builder. Core API and data live on <strong>Cloudflare</strong> (D1, KV, R2).
+        Trade on prediction markets. Deposit with <strong>crypto</strong> (connected wallet or platform deposit address) to get <strong>Pips</strong> (1 PP = $1 USD). Spend Pips on <strong>AMM pool trades</strong> (instant price from liquidity) or <strong>limit orders</strong> (peer matching). Withdraw to crypto (fee applies). Markets are <strong>seeded automatically</strong> from feeds and can also be <strong>created by signed-in users</strong> at <code>/create</code>. Core API and data live on <strong>Cloudflare</strong> (D1, KV, R2).
       </p>
 
       <h2>Prerequisites</h2>

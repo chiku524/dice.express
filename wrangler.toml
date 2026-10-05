@@ -58,14 +58,15 @@ MARKET_EMBED_SIMILARITY_MIN = "0.88"
 # POST /api/prediction-maintenance (backfill / prune vectors). If unset, same secret as AUTO_MARKETS_CRON_SECRET works.
 # PREDICTION_MAINTENANCE_SECRET = "..."
 
-# Platform deposit wallets (dice.express Coinbase wallet). EVM chains use the same 0x address.
+# Platform deposit wallets (public addresses). EVM chains use the same 0x address.
 # Set secrets via Cloudflare Dashboard → Pages/Workers → Settings → Environment variables (see docs/PIPS_DEPOSIT_WITHDRAW_FLOW.md §9).
-PLATFORM_WALLET_ADDRESS = "0xf3f20aCeBDDD921bC21c8184490416109dE57ba3"
-PLATFORM_WALLET_SOL = "6aJHBVSm5cxbYjsjFudoP1gZ3Ni3oMJcaN3ni5fpz3kz"
-# BTC/LTC/DOGE use xpub for deriving addresses; store in secrets if needed for display/automation.
-# PLATFORM_WALLET_BTC_XPUB = "xpub6..."
+PLATFORM_WALLET_ADDRESS = "0xDde8Ec0A27467a8Eb6E7a3245e07d2D67B6B56bb"
+PLATFORM_WALLET_SOL = "3u2DbBkCqoSQmcreHfwQWDekJ8HPctgns3v6L3LdupwW"
+PLATFORM_WALLET_BTC = "bc1q27glxg2fr0f3jrl6m3vyy3ynuaclzwd4ya7jxq"
+# Optional: LTC/DOGE xpubs for deriving addresses; store in secrets if needed for display/automation.
 # PLATFORM_WALLET_LTC_XPUB = "xpub6..."
 # PLATFORM_WALLET_DOGE_XPUB = "xpub6..."
+# Optional: USER_MARKET_CREATION_STAKE_PIPS (default 10) — Pips charged when a user publishes a market.
 
 # API keys for automated prediction markets (set via Cloudflare dashboard or: npx wrangler pages secret put <KEY> --project-name=dice-express)
 # ALPHA_VANTAGE_API_KEY, COINGECKO_API_KEY, THE_ODDS_API_KEY, THE_ODDS_API_KEY_FALLBACK (optional spare Odds key),

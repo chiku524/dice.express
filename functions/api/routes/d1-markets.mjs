@@ -15,8 +15,10 @@ import {
   USER_MARKET_LIMITS,
   validateUserMarketCreate,
   validateUserMarketResolve,
+  resolveUserMarketCreationStakePips,
 } from '../../lib/user-market-create.mjs'
 import { predictionLog } from '../../lib/prediction-observability.mjs'
+import { pipsToCents, subtractPips, centsToPipsStr } from '../../lib/pips-precision.mjs'
 
 function mapMarketRow(r, orderCounts = {}) {
   return {
@@ -239,6 +241,33 @@ export async function tryD1MarketsRoutes(ctx) {
         const v = validated.value
         const id = `market-user-${Date.now()}-${crypto.randomUUID().replace(/-/g, '').slice(0, 10)}`
         const party = String(user.display_name || body?.creator || 'user').trim() || 'user'
+        const creationStakePips = resolveUserMarketCreationStakePips(env)
+        const stakeCents = pipsToCents(creationStakePips)
+        let balanceAfterStake = null
+        if (stakeCents > 0) {
+          const balRaw = await storage.getBalanceRaw(db, party)
+          const balCents = pipsToCents(balRaw)
+          if (balCents < stakeCents) {
+            predictionLog('api.user_market.insufficient_stake', {
+              accountId,
+              party,
+              required: creationStakePips,
+              current: balRaw,
+            })
+            return jsonResponse(
+              {
+                error: `Creating a market costs ${creationStakePips} PP. Your balance is too low.`,
+                code: 'INSUFFICIENT_CREATION_STAKE',
+                required: creationStakePips,
+                currentBalance: centsToPipsStr(balCents),
+              },
+              400
+            )
+          }
+          balanceAfterStake = subtractPips(balRaw, creationStakePips)
+          await storage.setBalance(db, party, balanceAfterStake)
+        }
+
         const payload = {
           marketId: id,
           title: v.title,
@@ -260,6 +289,7 @@ export async function tryD1MarketsRoutes(ctx) {
           oneLiner: v.oneLiner,
           creatorAccountId: accountId,
           creatorDisplayName: party,
+          creationStakePips,
           createdAt: new Date().toISOString(),
         }
 
@@ -283,6 +313,7 @@ export async function tryD1MarketsRoutes(ctx) {
           accountId,
           category: v.category,
           marketType: v.marketType,
+          creationStakePips,
         })
 
         return jsonResponse({
@@ -295,6 +326,8 @@ export async function tryD1MarketsRoutes(ctx) {
             status: 'Active',
           },
           poolId: poolState.poolId,
+          creationStakePips,
+          balance: balanceAfterStake,
         })
       }
 

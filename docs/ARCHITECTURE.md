@@ -8,7 +8,7 @@ dice.express is a **virtual** prediction markets platform: markets, balances, P2
 - **API**: Cloudflare **Pages Functions** (`functions/api/[[path]].js`). Bindings: **D1** (`DB`), **KV** (`KV`), **R2** (`R2`), **Workers AI** (`AI`), **Vectorize** (`VECTORIZE`). Config in **`wrangler.toml`**.
 - **Markets**: Rows in **`contracts`** (`template_id`: `VirtualMarket`, `LiquidityPool`, `Position`, …). Balances in **`user_balances`**. P2P orders in **`p2p_orders`**.
 - **Automated creation**: **`POST /api/auto-markets`** (cron Worker or manual).
-- **User creation**: **`POST /api/markets`** with `source: 'user'` — registered account, validation, daily rate limit; creator settles via **`POST /api/resolve-user-market`**. UI: **`/create`** (shared React frontend for web and Tauri).
+- **User creation**: **`POST /api/markets`** with `source: 'user'` — registered account, validation, daily rate limit, **10 PP creation stake** (env override); creator settles via **`POST /api/resolve-user-market`** (early settle allowed). UI: **`/create`** (shared React frontend for web and Tauri). Active immediately.
 - **Dedupe**: Lexical keys + semantic (Jaccard) in **`market-dedupe.mjs`**; paraphrase near-duplicates via **embeddings** (**`@cf/baai/bge-base-en-v1.5`**) + **Vectorize** in **`market-embeddings.mjs`**. Vectors removed when markets settle; maintenance API can backfill or prune. See **`PREDICTION_MARKETS.md`**.
 - **P2P-first ops**: **`AUTO_MARKETS_ZERO_LIQUIDITY=1`** (committed default) gives new markets **zero** AMM liquidity so matching is **limit-order / P2P** until you change that policy. See **`USER_FLOWS_TRADING_AND_RISK.md`** and **`P2P_AND_GROWTH_STRATEGY.md`**.
 

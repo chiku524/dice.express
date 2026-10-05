@@ -888,7 +888,7 @@ export default function Portfolio() {
               </div>
             )}
             {depositAddresses.solana && (
-              <div>
+              <div className="mb-md">
                 <strong>Solana</strong>
                 {depositAddresses.solana.asset && (
                   <p className="mt-xs mb-0 text-muted" style={{ fontSize: 'var(--font-size-xs)' }}>{depositAddresses.solana.asset}</p>
@@ -896,6 +896,18 @@ export default function Portfolio() {
                 <code style={{ wordBreak: 'break-all', display: 'block', padding: 'var(--spacing-sm)', background: 'var(--color-bg-secondary)', borderRadius: 'var(--radius-sm)', marginTop: 'var(--spacing-xs)' }}>{depositAddresses.solana.address}</code>
                 {depositAddresses.solana.note && (
                   <p className="mt-xs text-muted" style={{ fontSize: 'var(--font-size-xs)' }}>{depositAddresses.solana.note}</p>
+                )}
+              </div>
+            )}
+            {depositAddresses.btc && (
+              <div>
+                <strong>Bitcoin</strong>
+                {depositAddresses.btc.asset && (
+                  <p className="mt-xs mb-0 text-muted" style={{ fontSize: 'var(--font-size-xs)' }}>{depositAddresses.btc.asset}</p>
+                )}
+                <code style={{ wordBreak: 'break-all', display: 'block', padding: 'var(--spacing-sm)', background: 'var(--color-bg-secondary)', borderRadius: 'var(--radius-sm)', marginTop: 'var(--spacing-xs)' }}>{depositAddresses.btc.address}</code>
+                {depositAddresses.btc.note && (
+                  <p className="mt-xs text-muted" style={{ fontSize: 'var(--font-size-xs)' }}>{depositAddresses.btc.note}</p>
                 )}
               </div>
             )}

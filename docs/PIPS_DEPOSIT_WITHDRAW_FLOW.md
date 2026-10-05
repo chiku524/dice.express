@@ -147,8 +147,9 @@ Set in Cloudflare (e.g. `wrangler secret put` or Pages env):
 | Variable | Purpose |
 |----------|---------|
 | `DEPOSIT_VERIFICATION_RPC_URL` | JSON-RPC endpoint. When set, the API verifies each deposit tx before crediting. |
-| `PLATFORM_WALLET_ADDRESS` | Platform’s deposit wallet (EVM address). Ensures Transfer is **to** this address. In `wrangler.toml` under `[vars]` — do not add in dashboard. |
-| `PLATFORM_WALLET_SOL` | Solana deposit address (public). Used with `SOLANA_RPC_URL` for SPL verification. |
+| `PLATFORM_WALLET_ADDRESS` | Platform’s deposit wallet (EVM address). Ensures Transfer is **to** this address. In `wrangler.toml` under `[vars]` — do not add in dashboard. Current: `0xDde8Ec0A27467a8Eb6E7a3245e07d2D67B6B56bb`. |
+| `PLATFORM_WALLET_SOL` | Solana deposit address (public). Used with `SOLANA_RPC_URL` for SPL verification. Current: `3u2DbBkCqoSQmcreHfwQWDekJ8HPctgns3v6L3LdupwW`. |
+| `PLATFORM_WALLET_BTC` | Bitcoin bech32 deposit address (public; shown in Portfolio). Current: `bc1q27glxg2fr0f3jrl6m3vyy3ynuaclzwd4ya7jxq`. Crediting is watcher/manual until BTC verification is wired. |
 | `SOLANA_RPC_URL` | Solana JSON-RPC URL (secret recommended). Required to verify `networkId: "solana"` deposits. |
 | `SOLANA_WALLET_PRIVATE_KEY` | **Secret.** Platform Solana keypair for **USDC (SPL) withdrawals** (bs58 or JSON byte array). When set with `PLATFORM_WALLET_SOL`, the send helper checks the pubkey matches. |
 | `DEPOSIT_VERIFICATION_SOLANA_USDC_MINT` | (Optional) SPL mint to accept; defaults to mainnet USDC. |
@@ -201,7 +202,8 @@ Non-secret values (platform wallet addresses) are in **`wrangler.toml`** under `
 
 ### Platform wallets (already in wrangler.toml)
 
-- **EVM:** `PLATFORM_WALLET_ADDRESS` = your EVM deposit address.
-- **Solana (SPL USDC):** `PLATFORM_WALLET_SOL` = recipient wallet. Set **`SOLANA_RPC_URL`** (Helius, QuickNode, Triton, or `https://api.mainnet-beta.solana.com`) as a **secret**. Optional **`DEPOSIT_VERIFICATION_SOLANA_USDC_MINT`** (defaults to mainnet Circle USDC `EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v`). Watcher calls `POST /api/deposit-crypto` with `networkId: "solana"`, `txHash` = base58 **signature**, `cryptoAmount` / `cryptoDecimals: 6`, same verification rules as EVM (amount, idempotency). **`POST /api/deposit-with-tx`** also supports Solana: user sends SPL USDC to the platform wallet, then signs `deposit:<party>:<txSignature>` with Phantom; `signature` is **base64** ed25519 (see API handler). For **Solana USDC withdrawals**, set **`SOLANA_WALLET_PRIVATE_KEY`** (secret) matching `PLATFORM_WALLET_SOL`.
+- **EVM:** `PLATFORM_WALLET_ADDRESS` = `0xDde8Ec0A27467a8Eb6E7a3245e07d2D67B6B56bb`.
+- **Solana (SPL USDC):** `PLATFORM_WALLET_SOL` = `3u2DbBkCqoSQmcreHfwQWDekJ8HPctgns3v6L3LdupwW`. Set **`SOLANA_RPC_URL`** (Helius, QuickNode, Triton, or `https://api.mainnet-beta.solana.com`) as a **secret**. Optional **`DEPOSIT_VERIFICATION_SOLANA_USDC_MINT`** (defaults to mainnet Circle USDC `EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v`). Watcher calls `POST /api/deposit-crypto` with `networkId: "solana"`, `txHash` = base58 **signature**, `cryptoAmount` / `cryptoDecimals: 6`, same verification rules as EVM (amount, idempotency). **`POST /api/deposit-with-tx`** also supports Solana: user sends SPL USDC to the platform wallet, then signs `deposit:<party>:<txSignature>` with Phantom; `signature` is **base64** ed25519 (see API handler). For **Solana USDC withdrawals**, set **`SOLANA_WALLET_PRIVATE_KEY`** (secret) matching `PLATFORM_WALLET_SOL`.
+- **Bitcoin:** `PLATFORM_WALLET_BTC` = `bc1q27glxg2fr0f3jrl6m3vyy3ynuaclzwd4ya7jxq` (displayed via `GET /api/deposit-addresses`; crediting remains watcher/manual until BTC verification ships).
 
 Do **not** put Alchemy API keys or `DEPOSIT_CRYPTO_SECRET` in `wrangler.toml`; use Dashboard (or `wrangler secret put`) only.

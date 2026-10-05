@@ -113,7 +113,12 @@ export async function fetchPublicConfig() {
     headers: { Accept: 'application/json' },
   })
   if (!res.ok) {
-    return { ammTradeEnabled: true, tradingMode: 'amm_and_p2p', smsAlertsAvailable: false }
+    return {
+      ammTradeEnabled: true,
+      tradingMode: 'amm_and_p2p',
+      smsAlertsAvailable: false,
+      userMarketCreationStakePips: 10,
+    }
   }
   return res.json().catch(() => ({}))
 }
