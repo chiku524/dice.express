@@ -175,7 +175,7 @@ export default function DesktopSidebar() {
               `desktop-sidebar__markets-trigger${isActive || discoverActive ? ' desktop-sidebar__markets-trigger--active' : ''}`
             }
           >
-            <span className="desktop-sidebar__markets-trigger-label">All markets</span>
+            <span className="desktop-sidebar__markets-trigger-label">Browse</span>
           </NavLink>
           <button
             ref={triggerRef}
@@ -187,7 +187,7 @@ export default function DesktopSidebar() {
             id="desktop-markets-trigger"
             onClick={() => setMarketsMenuOpen((o) => !o)}
           >
-            <span className="desktop-sidebar__markets-trigger-label">Categories</span>
+            <span className="desktop-sidebar__markets-trigger-label">Topics</span>
             <span className="desktop-sidebar__markets-trigger-chevron" aria-hidden>
               {marketsMenuOpen ? '▾' : '▸'}
             </span>
@@ -206,7 +206,7 @@ export default function DesktopSidebar() {
                   left: flyoutPos.left,
                 }}
               >
-                <p className="desktop-sidebar__flyout-title">Market categories</p>
+                <p className="desktop-sidebar__flyout-title">Topics</p>
                 <ul className="desktop-sidebar__flyout-list">
                   {discoverSources.map((source) => {
                     const path = getDiscoverPathForSource(source.value)
@@ -295,7 +295,7 @@ export default function DesktopSidebar() {
                 `desktop-sidebar__link ${isActive ? 'desktop-sidebar__link--active' : ''}`
               }
             >
-              Create market
+              Create
             </NavLink>
           </li>
           <li className="desktop-sidebar__docs-item">

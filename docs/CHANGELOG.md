@@ -6,6 +6,14 @@ Summary of major cleanups and improvements. For current structure see [README](.
 
 ## Unreleased
 
+### UI modernization & simplification (October 2026)
+
+- **Markets browse:** Merged Spotlight into one Filter row (New / Ending soon / Hot P2P / Outcome / Watchlist); shorter page copy; “More filters” collapsed by default; dead spotlight styles removed.
+- **Cards / list:** Prefer one-liner over long description; **Trade** label (was Quick trade); tighter topic clamp.
+- **Market detail:** Odds near the title; “Why this market” collapsed; punchier trade copy; **Similar markets** (detail only).
+- **Hub / nav:** Shorter Dashboard & Profile copy; shared `formatMemberSince`; Portfolio link in web nav; leaner desktop sidebar labels.
+- **Out of scope this pass:** `/create` and market-creation economics (see draft PR for user markets); no version bump (avoid clashing with 1.0.44 create PR).
+
 ## 1.0.43 — Quick trade modal (September 2026)
 
 - **Release:** Version **1.0.43**; tag **`v1.0.43`** for desktop CI and GitHub Releases.

@@ -182,7 +182,7 @@ function DiscoverMarketEntry({
               })
             }}
           >
-            Quick trade
+            Trade
           </button>
         )}
       </div>
@@ -225,16 +225,16 @@ function DiscoverMarketEntry({
                 {oneLiner}
               </p>
             )}
-            {topicBody ? (
+            {!showOneLiner && topicBody ? (
               <p className="market-card-topic" title={topicBody}>
                 {topicBody}
               </p>
             ) : null}
             {resolveLine && <p className="market-card-resolves">{resolveLine}</p>}
             <div className="market-card-footer-meta">
-              <span className="text-secondary">Volume: {formatPips(market.payload.totalVolume ?? 0)}</span>
+              <span className="text-secondary">Vol. {formatPips(market.payload.totalVolume ?? 0)}</span>
               <span className="text-secondary">
-                {isBinary ? (PREDICTION_STYLES.find((s) => s.value === market.payload?.styleLabel)?.label || 'Binary') : 'Multi-Outcome'}
+                {isBinary ? (PREDICTION_STYLES.find((s) => s.value === market.payload?.styleLabel)?.label || 'Binary') : 'Multi'}
               </span>
             </div>
           </div>
@@ -262,7 +262,7 @@ function DiscoverMarketEntry({
               {oneLiner}
             </p>
           )}
-          {topicBody && !isCompact ? (
+          {!showOneLiner && topicBody && !isCompact ? (
             <p className="market-list-row__topic" title={topicBody}>
               {topicBody}
             </p>

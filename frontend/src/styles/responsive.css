@@ -55,8 +55,7 @@
 /* ---- Cross-page patterns (md) ---- */
 
 @media (max-width: 768px) {
-  .markets-quick-filters-row,
-  .markets-spotlight-strip {
+  .markets-quick-filters-row {
     flex-wrap: nowrap;
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
@@ -64,13 +63,11 @@
     scrollbar-width: none;
   }
 
-  .markets-quick-filters-row::-webkit-scrollbar,
-  .markets-spotlight-strip::-webkit-scrollbar {
+  .markets-quick-filters-row::-webkit-scrollbar {
     display: none;
   }
 
-  .markets-quick-filter-btn,
-  .markets-spotlight-btn {
+  .markets-quick-filter-btn {
     flex-shrink: 0;
   }
 

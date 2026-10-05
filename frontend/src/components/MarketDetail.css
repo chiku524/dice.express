@@ -160,26 +160,31 @@
   line-height: 1.5;
 }
 
-.market-detail-why {
-  margin-bottom: var(--spacing-xl);
-  padding-bottom: var(--spacing-lg);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+.market-detail-why-details {
+  margin-top: var(--spacing-sm);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
 }
 
-.market-detail-why-title {
-  margin: 0 0 var(--spacing-xs);
-  font-size: var(--font-size-sm);
-  font-weight: var(--font-weight-semibold);
-  color: var(--color-text-secondary);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
+.market-detail-why-details summary {
+  cursor: pointer;
+  color: var(--color-teal, #14b8a6);
+  font-weight: var(--font-weight-medium);
+}
+
+.market-detail-why-details summary:hover {
+  color: var(--color-aqua, #2dd4bf);
 }
 
 .market-detail-why-text {
-  margin: 0;
+  margin: var(--spacing-xs) 0 0;
   font-size: var(--font-size-sm);
   color: var(--color-text-primary);
   line-height: 1.5;
+}
+
+.market-detail-info > .market-detail-odds {
+  margin: var(--spacing-sm) 0 var(--spacing-md);
 }
 
 .market-detail-related {

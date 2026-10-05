@@ -627,14 +627,31 @@ export default function MarketDetail() {
             {marketData.status}
           </span>
 
-          <section className="market-detail-about" aria-label="About this market">
-            <p className="market-detail-oneliner-text"><strong>What you&apos;re buying:</strong> {oneLiner}</p>
-            {displayDescription && <p className="market-detail-desc">{displayDescription}</p>}
-          </section>
+          {marketData.marketType === 'Binary' && pool && (
+            <div className="market-detail-odds">
+              <span className="status-badge status-active">Yes {(yesProbability(pool) * 100).toFixed(0)}%</span>
+              <span className="status-badge status-pending">No {(100 - yesProbability(pool) * 100).toFixed(0)}%</span>
+            </div>
+          )}
+          {isActiveMultiPool && pool.outcomes && (
+            <div className="market-detail-odds market-detail-odds--multi">
+              {pool.outcomes.map((o) => (
+                <span key={o} className="status-badge status-active" title="Pool-implied share of reserves">
+                  {o} {(outcomeProbabilityMulti(pool, o) * 100).toFixed(0)}%
+                </span>
+              ))}
+            </div>
+          )}
 
-          <section className="market-detail-why" aria-label="Why this market exists">
-            <h3 className="market-detail-why-title">Why this market exists</h3>
-            <p className="market-detail-why-text">{whyLine}</p>
+          <section className="market-detail-about" aria-label="About this market">
+            <p className="market-detail-oneliner-text">{oneLiner}</p>
+            {displayDescription && <p className="market-detail-desc">{displayDescription}</p>}
+            {whyLine && (
+              <details className="market-detail-why-details">
+                <summary>Why this market</summary>
+                <p className="market-detail-why-text">{whyLine}</p>
+              </details>
+            )}
           </section>
 
           {(marketData.resolutionCriteria || marketData.resolutionDeadline || outcomeSummaries.yes || resolutionSummary) && (
@@ -642,7 +659,7 @@ export default function MarketDetail() {
               <h3 className="market-detail-resolution-title">How it resolves</h3>
               {marketData.resolutionDeadline && (
                 <p className="market-detail-resolution-deadline">
-                  <span className="market-detail-resolution-label">⏱️ Resolves by</span>{' '}
+                  <span className="market-detail-resolution-label">Resolves by</span>{' '}
                   {formatResolutionDeadline(marketData.resolutionDeadline)}
                 </p>
               )}
@@ -661,56 +678,38 @@ export default function MarketDetail() {
               )}
               {marketData.marketType === 'Binary' && outcomeSummaries.yes && outcomeSummaries.no && (
                 <ul className="market-detail-resolution-outcomes" aria-label="Outcome definitions">
-                  <li><span className="market-detail-outcome-yes" aria-hidden>✅ Yes</span> {outcomeSummaries.yes}</li>
-                  <li><span className="market-detail-outcome-no" aria-hidden>❌ No</span> {outcomeSummaries.no}</li>
+                  <li><strong>Yes</strong> — {outcomeSummaries.yes}</li>
+                  <li><strong>No</strong> — {outcomeSummaries.no}</li>
                 </ul>
               )}
               {marketData.marketType === 'MultiOutcome' && Array.isArray(marketData.outcomes) && marketData.outcomes.length > 0 && (
                 <ul className="market-detail-resolution-outcomes" aria-label="Outcomes">
                   {marketData.outcomes.map((o) => (
-                    <li key={o}><strong>{o}</strong> — wins if this outcome is chosen at settlement (ops or configured oracle).</li>
+                    <li key={o}><strong>{o}</strong> — wins at settlement.</li>
                   ))}
                 </ul>
               )}
               {marketData.resolutionCriteria && !resolutionSummary && (
-                <p className="market-detail-resolution-criteria"><strong>Precise rule:</strong> {marketData.resolutionCriteria}</p>
+                <p className="market-detail-resolution-criteria"><strong>Rule:</strong> {marketData.resolutionCriteria}</p>
               )}
               {marketData.resolutionCriteria && resolutionSummary && (
                 <details className="market-detail-resolution-details">
-                  <summary>Exact resolution rule</summary>
+                  <summary>Exact rule</summary>
                   <p className="market-detail-resolution-criteria">{marketData.resolutionCriteria}</p>
                 </details>
               )}
             </section>
           )}
 
-          <MarketDetailRelated relatedMarkets={relatedMarkets} />
-
-          {marketData.marketType === 'Binary' && pool && (
-            <div className="market-detail-odds">
-              <span className="status-badge status-active">Yes {(yesProbability(pool) * 100).toFixed(0)}%</span>
-              <span className="status-badge status-pending">No {(100 - yesProbability(pool) * 100).toFixed(0)}%</span>
-            </div>
-          )}
-          {isActiveMultiPool && pool.outcomes && (
-            <div className="market-detail-odds market-detail-odds--multi">
-              {pool.outcomes.map((o) => (
-                <span key={o} className="status-badge status-active" title="Pool-implied share of reserves">
-                  {o} {(outcomeProbabilityMulti(pool, o) * 100).toFixed(0)}%
-                </span>
-              ))}
-            </div>
-          )}
-
           <div className="market-detail-volumes">
             <div className="market-detail-volume-item">
-              <span className="market-detail-volume-label">Open P2P orders</span>
+              <span className="market-detail-volume-label">Open orders</span>
               <span className="volume-display" title="Resting limit orders on the book">
                 {market.openOrderCount ?? 0}
               </span>
             </div>
             <div className="market-detail-volume-item">
-              <span className="market-detail-volume-label">Total volume</span>
+              <span className="market-detail-volume-label">Volume</span>
               <span className="volume-display">{formatPips(marketData.totalVolume ?? 0)}</span>
             </div>
             {marketData.marketType === 'Binary' && (
@@ -736,6 +735,8 @@ export default function MarketDetail() {
               </div>
             </div>
           )}
+
+          <MarketDetailRelated relatedMarkets={relatedMarkets} />
         </div>
 
         <MarketDetailTradePanel

@@ -133,15 +133,18 @@ export default function Navbar() {
           {wallet ? (
             <div className="wallet-info">
               {balanceFormatted != null && (
-                <Link to="/portfolio" className="nav-balance" title="Pips (Credits) — View in Portfolio">
+                <Link to="/portfolio" className="nav-balance" title="Pips — Portfolio">
                   {balanceFormatted}
                 </Link>
               )}
-              <Link to="/watchlist" className="nav-watchlist-link" title="Your starred markets">
+              <Link to="/portfolio" className="nav-watchlist-link" title="Portfolio">
+                Portfolio
+              </Link>
+              <Link to="/watchlist" className="nav-watchlist-link" title="Starred markets">
                 Watchlist
               </Link>
               <span className="nav-user-name-wrap">
-                <Link to="/dashboard" className="nav-user-name" title={`${wallet.party} — Click copy to copy`}>
+                <Link to="/dashboard" className="nav-user-name" title={wallet.party}>
                   {wallet.party.length > 16 ? wallet.party.substring(0, 16) + '…' : wallet.party}
                 </Link>
                 <button
@@ -151,7 +154,7 @@ export default function Navbar() {
                   aria-label="Copy display name"
                   title="Copy display name"
                 >
-                  📋
+                  ⧉
                 </button>
               </span>
               <button type="button" className="nav-disconnect-btn" onClick={disconnectWallet}>Sign out</button>

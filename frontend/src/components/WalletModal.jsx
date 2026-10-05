@@ -1,17 +1,8 @@
 import { useRef, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { useWallet } from '../contexts/WalletContext'
+import { formatMemberSince } from '../utils/formatDate'
 import './WalletModal.css'
-
-function formatMemberSince(isoString) {
-  if (!isoString) return ''
-  try {
-    const d = new Date(isoString)
-    return d.toLocaleDateString(undefined, { month: 'short', year: 'numeric' })
-  } catch {
-    return ''
-  }
-}
 
 function getFocusableElements(container) {
   if (!container) return []
@@ -75,9 +66,9 @@ export default function WalletModal({ isOpen, onClose }) {
                 <p className="wallet-hint">Account ID: <code className="party-id-inline">{wallet.accountId.slice(0, 12)}…</code></p>
               )}
               {wallet.createdAt && (
-                <p className="wallet-hint">Member since {formatMemberSince(wallet.createdAt)}</p>
+                <p className="wallet-hint">Member since {formatMemberSince(wallet.createdAt, { month: 'short' })}</p>
               )}
-              <p className="wallet-hint">Your activity and balance are stored under this ID. No password required.</p>
+              <p className="wallet-hint">Balance and activity use this account.</p>
               <div className="wallet-modal-actions">
                 <Link to="/dashboard" className="btn-primary wallet-modal-btn" onClick={onClose}>Dashboard</Link>
                 <Link to="/profile" className="btn-secondary wallet-modal-btn" onClick={onClose}>Profile</Link>

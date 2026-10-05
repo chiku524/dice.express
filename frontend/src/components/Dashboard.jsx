@@ -4,19 +4,10 @@ import { useWallet } from '../contexts/WalletContext'
 import { useAccountModal } from '../contexts/AccountModalContext'
 import { getVirtualBalance, transferPips } from '../services/balance'
 import { BRAND_TAGLINE } from '../constants/brand'
+import { formatMemberSince } from '../utils/formatDate'
 import UserHubNav from './UserHubNav'
 import SubmitDiceLabel from './SubmitDiceLabel'
 import './Dashboard.css'
-
-function formatMemberSince(isoString) {
-  if (!isoString) return ''
-  try {
-    const d = new Date(isoString)
-    return d.toLocaleDateString(undefined, { month: 'long', year: 'numeric' })
-  } catch {
-    return ''
-  }
-}
 
 export default function Dashboard() {
   const { wallet } = useWallet()
@@ -71,12 +62,12 @@ export default function Dashboard() {
   if (!wallet) {
     return (
       <div className="card dashboard-gate">
-        <h1>Your Dashboard</h1>
+        <h1>Dashboard</h1>
         <p className="text-secondary mt-sm">
-          Sign in or create an account to get your own dashboard, profile, and portfolio.
+          Sign in for your hub, portfolio, and tips.
         </p>
         <p className="wallet-hint mt-md" style={{ fontSize: 'var(--font-size-sm)' }}>
-          {BRAND_TAGLINE} — create an account or sign in to trade with Pips.
+          {BRAND_TAGLINE}
         </p>
         <button type="button" className="btn-primary mt-lg" onClick={openAccountModal}>
           Get started
@@ -91,19 +82,19 @@ export default function Dashboard() {
       <header className="dashboard-header">
         <h1>Dashboard</h1>
         <p className="dashboard-welcome">
-          Welcome back, <strong>{wallet.party}</strong>
+          Hi, <strong>{wallet.party}</strong>
           {wallet.createdAt && (
-            <span className="dashboard-member-since"> · Member since {formatMemberSince(wallet.createdAt)}</span>
+            <span className="dashboard-member-since"> · since {formatMemberSince(wallet.createdAt)}</span>
           )}
         </p>
       </header>
 
       <p className="dashboard-subtitle">
-        Deposit with crypto to get Pips, trade on prediction markets, and withdraw from Portfolio.
+        Deposit crypto → trade with Pips → withdraw from Portfolio.
       </p>
 
       <div className="dashboard-profile-card card">
-        <h2 className="dashboard-card-title">Your profile</h2>
+        <h2 className="dashboard-card-title">Account</h2>
         <div className="dashboard-profile-row">
           <span className="dashboard-profile-label">Display name</span>
           <code className="dashboard-profile-value">{wallet.party}</code>
@@ -119,25 +110,22 @@ export default function Dashboard() {
             </div>
           </div>
         )}
-        {wallet.createdAt && (
-          <p className="dashboard-profile-meta">Member since {formatMemberSince(wallet.createdAt)}</p>
-        )}
         <div className="dashboard-quick-links">
-          <Link to="/profile" className="dashboard-quick-link primary">Profile & settings</Link>
+          <Link to="/portfolio" className="dashboard-quick-link primary">Portfolio</Link>
+          <Link to="/profile" className="dashboard-quick-link secondary">Settings</Link>
           <Link to="/watchlist" className="dashboard-quick-link secondary">Watchlist</Link>
-          <Link to="/portfolio" className="dashboard-quick-link secondary">Portfolio & currency exchange</Link>
         </div>
       </div>
 
       <div className="dashboard-cards">
         <div className="card dashboard-card dashboard-tip-card">
           <h2 className="dashboard-card-title">Tip Pips</h2>
-          <p className="dashboard-card-hint">Send Pips to another user by their display name</p>
+          <p className="dashboard-card-hint">Send Pips by display name</p>
           <form className="dashboard-tip-form" onSubmit={handleTipSubmit}>
             <input
               type="text"
               className="dashboard-tip-input"
-              placeholder="Recipient display name"
+              placeholder="Recipient"
               value={tipToParty}
               onChange={(e) => setTipToParty(e.target.value)}
               disabled={tipLoading}
@@ -146,17 +134,17 @@ export default function Dashboard() {
               type="text"
               inputMode="decimal"
               className="dashboard-tip-input"
-              placeholder="Amount (Pips)"
+              placeholder="Amount"
               value={tipAmount}
               onChange={(e) => setTipAmount(e.target.value)}
               disabled={tipLoading}
             />
             <button type="submit" className="btn-primary dashboard-tip-submit" disabled={tipLoading}>
-              {tipLoading ? <SubmitDiceLabel busyLabel="Sending…" /> : 'Send tip'}
+              {tipLoading ? <SubmitDiceLabel busyLabel="Sending…" /> : 'Send'}
             </button>
           </form>
           {tipStatus?.error && <p className="dashboard-tip-error">{tipStatus.error}</p>}
-          {tipStatus?.success && <p className="dashboard-tip-success">Tip sent successfully.</p>}
+          {tipStatus?.success && <p className="dashboard-tip-success">Tip sent.</p>}
         </div>
       </div>
     </div>

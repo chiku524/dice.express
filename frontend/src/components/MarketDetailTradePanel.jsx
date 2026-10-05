@@ -71,10 +71,10 @@ export default function MarketDetailTradePanel({
           {marketData.status === 'Active' && !tradeAckDismissed && (
             <div className="market-detail-trade-ack card" role="region" aria-label="Before you trade">
               <p className="market-detail-trade-ack-text">
-                <strong>Heads up:</strong> Outcomes follow the published rule and oracle data. You can lose Pips. Only trade what you understand — read <em>How it resolves</em> above.
+                You can lose Pips. Read <em>How it resolves</em> before trading.
               </p>
               <button type="button" className="btn-primary market-detail-trade-ack-btn" onClick={dismissTradeAck}>
-                I understand — continue
+                Continue
               </button>
             </div>
           )}
@@ -82,12 +82,12 @@ export default function MarketDetailTradePanel({
             <div className="card market-detail-trade-unified">
               <h2 className="market-detail-trade-title">Trade</h2>
               <p className="market-detail-trade-hint market-detail-trade-hint--tight">
-                Pick <strong>Yes</strong> or <strong>No</strong>, then either buy instantly from the pool (when enabled) or set a <strong>limit price</strong> to trade with others.
+                Pick a side, then buy from the pool or place a limit order.
               </p>
 
               {!ammTradeEnabled && (
                 <div className="alert-info market-detail-trade-banner">
-                  <strong>Pool buys are off.</strong> This deployment uses peer-to-peer limit orders only (no instant AMM). Place a buy or sell below at your price.
+                  Pool buys are off — use peer-to-peer limit orders below.
                 </div>
               )}
 

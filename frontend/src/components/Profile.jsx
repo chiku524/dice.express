@@ -3,19 +3,10 @@ import { Link } from 'react-router-dom'
 import { useWallet } from '../contexts/WalletContext'
 import { useAccountModal } from '../contexts/AccountModalContext'
 import { useToastContext } from '../contexts/ToastContext'
+import { formatMemberSince } from '../utils/formatDate'
 import UserHubNav from './UserHubNav'
 import MarketAlertSettings from './MarketAlertSettings'
 import './Profile.css'
-
-function formatMemberSince(isoString) {
-  if (!isoString) return ''
-  try {
-    const d = new Date(isoString)
-    return d.toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' })
-  } catch {
-    return ''
-  }
-}
 
 export default function Profile() {
   const { wallet, updateDisplayName, disconnectWallet } = useWallet()
@@ -57,7 +48,7 @@ export default function Profile() {
     return (
       <div className="card profile-gate">
         <h1>Profile</h1>
-        <p className="text-secondary mt-sm">Sign in to view and edit your profile.</p>
+        <p className="text-secondary mt-sm">Sign in to edit your profile.</p>
         <button type="button" className="btn-primary mt-lg" onClick={openAccountModal}>
           Sign in
         </button>
@@ -70,12 +61,12 @@ export default function Profile() {
       <UserHubNav />
       <header className="profile-header">
         <h1>Profile &amp; settings</h1>
-        <p className="profile-header-desc">Display name, notifications, and account details.</p>
+        <p className="profile-header-desc">Name, alerts, and account.</p>
       </header>
 
       <div className="card profile-card">
         <h2 className="profile-section-title">Display name</h2>
-        <p className="profile-hint">This name is shown in the navbar and on your account. Other users see it when you trade.</p>
+        <p className="profile-hint">Shown in the nav and when you trade.</p>
         <div className="profile-form-row">
           <input
             type="text"
@@ -91,16 +82,16 @@ export default function Profile() {
           </button>
         </div>
         {error && <p className="profile-error">{error}</p>}
-        {saved && <p className="profile-success">Display name updated.</p>}
+        {saved && <p className="profile-success">Updated.</p>}
       </div>
 
       <div className="card profile-card" id="notification-settings">
-        <h2 className="profile-section-title">Notification settings</h2>
+        <h2 className="profile-section-title">Notifications</h2>
         <MarketAlertSettings />
       </div>
 
       <div className="card profile-card">
-        <h2 className="profile-section-title">Account info</h2>
+        <h2 className="profile-section-title">Account</h2>
         <dl className="profile-dl">
           <dt>Account ID</dt>
           <dd>
@@ -111,7 +102,7 @@ export default function Profile() {
               onClick={() => {
                 try {
                   navigator.clipboard.writeText(wallet.accountId)
-                  showToast('Account ID copied to clipboard', 'success')
+                  showToast('Account ID copied', 'success')
                 } catch {
                   showToast('Copy failed', 'error')
                 }
@@ -124,17 +115,17 @@ export default function Profile() {
           {wallet.createdAt && (
             <>
               <dt>Member since</dt>
-              <dd>{formatMemberSince(wallet.createdAt)}</dd>
+              <dd>{formatMemberSince(wallet.createdAt, { includeDay: true })}</dd>
             </>
           )}
         </dl>
       </div>
 
       <div className="card profile-card">
-        <h2 className="profile-section-title">Account actions</h2>
+        <h2 className="profile-section-title">Actions</h2>
         <div className="profile-actions">
-          <Link to="/dashboard" className="btn-primary">Back to Dashboard</Link>
-          <Link to="/portfolio" className="btn-secondary">Portfolio</Link>
+          <Link to="/portfolio" className="btn-primary">Portfolio</Link>
+          <Link to="/dashboard" className="btn-secondary">Dashboard</Link>
           <Link to="/watchlist" className="btn-secondary">Watchlist</Link>
           <button
             type="button"
