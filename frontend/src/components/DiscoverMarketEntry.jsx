@@ -13,12 +13,13 @@ import {
 import { formatPips } from '../constants/currency'
 import { getMarketStaleness, toggleWatchlist, isWatched } from '../utils/marketUX'
 import { getAbsoluteMarketUrl } from '../utils/marketLinks'
+import { marketStatusClass } from '../utils/marketsLayout'
 
-/** Single market row/card on the discover list (layout: cards | list | compact). */
+/** Single market row/card (layout: gallery | list | grid). */
 function DiscoverMarketEntry({
   layout,
   market,
-  getStatusClass,
+  getStatusClass = marketStatusClass,
   webShareEnabled,
   expandedQuickTradeId,
   setExpandedQuickTradeId,
@@ -26,6 +27,7 @@ function DiscoverMarketEntry({
   copyCardMarketLink,
   shareCardMarket,
   onWatchlistChanged,
+  chrome = 'full',
 }) {
   const oneLiner = getMarketOneLiner(market.payload)
   const categoryLabel = getCategoryDisplay(market.payload)
@@ -205,14 +207,27 @@ function DiscoverMarketEntry({
     </button>
   )
 
-  if (layout === 'cards') {
+  const isGallery = layout === 'gallery'
+  const isGrid = layout === 'grid' || layout === 'cards'
+  const showChrome = chrome === 'full'
+
+  if (!market?.payload?.marketId) return null
+
+  if (isGallery || isGrid) {
+    const bodyText = showOneLiner ? oneLiner : topicBody
     return (
-      <div className="market-card-wrap">
-        {watchBtn}
+      <div className={`market-card-wrap${isGallery ? ' market-card-wrap--gallery' : ''}`}>
+        {showChrome ? watchBtn : null}
         <Link to={`/market/${market.payload.marketId}`} className="market-card-link">
-          <div className="market-card market-card--discover">
+          <div className={`market-card market-card--discover${isGallery ? ' market-card--gallery' : ''}`}>
+            {isGallery ? (
+              <div className="market-gallery-hero" aria-hidden>
+                <span className="market-gallery-hero-emoji">{getCategoryEmoji(categoryLabel)}</span>
+                <span className="market-gallery-hero-label">{categoryLabel}</span>
+              </div>
+            ) : null}
             <div>
-              {tagStrip}
+              {!isGallery ? tagStrip : null}
               <div className="market-card-title-row">
                 <h3>{market.payload.title}</h3>
                 <span className={`market-card-status-pill status ${getStatusClass(market.payload.status)}`}>
@@ -220,14 +235,10 @@ function DiscoverMarketEntry({
                 </span>
               </div>
             </div>
-            {showOneLiner && (
-              <p className="market-card-oneliner" title={oneLiner}>
-                {oneLiner}
-              </p>
-            )}
-            {!showOneLiner && topicBody ? (
-              <p className="market-card-topic" title={topicBody}>
-                {topicBody}
+            {isGallery ? tagStrip : null}
+            {bodyText ? (
+              <p className={showOneLiner ? 'market-card-oneliner' : 'market-card-topic'} title={bodyText}>
+                {bodyText}
               </p>
             ) : null}
             {resolveLine && <p className="market-card-resolves">{resolveLine}</p>}
@@ -239,17 +250,20 @@ function DiscoverMarketEntry({
             </div>
           </div>
         </Link>
-        {predictBinaryRow}
-        {predictMultiRow}
-        {toolbar}
+        {showChrome ? (
+          <>
+            {predictBinaryRow}
+            {predictMultiRow}
+            {toolbar}
+          </>
+        ) : null}
       </div>
     )
   }
 
-  const isCompact = layout === 'compact'
   return (
-    <article className={`market-list-row${isCompact ? ' market-list-row--compact' : ''}`}>
-      {watchBtn}
+    <article className="market-list-row market-list-row--compact">
+      {showChrome ? watchBtn : null}
       <div className="market-list-row__core">
         <Link to={`/market/${market.payload.marketId}`} className="market-list-row__link">
           {tagStrip}
@@ -257,22 +271,11 @@ function DiscoverMarketEntry({
             <h3 className="market-list-row__title">{market.payload.title}</h3>
             <span className={`market-list-row__status status ${getStatusClass(market.payload.status)}`}>{market.payload.status}</span>
           </div>
-          {showOneLiner && !isCompact && (
-            <p className="market-list-row__oneliner" title={oneLiner}>
-              {oneLiner}
-            </p>
-          )}
-          {!showOneLiner && topicBody && !isCompact ? (
-            <p className="market-list-row__topic" title={topicBody}>
-              {topicBody}
-            </p>
-          ) : null}
-          {showOneLiner && isCompact ? (
+          {showOneLiner ? (
             <p className="market-list-row__oneliner market-list-row__oneliner--compact" title={oneLiner}>
               {oneLiner}
             </p>
           ) : null}
-          {resolveLine && !isCompact ? <p className="market-list-row__resolves">{resolveLine}</p> : null}
         </Link>
         <div className="market-list-row__meta">
           <span className="market-list-row__meta-vol">Vol. {formatPips(market.payload.totalVolume ?? 0)}</span>
@@ -281,11 +284,13 @@ function DiscoverMarketEntry({
           </span>
         </div>
       </div>
-      <div className="market-list-row__actions">
-        {predictBinaryRow}
-        {predictMultiRow}
-        {toolbar}
-      </div>
+      {showChrome ? (
+        <div className="market-list-row__actions">
+          {predictBinaryRow}
+          {predictMultiRow}
+          {toolbar}
+        </div>
+      ) : null}
     </article>
   )
 }

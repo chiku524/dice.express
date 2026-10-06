@@ -72,17 +72,6 @@ export default function AnimatedBackground() {
             <stop offset="50%" stopColor="rgba(0, 232, 200, 0.1)" />
             <stop offset="100%" stopColor="rgba(100, 116, 139, 0.12)" />
           </linearGradient>
-          <linearGradient id="ab-trace" x1="0%" y1="0%" x2="0%" y2="100%">
-            <stop offset="0%" stopColor="rgba(0, 232, 200, 0.45)" />
-            <stop offset="100%" stopColor="rgba(56, 189, 248, 0.35)" />
-          </linearGradient>
-          <filter id="ab-soft-glow" x="-80%" y="-80%" width="260%" height="260%">
-            <feGaussianBlur in="SourceGraphic" stdDeviation="4" result="b" />
-            <feMerge>
-              <feMergeNode in="b" />
-              <feMergeNode in="SourceGraphic" />
-            </feMerge>
-          </filter>
         </defs>
 
         <g className="animated-background-vein-motion">
@@ -111,37 +100,6 @@ export default function AnimatedBackground() {
             fill="none"
             stroke="url(#ab-vein-lit)"
             strokeWidth={2.2}
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-
-          <path
-            className="ab-trace-glow"
-            d={MAIN_PATH_D}
-            fill="none"
-            stroke="url(#ab-trace)"
-            strokeWidth={4}
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            filter="url(#ab-soft-glow)"
-            opacity={0.35}
-          />
-          <path
-            className="ab-trace-dash ab-trace-dash-forward"
-            d={MAIN_PATH_D}
-            fill="none"
-            stroke="rgba(0, 232, 200, 0.55)"
-            strokeWidth={1.6}
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            filter="url(#ab-soft-glow)"
-          />
-          <path
-            className="ab-trace-dash ab-trace-dash-reverse"
-            d={MAIN_PATH_D}
-            fill="none"
-            stroke="rgba(90, 176, 255, 0.45)"
-            strokeWidth={1.2}
             strokeLinecap="round"
             strokeLinejoin="round"
           />

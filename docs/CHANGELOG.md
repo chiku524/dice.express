@@ -6,6 +6,12 @@ Summary of major cleanups and improvements. For current structure see [README](.
 
 ## Unreleased
 
+## 1.0.46 — Gallery / List / Grid views (October 2026)
+
+- **Release:** Version **1.0.46**; tag **`v1.0.46`** so desktop CI picks up the browse view modes and background fix.
+- **Background:** Removed the looping SVG dash traces on the engraved vein in **`AnimatedBackground`** (the line that kept traveling the groove). Stone, grain, static vein, and other polish stay.
+- **Markets views:** Browse (including User-Created / community), watchlist, and **Similar markets** on detail share **Gallery**, **List**, and **Grid**. Default and control order: Gallery → List → Grid. Grid is the previous card layout. Choice persists in `localStorage` (`dice.markets.layout.v2`, with migration from Cards/Compact). **Similar markets** copy remains on market detail only.
+
 ## 1.0.45 — User markets + UI simplify (October 2026)
 
 - **Release:** Version **1.0.45**; tag **`v1.0.45`** so desktop CI picks up both user market creation and the UI simplify pass (combined tip after PR #1 + #2).

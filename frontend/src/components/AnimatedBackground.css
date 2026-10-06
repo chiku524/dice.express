@@ -489,50 +489,6 @@
   vector-effect: non-scaling-stroke;
 }
 
-.ab-trace-glow {
-  vector-effect: non-scaling-stroke;
-  animation: ab-trace-pulse 7s ease-in-out infinite;
-}
-
-.ab-trace-dash {
-  fill: none;
-  vector-effect: non-scaling-stroke;
-  stroke-dasharray: 38 108;
-  stroke-dashoffset: 0;
-}
-
-.ab-trace-dash-forward {
-  animation: ab-dash-flow 21s linear infinite;
-}
-
-.ab-trace-dash-reverse {
-  stroke-dasharray: 26 88;
-  animation: ab-dash-flow-reverse 29s linear infinite;
-  opacity: 0.75;
-}
-
-@keyframes ab-trace-pulse {
-  0%,
-  100% {
-    opacity: 0.28;
-  }
-  50% {
-    opacity: 0.42;
-  }
-}
-
-@keyframes ab-dash-flow {
-  to {
-    stroke-dashoffset: -620;
-  }
-}
-
-@keyframes ab-dash-flow-reverse {
-  to {
-    stroke-dashoffset: 620;
-  }
-}
-
 @keyframes ab-svg-breathe {
   0%,
   100% {
@@ -618,8 +574,6 @@
   .animated-background-vein-motion,
   .ab-drift-line,
   .ab-mote,
-  .ab-trace-glow,
-  .ab-trace-dash,
   .animated-background-overlay,
   .animated-background-overlay::before,
   .animated-background-overlay::after,
@@ -665,12 +619,4 @@
     opacity: 0.55;
   }
 
-  .ab-trace-dash-forward,
-  .ab-trace-dash-reverse {
-    stroke-dashoffset: 0;
-  }
-
-  .ab-trace-glow {
-    opacity: 0.32;
-  }
 }
