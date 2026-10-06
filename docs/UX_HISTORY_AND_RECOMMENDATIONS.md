@@ -71,7 +71,7 @@ Theme, color palette, and background animations are left as-is. These recommenda
 ### 2.3 Markets list
 
 - **Filters:** One **Filter** chip row (New / Ending soon / Hot P2P / Outcome / Watchlist); **More filters** (type, status, topic, sort) collapsed by default. Search stays in the filters panel (Show filters on mobile).
-- **Layouts:** Cards / List / Compact (persisted). Prefer short one-liners over long descriptions on cards; primary CTA is **Trade** (modal).
+- **Layouts:** Gallery / List / Grid (persisted). Gallery is immersive tiles; List is compact rows; Grid is the previous card layout. Prefer short one-liners over long descriptions on cards; primary CTA is **Trade** (modal).
 - **Similar markets:** Only on **market detail**, never on browse/list.
 - **Sort:** Default **Trending**; **Ending soon** / **Volume** / **P2P** available under More filters.
 

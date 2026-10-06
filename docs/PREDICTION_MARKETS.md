@@ -136,7 +136,7 @@ Sources without a key are skipped when using **seed_all**. Set **AUTO_MARKETS_SO
 
 ## Viewing markets on the webapp
 
-The Discover UI calls **`GET /api/markets?sort=activity`** so lists load with **fresh `openOrderCount`** (open P2P limit orders) and P2P-friendly ordering before client-side filters apply. Cards show a **P2P · N open** tag when `N > 0`; **Trending** ranks by open orders first, then volume. Active markets offer **Quick trade** (Yes/No or outcome chips) in a modal so you can buy or place a limit without leaving the list.
+The Discover UI calls **`GET /api/markets?sort=activity`** so lists load with **fresh `openOrderCount`** (open P2P limit orders) and P2P-friendly ordering before client-side filters apply. Gallery / List / Grid views show a **P2P · N open** tag when `N > 0`; **Trending** ranks by open orders first, then volume. Active markets offer **Quick trade** (Yes/No or outcome chips) in a modal so you can buy or place a limit without leaving the list.
 
 | Where | What you see |
 |-------|----------------|

@@ -195,12 +195,35 @@
   border: 1px solid rgba(255, 255, 255, 0.06);
 }
 
+.market-detail-related-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-sm);
+  margin-bottom: var(--spacing-sm);
+}
+
 .market-detail-related-title {
-  margin: 0 0 var(--spacing-sm);
+  margin: 0;
   font-size: var(--font-size-sm);
   font-weight: var(--font-weight-semibold);
   color: var(--color-text-primary);
   letter-spacing: -0.01em;
+}
+
+.market-detail-related .market-gallery,
+.market-detail-related .market-grid,
+.market-detail-related .market-list {
+  margin-top: 0;
+}
+
+.market-detail-related .market-list-row {
+  padding-right: var(--spacing-lg);
+}
+
+.market-detail-related .market-card.market-card--gallery {
+  min-height: 280px;
 }
 
 .market-detail-related-list {

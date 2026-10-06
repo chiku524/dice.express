@@ -99,9 +99,9 @@ export function SkeletonList({ count = 3 }) {
   )
 }
 
-export function SkeletonMarketGrid({ count = 6 }) {
+export function SkeletonMarketGrid({ count = 6, className = 'market-grid' }) {
   return (
-    <div className="market-grid">
+    <div className={className}>
       {Array.from({ length: count }).map((_, i) => (
         <SkeletonMarketCard key={i} />
       ))}

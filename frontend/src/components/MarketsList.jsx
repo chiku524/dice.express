@@ -11,23 +11,14 @@ import {
   readWatchlist,
 } from '../utils/marketUX'
 import DiscoverMarketEntry from './DiscoverMarketEntry'
+import MarketsLayoutPicker from './MarketsLayoutPicker'
 import MarketQuickTradeModal from './MarketQuickTradeModal'
 import { useToastContext } from '../contexts/ToastContext'
 import { getAbsoluteMarketUrl, copyTextToClipboard, canUseWebShare, shareMarketNative } from '../utils/marketLinks'
+import { layoutContainerClass, marketStatusClass } from '../utils/marketsLayout'
+import { useMarketsLayout } from '../hooks/useMarketsLayout'
 
 const MARKETS_CACHE_KEY = 'dice.markets.cache.v1'
-const MARKETS_LAYOUT_STORAGE_KEY = 'dice.markets.layout.v1'
-const VALID_MARKETS_LAYOUTS = new Set(['cards', 'list', 'compact'])
-
-function readMarketsLayout() {
-  try {
-    const v = localStorage.getItem(MARKETS_LAYOUT_STORAGE_KEY)
-    if (v && VALID_MARKETS_LAYOUTS.has(v)) return v
-  } catch {
-    /* ignore */
-  }
-  return 'cards'
-}
 
 export default function MarketsList({ source: sourceFromRoute, variant = 'default' }) {
   const { showToast } = useToastContext()
@@ -62,7 +53,7 @@ export default function MarketsList({ source: sourceFromRoute, variant = 'defaul
   const [expandedQuickTradeId, setExpandedQuickTradeId] = useState(null)
   /** When opening from a card chip, seed Yes/No or multi outcome (see MarketQuickTrade `key`). */
   const [quickTradeSeed, setQuickTradeSeed] = useState(null)
-  const [marketsLayout, setMarketsLayout] = useState(() => readMarketsLayout())
+  const [marketsLayout, setMarketsLayout] = useMarketsLayout()
   /** Expanded by default on desktop; collapsed on mobile so markets appear sooner. */
   const [filtersExpanded, setFiltersExpanded] = useState(() => {
     if (typeof window === 'undefined') return true
@@ -155,14 +146,6 @@ export default function MarketsList({ source: sourceFromRoute, variant = 'defaul
     setExpandedQuickTradeId(null)
     setQuickTradeSeed(null)
   }, [currentPage])
-
-  useEffect(() => {
-    try {
-      localStorage.setItem(MARKETS_LAYOUT_STORAGE_KEY, marketsLayout)
-    } catch {
-      /* ignore */
-    }
-  }, [marketsLayout])
 
   /** Discover / `?source=` narrow the list; home with no source shows all. */
   const listSourceFilter = effectiveSource || 'all'
@@ -342,17 +325,7 @@ export default function MarketsList({ source: sourceFromRoute, variant = 'defaul
 
   // WebSocket support removed - using polling instead
 
-  const getStatusClass = useMemo(() => {
-    const statusMap = {
-      Active: 'status-active',
-      Resolving: 'status-resolving',
-      Settled: 'status-settled',
-      PendingApproval: 'status-pending',
-      AutoPending: 'status-pending',
-      AutoRejected: 'status-pending',
-    }
-    return (status) => statusMap[status] || 'status-pending'
-  }, [])
+  const getStatusClass = marketStatusClass
 
   // Memoize filtered/sorted markets for performance
   const filteredAndSortedMarkets = useMemo(() => {
@@ -540,7 +513,14 @@ export default function MarketsList({ source: sourceFromRoute, variant = 'defaul
             progressSteps={['Rolling the dice…', 'Syncing markets…', 'Applying filters…', 'Almost ready…']}
           />
         </div>
-        {marketsLayout === 'cards' ? <SkeletonMarketGrid count={6} /> : <SkeletonMarketList count={8} />}
+        {marketsLayout === 'list' ? (
+          <SkeletonMarketList count={8} />
+        ) : (
+          <SkeletonMarketGrid
+            count={marketsLayout === 'gallery' ? 4 : 6}
+            className={marketsLayout === 'gallery' ? 'market-gallery' : 'market-grid'}
+          />
+        )}
       </div>
     )
   }
@@ -865,29 +845,7 @@ export default function MarketsList({ source: sourceFromRoute, variant = 'defaul
                     </>
                   )}
               </span>
-              <div className="markets-layout-picker" role="group" aria-label="Market layout">
-                <span className="markets-layout-picker-label" id="markets-layout-label">
-                  View
-                </span>
-                <div className="markets-layout-picker-btns" aria-labelledby="markets-layout-label">
-                  {[
-                    { value: 'cards', label: 'Cards', title: 'Grid of cards' },
-                    { value: 'list', label: 'List', title: 'Rows with topic text' },
-                    { value: 'compact', label: 'Compact', title: 'Dense rows' },
-                  ].map((opt) => (
-                    <button
-                      key={opt.value}
-                      type="button"
-                      className={`markets-layout-btn${marketsLayout === opt.value ? ' markets-layout-btn--active' : ''}`}
-                      aria-pressed={marketsLayout === opt.value}
-                      title={opt.title}
-                      onClick={() => setMarketsLayout(opt.value)}
-                    >
-                      {opt.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
+              <MarketsLayoutPicker layout={marketsLayout} onChange={setMarketsLayout} />
             </div>
             {activeFilterCount > 0 && filteredAndSortedMarkets.length === 0 && (
               <span className="filter-no-results">
@@ -956,11 +914,7 @@ export default function MarketsList({ source: sourceFromRoute, variant = 'defaul
           ) : (
             <>
               <div
-                className={
-                  marketsLayout === 'cards'
-                    ? 'market-grid market-grid--below-toolbar'
-                    : 'market-list market-list--below-toolbar'
-                }
+                className={layoutContainerClass(marketsLayout)}
               >
                 {paginatedMarkets.map((market) => (
                   <DiscoverMarketEntry
