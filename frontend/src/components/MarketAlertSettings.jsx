@@ -69,10 +69,16 @@ export default function MarketAlertSettings() {
   return (
     <div className="market-alerts">
       <p className="profile-hint" style={{ marginTop: 0 }}>
-        {isTauriApp()
-          ? 'Native OS notifications when new markets appear or a watchlist market changes status (Tauri notification plugin). Saved on this device only — not synced to your account.'
-          : 'Browser notifications for new markets and watchlist status changes. Saved in this browser only. SMS requires operator Twilio (or similar) on the API.'}
+        Alerts for new markets and watchlist status changes. Saved on this device only.
       </p>
+      <details className="market-alerts-details">
+        <summary>Permissions &amp; SMS</summary>
+        <p className="profile-hint">
+          {isTauriApp()
+            ? 'Uses the native notification plugin. Not synced to your account.'
+            : 'Uses browser notifications. SMS needs operator Twilio (or similar) on the API.'}
+        </p>
+      </details>
 
       <div className="market-alerts-row">
         {!prefs.desktopEnabled ? (

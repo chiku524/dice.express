@@ -97,21 +97,16 @@ export default function Register() {
     <div className="auth-page">
       <div className="auth-brand-panel">
         <div className="auth-brand-content">
-          <h2 className="auth-brand-title">Join {BRAND_NAME}</h2>
+          <h2 className="auth-brand-title">{BRAND_NAME}</h2>
           <p className="auth-brand-tagline">
-            Create an account in a few steps. Trade on prediction markets with Pips — deposit with crypto.
+            Create an account. Trade with Pips. Fund with crypto.
           </p>
-          <ul className="auth-brand-features">
-            <li>One account for all your trading</li>
-            <li>Fund with crypto (wallet or platform address)</li>
-            <li>Withdraw earnings from your portfolio</li>
-          </ul>
         </div>
       </div>
       <div className="auth-form-panel">
         <div className="auth-card auth-wizard">
           <h1 className="auth-title">Create account</h1>
-          <p className="auth-subtitle">Set up your {BRAND_NAME} account in a few steps.</p>
+          <p className="auth-subtitle">A few quick steps.</p>
 
           <div className="wizard-progress-bar" role="progressbar" aria-valuenow={step} aria-valuemin={1} aria-valuemax={3} aria-label={`Step ${step} of 3`}>
           {STEPS.map((s, i) => (
@@ -125,8 +120,8 @@ export default function Register() {
 
         {step === 1 && (
           <div className="wizard-panel">
-            <h2 className="wizard-panel-title">Create your account</h2>
-            <p className="wizard-panel-desc">Use your email and a password to sign in later from any device.</p>
+            <h2 className="wizard-panel-title">Account details</h2>
+            <p className="wizard-panel-desc">Email and password for any device.</p>
             {error && <div className="auth-error" role="alert">{error}</div>}
             <label className="auth-label" htmlFor="register-email">Email</label>
             <input
@@ -202,7 +197,6 @@ export default function Register() {
                 className={`wizard-option ${financeChoice === 'blockchain' ? 'selected' : ''}`}
                 onClick={() => setFinanceChoice('blockchain')}
               >
-                <span className="wizard-option-icon" aria-hidden>⛓</span>
                 <span className="wizard-option-text">
                   <span className="wizard-option-label">Crypto</span>
                   <span className="wizard-option-desc">Deposit from wallet later</span>
@@ -213,10 +207,9 @@ export default function Register() {
                 className={`wizard-option ${financeChoice === 'skip' ? 'selected' : ''}`}
                 onClick={() => setFinanceChoice('skip')}
               >
-                <span className="wizard-option-icon" aria-hidden>⏭</span>
                 <span className="wizard-option-text">
-                  <span className="wizard-option-label">Add funds later</span>
-                  <span className="wizard-option-desc">Skip for now</span>
+                  <span className="wizard-option-label">Skip for now</span>
+                  <span className="wizard-option-desc">Add funds later from Portfolio</span>
                 </span>
               </button>
             </div>

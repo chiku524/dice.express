@@ -11,8 +11,8 @@ export default function Footer() {
             <span className="footer-heading">Discover</span>
             <ul className="footer-links">
               <li><Link to="/">All Markets</Link></li>
-              <li><Link to="/dashboard">Dashboard</Link></li>
-              <li><Link to="/portfolio">Portfolio</Link></li>
+              <li><Link to="/create">Create</Link></li>
+              <li><Link to="/?source=user">Community</Link></li>
             </ul>
           </nav>
           <nav className="footer-section" aria-label="Platform">
@@ -29,13 +29,12 @@ export default function Footer() {
             <span className="footer-heading">About</span>
             <p>Trade on outcomes. Your choice, your chance.</p>
             <p className="footer-credits-note">
-              Trading uses Pips on-platform; deposit and withdraw with crypto when you fund your account.
+              Trade with Pips. Deposit and withdraw with crypto.
             </p>
           </div>
         </div>
         <div className="footer-bottom">
           <p className="footer-copyright">&copy; {new Date().getFullYear()} {BRAND_COPYRIGHT}</p>
-          <p className="footer-made-with">Made with <span className="footer-heart" aria-hidden>♥</span> for the prediction markets community</p>
         </div>
       </div>
     </footer>

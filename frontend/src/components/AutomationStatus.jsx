@@ -61,8 +61,7 @@ export default function AutomationStatus() {
           </button>
         </div>
         <p className="text-secondary">
-          Read-only snapshot from the public API probe. Seeding and resolution run on a schedule (see docs); outcomes stay{' '}
-          <strong>oracle / outcome-based</strong> — feed-topic headline markets remain off in production policy.
+          Live snapshot of market seeding and resolution.
         </p>
       </div>
 

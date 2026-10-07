@@ -1,7 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { useWallet } from '../contexts/WalletContext'
-import { useToastContext } from '../contexts/ToastContext'
 import { getVirtualBalance } from '../services/balance'
 import { BRAND_NAME, BRAND_TAGLINE } from '../constants/brand'
 import { isTauriApp } from '../utils/platform'
@@ -9,12 +8,13 @@ import './Navbar.css'
 
 export default function Navbar() {
   const { wallet, disconnectWallet } = useWallet()
-  const { showToast } = useToastContext()
   const location = useLocation()
   const [showResourcesMenu, setShowResourcesMenu] = useState(false)
+  const [showAccountMenu, setShowAccountMenu] = useState(false)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [balanceFormatted, setBalanceFormatted] = useState(null)
   const resourcesMenuRef = useRef(null)
+  const accountMenuRef = useRef(null)
 
   useEffect(() => {
     if (!wallet?.party) {
@@ -33,6 +33,9 @@ export default function Navbar() {
       if (resourcesMenuRef.current && !resourcesMenuRef.current.contains(event.target)) {
         setShowResourcesMenu(false)
       }
+      if (accountMenuRef.current && !accountMenuRef.current.contains(event.target)) {
+        setShowAccountMenu(false)
+      }
     }
     document.addEventListener('mousedown', handleClickOutside)
     return () => document.removeEventListener('mousedown', handleClickOutside)
@@ -40,6 +43,7 @@ export default function Navbar() {
 
   useEffect(() => {
     setShowResourcesMenu(false)
+    setShowAccountMenu(false)
     setMobileMenuOpen(false)
   }, [location.pathname, location.hash, location.search])
 
@@ -47,23 +51,25 @@ export default function Navbar() {
   const isMarketsActive =
     isActive('/') || location.pathname.startsWith('/discover') || location.pathname.startsWith('/market')
   const isResourcesActive = () =>
-    isActive('/activity') ||
-    isActive('/history') ||
     isActive('/download') ||
     isActive('/automation') ||
     isActive('/docs') ||
     isActive('/documentation') ||
     isActive('/whitepaper')
+  const isAccountActive = () =>
+    isActive('/dashboard') ||
+    isActive('/portfolio') ||
+    isActive('/watchlist') ||
+    isActive('/profile') ||
+    isActive('/activity') ||
+    isActive('/history')
 
   const isDesktopApp = isTauriApp()
-
-  const copyDisplayName = () => {
-    if (!wallet?.party) return
-    navigator.clipboard?.writeText(wallet.party).then(
-      () => showToast('Display name copied', 'success'),
-      () => showToast('Could not copy', 'error')
-    )
-  }
+  const accountLabel = wallet?.party
+    ? wallet.party.length > 14
+      ? `${wallet.party.substring(0, 14)}…`
+      : wallet.party
+    : 'Account'
 
   return (
     <header className="app-header">
@@ -97,8 +103,12 @@ export default function Navbar() {
 
           <div className="nav-dropdown nav-dropdown-resources" ref={resourcesMenuRef}>
             <button
+              type="button"
               className={`nav-dropdown-toggle ${isResourcesActive() ? 'active' : ''}`}
-              onClick={() => setShowResourcesMenu(!showResourcesMenu)}
+              onClick={() => {
+                setShowResourcesMenu(!showResourcesMenu)
+                setShowAccountMenu(false)
+              }}
             >
               Resources
               <span className="dropdown-arrow">▼</span>
@@ -120,12 +130,6 @@ export default function Navbar() {
                 <Link to="/automation" className={isActive('/automation') ? 'active' : ''}>
                   Automation status
                 </Link>
-                <Link
-                  to="/activity"
-                  className={isActive('/activity') || isActive('/history') ? 'active' : ''}
-                >
-                  Activity
-                </Link>
               </div>
             )}
           </div>
@@ -137,27 +141,45 @@ export default function Navbar() {
                   {balanceFormatted}
                 </Link>
               )}
-              <Link to="/portfolio" className="nav-watchlist-link" title="Portfolio">
-                Portfolio
-              </Link>
-              <Link to="/watchlist" className="nav-watchlist-link" title="Starred markets">
-                Watchlist
-              </Link>
-              <span className="nav-user-name-wrap">
-                <Link to="/dashboard" className="nav-user-name" title={wallet.party}>
-                  {wallet.party.length > 16 ? wallet.party.substring(0, 16) + '…' : wallet.party}
-                </Link>
+              <div className="nav-dropdown nav-dropdown-account" ref={accountMenuRef}>
                 <button
                   type="button"
-                  className="nav-copy-btn"
-                  onClick={copyDisplayName}
-                  aria-label="Copy display name"
-                  title="Copy display name"
+                  className={`nav-dropdown-toggle ${isAccountActive() ? 'active' : ''}`}
+                  onClick={() => {
+                    setShowAccountMenu(!showAccountMenu)
+                    setShowResourcesMenu(false)
+                  }}
+                  title={wallet.party}
                 >
-                  ⧉
+                  {accountLabel}
+                  <span className="dropdown-arrow">▼</span>
                 </button>
-              </span>
-              <button type="button" className="nav-disconnect-btn" onClick={disconnectWallet}>Sign out</button>
+                {showAccountMenu && (
+                  <div className="nav-dropdown-menu">
+                    <Link to="/dashboard" className={isActive('/dashboard') ? 'active' : ''}>
+                      Dashboard
+                    </Link>
+                    <Link to="/portfolio" className={isActive('/portfolio') ? 'active' : ''}>
+                      Portfolio
+                    </Link>
+                    <Link to="/watchlist" className={isActive('/watchlist') ? 'active' : ''}>
+                      Watchlist
+                    </Link>
+                    <Link to="/profile" className={isActive('/profile') ? 'active' : ''}>
+                      Profile
+                    </Link>
+                    <Link
+                      to="/portfolio?tab=activity"
+                      className={isActive('/activity') || isActive('/history') ? 'active' : ''}
+                    >
+                      Activity
+                    </Link>
+                    <button type="button" className="nav-menu-sign-out" onClick={disconnectWallet}>
+                      Sign out
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
           ) : (
             <>

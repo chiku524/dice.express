@@ -21,8 +21,5 @@ export const BRAND = {
 
 export const BRAND_NAME = BRAND.name
 export const BRAND_TAGLINE = BRAND.tagline
-export const BRAND_NAV_TAGLINE = BRAND.navTagline
-export const BRAND_FULL_TITLE = BRAND.fullTitle
 export const BRAND_DESCRIPTION = BRAND.description
 export const BRAND_COPYRIGHT = BRAND.copyright
-export const BRAND_TECH = BRAND.tech

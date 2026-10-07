@@ -14,37 +14,37 @@ export default function PortfolioActivityTab({
     <div className="card">
       <h2 className="mb-md">Activity</h2>
       {activityLog.length === 0 ? (
-        <p className="text-secondary">No activity yet. Your trades and positions will appear here.</p>
+        <p className="text-secondary">No activity yet. Trades and positions show up here.</p>
       ) : (
-        <div style={{ maxHeight: '400px', overflowY: 'auto' }}>
-          {activityLog.map((activity) => (
-            <div key={activity.id} className="activity-item">
-              <div className="activity-content">
-                <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-sm)', marginBottom: 'var(--spacing-sm)' }}>
-                  <strong>Position Created</strong>
-                  {activity.position?.depositAmount && (
+        <div className="portfolio-activity-list">
+          {activityLog.map((activity) => {
+            const mid = activity.position?.marketId
+            const title = marketTitles[mid] || mid || 'Unknown market'
+            return (
+              <div key={activity.id} className="activity-item">
+                <div className="activity-content">
+                  <strong>Opened position</strong>
+                  {activity.position?.depositAmount ? (
                     <span className="activity-badge">
-                      {formatPips(activity.position.depositAmount)} deposited
+                      {formatPips(activity.position.depositAmount)}
                     </span>
-                  )}
+                  ) : null}
+                  <p className="text-secondary portfolio-activity-meta">
+                    <Link to={`/market/${mid}`}>{title}</Link>
+                    {' · '}
+                    {formatPositionType(activity.position?.positionType)}
+                    {' · '}
+                    {activity.position?.amount || '0'} @ {activity.position?.price || '0'}
+                    {' · '}
+                    {formatDate(activity.timestamp)}
+                  </p>
                 </div>
-                <div className="text-secondary" style={{ fontSize: 'var(--font-size-sm)', marginBottom: 'var(--spacing-xs)' }}>
-                  Market: {marketTitles[activity.position?.marketId] || activity.position?.marketId || 'Unknown'}
-                </div>
-                <div className="text-secondary" style={{ fontSize: 'var(--font-size-sm)', marginBottom: 'var(--spacing-xs)' }}>
-                  Type: {formatPositionType(activity.position?.positionType)} | Amount: {activity.position?.amount || '0'} | Price: {activity.position?.price || '0'}
-                </div>
-                <div className="text-muted" style={{ fontSize: 'var(--font-size-xs)' }}>
-                  {formatDate(activity.timestamp)}
-                </div>
+                <Link to={`/market/${mid}`}>
+                  <button type="button" className="btn-secondary">View</button>
+                </Link>
               </div>
-              <Link to={`/market/${activity.position?.marketId}`} style={{ marginLeft: 'var(--spacing-md)' }}>
-                <button type="button" className="btn-secondary" style={{ fontSize: 'var(--font-size-sm)', padding: 'var(--spacing-sm) var(--spacing-md)' }}>
-                  View
-                </button>
-              </Link>
-            </div>
-          ))}
+            )
+          })}
         </div>
       )}
     </div>

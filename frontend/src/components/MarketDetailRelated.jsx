@@ -1,29 +1,20 @@
 import DiscoverMarketEntry from './DiscoverMarketEntry'
-import MarketsLayoutPicker from './MarketsLayoutPicker'
 import { layoutContainerClass } from '../utils/marketsLayout'
-import { useMarketsLayout } from '../hooks/useMarketsLayout'
 
-/** Similar markets on market detail only (not browse/list). */
+/** Similar markets on market detail only (not browse/list). Fixed list layout — no second picker. */
 export default function MarketDetailRelated({ relatedMarkets }) {
-  const [layout, setLayout] = useMarketsLayout()
-
   if (!relatedMarkets?.length) return null
 
   return (
     <section className="market-detail-related" aria-label="Similar markets">
       <div className="market-detail-related-head">
         <h3 className="market-detail-related-title">Similar markets</h3>
-        <MarketsLayoutPicker
-          layout={layout}
-          onChange={setLayout}
-          labelledBy="similar-markets-layout-label"
-        />
       </div>
-      <div className={layoutContainerClass(layout)}>
+      <div className={layoutContainerClass('list')}>
         {relatedMarkets.map((rm) => (
           <DiscoverMarketEntry
             key={rm.contractId || rm.payload?.marketId}
-            layout={layout}
+            layout="list"
             market={rm}
             chrome="related"
           />

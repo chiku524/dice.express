@@ -12,7 +12,6 @@ import {
 } from '../constants/marketConfig'
 import { formatPips } from '../constants/currency'
 import { getMarketStaleness, toggleWatchlist, isWatched } from '../utils/marketUX'
-import { getAbsoluteMarketUrl } from '../utils/marketLinks'
 import { marketStatusClass } from '../utils/marketsLayout'
 
 /** Single market row/card (layout: gallery | list | grid). */
@@ -20,12 +19,9 @@ function DiscoverMarketEntry({
   layout,
   market,
   getStatusClass = marketStatusClass,
-  webShareEnabled,
   expandedQuickTradeId,
   setExpandedQuickTradeId,
   setQuickTradeSeed,
-  copyCardMarketLink,
-  shareCardMarket,
   onWatchlistChanged,
   chrome = 'full',
 }) {
@@ -47,24 +43,27 @@ function DiscoverMarketEntry({
   const isMulti = market.payload.marketType === 'MultiOutcome'
   const multiChips = isMulti && Array.isArray(market.payload.outcomes) ? market.payload.outcomes.slice(0, 4) : []
 
+  const showCategoryInTags = layout !== 'gallery'
   const tagStrip = (
     <div className="market-card-tags market-card-tags--inline">
-      <span className="market-card-tag market-card-tag-category" title={apiTooltip}>
-        {getCategoryEmoji(categoryLabel)} {categoryLabel}
-      </span>
+      {showCategoryInTags && (
+        <span className="market-card-tag market-card-tag-category" title={apiTooltip}>
+          {getCategoryEmoji(categoryLabel)} {categoryLabel}
+        </span>
+      )}
       {(market.openOrderCount || 0) > 0 && (
         <span className="market-card-tag market-card-tag-p2p" title="Open P2P limit orders on the book">
-          P2P · {market.openOrderCount} open
+          P2P · {market.openOrderCount}
         </span>
       )}
       {stale === 'pending_resolution' && (
         <span className="market-card-tag market-card-tag-stale" title="Past resolution time">
-          Pending resolution
+          Pending
         </span>
       )}
-      {confidence.label && (
+      {confidence.label && confidence.level === 'thin' && (
         <span
-          className={`market-card-tag market-card-tag-confidence${confidence.level === 'thin' ? ' market-card-tag-confidence--thin' : ''}`}
+          className="market-card-tag market-card-tag-confidence market-card-tag-confidence--thin"
           title={confidence.hint || undefined}
         >
           {confidence.label}
@@ -125,68 +124,29 @@ function DiscoverMarketEntry({
       </div>
     ) : null
 
+  // Copy/Share live on market detail; cards keep a single Trade CTA.
   const toolbar =
-    mid ? (
-      <div
-        className={[
-          'market-card-toolbar',
-          market.payload?.status === 'Active' ? 'market-card-toolbar--split' : '',
-          !webShareEnabled && market.payload?.status !== 'Active' ? 'market-card-toolbar--end' : '',
-        ]
-          .filter(Boolean)
-          .join(' ')}
-      >
-        <div className="market-card-toolbar-actions">
-          <button
-            type="button"
-            className="market-card-copy-link"
-            title={getAbsoluteMarketUrl(mid)}
-            aria-label={`Copy link to market: ${(market.payload.title || 'market').slice(0, 120)}`}
-            onClick={(e) => {
-              e.preventDefault()
-              e.stopPropagation()
-              void copyCardMarketLink(mid, market.payload.title || '')
-            }}
-          >
-            Copy link
-          </button>
-          {webShareEnabled && (
-            <button
-              type="button"
-              className="market-card-share-link"
-              title="Share via your device (Messages, social apps, etc.)"
-              aria-label={`Share market: ${(market.payload.title || 'market').slice(0, 120)}`}
-              onClick={(e) => {
-                e.preventDefault()
-                e.stopPropagation()
-                void shareCardMarket(market.payload)
-              }}
-            >
-              Share…
-            </button>
-          )}
-        </div>
-        {market.payload?.status === 'Active' && (
-          <button
-            type="button"
-            className={`market-card-quick-trade-btn${quickOpen ? ' market-card-quick-trade-btn--open' : ''}`}
-            aria-expanded={quickOpen}
-            onClick={(e) => {
-              e.preventDefault()
-              e.stopPropagation()
-              setExpandedQuickTradeId((id) => {
-                if (id === mid) {
-                  setQuickTradeSeed(null)
-                  return null
-                }
+    mid && market.payload?.status === 'Active' ? (
+      <div className="market-card-toolbar market-card-toolbar--trade-only">
+        <button
+          type="button"
+          className={`market-card-quick-trade-btn${quickOpen ? ' market-card-quick-trade-btn--open' : ''}`}
+          aria-expanded={quickOpen}
+          onClick={(e) => {
+            e.preventDefault()
+            e.stopPropagation()
+            setExpandedQuickTradeId((id) => {
+              if (id === mid) {
                 setQuickTradeSeed(null)
-                return mid
-              })
-            }}
-          >
-            Trade
-          </button>
-        )}
+                return null
+              }
+              setQuickTradeSeed(null)
+              return mid
+            })
+          }}
+        >
+          Trade
+        </button>
       </div>
     ) : null
 

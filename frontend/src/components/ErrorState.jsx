@@ -17,7 +17,7 @@ export default function ErrorState({
 }) {
   return (
     <div className={`error-state ${className}`.trim()} role="alert">
-      <div className="error-state-icon" aria-hidden>⚠️</div>
+      <div className="error-state-icon" aria-hidden>·</div>
       <h3 className="error-state-title">{title}</h3>
       {message && <p className="error-state-message">{message}</p>}
       <div className="error-state-actions">
