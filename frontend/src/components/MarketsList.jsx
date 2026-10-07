@@ -441,7 +441,7 @@ export default function MarketsList({ source: sourceFromRoute, variant = 'defaul
       </>
     )
     : effectiveSource
-      ? `${getSourceLabel(effectiveSource)} — trade with Pips.`
+      ? 'Trade with Pips.'
       : 'Pick a market. Trade with Pips.'
 
   const setBrowseSource = useCallback(
@@ -534,7 +534,7 @@ export default function MarketsList({ source: sourceFromRoute, variant = 'defaul
       )}
       
       {/* Filters: collapsible on mobile; type/status/sort dropdowns have their own toggle */}
-      {(!loading && !error) && (
+      {(!loading && !error && markets.length > 0) && (
         <div className="card mb-xl filters-card markets-filters-card">
           <div className="markets-filters-toggle-row">
             <button
