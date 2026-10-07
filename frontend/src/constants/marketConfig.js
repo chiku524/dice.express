@@ -28,7 +28,7 @@ export const MARKET_SOURCES = [
   { value: 'entertainment', label: 'Entertainment' },
   { value: 'science', label: 'Science' },
   { value: 'virtual_realities', label: 'Virtual Realities' },
-  { value: 'user', label: 'User-Created' },
+  { value: 'user', label: 'Community' },
 ]
 
 /** URL for Markets browse (query `source` on home). Prefer over legacy `/discover/*` routes. */

@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react'
-import { Link } from 'react-router-dom'
 import { useWallet } from '../contexts/WalletContext'
 import { useAccountModal } from '../contexts/AccountModalContext'
 import { useToastContext } from '../contexts/ToastContext'
@@ -61,7 +60,7 @@ export default function Profile() {
       <UserHubNav />
       <header className="profile-header">
         <h1>Profile &amp; settings</h1>
-        <p className="profile-header-desc">Name, alerts, and account.</p>
+        <p className="profile-header-desc">Display name and alerts.</p>
       </header>
 
       <div className="card profile-card">
@@ -119,22 +118,13 @@ export default function Profile() {
             </>
           )}
         </dl>
-      </div>
-
-      <div className="card profile-card">
-        <h2 className="profile-section-title">Actions</h2>
-        <div className="profile-actions">
-          <Link to="/portfolio" className="btn-primary">Portfolio</Link>
-          <Link to="/dashboard" className="btn-secondary">Dashboard</Link>
-          <Link to="/watchlist" className="btn-secondary">Watchlist</Link>
-          <button
-            type="button"
-            className="btn-secondary"
-            onClick={() => { disconnectWallet(); openAccountModal(); }}
-          >
-            Switch account
-          </button>
-        </div>
+        <button
+          type="button"
+          className="btn-secondary mt-md"
+          onClick={() => { disconnectWallet(); openAccountModal(); }}
+        >
+          Switch account
+        </button>
       </div>
     </div>
   )

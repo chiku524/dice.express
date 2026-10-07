@@ -5,7 +5,7 @@ import LoadingSpinner from './LoadingSpinner'
 import ErrorState from './ErrorState'
 import { fetchMarkets } from '../services/marketsApi'
 import { useDebounce } from '../utils/useDebounce'
-import { MARKET_SOURCES, getSourceLabel, sourceForFilter, categoryForFilter, buildMarketShareDescription, DISCOVER_SOURCE_TO_CATEGORY } from '../constants/marketConfig'
+import { MARKET_SOURCES, getSourceLabel, sourceForFilter, categoryForFilter, DISCOVER_SOURCE_TO_CATEGORY } from '../constants/marketConfig'
 import {
   isOutcomeBasedMarket,
   readWatchlist,
@@ -13,15 +13,12 @@ import {
 import DiscoverMarketEntry from './DiscoverMarketEntry'
 import MarketsLayoutPicker from './MarketsLayoutPicker'
 import MarketQuickTradeModal from './MarketQuickTradeModal'
-import { useToastContext } from '../contexts/ToastContext'
-import { getAbsoluteMarketUrl, copyTextToClipboard, canUseWebShare, shareMarketNative } from '../utils/marketLinks'
 import { layoutContainerClass, marketStatusClass } from '../utils/marketsLayout'
 import { useMarketsLayout } from '../hooks/useMarketsLayout'
 
 const MARKETS_CACHE_KEY = 'dice.markets.cache.v1'
 
 export default function MarketsList({ source: sourceFromRoute, variant = 'default' }) {
-  const { showToast } = useToastContext()
   const [searchParams, setSearchParams] = useSearchParams()
   const sourceFromQuery = searchParams.get('source')
   /** Prefer explicit route prop, then `?source=` on home (single Markets page). */
@@ -77,43 +74,6 @@ export default function MarketsList({ source: sourceFromRoute, variant = 'defaul
     setQuickFilter(isWatchlistPage ? 'watchlist' : 'all')
     sortUserOverrideRef.current = false
   }, [isWatchlistPage])
-
-  const copyCardMarketLink = useCallback(
-    async (id, titleHint) => {
-      const url = getAbsoluteMarketUrl(id)
-      if (!url) return
-      const ok = await copyTextToClipboard(url)
-      if (ok) showToast('Market link copied to clipboard', 'success')
-      else {
-        showToast(
-          titleHint
-            ? `Could not copy — open "${titleHint.slice(0, 40)}${titleHint.length > 40 ? '…' : ''}" and use Copy link`
-            : 'Could not copy — open the market page and use Copy link',
-          'error'
-        )
-      }
-    },
-    [showToast]
-  )
-
-  const webShareEnabled = useMemo(() => canUseWebShare(), [])
-
-  const shareCardMarket = useCallback(
-    async (payload) => {
-      const id = payload?.marketId
-      const url = getAbsoluteMarketUrl(id)
-      if (!url) return
-      const result = await shareMarketNative({
-        title: payload?.title?.trim() || 'Prediction market',
-        text: buildMarketShareDescription(payload),
-        url,
-      })
-      if (!result.ok && result.reason === 'error') {
-        showToast('Could not open the share sheet — try Copy link instead', 'error')
-      }
-    },
-    [showToast]
-  )
 
   const refreshMarketsList = useCallback(async () => {
     try {
@@ -481,7 +441,7 @@ export default function MarketsList({ source: sourceFromRoute, variant = 'defaul
       </>
     )
     : effectiveSource
-      ? `${getSourceLabel(effectiveSource)} — trade with Pips.`
+      ? 'Trade with Pips.'
       : 'Pick a market. Trade with Pips.'
 
   const setBrowseSource = useCallback(
@@ -507,11 +467,7 @@ export default function MarketsList({ source: sourceFromRoute, variant = 'defaul
       <div>
         <h1>{pageTitle}</h1>
         <div className="markets-list-loading-dice">
-          <LoadingSpinner
-            message="Loading markets…"
-            sublabel="Fetching the latest markets."
-            progressSteps={['Rolling the dice…', 'Syncing markets…', 'Applying filters…', 'Almost ready…']}
-          />
+          <LoadingSpinner message="Loading markets…" />
         </div>
         {marketsLayout === 'list' ? (
           <SkeletonMarketList count={8} />
@@ -554,7 +510,7 @@ export default function MarketsList({ source: sourceFromRoute, variant = 'defaul
 
       {!isWatchlistPage && !sourceFromRoute && (
         <div className="markets-browse-sources" role="navigation" aria-label="Market browse">
-          {MARKET_SOURCES.filter((s) => s.value !== 'user').map((source) => {
+          {MARKET_SOURCES.map((source) => {
             const active = (effectiveSource || 'all') === source.value
             return (
               <button
@@ -578,7 +534,7 @@ export default function MarketsList({ source: sourceFromRoute, variant = 'defaul
       )}
       
       {/* Filters: collapsible on mobile; type/status/sort dropdowns have their own toggle */}
-      {(!loading && !error) && (
+      {(!loading && !error && markets.length > 0) && (
         <div className="card mb-xl filters-card markets-filters-card">
           <div className="markets-filters-toggle-row">
             <button
@@ -732,11 +688,11 @@ export default function MarketsList({ source: sourceFromRoute, variant = 'defaul
                       className="filter-select"
                     >
                       <option value="trending">Trending</option>
-                      <option value="volume">Volume (High to Low)</option>
-                      <option value="p2p">P2P activity (open orders)</option>
-                      <option value="newest">Newest First</option>
-                      <option value="oldest">Oldest First</option>
-                      <option value="ending_soon">Ending Soon</option>
+                      <option value="volume">Volume</option>
+                      <option value="p2p">P2P</option>
+                      <option value="newest">Newest</option>
+                      <option value="oldest">Oldest</option>
+                      <option value="ending_soon">Ending soon</option>
                     </select>
                   </div>
                 </div>
@@ -833,11 +789,8 @@ export default function MarketsList({ source: sourceFromRoute, variant = 'defaul
           <div className="filter-results filter-results--markets">
             <div className="filter-results-row">
               <span className="filter-results-text">
-                {activeFilterCount > 0 && (
-                  <span className="filter-badge filter-badge--inline">{activeFilterCount} active</span>
-                )}
                 {totalFiltered === 0
-                  ? 'No matches.'
+                  ? (activeFilterCount > 0 ? 'No matches — clear filters.' : 'No matches.')
                   : (
                     <>
                       <strong>{(effectivePage - 1) * MARKETS_PER_PAGE + 1}</strong>–<strong>{Math.min(effectivePage * MARKETS_PER_PAGE, totalFiltered)}</strong> of <strong>{totalFiltered}</strong>
@@ -847,11 +800,6 @@ export default function MarketsList({ source: sourceFromRoute, variant = 'defaul
               </span>
               <MarketsLayoutPicker layout={marketsLayout} onChange={setMarketsLayout} />
             </div>
-            {activeFilterCount > 0 && filteredAndSortedMarkets.length === 0 && (
-              <span className="filter-no-results">
-                No matches — clear filters or try another search.
-              </span>
-            )}
           </div>
         </div>
       )}
@@ -864,8 +812,8 @@ export default function MarketsList({ source: sourceFromRoute, variant = 'defaul
               <button type="button" className="btn-primary" onClick={handleRetry}>
                 Try again
               </button>
-              <Link to="/activity">
-                <button className="btn-secondary">View History</button>
+              <Link to="/portfolio?tab=activity">
+                <button className="btn-secondary">View activity</button>
               </Link>
             </div>
           </div>
@@ -873,8 +821,8 @@ export default function MarketsList({ source: sourceFromRoute, variant = 'defaul
       ) : markets.length === 0 ? (
         <div className="card">
           <p>No markets yet — check back soon.</p>
-          <Link to="/">
-            <button className="btn-primary mt-md">Browse markets</button>
+          <Link to="/create">
+            <button className="btn-primary mt-md">Create a market</button>
           </Link>
         </div>
       ) : (
@@ -922,12 +870,9 @@ export default function MarketsList({ source: sourceFromRoute, variant = 'defaul
                     layout={marketsLayout}
                     market={market}
                     getStatusClass={getStatusClass}
-                    webShareEnabled={webShareEnabled}
                     expandedQuickTradeId={expandedQuickTradeId}
                     setExpandedQuickTradeId={setExpandedQuickTradeId}
                     setQuickTradeSeed={setQuickTradeSeed}
-                    copyCardMarketLink={copyCardMarketLink}
-                    shareCardMarket={shareCardMarket}
                     onWatchlistChanged={bumpWatchlistVersion}
                   />
                 ))}

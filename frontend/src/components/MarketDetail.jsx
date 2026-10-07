@@ -575,41 +575,28 @@ export default function MarketDetail() {
         <div className="market-detail-info card">
           <div className="market-detail-tags">
             <span className="market-detail-tag market-detail-tag-category">{categoryEmoji} {categoryLabel}</span>
-            {apiAttr.same ? (
-              <span
-                className="market-detail-tag market-detail-tag-api"
-                title="Used to create and resolve this market"
-              >
-                {apiAttr.creation}
-              </span>
-            ) : (
-              <>
-                <span
-                  className="market-detail-tag market-detail-tag-creation"
-                  title="Feed/API used when this market was created"
-                >
-                  Creation: {apiAttr.creation}
-                </span>
-                <span
-                  className="market-detail-tag market-detail-tag-resolution"
-                  title="Data source or process used to resolve this market"
-                >
-                  Resolution: {apiAttr.resolution}
-                </span>
-              </>
-            )}
+            <span
+              className="market-detail-tag market-detail-tag-api"
+              title={
+                apiAttr.same
+                  ? `Data source: ${apiAttr.creation}`
+                  : `Create: ${apiAttr.creation} · Resolve: ${apiAttr.resolution}`
+              }
+            >
+              {apiAttr.same ? apiAttr.creation : `${apiAttr.creation} → ${apiAttr.resolution}`}
+            </span>
             <span className="market-detail-tag market-detail-tag-type">{marketTypeLabel}</span>
             {getMarketStaleness(marketData) === 'pending_resolution' && (
               <span
                 className="market-detail-tag market-detail-tag-stale"
                 title="Past scheduled resolution time — oracle or ops may still be processing"
               >
-                Pending resolution
+                Pending
               </span>
             )}
-            {detailConfidence.label && (
+            {detailConfidence.label && detailConfidence.level === 'thin' && (
               <span
-                className={`market-detail-tag market-detail-tag-confidence${detailConfidence.level === 'thin' ? ' market-detail-tag-confidence--thin' : ''}`}
+                className="market-detail-tag market-detail-tag-confidence market-detail-tag-confidence--thin"
                 title={detailConfidence.hint || undefined}
               >
                 {detailConfidence.label}
@@ -644,8 +631,14 @@ export default function MarketDetail() {
           )}
 
           <section className="market-detail-about" aria-label="About this market">
-            <p className="market-detail-oneliner-text">{oneLiner}</p>
-            {displayDescription && <p className="market-detail-desc">{displayDescription}</p>}
+            {oneLiner ? (
+              <p className="market-detail-oneliner-text">{oneLiner}</p>
+            ) : null}
+            {displayDescription &&
+              displayDescription.trim() &&
+              displayDescription.trim() !== (oneLiner || '').trim() && (
+                <p className="market-detail-desc">{displayDescription}</p>
+              )}
             {whyLine && (
               <details className="market-detail-why-details">
                 <summary>Why this market</summary>
@@ -703,37 +696,42 @@ export default function MarketDetail() {
 
           <div className="market-detail-volumes">
             <div className="market-detail-volume-item">
+              <span className="market-detail-volume-label">Volume</span>
+              <span className="volume-display">{formatPips(marketData.totalVolume ?? 0)}</span>
+            </div>
+            <div className="market-detail-volume-item">
               <span className="market-detail-volume-label">Open orders</span>
               <span className="volume-display" title="Resting limit orders on the book">
                 {market.openOrderCount ?? 0}
               </span>
             </div>
-            <div className="market-detail-volume-item">
-              <span className="market-detail-volume-label">Volume</span>
-              <span className="volume-display">{formatPips(marketData.totalVolume ?? 0)}</span>
-            </div>
-            {marketData.marketType === 'Binary' && (
-              <>
-                <div className="market-detail-volume-item">
-                  <span className="market-detail-volume-label">{marketData.outcomes?.[0] || 'Yes'}</span>
-                  <span className="volume-display">{formatPips(marketData.yesVolume ?? 0)}</span>
-                </div>
-                <div className="market-detail-volume-item">
-                  <span className="market-detail-volume-label">{marketData.outcomes?.[1] || 'No'}</span>
-                  <span className="volume-display">{formatPips(marketData.noVolume ?? 0)}</span>
-                </div>
-              </>
-            )}
           </div>
-          {marketData.marketType === 'MultiOutcome' && marketData.outcomeVolumes && Object.keys(marketData.outcomeVolumes).length > 0 && (
-            <div className="market-detail-outcome-volumes">
-              <span className="market-detail-volume-label">Outcome volumes</span>
-              <div className="market-detail-outcome-list">
-                {Object.entries(marketData.outcomeVolumes).map(([outcome, volume]) => (
-                  <span key={outcome} className="outcome-item">{outcome}: {formatPips(volume)}</span>
-                ))}
-              </div>
-            </div>
+          {((marketData.marketType === 'Binary' &&
+            ((marketData.yesVolume ?? 0) > 0 || (marketData.noVolume ?? 0) > 0)) ||
+            (marketData.marketType === 'MultiOutcome' &&
+              marketData.outcomeVolumes &&
+              Object.keys(marketData.outcomeVolumes).length > 0)) && (
+            <details className="market-detail-outcome-volumes">
+              <summary className="market-detail-volume-label">Per-outcome volume</summary>
+              {marketData.marketType === 'Binary' ? (
+                <div className="market-detail-outcome-list">
+                  <span className="outcome-item">
+                    {marketData.outcomes?.[0] || 'Yes'}: {formatPips(marketData.yesVolume ?? 0)}
+                  </span>
+                  <span className="outcome-item">
+                    {marketData.outcomes?.[1] || 'No'}: {formatPips(marketData.noVolume ?? 0)}
+                  </span>
+                </div>
+              ) : (
+                <div className="market-detail-outcome-list">
+                  {Object.entries(marketData.outcomeVolumes).map(([outcome, volume]) => (
+                    <span key={outcome} className="outcome-item">
+                      {outcome}: {formatPips(volume)}
+                    </span>
+                  ))}
+                </div>
+              )}
+            </details>
           )}
 
           <MarketDetailRelated relatedMarkets={relatedMarkets} />

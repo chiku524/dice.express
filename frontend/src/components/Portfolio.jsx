@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
-import { Link } from 'react-router-dom'
+import { useSearchParams } from 'react-router-dom'
 import { encodeFunctionData } from 'viem'
 import { Connection, PublicKey, Transaction } from '@solana/web3.js'
 import {
@@ -75,10 +75,36 @@ export default function Portfolio() {
   const [userBalance, setUserBalance] = useState('0')
   const [balanceLoading, setBalanceLoading] = useState(true)
   const [marketTitles, setMarketTitles] = useState({}) // Map of marketId -> title
-  const [activeTab, setActiveTab] = useState('balance') // 'balance' | 'positions' | 'activity'
+  const [searchParams, setSearchParams] = useSearchParams()
+  const tabFromUrl = searchParams.get('tab')
+  const initialTab =
+    tabFromUrl === 'positions' || tabFromUrl === 'activity' || tabFromUrl === 'balance'
+      ? tabFromUrl
+      : 'balance'
+  const [activeTab, setActiveTab] = useState(initialTab) // 'balance' | 'positions' | 'activity'
+  const [depositMode, setDepositMode] = useState('wallet') // 'wallet' | 'address'
   const [retryCount, setRetryCount] = useState(0)
   const isMountedRef = useRef(true)
   const depositCardRef = useRef(null)
+
+  useEffect(() => {
+    const t = searchParams.get('tab')
+    if (t === 'positions' || t === 'activity' || t === 'balance') {
+      setActiveTab(t)
+    }
+  }, [searchParams])
+
+  const selectTab = useCallback(
+    (id) => {
+      setActiveTab(id)
+      if (id === 'balance') {
+        setSearchParams({}, { replace: true })
+      } else {
+        setSearchParams({ tab: id }, { replace: true })
+      }
+    },
+    [setSearchParams]
+  )
 
   const exposureByMarket = useMemo(() => {
     const map = new Map()
@@ -684,14 +710,9 @@ export default function Portfolio() {
   return (
     <div className="portfolio-page">
       <UserHubNav />
-      <nav className="portfolio-breadcrumb" aria-label="Breadcrumb">
-        <Link to="/">Markets</Link>
-        <span className="portfolio-breadcrumb-sep" aria-hidden>→</span>
-        <span>Portfolio</span>
-      </nav>
       <header className="portfolio-header">
         <h1>Portfolio</h1>
-        <p className="portfolio-header-desc">Balance, positions, add credits & withdraw.</p>
+        <p className="portfolio-header-desc">Balance, positions, deposit & withdraw.</p>
       </header>
 
       <div className="portfolio-tabs mb-xl" role="tablist" aria-label="Portfolio sections">
@@ -702,7 +723,7 @@ export default function Portfolio() {
             role="tab"
             aria-selected={activeTab === tab.id}
             className={`portfolio-tab${activeTab === tab.id ? ' portfolio-tab--active' : ''}`}
-            onClick={() => setActiveTab(tab.id)}
+            onClick={() => selectTab(tab.id)}
           >
             {tab.label}
             {typeof tab.count === 'number' && tab.count > 0 && (
@@ -728,19 +749,45 @@ export default function Portfolio() {
           )}
         </p>
         <p className="balance-hint">
-          Add credits (deposit via wallet or crypto); withdraw earnings when ready (fee applies).
+          Deposit to trade. Withdraw when ready.
         </p>
       </div>
 
-      {/* Deposit from connected wallet — first */}
-      <div className="card mb-xl">
-        <h2 className="mb-md">Deposit from wallet</h2>
+      {/* Deposit — wallet or platform address */}
+      <div ref={depositCardRef} className="card mb-xl">
+        <h2 className="mb-md">Deposit</h2>
+        <div className="portfolio-deposit-modes mb-md" role="tablist" aria-label="Deposit method">
+          <button
+            type="button"
+            role="tab"
+            aria-selected={depositMode === 'wallet'}
+            className={`portfolio-deposit-mode${depositMode === 'wallet' ? ' portfolio-deposit-mode--active' : ''}`}
+            onClick={() => setDepositMode('wallet')}
+          >
+            Wallet
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={depositMode === 'address'}
+            className={`portfolio-deposit-mode${depositMode === 'address' ? ' portfolio-deposit-mode--active' : ''}`}
+            onClick={() => setDepositMode('address')}
+          >
+            Address
+          </button>
+        </div>
+
+        {depositMode === 'wallet' && (
+          <>
         <p className="text-secondary mb-md" style={{ fontSize: 'var(--font-size-sm)' }}>
-          Use an EVM wallet for USDC or native gas tokens on the chain you select, or Phantom for Solana USDC. Pips credit after confirmation and you sign the verification step (EVM: personal_sign; Solana: message signature).
+          Connect an EVM wallet or Phantom, send USDC (or native), then sign to credit Pips.
         </p>
-        <p className="text-muted mb-md" style={{ fontSize: 'var(--font-size-xs)' }}>
-          <strong>Solana USDC:</strong> SPL token (6 decimals). You need a small amount of SOL in Phantom for network fees. Deposits use at least 0.01 PP (USDC) in the form below; withdrawals to Solana are USDC-only (see Withdraw).
-        </p>
+        <details className="portfolio-deposit-details mb-md">
+          <summary>Fees &amp; decimals</summary>
+          <p className="text-muted" style={{ fontSize: 'var(--font-size-xs)' }}>
+            Solana USDC is SPL (6 decimals); keep a little SOL for fees. Min deposit 0.01 PP (USDC). Withdrawals to Solana are USDC-only.
+          </p>
+        </details>
         <div className="form-group form-narrow">
           <label>Asset</label>
           <select
@@ -861,16 +908,16 @@ export default function Portfolio() {
             'Send USDC'
           )}
         </button>
-      </div>
+          </>
+        )}
 
-      {/* Deposit with crypto (platform addresses) — ref for ?deposit= scroll */}
-      <div ref={depositCardRef} className="card mb-xl">
-        <h2 className="mb-md">Deposit with crypto</h2>
+        {depositMode === 'address' && (
+          <>
         <p className="text-secondary mb-md" style={{ fontSize: 'var(--font-size-sm)' }}>
-          Send USDC (or supported asset) to the platform wallet below. Include your account ID in the memo if the network supports it. After confirmation we credit your Pips (1:1 for stablecoins).
+          Send USDC (or supported asset) to a platform address. Include your account ID in the memo when possible. Credits 1:1 after confirmation.
         </p>
         <p className="text-muted mb-sm" style={{ fontSize: 'var(--font-size-xs)' }}>
-          Your account ID (use in memo when possible): <code style={{ wordBreak: 'break-all' }}>{wallet?.accountId || wallet?.party}</code>
+          Account ID: <code style={{ wordBreak: 'break-all' }}>{wallet?.accountId || wallet?.party}</code>
         </p>
         {depositAddresses && (
           <div className="mt-md" style={{ fontSize: 'var(--font-size-sm)' }}>
@@ -925,13 +972,15 @@ export default function Portfolio() {
             </ul>
           </div>
         )}
+          </>
+        )}
       </div>
 
       {/* Withdraw */}
       <div className="card mb-xl">
         <h2 className="mb-md">Withdraw</h2>
         <p className="text-secondary mb-md" style={{ fontSize: 'var(--font-size-sm)' }}>
-          Withdraw USDC (EVM or Solana) or native EVM gas tokens to your address. USDC: 2% fee (min 1 PP). Native: 1 PP fee. Processing is immediate when the platform wallet sends on-chain.
+          Withdraw USDC or native EVM gas tokens. USDC: 2% fee (min 1 PP). Native: 1 PP fee.
         </p>
         <div className="form-group form-narrow-sm">
           <label>Token</label>

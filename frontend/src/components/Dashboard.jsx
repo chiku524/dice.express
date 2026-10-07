@@ -16,19 +16,10 @@ export default function Dashboard() {
   const [tipAmount, setTipAmount] = useState('')
   const [tipStatus, setTipStatus] = useState(null)
   const [tipLoading, setTipLoading] = useState(false)
-  const [copiedId, setCopiedId] = useState(false)
 
   const refreshBalance = async () => {
     if (!wallet?.party) return
     await getVirtualBalance(wallet.party)
-  }
-
-  const handleCopyAccountId = () => {
-    if (!wallet?.accountId) return
-    navigator.clipboard.writeText(wallet.accountId).then(() => {
-      setCopiedId(true)
-      setTimeout(() => setCopiedId(false), 2000)
-    })
   }
 
   const handleTipSubmit = async (e) => {
@@ -90,37 +81,13 @@ export default function Dashboard() {
       </header>
 
       <p className="dashboard-subtitle">
-        Deposit crypto → trade with Pips → withdraw from Portfolio.
+        Tip Pips or open <Link to="/portfolio">Portfolio</Link>.
       </p>
-
-      <div className="dashboard-profile-card card">
-        <h2 className="dashboard-card-title">Account</h2>
-        <div className="dashboard-profile-row">
-          <span className="dashboard-profile-label">Display name</span>
-          <code className="dashboard-profile-value">{wallet.party}</code>
-        </div>
-        {wallet.accountId && (
-          <div className="dashboard-profile-row">
-            <span className="dashboard-profile-label">Account ID</span>
-            <div className="dashboard-profile-id-wrap">
-              <code className="dashboard-profile-value dashboard-profile-id">{wallet.accountId}</code>
-              <button type="button" className="dashboard-copy-btn" onClick={handleCopyAccountId} title="Copy">
-                {copiedId ? 'Copied' : 'Copy'}
-              </button>
-            </div>
-          </div>
-        )}
-        <div className="dashboard-quick-links">
-          <Link to="/portfolio" className="dashboard-quick-link primary">Portfolio</Link>
-          <Link to="/profile" className="dashboard-quick-link secondary">Settings</Link>
-          <Link to="/watchlist" className="dashboard-quick-link secondary">Watchlist</Link>
-        </div>
-      </div>
 
       <div className="dashboard-cards">
         <div className="card dashboard-card dashboard-tip-card">
           <h2 className="dashboard-card-title">Tip Pips</h2>
-          <p className="dashboard-card-hint">Send Pips by display name</p>
+          <p className="dashboard-card-hint">Send by display name</p>
           <form className="dashboard-tip-form" onSubmit={handleTipSubmit}>
             <input
               type="text"

@@ -61,24 +61,25 @@
   color: #2dd4bf;
 }
 
-/* Disconnect / Sign out — slate/gray (not purple) */
-.wallet-info .nav-disconnect-btn {
+/* Sign out inside Account menu */
+.nav-menu-sign-out {
+  display: block;
+  width: 100%;
+  text-align: left;
+  appearance: none;
   background: transparent;
-  border: 1px solid rgba(100, 116, 139, 0.5);
+  border: none;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
   color: #94a3b8;
-  white-space: nowrap;
-  padding: 8px 14px;
-  min-height: 36px;
+  padding: 10px 14px;
+  margin-top: 4px;
   font-size: var(--font-size-sm);
   font-weight: 500;
-  border-radius: 10px;
   cursor: pointer;
-  transition: border-color 0.2s ease, color 0.2s ease, background 0.2s ease;
 }
 
-.wallet-info .nav-disconnect-btn:hover {
+.nav-menu-sign-out:hover {
   background: rgba(51, 65, 85, 0.5);
-  border-color: rgba(148, 163, 184, 0.5);
   color: #e2e8f0;
 }
 

@@ -6,6 +6,14 @@ Summary of major cleanups and improvements. For current structure see [README](.
 
 ## Unreleased
 
+## 1.0.47 — Full-app simplicity pass (October 2026)
+
+- **Release:** Version **1.0.47** on the branch (tag **`v1.0.47`** after merge) so desktop picks up the shared frontend pass.
+- **Nav:** Signed-in web Account menu (Dashboard / Portfolio / Watchlist / Profile / Activity / Sign out); Resources trimmed. Desktop sidebar: Community in Topics; Activity under Account; Automation off primary More.
+- **Markets:** Community source chip; Trade-only card toolbar; shorter sort labels; leaner detail meta/volumes; Similar markets list without a second layout picker.
+- **Portfolio:** Unified Deposit (Wallet / Address); `/activity` → Portfolio Activity tab; tighter Positions/Activity copy.
+- **Hub / auth / chrome:** Leaner Dashboard, Profile, Footer, Sign-in/Register, Download, loading fallbacks; dead `EmptyState` removed.
+
 ## 1.0.46 — Gallery / List / Grid views (October 2026)
 
 - **Release:** Version **1.0.46**; tag **`v1.0.46`** so desktop CI picks up the browse view modes and background fix.

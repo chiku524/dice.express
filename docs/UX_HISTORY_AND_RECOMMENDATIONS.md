@@ -70,22 +70,22 @@ Theme, color palette, and background animations are left as-is. These recommenda
 
 ### 2.3 Markets list
 
-- **Filters:** One **Filter** chip row (New / Ending soon / Hot P2P / Outcome / Watchlist); **More filters** (type, status, topic, sort) collapsed by default. Search stays in the filters panel (Show filters on mobile).
-- **Layouts:** Gallery / List / Grid (persisted). Gallery is immersive tiles; List is compact rows; Grid is the previous card layout. Prefer short one-liners over long descriptions on cards; primary CTA is **Trade** (modal).
-- **Similar markets:** Only on **market detail**, never on browse/list.
-- **Sort:** Default **Trending**; **Ending soon** / **Volume** / **P2P** available under More filters.
+- **Filters:** Source browse chips (including **Community**) plus one **Filter** chip row (New / Ending soon / Hot P2P / Outcome / Watchlist); **More filters** (type, status, topic, sort) collapsed by default. Search stays in the filters panel (Show filters on mobile).
+- **Layouts:** Gallery / List / Grid (persisted). Gallery is immersive tiles; List is compact rows; Grid is the previous card layout. Prefer short one-liners over long descriptions on cards; primary CTA is **Trade** (modal). Copy/Share live on market detail, not on cards.
+- **Similar markets:** Only on **market detail**, never on browse/list; related section uses a fixed list layout (no second Gallery/List/Grid picker).
+- **Sort:** Default **Trending**; short labels (**Volume** / **P2P** / **Newest**) under More filters.
 
 ### 2.4 Market detail & trading
 
 - **Trade column:** Short ack + outcome pills + pool/limit tabs; odds near the title for a faster read before trading.
-- **Layout:** About + collapsible “Why this market”; resolution rules; volumes; **Similar markets** at the bottom of the info column.
+- **Layout:** Lean tag strip; one-liner preferred over redundant description; collapsible “Why this market”; resolution rules; Volume + Open orders (per-outcome behind details); **Similar markets** at the bottom of the info column.
 - **Feedback:** Prefer **toasts** over **`alert()`** for errors and success (the app already has toast infrastructure).
 
 ### 2.5 Create market, portfolio, account modal
 
-- **Create market:** Progress or sections; success state with **View market** link.
-- **Portfolio:** Tabs for Balance, Positions, Activity; empty states with clear CTAs.
-- **Account modal:** One line explaining persistence; **Switch account** wording if applicable.
+- **Create market:** Progress or sections; success state with **View market** link; one-line stake/fee notes.
+- **Portfolio:** Tabs for Balance, Positions, Activity (`?tab=`); unified Deposit (Wallet / Address); `/activity` redirects to Portfolio Activity. Empty states with clear CTAs.
+- **Account modal / nav:** Account menu for hub links; **Switch account** on Profile.
 
 ### 2.6 Copy & messaging
 

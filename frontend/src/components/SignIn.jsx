@@ -62,21 +62,16 @@ export default function SignIn() {
     <div className="auth-page">
       <div className="auth-brand-panel">
         <div className="auth-brand-content">
-          <h2 className="auth-brand-title">Welcome back</h2>
+          <h2 className="auth-brand-title">{BRAND_NAME}</h2>
           <p className="auth-brand-tagline">
-            Sign in to access your dashboard, portfolio, and prediction markets on {BRAND_NAME}.
+            Trade outcomes with Pips. Deposit and withdraw with crypto.
           </p>
-          <ul className="auth-brand-features">
-            <li>Trade on real-world outcomes with Pips</li>
-            <li>Deposit via crypto, withdraw anytime</li>
-            <li>Your choice. Your chance.</li>
-          </ul>
         </div>
       </div>
       <div className="auth-form-panel">
         <div className="auth-card">
           <h1 className="auth-title">Sign in</h1>
-        <p className="auth-subtitle">Use your email and password to continue to {BRAND_NAME}.</p>
+        <p className="auth-subtitle">Email and password.</p>
         <form onSubmit={handleSubmit} className="auth-form">
           {error && <div className="auth-error" role="alert">{error}</div>}
           <label className="auth-label" htmlFor="signin-email">Email</label>

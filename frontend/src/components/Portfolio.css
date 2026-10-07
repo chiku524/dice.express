@@ -38,25 +38,74 @@
   color: var(--color-text-primary);
 }
 
-.portfolio-breadcrumb {
-  font-size: var(--font-size-sm);
-  color: var(--color-text-muted);
-  margin-bottom: var(--spacing-md);
+.portfolio-deposit-modes {
+  display: inline-flex;
+  gap: 0.25rem;
+  padding: 0.2rem;
+  border-radius: var(--radius-lg, 8px);
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
-.portfolio-breadcrumb a {
-  color: var(--color-teal);
+.portfolio-deposit-mode {
+  appearance: none;
+  border: none;
+  background: transparent;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  padding: 0.4rem 0.9rem;
+  border-radius: var(--radius-md, 6px);
+  cursor: pointer;
+  min-height: 36px;
+}
+
+.portfolio-deposit-mode--active {
+  background: rgba(20, 184, 166, 0.18);
+  color: var(--color-text-primary);
+}
+
+.portfolio-deposit-details {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+}
+
+.portfolio-deposit-details summary {
+  cursor: pointer;
+  color: var(--color-text-secondary);
+}
+
+.portfolio-position-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: var(--spacing-md);
+}
+
+.portfolio-position-main h3 {
+  margin: 0 0 var(--spacing-xs);
+  font-size: var(--font-size-base);
+}
+
+.portfolio-position-main h3 a {
+  color: inherit;
   text-decoration: none;
 }
 
-.portfolio-breadcrumb a:hover {
-  text-decoration: underline;
-  color: var(--color-aqua);
+.portfolio-position-main h3 a:hover {
+  color: var(--color-teal);
 }
 
-.portfolio-breadcrumb-sep {
-  margin: 0 var(--spacing-xs);
-  opacity: 0.7;
+.portfolio-position-meta,
+.portfolio-activity-meta {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  line-height: 1.45;
+}
+
+.portfolio-activity-list {
+  max-height: 400px;
+  overflow-y: auto;
 }
 
 .portfolio-header {

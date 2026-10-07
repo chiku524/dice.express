@@ -12,9 +12,7 @@ import {
 } from '../constants/documentationSections'
 import './DesktopSidebar.css'
 
-const discoverSources = MARKET_SOURCES.filter(
-  (s) => s.value === 'all' || s.value !== 'user'
-)
+const discoverSources = MARKET_SOURCES
 
 function isDiscoverRoute(pathname) {
   if (pathname === '/') return true
@@ -282,6 +280,21 @@ export default function DesktopSidebar() {
                   Profile
                 </NavLink>
               </li>
+              <li>
+                <NavLink
+                  to="/portfolio?tab=activity"
+                  className={() =>
+                    `desktop-sidebar__link${
+                      location.pathname === '/portfolio' &&
+                      new URLSearchParams(location.search).get('tab') === 'activity'
+                        ? ' desktop-sidebar__link--active'
+                        : ''
+                    }`
+                  }
+                >
+                  Activity
+                </NavLink>
+              </li>
             </ul>
           </>
         )}
@@ -369,26 +382,6 @@ export default function DesktopSidebar() {
               }
             >
               Whitepaper
-            </NavLink>
-          </li>
-          <li>
-            <NavLink
-              to="/automation"
-              className={({ isActive }) =>
-                `desktop-sidebar__link ${isActive ? 'desktop-sidebar__link--active' : ''}`
-              }
-            >
-              Automation status
-            </NavLink>
-          </li>
-          <li>
-            <NavLink
-              to="/activity"
-              className={({ isActive }) =>
-                `desktop-sidebar__link ${isActive ? 'desktop-sidebar__link--active' : ''}`
-              }
-            >
-              Activity
             </NavLink>
           </li>
         </ul>

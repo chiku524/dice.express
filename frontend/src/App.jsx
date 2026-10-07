@@ -85,11 +85,7 @@ function AuthLayout({ children }) {
       <div className="app app--auth">
         <Suspense
           fallback={
-            <LoadingSpinner
-              message="Loading…"
-              sublabel="Preparing this screen."
-              progressSteps={['Rolling the dice…', 'Loading module…', 'Almost ready…']}
-            />
+            <LoadingSpinner message="Loading…" />
           }
         >
           {children}
@@ -108,11 +104,7 @@ function RootLayout({ showWalletModal, setShowWalletModal }) {
     <AccountModalProvider open={() => setShowWalletModal(true)}>
       <Suspense
         fallback={
-          <LoadingSpinner
-            message="Loading…"
-            sublabel="Preparing this screen."
-            progressSteps={['Rolling the dice…', 'Loading module…', 'Almost ready…']}
-          />
+          <LoadingSpinner message="Loading…" />
         }
       >
         <div

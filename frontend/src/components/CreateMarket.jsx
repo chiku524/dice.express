@@ -249,15 +249,9 @@ export default function CreateMarket() {
           />
         </div>
 
-        <ul className="create-market__notes text-muted">
-          <li>
-            Creation stake: <strong>{formatPips(creationStake)}</strong> charged when you publish
-            (non-refundable).
-          </li>
-          <li>Manual resolution — you settle the winning outcome (early settle OK if the outcome is clear).</li>
-          <li>P2P trading uses the same rules as automated markets (2% fee on settlement).</li>
-          <li>Limit: 5 new markets per day per account.</li>
-        </ul>
+        <p className="create-market__notes text-muted">
+          Stake <strong>{formatPips(creationStake)}</strong> when you publish (non-refundable). You resolve the outcome. 5 markets/day · 2% settlement fee.
+        </p>
 
         <div className="create-market__actions">
           <button type="submit" className="btn-primary" disabled={loading}>
