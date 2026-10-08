@@ -42,16 +42,16 @@
 /* Account & Resources — teal/slate (not purple) on dark navbar */
 .nav-dropdown-account .nav-dropdown-toggle,
 .nav-dropdown-resources .nav-dropdown-toggle {
-  background: rgba(30, 41, 59, 0.6);
-  border-color: rgba(71, 85, 105, 0.5);
-  color: #94a3b8;
+  background: var(--color-chrome-control-bg);
+  border-color: var(--color-chrome-control-border);
+  color: var(--color-slate-text);
 }
 
 .nav-dropdown-account .nav-dropdown-toggle:hover,
 .nav-dropdown-resources .nav-dropdown-toggle:hover {
-  background: rgba(51, 65, 85, 0.7);
-  border-color: rgba(100, 116, 139, 0.5);
-  color: #cbd5e1;
+  background: var(--color-chrome-control-hover);
+  border-color: var(--color-chrome-control-border);
+  color: var(--color-slate-text-hover);
 }
 
 .nav-dropdown-account .nav-dropdown-toggle.active,
@@ -69,8 +69,8 @@
   appearance: none;
   background: transparent;
   border: none;
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
-  color: #94a3b8;
+  border-top: 1px solid var(--color-glass-border);
+  color: var(--color-slate-text);
   padding: 10px 14px;
   margin-top: 4px;
   font-size: var(--font-size-sm);
@@ -79,8 +79,8 @@
 }
 
 .nav-menu-sign-out:hover {
-  background: rgba(51, 65, 85, 0.5);
-  color: #e2e8f0;
+  background: var(--color-chrome-control-hover);
+  color: var(--color-slate-text-hover);
 }
 
 .dropdown-arrow {
@@ -100,10 +100,10 @@
   align-items: center;
   padding: 10px 16px;
   min-height: 44px;
-  background: rgba(30, 41, 59, 0.6);
-  border: 1px solid rgba(71, 85, 105, 0.5);
+  background: var(--color-chrome-control-bg);
+  border: 1px solid var(--color-chrome-control-border);
   border-radius: 12px;
-  color: #94a3b8;
+  color: var(--color-slate-text);
   font-size: var(--font-size-sm);
   font-weight: var(--font-weight-medium);
   text-decoration: none;
@@ -112,9 +112,9 @@
 }
 
 .nav-link:hover {
-  background: rgba(51, 65, 85, 0.7);
-  border-color: rgba(100, 116, 139, 0.5);
-  color: #cbd5e1;
+  background: var(--color-chrome-control-hover);
+  border-color: var(--color-chrome-control-border);
+  color: var(--color-slate-text-hover);
 }
 
 .nav-link.active {
@@ -127,9 +127,9 @@
   position: absolute;
   top: calc(100% + var(--spacing-sm));
   left: 0;
-  background: rgba(15, 23, 42, 0.98);
+  background: var(--color-chrome-menu);
   backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--color-glass-border);
   border-radius: 14px;
   padding: var(--spacing-xs) 0;
   min-width: 200px;

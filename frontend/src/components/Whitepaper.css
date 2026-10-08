@@ -11,7 +11,7 @@
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  color: rgba(255, 255, 255, 0.5);
+  color: var(--color-text-muted);
 }
 
 .whitepaper-tauri-jump select {
@@ -20,7 +20,7 @@
   border-radius: 8px;
   border: 1px solid rgba(139, 92, 246, 0.35);
   background: rgba(15, 22, 35, 0.9);
-  color: rgba(255, 255, 255, 0.92);
+  color: var(--color-text-primary);
   font-size: 0.95rem;
   font-family: inherit;
   cursor: pointer;
@@ -38,13 +38,13 @@
 .doc-section dt {
   margin-top: 1rem;
   font-weight: 600;
-  color: rgba(255, 255, 255, 0.95);
+  color: var(--color-text-primary);
 }
 
 .doc-section dd {
   margin: 0.35rem 0 0 0;
   padding-left: 0;
-  color: rgba(255, 255, 255, 0.82);
+  color: var(--color-text-secondary);
   line-height: 1.6;
 }
 
