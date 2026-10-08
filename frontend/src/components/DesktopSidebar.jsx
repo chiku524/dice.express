@@ -10,6 +10,7 @@ import {
   DOCUMENTATION_SECTIONS,
   documentationBasePath,
 } from '../constants/documentationSections'
+import ThemeToggle from './ThemeToggle'
 import './DesktopSidebar.css'
 
 const discoverSources = MARKET_SOURCES
@@ -388,6 +389,10 @@ export default function DesktopSidebar() {
       </nav>
 
       <div className="desktop-sidebar__footer">
+        <div className="desktop-sidebar__theme">
+          <span className="desktop-sidebar__theme-label">Theme</span>
+          <ThemeToggle variant="compact" />
+        </div>
         {wallet ? (
           <>
             {balanceFormatted != null && (

@@ -1,0 +1,229 @@
+/**
+ * Theme-aware chrome & surface wiring.
+ * Dark values match the pre-toggle design; light uses [data-theme="light"] tokens from theme.css.
+ */
+
+.app-header {
+  background: linear-gradient(
+    180deg,
+    var(--color-chrome-bg) 0%,
+    var(--color-chrome-bg-mid) 50%,
+    var(--color-chrome-bg-end) 100%
+  );
+  border-bottom-color: var(--color-chrome-border);
+}
+
+.desktop-sidebar {
+  background: var(--color-chrome-sidebar);
+  border-right-color: var(--color-chrome-border);
+}
+
+.desktop-sidebar__brand,
+.desktop-sidebar__footer {
+  border-color: var(--color-chrome-border-subtle);
+}
+
+.app-footer,
+.footer {
+  background: var(--color-chrome-footer);
+  border-top-color: var(--color-chrome-border);
+}
+
+.nav-dropdown-menu,
+.desktop-sidebar__flyout {
+  background: var(--color-chrome-menu);
+  border-color: var(--color-chrome-border);
+}
+
+.nav-dropdown-toggle,
+.nav-link {
+  background: var(--color-chrome-control-bg);
+  border-color: var(--color-chrome-control-border);
+  color: var(--color-slate-text);
+}
+
+.nav-dropdown-toggle:hover,
+.nav-link:hover {
+  background: var(--color-chrome-control-hover);
+  color: var(--color-slate-text-hover);
+}
+
+.nav-menu-sign-out {
+  border-top-color: var(--color-glass-border);
+  color: var(--color-slate-text);
+}
+
+.nav-menu-sign-out:hover {
+  background: var(--color-chrome-control-hover);
+  color: var(--color-slate-text-hover);
+}
+
+/* ---- Light: AnimatedBackground (cool slate wash, quieter neon) ---- */
+[data-theme="light"] .animated-background {
+  background: #d8e0ea;
+}
+
+[data-theme="light"] .animated-background-stone {
+  --stone-deep: #dce3ed;
+  --stone-mid: #e6ebf2;
+  --stone-vein: #eef2f7;
+  background:
+    radial-gradient(ellipse 100% 55% at 15% -5%, rgba(100, 116, 139, 0.14) 0%, transparent 52%),
+    radial-gradient(ellipse 80% 50% at 92% 12%, rgba(14, 116, 144, 0.08) 0%, transparent 48%),
+    radial-gradient(ellipse 70% 45% at 8% 88%, rgba(71, 85, 105, 0.1) 0%, transparent 50%),
+    radial-gradient(ellipse 90% 60% at 78% 96%, rgba(109, 40, 217, 0.05) 0%, transparent 55%),
+    linear-gradient(168deg, var(--stone-deep) 0%, var(--stone-mid) 42%, var(--stone-vein) 100%);
+}
+
+[data-theme="light"] .animated-background-stone::after {
+  opacity: 0.22;
+  background-image: repeating-linear-gradient(
+    -18deg,
+    transparent,
+    transparent 2px,
+    rgba(15, 23, 42, 0.04) 2px,
+    rgba(15, 23, 42, 0.04) 3px
+  );
+  mix-blend-mode: multiply;
+}
+
+[data-theme="light"] .animated-background-grain {
+  opacity: 0.04;
+  mix-blend-mode: multiply;
+}
+
+[data-theme="light"] .ab-drift-line {
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(15, 118, 110, 0.14) 38%,
+    rgba(37, 99, 235, 0.12) 52%,
+    transparent 100%
+  );
+}
+
+[data-theme="light"] .ab-drift-line-b {
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(109, 40, 217, 0.08) 44%,
+    rgba(15, 118, 110, 0.1) 58%,
+    transparent 100%
+  );
+}
+
+[data-theme="light"] .animated-background-neon-layer {
+  opacity: 0.45;
+}
+
+[data-theme="light"] .ab-vein-shadow {
+  stroke: rgba(148, 163, 184, 0.35);
+}
+
+[data-theme="light"] .ab-vein-main {
+  stroke: rgba(100, 116, 139, 0.4);
+}
+
+/* ---- Light: common dark-glass hardcodes across surfaces ---- */
+[data-theme="light"] .btn-primary,
+[data-theme="light"] .btn-connect,
+[data-theme="light"] .desktop-sidebar__btn--primary {
+  color: var(--color-on-primary);
+}
+
+[data-theme="light"] .documentation-container,
+[data-theme="light"] .docs-main,
+[data-theme="light"] .docs-sidebar {
+  --docs-main-bg: var(--color-background-transparent);
+  color: var(--color-text-primary);
+}
+
+[data-theme="light"] .documentation-container code,
+[data-theme="light"] .documentation-container pre,
+[data-theme="light"] .whitepaper-container code,
+[data-theme="light"] .whitepaper-container pre {
+  background: var(--color-code-bg);
+  color: var(--color-text-primary);
+  border-color: var(--color-glass-border);
+}
+
+[data-theme="light"] .auth-card,
+[data-theme="light"] .auth-brand-panel,
+[data-theme="light"] .wallet-modal,
+[data-theme="light"] .wallet-modal-content,
+[data-theme="light"] .modal-content,
+[data-theme="light"] .quick-trade-modal,
+[data-theme="light"] .market-quick-trade {
+  background: var(--color-panel);
+  border-color: var(--color-glass-border-strong);
+  color: var(--color-text-primary);
+}
+
+[data-theme="light"] .auth-card input,
+[data-theme="light"] .profile-input,
+[data-theme="light"] input[type="text"],
+[data-theme="light"] input[type="email"],
+[data-theme="light"] input[type="password"],
+[data-theme="light"] input[type="number"],
+[data-theme="light"] select,
+[data-theme="light"] textarea {
+  background: var(--color-input-bg);
+  color: var(--color-text-primary);
+  border-color: var(--color-glass-border-strong);
+}
+
+[data-theme="light"] .toast,
+[data-theme="light"] .toast-item {
+  background: var(--color-surface);
+  color: var(--color-text-primary);
+  border-color: var(--color-border);
+  box-shadow: var(--shadow-lg);
+}
+
+[data-theme="light"] .skeleton,
+[data-theme="light"] .skeleton-loader,
+[data-theme="light"] [class*="skeleton"] {
+  background: linear-gradient(
+    90deg,
+    rgba(148, 163, 184, 0.18) 0%,
+    rgba(148, 163, 184, 0.32) 50%,
+    rgba(148, 163, 184, 0.18) 100%
+  ) !important;
+}
+
+[data-theme="light"] .dashboard-card,
+[data-theme="light"] .portfolio-card,
+[data-theme="light"] .profile-card,
+[data-theme="light"] .user-hub-nav,
+[data-theme="light"] .markets-toolbar,
+[data-theme="light"] .market-detail-meta,
+[data-theme="light"] .activity-list,
+[data-theme="light"] .download-card {
+  background: var(--color-surface);
+  border-color: var(--color-border);
+  color: var(--color-text-primary);
+}
+
+[data-theme="light"] .desktop-sidebar__flyout,
+[data-theme="light"] .desktop-sidebar__link,
+[data-theme="light"] .desktop-sidebar__section-label {
+  color: var(--color-text-secondary);
+}
+
+[data-theme="light"] .desktop-sidebar__link--active,
+[data-theme="light"] .desktop-sidebar__link:hover {
+  color: var(--color-text-primary);
+  background: var(--color-glass-fill-hover);
+}
+
+[data-theme="light"] .nav-dropdown-menu a,
+[data-theme="light"] .nav-dropdown-menu button {
+  color: var(--color-text-secondary);
+}
+
+[data-theme="light"] .nav-dropdown-menu a:hover,
+[data-theme="light"] .nav-dropdown-menu a.active,
+[data-theme="light"] .nav-dropdown-menu button:hover {
+  color: var(--color-text-primary);
+  background: var(--color-glass-fill-hover);
+}

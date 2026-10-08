@@ -20,7 +20,12 @@
   flex-direction: column;
   justify-content: center;
   padding: var(--spacing-2xl) var(--spacing-2xl);
-  background: linear-gradient(165deg, rgba(15, 23, 42, 0.97) 0%, rgba(30, 41, 59, 0.95) 50%, rgba(15, 23, 42, 0.97) 100%);
+  background: linear-gradient(
+    165deg,
+    var(--color-chrome-bg) 0%,
+    var(--color-chrome-bg-mid) 50%,
+    var(--color-chrome-bg-end) 100%
+  );
   border-right: 1px solid var(--color-border-light);
   position: relative;
   overflow: hidden;
@@ -93,9 +98,10 @@
 .auth-card {
   width: 100%;
   max-width: 400px;
-  background: rgba(15, 23, 42, 0.55);
+  background: var(--color-panel);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--color-glass-border-strong);
   border-radius: var(--radius-xl, 12px);
   padding: var(--spacing-2xl);
   border: 1px solid rgba(255, 255, 255, 0.08);
@@ -134,8 +140,8 @@
 .auth-input {
   width: 100%;
   padding: 14px 16px;
-  background: rgba(0, 0, 0, 0.35);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: var(--color-input-bg);
+  border: 1px solid var(--color-glass-border);
   border-radius: 12px;
   color: var(--color-text-primary);
   font-size: var(--font-size-base);

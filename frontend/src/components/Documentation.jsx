@@ -266,7 +266,7 @@ function WalletAuthenticationContent() {
 
       <h2>Profile</h2>
       <p>
-        <strong>Profile</strong> (<code>/profile</code>) lets you update your display name (same validation as registration) and review account details.
+        <strong>Profile</strong> (<code>/profile</code>) lets you update your display name (same validation as registration), choose <strong>Appearance</strong> (dark default / light; saved in <code>localStorage</code> as <code>dice.theme</code>), and review account details. Compact theme toggles also live in the web nav, auth pages, and desktop sidebar.
       </p>
 
       <h2>Security notes</h2>
@@ -682,7 +682,7 @@ function ArchitectureContent() {
       <ul>
         <li><strong>D1:</strong> Markets, pools, positions, balances, deposits, withdrawal requests</li>
         <li><strong>KV/R2:</strong> Optional cache and backup</li>
-        <li><strong>localStorage:</strong> Session (accountId, display name)</li>
+        <li><strong>localStorage:</strong> Session (accountId, display name); theme preference (<code>dice.theme</code>, dark default)</li>
       </ul>
     </div>
   )

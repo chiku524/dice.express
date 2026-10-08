@@ -4,6 +4,7 @@ import { useWallet } from '../contexts/WalletContext'
 import { getVirtualBalance } from '../services/balance'
 import { BRAND_NAME, BRAND_TAGLINE } from '../constants/brand'
 import { isTauriApp } from '../utils/platform'
+import ThemeToggle from './ThemeToggle'
 import './Navbar.css'
 
 export default function Navbar() {
@@ -136,6 +137,7 @@ export default function Navbar() {
 
           {wallet ? (
             <div className="wallet-info">
+              <ThemeToggle variant="compact" />
               {balanceFormatted != null && (
                 <Link to="/portfolio" className="nav-balance" title="Pips — Portfolio">
                   {balanceFormatted}
@@ -174,6 +176,7 @@ export default function Navbar() {
                     >
                       Activity
                     </Link>
+                    <ThemeToggle variant="menu" />
                     <button type="button" className="nav-menu-sign-out" onClick={disconnectWallet}>
                       Sign out
                     </button>
@@ -183,6 +186,7 @@ export default function Navbar() {
             </div>
           ) : (
             <>
+              <ThemeToggle variant="compact" />
               <Link to="/sign-in" className="nav-sign-in-link">Sign in</Link>
               <Link to="/register" className="btn-connect">Create account</Link>
             </>

@@ -3,13 +3,21 @@
  * Centralized styling for consistent design across the application
  */
 
-:root {
+/*
+ * Dark = product default (current design). Light = cool slate companion.
+ * Toggle sets html[data-theme="dark"|"light"]; early script in index.html avoids FOUC.
+ */
+:root,
+[data-theme="dark"] {
+  color-scheme: dark;
+
   /* Primary — violet/indigo (UI); logo keeps green via --color-logo-accent) */
   --color-primary: #8b5cf6;
   --color-primary-hover: #7c3aed;
   --color-primary-light: rgba(139, 92, 246, 0.12);
   --color-primary-border: rgba(139, 92, 246, 0.35);
   --color-logo-accent: #14b8a6;
+  --color-on-primary: #ffffff;
 
   /* Extended palette — navy, blue, teal, aqua (navbar, footer, accents) */
   --color-navy: #0f172a;
@@ -29,12 +37,37 @@
   --color-input-bg: rgba(0, 0, 0, 0.38);
   --color-border: rgba(139, 92, 246, 0.22);
   --color-border-light: rgba(255, 255, 255, 0.1);
-  
+
   --color-text-primary: rgba(255, 255, 255, 0.87);
   --color-text-secondary: rgba(255, 255, 255, 0.7);
   --color-text-tertiary: rgba(255, 255, 255, 0.6);
   --color-text-muted: rgba(255, 255, 255, 0.5);
-  
+
+  /* Chrome / glass (nav, sidebar, footer, panels) */
+  --color-chrome-bg: rgba(3, 6, 12, 0.97);
+  --color-chrome-bg-mid: rgba(8, 12, 22, 0.96);
+  --color-chrome-bg-end: rgba(3, 6, 12, 0.97);
+  --color-chrome-sidebar: linear-gradient(180deg, rgba(12, 16, 28, 0.98) 0%, rgba(8, 12, 22, 0.99) 100%);
+  --color-chrome-footer: rgba(8, 12, 18, 0.85);
+  --color-chrome-menu: rgba(15, 23, 42, 0.98);
+  --color-chrome-border: rgba(148, 163, 184, 0.12);
+  --color-chrome-border-subtle: rgba(148, 163, 184, 0.08);
+  --color-chrome-control-bg: rgba(30, 41, 59, 0.6);
+  --color-chrome-control-hover: rgba(51, 65, 85, 0.7);
+  --color-chrome-control-border: rgba(71, 85, 105, 0.5);
+  --color-slate-text: #94a3b8;
+  --color-slate-text-hover: #cbd5e1;
+  --color-panel: rgba(15, 23, 42, 0.55);
+  --color-panel-soft: rgba(15, 23, 42, 0.45);
+  --color-glass-fill: rgba(255, 255, 255, 0.04);
+  --color-glass-fill-hover: rgba(255, 255, 255, 0.08);
+  --color-glass-border: rgba(255, 255, 255, 0.08);
+  --color-glass-border-strong: rgba(255, 255, 255, 0.12);
+  --color-glass-border-subtle: rgba(255, 255, 255, 0.06);
+  --color-overlay-scrim: rgba(0, 0, 0, 0.55);
+  --color-code-bg: rgba(0, 0, 0, 0.4);
+  --theme-color-meta: #0a0f14;
+
   --color-success: #22c55e;
   --color-success-bg: rgba(34, 197, 94, 0.2);
   --color-warning: #f59e0b;
@@ -43,14 +76,14 @@
   --color-error-bg: rgba(239, 68, 68, 0.2);
   --color-info: #3b82f6;
   --color-info-bg: rgba(59, 130, 246, 0.2);
-  
+
   /* Status Colors */
   --status-active: #22c55e;
   --status-pending: #3b82f6;
   --status-resolving: #f59e0b;
   --status-settled: #6b7280;
   --status-rejected: #ef4444;
-  
+
   /* Spacing */
   --spacing-xs: 0.25rem;
   --spacing-sm: 0.5rem;
@@ -58,14 +91,14 @@
   --spacing-lg: 1.5rem;
   --spacing-xl: 2rem;
   --spacing-2xl: 3rem;
-  
+
   /* Border Radius */
   --radius-sm: 4px;
   --radius-md: 6px;
   --radius-lg: 8px;
   --radius-xl: 12px;
   --radius-full: 9999px;
-  
+
   /* Shadows */
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.1);
   --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.2);
@@ -116,6 +149,89 @@
   --content-card-max-width: 100%;
   --market-card-min-width: 300px;
   --form-card-max-width: 100%;
+}
+
+/*
+ * Light theme — cool slate / steel (same design language as dark stone + teal).
+ * Avoids cream/terracotta and purple-forward AI defaults; brand violet stays as accent only.
+ */
+[data-theme="light"] {
+  color-scheme: light;
+
+  --color-primary: #6d28d9;
+  --color-primary-hover: #5b21b6;
+  --color-primary-light: rgba(109, 40, 217, 0.1);
+  --color-primary-border: rgba(109, 40, 217, 0.28);
+  --color-logo-accent: #0f766e;
+  --color-on-primary: #ffffff;
+
+  --color-navy: #1e293b;
+  --color-navy-mid: #334155;
+  --color-navy-light: rgba(241, 245, 249, 0.96);
+  --color-blue: #2563eb;
+  --color-blue-soft: rgba(37, 99, 235, 0.12);
+  --color-teal: #0f766e;
+  --color-teal-soft: rgba(15, 118, 110, 0.12);
+  --color-aqua: #0891b2;
+  --color-aqua-soft: rgba(8, 145, 178, 0.12);
+
+  --color-background: #e6ebf2;
+  --color-background-transparent: rgba(230, 235, 242, 0.72);
+  --color-surface: rgba(255, 255, 255, 0.82);
+  --color-surface-hover: rgba(255, 255, 255, 0.94);
+  --color-input-bg: rgba(255, 255, 255, 0.92);
+  --color-border: rgba(71, 85, 105, 0.22);
+  --color-border-light: rgba(51, 65, 85, 0.14);
+
+  --color-text-primary: rgba(15, 23, 42, 0.92);
+  --color-text-secondary: rgba(30, 41, 59, 0.78);
+  --color-text-tertiary: rgba(51, 65, 85, 0.7);
+  --color-text-muted: rgba(71, 85, 105, 0.62);
+
+  --color-chrome-bg: rgba(246, 248, 252, 0.96);
+  --color-chrome-bg-mid: rgba(238, 242, 248, 0.97);
+  --color-chrome-bg-end: rgba(246, 248, 252, 0.96);
+  --color-chrome-sidebar: linear-gradient(180deg, rgba(248, 250, 252, 0.98) 0%, rgba(236, 241, 248, 0.99) 100%);
+  --color-chrome-footer: rgba(241, 245, 249, 0.92);
+  --color-chrome-menu: rgba(255, 255, 255, 0.98);
+  --color-chrome-border: rgba(71, 85, 105, 0.16);
+  --color-chrome-border-subtle: rgba(71, 85, 105, 0.1);
+  --color-chrome-control-bg: rgba(226, 232, 240, 0.85);
+  --color-chrome-control-hover: rgba(203, 213, 225, 0.9);
+  --color-chrome-control-border: rgba(100, 116, 139, 0.35);
+  --color-slate-text: #475569;
+  --color-slate-text-hover: #1e293b;
+  --color-panel: rgba(255, 255, 255, 0.88);
+  --color-panel-soft: rgba(248, 250, 252, 0.9);
+  --color-glass-fill: rgba(15, 23, 42, 0.03);
+  --color-glass-fill-hover: rgba(15, 23, 42, 0.06);
+  --color-glass-border: rgba(51, 65, 85, 0.12);
+  --color-glass-border-strong: rgba(51, 65, 85, 0.18);
+  --color-glass-border-subtle: rgba(51, 65, 85, 0.08);
+  --color-overlay-scrim: rgba(15, 23, 42, 0.4);
+  --color-code-bg: rgba(15, 23, 42, 0.06);
+  --theme-color-meta: #e6ebf2;
+
+  --color-success: #16a34a;
+  --color-success-bg: rgba(22, 163, 74, 0.14);
+  --color-warning: #d97706;
+  --color-warning-bg: rgba(217, 119, 6, 0.14);
+  --color-error: #dc2626;
+  --color-error-bg: rgba(220, 38, 38, 0.12);
+  --color-info: #2563eb;
+  --color-info-bg: rgba(37, 99, 235, 0.12);
+
+  --status-active: #16a34a;
+  --status-pending: #2563eb;
+  --status-resolving: #d97706;
+  --status-settled: #64748b;
+  --status-rejected: #dc2626;
+
+  --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.06);
+  --shadow-md: 0 4px 10px rgba(15, 23, 42, 0.08);
+  --shadow-lg: 0 10px 18px rgba(15, 23, 42, 0.1);
+  --shadow-xl: 0 18px 28px rgba(15, 23, 42, 0.12);
+  --shadow-primary: 0 2px 10px rgba(109, 40, 217, 0.18);
 }
 
 /* Base Card Styles */

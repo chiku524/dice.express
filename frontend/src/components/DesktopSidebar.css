@@ -9,12 +9,8 @@
   min-width: var(--desktop-sidebar-width, 232px);
   height: 100%;
   min-height: 0;
-  background: linear-gradient(
-    180deg,
-    rgba(12, 16, 28, 0.98) 0%,
-    rgba(8, 12, 22, 0.99) 100%
-  );
-  border-right: 1px solid rgba(148, 163, 184, 0.12);
+  background: var(--color-chrome-sidebar);
+  border-right: 1px solid var(--color-chrome-border);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
   z-index: 100;

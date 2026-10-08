@@ -46,11 +46,14 @@ import { ToastContainer } from './components/Toast'
 import { ToastProvider, useToastContext } from './contexts/ToastContext'
 import { AccountModalProvider } from './contexts/AccountModalContext'
 import { Web3WalletProvider } from './contexts/Web3WalletContext'
+import { ThemeProvider } from './contexts/ThemeContext'
+import ThemeToggle from './components/ThemeToggle'
 import ProtectedRoute from './components/ProtectedRoute'
 import './styles/theme.css'
 import './App.css'
 /* After App.css so .app--desktop-shell wins over .app { flex-direction: column } */
 import './styles/desktop-app.css'
+import './styles/theme-surfaces.css'
 
 if (typeof document !== 'undefined') {
   if (isTauriApp()) {
@@ -83,6 +86,9 @@ function AuthLayout({ children }) {
     <>
       <AnimatedBackground />
       <div className="app app--auth">
+        <div className="auth-theme-toggle">
+          <ThemeToggle variant="compact" />
+        </div>
         <Suspense
           fallback={
             <LoadingSpinner message="Loading…" />
@@ -295,15 +301,17 @@ function AppContent() {
 function App() {
   return (
     <ErrorBoundary>
-      <Router>
-        <ToastProvider>
-          <WalletProvider>
-            <Web3WalletProvider>
-              <AppContent />
-            </Web3WalletProvider>
-          </WalletProvider>
-        </ToastProvider>
-      </Router>
+      <ThemeProvider>
+        <Router>
+          <ToastProvider>
+            <WalletProvider>
+              <Web3WalletProvider>
+                <AppContent />
+              </Web3WalletProvider>
+            </WalletProvider>
+          </ToastProvider>
+        </Router>
+      </ThemeProvider>
     </ErrorBoundary>
   )
 }
