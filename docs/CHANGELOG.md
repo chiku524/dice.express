@@ -6,6 +6,11 @@ Summary of major cleanups and improvements. For current structure see [README](.
 
 ## Unreleased
 
+## 1.0.51 — Market detail about beside trade (October 2026)
+
+- **Release:** Version **1.0.51** on the branch (tag **`v1.0.51`** after merge).
+- **Market detail:** Title + odds stay on top; description / Why / How it resolves / volume sit **left of the trade panel** (not a full-width block above Similar markets). Narrow viewports keep trade first; Similar markets remain detail-only below.
+
 ## 1.0.50 — Market detail trade-first layout (October 2026)
 
 - **Release:** Version **1.0.50** on the branch (tag **`v1.0.50`** after merge) so desktop picks up the detail layout.

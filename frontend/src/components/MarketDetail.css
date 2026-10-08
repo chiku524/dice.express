@@ -57,25 +57,33 @@
 .market-detail-layout {
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-xl);
+  gap: var(--spacing-lg);
 }
 
-/* Hero: title/odds + trade side-by-side on wide viewports */
-.market-detail-hero {
+/* Full-width title + odds header */
+.market-detail-header {
+  width: 100%;
+  min-width: 0;
+}
+
+/* About/resolve (left) | trade (right). Narrow: trade first via order. */
+.market-detail-main {
   display: flex;
   flex-direction: column;
   gap: var(--spacing-lg);
   width: 100%;
 }
 
-.market-detail-hero-info {
+.market-detail-secondary {
   width: 100%;
   min-width: 0;
+  order: 2;
 }
 
 .market-detail-hero-trade {
   width: 100%;
   min-width: 0;
+  order: 1;
   scroll-margin-top: 5rem;
 }
 
@@ -106,11 +114,16 @@
 }
 
 @media (min-width: 900px) {
-  .market-detail-hero {
+  .market-detail-main {
     display: grid;
     grid-template-columns: minmax(0, 1fr) minmax(300px, 400px);
     align-items: start;
     gap: var(--spacing-xl);
+  }
+
+  .market-detail-secondary,
+  .market-detail-hero-trade {
+    order: unset;
   }
 
   .market-detail-jump-trade {
@@ -123,13 +136,12 @@
   }
 }
 
-.market-detail-secondary {
-  width: 100%;
-}
-
-/* Legacy alias — some docs/tests may still reference info card */
+/* Legacy aliases */
+.market-detail-hero,
+.market-detail-hero-info,
 .market-detail-info {
   width: 100%;
+  min-width: 0;
 }
 
 .market-detail-tags {
@@ -198,7 +210,8 @@
 }
 
 .market-detail-info .status,
-.market-detail-hero-info .status {
+.market-detail-hero-info .status,
+.market-detail-header .status {
   display: inline-block;
   margin-bottom: 0;
 }
@@ -252,8 +265,9 @@
 }
 
 .market-detail-info > .market-detail-odds,
-.market-detail-hero-info > .market-detail-odds {
-  margin: var(--spacing-sm) 0 var(--spacing-md);
+.market-detail-hero-info > .market-detail-odds,
+.market-detail-header > .market-detail-odds {
+  margin: var(--spacing-sm) 0 0;
 }
 
 .market-detail-related {
