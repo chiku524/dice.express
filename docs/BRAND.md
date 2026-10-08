@@ -24,10 +24,11 @@ To change the app name or tagline, edit `BRAND` in that file. The navbar logo, f
 
 ## 3. Theme (colors)
 
-- **Primary**: Teal/cyan (`#14b8a6`) for an ecosystem-agnostic, modern look; blends with the animated background.
-- **Defined in**: `frontend/src/styles/theme.css` (`:root` variables), or in app CSS as `--color-primary`, `--color-primary-hover`, etc.
+- **Modes**: **Dark** is the product default (current design). **Light** is a cool slate companion using the same tokens. Preference is stored in `localStorage` (`dice.theme`); OS `prefers-color-scheme` is not followed.
+- **UI**: Profile → Appearance; compact toggle in web nav, auth pages, and desktop sidebar footer.
+- **Defined in**: `frontend/src/styles/theme.css` (`:root` / `[data-theme]` variables), `theme-surfaces.css`, and `ThemeContext` / `ThemeToggle`.
 
-Adjust `--color-primary`, `--color-primary-hover`, `--color-primary-light`, `--color-primary-border`, `--shadow-primary`. The animated background and nav/footer gradients use teal/cyan; adjust those if you change the primary.
+Adjust `--color-primary`, `--color-primary-hover`, `--color-primary-light`, `--color-primary-border`, `--shadow-primary`, and chrome tokens (`--color-chrome-*`, `--color-glass-*`). Keep light mode cool slate — not cream/terracotta.
 
 ---
 

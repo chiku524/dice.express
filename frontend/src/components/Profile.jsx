@@ -5,6 +5,7 @@ import { useToastContext } from '../contexts/ToastContext'
 import { formatMemberSince } from '../utils/formatDate'
 import UserHubNav from './UserHubNav'
 import MarketAlertSettings from './MarketAlertSettings'
+import ThemeToggle from './ThemeToggle'
 import './Profile.css'
 
 export default function Profile() {
@@ -60,8 +61,13 @@ export default function Profile() {
       <UserHubNav />
       <header className="profile-header">
         <h1>Profile &amp; settings</h1>
-        <p className="profile-header-desc">Display name and alerts.</p>
+        <p className="profile-header-desc">Display name, appearance, and alerts.</p>
       </header>
+
+      <div className="card profile-card" id="appearance">
+        <h2 className="profile-section-title">Appearance</h2>
+        <ThemeToggle variant="row" />
+      </div>
 
       <div className="card profile-card">
         <h2 className="profile-section-title">Display name</h2>

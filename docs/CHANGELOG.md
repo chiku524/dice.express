@@ -6,6 +6,12 @@ Summary of major cleanups and improvements. For current structure see [README](.
 
 ## Unreleased
 
+## 1.0.48 — Dark / light theme toggle (October 2026)
+
+- **Release:** Version **1.0.48** on the branch (tag **`v1.0.48`** after merge) so desktop picks up the shared theme toggle.
+- **Theme:** Dark mode is the current design and the product default. Light mode is a cool slate companion using the same design tokens (`theme.css` + `theme-surfaces.css`). Preference persists in `localStorage` (`dice.theme`); OS `prefers-color-scheme` is not followed so dark stays default until the user chooses.
+- **UI:** Appearance control on Profile, compact toggle in web nav / auth / desktop sidebar footer, and Account menu item.
+
 ## 1.0.47 — Full-app simplicity pass (October 2026)
 
 - **Release:** Version **1.0.47** on the branch (tag **`v1.0.47`** after merge) so desktop picks up the shared frontend pass.
