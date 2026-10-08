@@ -571,77 +571,184 @@ export default function MarketDetail() {
       </div>
 
       <div className="market-detail-layout">
-        {/* Hero: title + odds + trade — prediction UI in the first viewport */}
-        <div className="market-detail-hero">
-          <div className="market-detail-hero-info card">
-            <div className="market-detail-tags">
-              <span className="market-detail-tag market-detail-tag-category">{categoryEmoji} {categoryLabel}</span>
+        {/* Header: title + odds — full width above the about | trade row */}
+        <header className="market-detail-header card">
+          <div className="market-detail-tags">
+            <span className="market-detail-tag market-detail-tag-category">{categoryEmoji} {categoryLabel}</span>
+            <span
+              className="market-detail-tag market-detail-tag-api"
+              title={
+                apiAttr.same
+                  ? `Data source: ${apiAttr.creation}`
+                  : `Create: ${apiAttr.creation} · Resolve: ${apiAttr.resolution}`
+              }
+            >
+              {apiAttr.same ? apiAttr.creation : `${apiAttr.creation} → ${apiAttr.resolution}`}
+            </span>
+            <span className="market-detail-tag market-detail-tag-type">{marketTypeLabel}</span>
+            {getMarketStaleness(marketData) === 'pending_resolution' && (
               <span
-                className="market-detail-tag market-detail-tag-api"
-                title={
-                  apiAttr.same
-                    ? `Data source: ${apiAttr.creation}`
-                    : `Create: ${apiAttr.creation} · Resolve: ${apiAttr.resolution}`
-                }
+                className="market-detail-tag market-detail-tag-stale"
+                title="Past scheduled resolution time — oracle or ops may still be processing"
               >
-                {apiAttr.same ? apiAttr.creation : `${apiAttr.creation} → ${apiAttr.resolution}`}
+                Pending
               </span>
-              <span className="market-detail-tag market-detail-tag-type">{marketTypeLabel}</span>
-              {getMarketStaleness(marketData) === 'pending_resolution' && (
-                <span
-                  className="market-detail-tag market-detail-tag-stale"
-                  title="Past scheduled resolution time — oracle or ops may still be processing"
-                >
-                  Pending
-                </span>
-              )}
-              {detailConfidence.label && detailConfidence.level === 'thin' && (
-                <span
-                  className="market-detail-tag market-detail-tag-confidence market-detail-tag-confidence--thin"
-                  title={detailConfidence.hint || undefined}
-                >
-                  {detailConfidence.label}
-                </span>
-              )}
-            </div>
-
-            <h1 className="market-detail-title">{displayTitle}</h1>
-            {newsMeta?.topic && (
-              <p className="market-detail-meta">
-                <span>Topic: {newsMeta.topic}</span>
-              </p>
             )}
-            <div className="market-detail-hero-status">
-              <span className={`status status-${marketData.status?.toLowerCase() || 'active'}`}>
-                {marketData.status}
+            {detailConfidence.label && detailConfidence.level === 'thin' && (
+              <span
+                className="market-detail-tag market-detail-tag-confidence market-detail-tag-confidence--thin"
+                title={detailConfidence.hint || undefined}
+              >
+                {detailConfidence.label}
               </span>
-              {marketData.resolutionDeadline && (
-                <span className="market-detail-hero-deadline" title="Scheduled resolution">
-                  Resolves {formatResolutionDeadline(marketData.resolutionDeadline)}
-                </span>
-              )}
+            )}
+          </div>
+
+          <h1 className="market-detail-title">{displayTitle}</h1>
+          {newsMeta?.topic && (
+            <p className="market-detail-meta">
+              <span>Topic: {newsMeta.topic}</span>
+            </p>
+          )}
+          <div className="market-detail-hero-status">
+            <span className={`status status-${marketData.status?.toLowerCase() || 'active'}`}>
+              {marketData.status}
+            </span>
+            {marketData.resolutionDeadline && (
+              <span className="market-detail-hero-deadline" title="Scheduled resolution">
+                Resolves {formatResolutionDeadline(marketData.resolutionDeadline)}
+              </span>
+            )}
+          </div>
+
+          {marketData.marketType === 'Binary' && pool && (
+            <div className="market-detail-odds">
+              <span className="status-badge status-active">Yes {(yesProbability(pool) * 100).toFixed(0)}%</span>
+              <span className="status-badge status-pending">No {(100 - yesProbability(pool) * 100).toFixed(0)}%</span>
             </div>
+          )}
+          {isActiveMultiPool && pool.outcomes && (
+            <div className="market-detail-odds market-detail-odds--multi">
+              {pool.outcomes.map((o) => (
+                <span key={o} className="status-badge status-active" title="Pool-implied share of reserves">
+                  {o} {(outcomeProbabilityMulti(pool, o) * 100).toFixed(0)}%
+                </span>
+              ))}
+            </div>
+          )}
 
-            {marketData.marketType === 'Binary' && pool && (
-              <div className="market-detail-odds">
-                <span className="status-badge status-active">Yes {(yesProbability(pool) * 100).toFixed(0)}%</span>
-                <span className="status-badge status-pending">No {(100 - yesProbability(pool) * 100).toFixed(0)}%</span>
-              </div>
-            )}
-            {isActiveMultiPool && pool.outcomes && (
-              <div className="market-detail-odds market-detail-odds--multi">
-                {pool.outcomes.map((o) => (
-                  <span key={o} className="status-badge status-active" title="Pool-implied share of reserves">
-                    {o} {(outcomeProbabilityMulti(pool, o) * 100).toFixed(0)}%
-                  </span>
-                ))}
-              </div>
+          {(isActiveBinary || isActiveMultiPool) && (
+            <a href="#market-detail-trade" className="market-detail-jump-trade">
+              Jump to trade
+            </a>
+          )}
+        </header>
+
+        {/* Main row: about/resolve/volumes (left) | trade (right). Narrow: trade first. */}
+        <div className="market-detail-main">
+          <div className="market-detail-secondary card">
+            <section className="market-detail-about" aria-label="About this market">
+              {oneLiner ? (
+                <p className="market-detail-oneliner-text">{oneLiner}</p>
+              ) : null}
+              {displayDescription &&
+                displayDescription.trim() &&
+                displayDescription.trim() !== (oneLiner || '').trim() && (
+                  <p className="market-detail-desc">{displayDescription}</p>
+                )}
+              {whyLine && (
+                <details className="market-detail-why-details">
+                  <summary>Why this market</summary>
+                  <p className="market-detail-why-text">{whyLine}</p>
+                </details>
+              )}
+            </section>
+
+            {(marketData.resolutionCriteria || marketData.resolutionDeadline || outcomeSummaries.yes || resolutionSummary) && (
+              <section className="market-detail-resolution" aria-label="How it resolves">
+                <h3 className="market-detail-resolution-title">How it resolves</h3>
+                {marketData.resolutionDeadline && (
+                  <p className="market-detail-resolution-deadline">
+                    <span className="market-detail-resolution-label">Resolves by</span>{' '}
+                    {formatResolutionDeadline(marketData.resolutionDeadline)}
+                  </p>
+                )}
+                {resolutionSummary && (
+                  <p className="market-detail-resolution-summary">{resolutionSummary}</p>
+                )}
+                {plainEnglishLines.length > 0 && (
+                  <details className="market-detail-resolution-details market-detail-plain-english">
+                    <summary>Plain-language summary</summary>
+                    <ul className="market-detail-plain-list">
+                      {plainEnglishLines.map((line, idx) => (
+                        <li key={idx}>{line}</li>
+                      ))}
+                    </ul>
+                  </details>
+                )}
+                {marketData.marketType === 'Binary' && outcomeSummaries.yes && outcomeSummaries.no && (
+                  <ul className="market-detail-resolution-outcomes" aria-label="Outcome definitions">
+                    <li><strong>Yes</strong> — {outcomeSummaries.yes}</li>
+                    <li><strong>No</strong> — {outcomeSummaries.no}</li>
+                  </ul>
+                )}
+                {marketData.marketType === 'MultiOutcome' && Array.isArray(marketData.outcomes) && marketData.outcomes.length > 0 && (
+                  <ul className="market-detail-resolution-outcomes" aria-label="Outcomes">
+                    {marketData.outcomes.map((o) => (
+                      <li key={o}><strong>{o}</strong> — wins at settlement.</li>
+                    ))}
+                  </ul>
+                )}
+                {marketData.resolutionCriteria && !resolutionSummary && (
+                  <p className="market-detail-resolution-criteria"><strong>Rule:</strong> {marketData.resolutionCriteria}</p>
+                )}
+                {marketData.resolutionCriteria && resolutionSummary && (
+                  <details className="market-detail-resolution-details">
+                    <summary>Exact rule</summary>
+                    <p className="market-detail-resolution-criteria">{marketData.resolutionCriteria}</p>
+                  </details>
+                )}
+              </section>
             )}
 
-            {(isActiveBinary || isActiveMultiPool) && (
-              <a href="#market-detail-trade" className="market-detail-jump-trade">
-                Jump to trade
-              </a>
+            <div className="market-detail-volumes">
+              <div className="market-detail-volume-item">
+                <span className="market-detail-volume-label">Volume</span>
+                <span className="volume-display">{formatPips(marketData.totalVolume ?? 0)}</span>
+              </div>
+              <div className="market-detail-volume-item">
+                <span className="market-detail-volume-label">Open orders</span>
+                <span className="volume-display" title="Resting limit orders on the book">
+                  {market.openOrderCount ?? 0}
+                </span>
+              </div>
+            </div>
+            {((marketData.marketType === 'Binary' &&
+              ((marketData.yesVolume ?? 0) > 0 || (marketData.noVolume ?? 0) > 0)) ||
+              (marketData.marketType === 'MultiOutcome' &&
+                marketData.outcomeVolumes &&
+                Object.keys(marketData.outcomeVolumes).length > 0)) && (
+              <details className="market-detail-outcome-volumes">
+                <summary className="market-detail-volume-label">Per-outcome volume</summary>
+                {marketData.marketType === 'Binary' ? (
+                  <div className="market-detail-outcome-list">
+                    <span className="outcome-item">
+                      {marketData.outcomes?.[0] || 'Yes'}: {formatPips(marketData.yesVolume ?? 0)}
+                    </span>
+                    <span className="outcome-item">
+                      {marketData.outcomes?.[1] || 'No'}: {formatPips(marketData.noVolume ?? 0)}
+                    </span>
+                  </div>
+                ) : (
+                  <div className="market-detail-outcome-list">
+                    {Object.entries(marketData.outcomeVolumes).map(([outcome, volume]) => (
+                      <span key={outcome} className="outcome-item">
+                        {outcome}: {formatPips(volume)}
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </details>
             )}
           </div>
 
@@ -692,113 +799,6 @@ export default function MarketDetail() {
               userPositions={userPositions}
             />
           </div>
-        </div>
-
-        {/* Secondary: explanation, resolution rules, volumes — below the fold */}
-        <div className="market-detail-secondary card">
-          <section className="market-detail-about" aria-label="About this market">
-            {oneLiner ? (
-              <p className="market-detail-oneliner-text">{oneLiner}</p>
-            ) : null}
-            {displayDescription &&
-              displayDescription.trim() &&
-              displayDescription.trim() !== (oneLiner || '').trim() && (
-                <p className="market-detail-desc">{displayDescription}</p>
-              )}
-            {whyLine && (
-              <details className="market-detail-why-details">
-                <summary>Why this market</summary>
-                <p className="market-detail-why-text">{whyLine}</p>
-              </details>
-            )}
-          </section>
-
-          {(marketData.resolutionCriteria || marketData.resolutionDeadline || outcomeSummaries.yes || resolutionSummary) && (
-            <section className="market-detail-resolution" aria-label="How it resolves">
-              <h3 className="market-detail-resolution-title">How it resolves</h3>
-              {marketData.resolutionDeadline && (
-                <p className="market-detail-resolution-deadline">
-                  <span className="market-detail-resolution-label">Resolves by</span>{' '}
-                  {formatResolutionDeadline(marketData.resolutionDeadline)}
-                </p>
-              )}
-              {resolutionSummary && (
-                <p className="market-detail-resolution-summary">{resolutionSummary}</p>
-              )}
-              {plainEnglishLines.length > 0 && (
-                <details className="market-detail-resolution-details market-detail-plain-english">
-                  <summary>Plain-language summary</summary>
-                  <ul className="market-detail-plain-list">
-                    {plainEnglishLines.map((line, idx) => (
-                      <li key={idx}>{line}</li>
-                    ))}
-                  </ul>
-                </details>
-              )}
-              {marketData.marketType === 'Binary' && outcomeSummaries.yes && outcomeSummaries.no && (
-                <ul className="market-detail-resolution-outcomes" aria-label="Outcome definitions">
-                  <li><strong>Yes</strong> — {outcomeSummaries.yes}</li>
-                  <li><strong>No</strong> — {outcomeSummaries.no}</li>
-                </ul>
-              )}
-              {marketData.marketType === 'MultiOutcome' && Array.isArray(marketData.outcomes) && marketData.outcomes.length > 0 && (
-                <ul className="market-detail-resolution-outcomes" aria-label="Outcomes">
-                  {marketData.outcomes.map((o) => (
-                    <li key={o}><strong>{o}</strong> — wins at settlement.</li>
-                  ))}
-                </ul>
-              )}
-              {marketData.resolutionCriteria && !resolutionSummary && (
-                <p className="market-detail-resolution-criteria"><strong>Rule:</strong> {marketData.resolutionCriteria}</p>
-              )}
-              {marketData.resolutionCriteria && resolutionSummary && (
-                <details className="market-detail-resolution-details">
-                  <summary>Exact rule</summary>
-                  <p className="market-detail-resolution-criteria">{marketData.resolutionCriteria}</p>
-                </details>
-              )}
-            </section>
-          )}
-
-          <div className="market-detail-volumes">
-            <div className="market-detail-volume-item">
-              <span className="market-detail-volume-label">Volume</span>
-              <span className="volume-display">{formatPips(marketData.totalVolume ?? 0)}</span>
-            </div>
-            <div className="market-detail-volume-item">
-              <span className="market-detail-volume-label">Open orders</span>
-              <span className="volume-display" title="Resting limit orders on the book">
-                {market.openOrderCount ?? 0}
-              </span>
-            </div>
-          </div>
-          {((marketData.marketType === 'Binary' &&
-            ((marketData.yesVolume ?? 0) > 0 || (marketData.noVolume ?? 0) > 0)) ||
-            (marketData.marketType === 'MultiOutcome' &&
-              marketData.outcomeVolumes &&
-              Object.keys(marketData.outcomeVolumes).length > 0)) && (
-            <details className="market-detail-outcome-volumes">
-              <summary className="market-detail-volume-label">Per-outcome volume</summary>
-              {marketData.marketType === 'Binary' ? (
-                <div className="market-detail-outcome-list">
-                  <span className="outcome-item">
-                    {marketData.outcomes?.[0] || 'Yes'}: {formatPips(marketData.yesVolume ?? 0)}
-                  </span>
-                  <span className="outcome-item">
-                    {marketData.outcomes?.[1] || 'No'}: {formatPips(marketData.noVolume ?? 0)}
-                  </span>
-                </div>
-              ) : (
-                <div className="market-detail-outcome-list">
-                  {Object.entries(marketData.outcomeVolumes).map(([outcome, volume]) => (
-                    <span key={outcome} className="outcome-item">
-                      {outcome}: {formatPips(volume)}
-                    </span>
-                  ))}
-                </div>
-              )}
-            </details>
-          )}
         </div>
 
         <MarketDetailRelated relatedMarkets={relatedMarkets} />
