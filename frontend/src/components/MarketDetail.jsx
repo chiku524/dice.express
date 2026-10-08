@@ -571,65 +571,131 @@ export default function MarketDetail() {
       </div>
 
       <div className="market-detail-layout">
-        {/* Top: market details only */}
-        <div className="market-detail-info card">
-          <div className="market-detail-tags">
-            <span className="market-detail-tag market-detail-tag-category">{categoryEmoji} {categoryLabel}</span>
-            <span
-              className="market-detail-tag market-detail-tag-api"
-              title={
-                apiAttr.same
-                  ? `Data source: ${apiAttr.creation}`
-                  : `Create: ${apiAttr.creation} · Resolve: ${apiAttr.resolution}`
-              }
-            >
-              {apiAttr.same ? apiAttr.creation : `${apiAttr.creation} → ${apiAttr.resolution}`}
-            </span>
-            <span className="market-detail-tag market-detail-tag-type">{marketTypeLabel}</span>
-            {getMarketStaleness(marketData) === 'pending_resolution' && (
+        {/* Hero: title + odds + trade — prediction UI in the first viewport */}
+        <div className="market-detail-hero">
+          <div className="market-detail-hero-info card">
+            <div className="market-detail-tags">
+              <span className="market-detail-tag market-detail-tag-category">{categoryEmoji} {categoryLabel}</span>
               <span
-                className="market-detail-tag market-detail-tag-stale"
-                title="Past scheduled resolution time — oracle or ops may still be processing"
+                className="market-detail-tag market-detail-tag-api"
+                title={
+                  apiAttr.same
+                    ? `Data source: ${apiAttr.creation}`
+                    : `Create: ${apiAttr.creation} · Resolve: ${apiAttr.resolution}`
+                }
               >
-                Pending
+                {apiAttr.same ? apiAttr.creation : `${apiAttr.creation} → ${apiAttr.resolution}`}
               </span>
+              <span className="market-detail-tag market-detail-tag-type">{marketTypeLabel}</span>
+              {getMarketStaleness(marketData) === 'pending_resolution' && (
+                <span
+                  className="market-detail-tag market-detail-tag-stale"
+                  title="Past scheduled resolution time — oracle or ops may still be processing"
+                >
+                  Pending
+                </span>
+              )}
+              {detailConfidence.label && detailConfidence.level === 'thin' && (
+                <span
+                  className="market-detail-tag market-detail-tag-confidence market-detail-tag-confidence--thin"
+                  title={detailConfidence.hint || undefined}
+                >
+                  {detailConfidence.label}
+                </span>
+              )}
+            </div>
+
+            <h1 className="market-detail-title">{displayTitle}</h1>
+            {newsMeta?.topic && (
+              <p className="market-detail-meta">
+                <span>Topic: {newsMeta.topic}</span>
+              </p>
             )}
-            {detailConfidence.label && detailConfidence.level === 'thin' && (
-              <span
-                className="market-detail-tag market-detail-tag-confidence market-detail-tag-confidence--thin"
-                title={detailConfidence.hint || undefined}
-              >
-                {detailConfidence.label}
+            <div className="market-detail-hero-status">
+              <span className={`status status-${marketData.status?.toLowerCase() || 'active'}`}>
+                {marketData.status}
               </span>
+              {marketData.resolutionDeadline && (
+                <span className="market-detail-hero-deadline" title="Scheduled resolution">
+                  Resolves {formatResolutionDeadline(marketData.resolutionDeadline)}
+                </span>
+              )}
+            </div>
+
+            {marketData.marketType === 'Binary' && pool && (
+              <div className="market-detail-odds">
+                <span className="status-badge status-active">Yes {(yesProbability(pool) * 100).toFixed(0)}%</span>
+                <span className="status-badge status-pending">No {(100 - yesProbability(pool) * 100).toFixed(0)}%</span>
+              </div>
+            )}
+            {isActiveMultiPool && pool.outcomes && (
+              <div className="market-detail-odds market-detail-odds--multi">
+                {pool.outcomes.map((o) => (
+                  <span key={o} className="status-badge status-active" title="Pool-implied share of reserves">
+                    {o} {(outcomeProbabilityMulti(pool, o) * 100).toFixed(0)}%
+                  </span>
+                ))}
+              </div>
+            )}
+
+            {(isActiveBinary || isActiveMultiPool) && (
+              <a href="#market-detail-trade" className="market-detail-jump-trade">
+                Jump to trade
+              </a>
             )}
           </div>
 
-          <h1 className="market-detail-title">{displayTitle}</h1>
-          {newsMeta?.topic && (
-            <p className="market-detail-meta">
-              <span>Topic: {newsMeta.topic}</span>
-            </p>
-          )}
-          <span className={`status status-${marketData.status?.toLowerCase() || 'active'}`}>
-            {marketData.status}
-          </span>
+          <div id="market-detail-trade" className="market-detail-hero-trade">
+            <MarketDetailTradePanel
+              marketData={marketData}
+              pool={pool}
+              wallet={wallet}
+              ammTradeEnabled={ammTradeEnabled}
+              isActiveBinary={isActiveBinary}
+              isActiveMultiPool={isActiveMultiPool}
+              tradeA11yMessage={tradeA11yMessage}
+              tradeAckDismissed={tradeAckDismissed}
+              dismissTradeAck={dismissTradeAck}
+              tradeSide={tradeSide}
+              setTradeSide={setTradeSide}
+              tradeTab={tradeTab}
+              setTradeTab={setTradeTab}
+              tradeAmount={tradeAmount}
+              setTradeAmount={setTradeAmount}
+              tradeLoading={tradeLoading}
+              handleTrade={handleTrade}
+              pickBinaryOutcome={pickBinaryOutcome}
+              binaryYesPct={binaryYesPct}
+              binaryNoPct={binaryNoPct}
+              applyMaxSpend={applyMaxSpend}
+              balanceLoading={balanceLoading}
+              balanceRaw={balanceRaw}
+              orderSide={orderSide}
+              setOrderSide={setOrderSide}
+              orderAmount={orderAmount}
+              setOrderAmount={setOrderAmount}
+              setOrderPrice={setOrderPrice}
+              orderLoading={orderLoading}
+              handlePlaceOrder={handlePlaceOrder}
+              applyMaxSellShares={applyMaxSellShares}
+              limitSellNetShares={limitSellNetShares}
+              sellableSharesForOutcome={sellableSharesForOutcome}
+              openSellReservedForLimitOutcome={openSellReservedForLimitOutcome}
+              limitPriceValid={limitPriceValid}
+              limitCentsSlider={limitCentsSlider}
+              limitCentsDisplay={limitCentsDisplay}
+              ordersLoading={ordersLoading}
+              openOrders={openOrders}
+              myOpenOrdersOnMarket={myOpenOrdersOnMarket}
+              cancellingOrderId={cancellingOrderId}
+              handleCancelMyOrder={handleCancelMyOrder}
+              userPositions={userPositions}
+            />
+          </div>
+        </div>
 
-          {marketData.marketType === 'Binary' && pool && (
-            <div className="market-detail-odds">
-              <span className="status-badge status-active">Yes {(yesProbability(pool) * 100).toFixed(0)}%</span>
-              <span className="status-badge status-pending">No {(100 - yesProbability(pool) * 100).toFixed(0)}%</span>
-            </div>
-          )}
-          {isActiveMultiPool && pool.outcomes && (
-            <div className="market-detail-odds market-detail-odds--multi">
-              {pool.outcomes.map((o) => (
-                <span key={o} className="status-badge status-active" title="Pool-implied share of reserves">
-                  {o} {(outcomeProbabilityMulti(pool, o) * 100).toFixed(0)}%
-                </span>
-              ))}
-            </div>
-          )}
-
+        {/* Secondary: explanation, resolution rules, volumes — below the fold */}
+        <div className="market-detail-secondary card">
           <section className="market-detail-about" aria-label="About this market">
             {oneLiner ? (
               <p className="market-detail-oneliner-text">{oneLiner}</p>
@@ -733,55 +799,9 @@ export default function MarketDetail() {
               )}
             </details>
           )}
-
-          <MarketDetailRelated relatedMarkets={relatedMarkets} />
         </div>
 
-        <MarketDetailTradePanel
-          marketData={marketData}
-          pool={pool}
-          wallet={wallet}
-          ammTradeEnabled={ammTradeEnabled}
-          isActiveBinary={isActiveBinary}
-          isActiveMultiPool={isActiveMultiPool}
-          tradeA11yMessage={tradeA11yMessage}
-          tradeAckDismissed={tradeAckDismissed}
-          dismissTradeAck={dismissTradeAck}
-          tradeSide={tradeSide}
-          setTradeSide={setTradeSide}
-          tradeTab={tradeTab}
-          setTradeTab={setTradeTab}
-          tradeAmount={tradeAmount}
-          setTradeAmount={setTradeAmount}
-          tradeLoading={tradeLoading}
-          handleTrade={handleTrade}
-          pickBinaryOutcome={pickBinaryOutcome}
-          binaryYesPct={binaryYesPct}
-          binaryNoPct={binaryNoPct}
-          applyMaxSpend={applyMaxSpend}
-          balanceLoading={balanceLoading}
-          balanceRaw={balanceRaw}
-          orderSide={orderSide}
-          setOrderSide={setOrderSide}
-          orderAmount={orderAmount}
-          setOrderAmount={setOrderAmount}
-          setOrderPrice={setOrderPrice}
-          orderLoading={orderLoading}
-          handlePlaceOrder={handlePlaceOrder}
-          applyMaxSellShares={applyMaxSellShares}
-          limitSellNetShares={limitSellNetShares}
-          sellableSharesForOutcome={sellableSharesForOutcome}
-          openSellReservedForLimitOutcome={openSellReservedForLimitOutcome}
-          limitPriceValid={limitPriceValid}
-          limitCentsSlider={limitCentsSlider}
-          limitCentsDisplay={limitCentsDisplay}
-          ordersLoading={ordersLoading}
-          openOrders={openOrders}
-          myOpenOrdersOnMarket={myOpenOrdersOnMarket}
-          cancellingOrderId={cancellingOrderId}
-          handleCancelMyOrder={handleCancelMyOrder}
-          userPositions={userPositions}
-        />
+        <MarketDetailRelated relatedMarkets={relatedMarkets} />
       </div>
 
       {marketData.status === 'Active' && marketData.source === 'user' && (
