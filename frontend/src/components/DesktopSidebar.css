@@ -158,16 +158,11 @@
   overflow-y: auto;
   padding: 0.65rem 0;
   margin: 0;
-  background: linear-gradient(
-    165deg,
-    rgba(15, 23, 42, 0.99) 0%,
-    rgba(17, 24, 39, 0.98) 100%
-  );
-  border: 1px solid rgba(148, 163, 184, 0.2);
+  background: var(--color-modal-bg);
+  border: 1px solid var(--color-chrome-border);
   border-radius: 12px;
-  box-shadow:
-    0 16px 40px rgba(0, 0, 0, 0.45),
-    0 0 0 1px rgba(139, 92, 246, 0.12);
+  box-shadow: var(--shadow-xl);
+  color: var(--color-text-primary);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
 }

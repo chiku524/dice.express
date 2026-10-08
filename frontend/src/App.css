@@ -508,7 +508,7 @@
   padding: 0.35rem 0.75rem;
   border-radius: var(--radius-md, 8px);
   border: 1px solid rgba(255, 255, 255, 0.12);
-  background: rgba(15, 23, 42, 0.45);
+  background: var(--color-panel-soft);
   color: var(--color-text-secondary);
   font-size: var(--font-size-sm);
   cursor: pointer;
@@ -545,7 +545,7 @@
   padding: 0.5rem 1rem;
   border-radius: var(--radius-md, 8px);
   border: 1px solid rgba(255, 255, 255, 0.12);
-  background: rgba(15, 23, 42, 0.55);
+  background: var(--color-panel);
   color: var(--color-text-primary);
   font-size: var(--font-size-sm);
   font-weight: var(--font-weight-semibold);
@@ -602,7 +602,7 @@
   padding: 0.35rem 0.75rem;
   border-radius: var(--radius-md, 8px);
   border: 1px solid rgba(255, 255, 255, 0.12);
-  background: rgba(15, 23, 42, 0.45);
+  background: var(--color-panel-soft);
   color: var(--color-text-secondary);
   font-size: var(--font-size-sm);
   font-weight: var(--font-weight-medium);
@@ -1098,9 +1098,9 @@
   min-width: 0;
   padding: 0.45rem 0.65rem;
   border-radius: var(--radius-md, 8px);
-  border: 1px solid rgba(20, 184, 166, 0.45);
-  background: rgba(20, 184, 166, 0.1);
-  color: var(--color-teal, #5eead4);
+  border: 1px solid var(--color-teal);
+  background: var(--color-teal-soft);
+  color: var(--color-teal);
   font-size: var(--font-size-sm);
   font-weight: var(--font-weight-semibold, 600);
   cursor: pointer;
@@ -1111,35 +1111,38 @@
 }
 
 .market-card-predict-chip:hover {
-  background: rgba(20, 184, 166, 0.18);
-  border-color: rgba(20, 184, 166, 0.65);
+  background: var(--color-teal-soft);
+  border-color: var(--color-teal);
+  filter: brightness(1.05);
 }
 
 .market-card-predict-chip:focus-visible {
-  outline: 2px solid rgba(20, 184, 166, 0.65);
+  outline: 2px solid var(--color-teal);
   outline-offset: 2px;
 }
 
 .market-card-predict-chip--yes {
-  border-color: rgba(34, 197, 94, 0.5);
-  background: rgba(34, 197, 94, 0.12);
-  color: #86efac;
+  border-color: var(--color-success);
+  background: var(--color-success-bg);
+  color: var(--color-success);
 }
 
 .market-card-predict-chip--yes:hover {
-  border-color: rgba(34, 197, 94, 0.7);
-  background: rgba(34, 197, 94, 0.2);
+  border-color: var(--color-success);
+  background: var(--color-success-bg);
+  filter: brightness(1.05);
 }
 
 .market-card-predict-chip--no {
-  border-color: rgba(248, 113, 113, 0.5);
-  background: rgba(248, 113, 113, 0.1);
-  color: #fca5a5;
+  border-color: var(--color-error);
+  background: var(--color-error-bg);
+  color: var(--color-error);
 }
 
 .market-card-predict-chip--no:hover {
-  border-color: rgba(248, 113, 113, 0.7);
-  background: rgba(248, 113, 113, 0.16);
+  border-color: var(--color-error);
+  background: var(--color-error-bg);
+  filter: brightness(1.05);
 }
 
 .market-card-predict-row--wrap .market-card-predict-chip {

@@ -64,7 +64,9 @@
   --color-glass-border: rgba(255, 255, 255, 0.08);
   --color-glass-border-strong: rgba(255, 255, 255, 0.12);
   --color-glass-border-subtle: rgba(255, 255, 255, 0.06);
-  --color-overlay-scrim: rgba(0, 0, 0, 0.55);
+  --color-overlay-scrim: rgba(0, 0, 0, 0.7);
+  --color-modal-bg: rgba(15, 23, 42, 0.96);
+  --color-inset-bg: rgba(0, 0, 0, 0.28);
   --color-code-bg: rgba(0, 0, 0, 0.4);
   --theme-color-meta: #0a0f14;
 
@@ -208,7 +210,9 @@
   --color-glass-border: rgba(51, 65, 85, 0.12);
   --color-glass-border-strong: rgba(51, 65, 85, 0.18);
   --color-glass-border-subtle: rgba(51, 65, 85, 0.08);
-  --color-overlay-scrim: rgba(15, 23, 42, 0.4);
+  --color-overlay-scrim: rgba(15, 23, 42, 0.45);
+  --color-modal-bg: rgba(255, 255, 255, 0.98);
+  --color-inset-bg: rgba(15, 23, 42, 0.05);
   --color-code-bg: rgba(15, 23, 42, 0.06);
   --theme-color-meta: #e6ebf2;
 

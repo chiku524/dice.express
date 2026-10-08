@@ -148,14 +148,23 @@
 }
 
 [data-theme="light"] .auth-card,
-[data-theme="light"] .auth-brand-panel,
-[data-theme="light"] .wallet-modal,
-[data-theme="light"] .wallet-modal-content,
-[data-theme="light"] .modal-content,
-[data-theme="light"] .quick-trade-modal,
-[data-theme="light"] .market-quick-trade {
+[data-theme="light"] .auth-brand-panel {
   background: var(--color-panel);
   border-color: var(--color-glass-border-strong);
+  color: var(--color-text-primary);
+}
+
+/* Modals / overlays — use modal tokens (also set in component CSS) */
+.market-quick-trade-modal-overlay,
+.wallet-modal-overlay {
+  background: var(--color-overlay-scrim);
+}
+
+.market-quick-trade-modal,
+.wallet-modal,
+.desktop-update-overlay__card {
+  background: var(--color-modal-bg);
+  border-color: var(--color-glass-border);
   color: var(--color-text-primary);
 }
 

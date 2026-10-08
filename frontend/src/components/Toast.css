@@ -16,11 +16,12 @@
   justify-content: space-between;
   padding: var(--spacing-md, 1rem);
   border-radius: var(--radius-md, 6px);
-  box-shadow: var(--shadow-lg, 0 10px 15px rgba(0, 0, 0, 0.3));
-  background: var(--color-surface, rgba(30, 30, 46, 0.95));
+  box-shadow: var(--shadow-lg);
+  background: var(--color-modal-bg);
+  color: var(--color-text-primary);
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
-  border: 1px solid var(--color-border, rgba(100, 108, 255, 0.2));
+  border: 1px solid var(--color-border);
   pointer-events: all;
   animation: slideInRight 0.3s ease-out;
   min-width: 300px;
@@ -51,7 +52,7 @@
 }
 
 .toast-message {
-  color: var(--color-text-primary, rgba(255, 255, 255, 0.87));
+  color: var(--color-text-primary);
   font-size: var(--font-size-base, 1rem);
   line-height: 1.5;
 }
@@ -59,7 +60,7 @@
 .toast-close {
   background: transparent;
   border: none;
-  color: var(--color-text-muted, rgba(255, 255, 255, 0.5));
+  color: var(--color-text-muted);
   cursor: pointer;
   font-size: var(--font-size-xl, 1.5rem);
   line-height: 1;
@@ -76,8 +77,10 @@
 }
 
 .toast-close:hover {
-  background: var(--color-surface-hover, rgba(37, 37, 56, 0.95));
-  color: var(--color-text-primary, rgba(255, 255, 255, 0.87));
+  background: var(--color-glass-fill-hover);
+  color: var(--color-text-primary);
+  transform: none;
+  border-color: transparent;
 }
 
 .toast-success {

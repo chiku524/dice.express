@@ -6,6 +6,11 @@ Summary of major cleanups and improvements. For current structure see [README](.
 
 ## Unreleased
 
+## 1.0.49 — Light theme for modals & overlays (October 2026)
+
+- **Release:** Version **1.0.49** on the branch (tag **`v1.0.49`** after merge) so desktop picks up modal light-theme fixes.
+- **Modals:** Yes/No quick-trade modal, wallet/account modal, toasts, desktop update overlay, and sidebar flyouts use theme tokens (`--color-modal-bg`, `--color-overlay-scrim`, glass/inset tokens) so light mode is fully readable.
+
 ## 1.0.48 — Dark / light theme toggle (October 2026)
 
 - **Release:** Version **1.0.48** on the branch (tag **`v1.0.48`** after merge) so desktop picks up the shared theme toggle.
