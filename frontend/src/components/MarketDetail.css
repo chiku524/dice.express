@@ -60,7 +60,74 @@
   gap: var(--spacing-xl);
 }
 
-/* Top: details only, full width */
+/* Hero: title/odds + trade side-by-side on wide viewports */
+.market-detail-hero {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-lg);
+  width: 100%;
+}
+
+.market-detail-hero-info {
+  width: 100%;
+  min-width: 0;
+}
+
+.market-detail-hero-trade {
+  width: 100%;
+  min-width: 0;
+  scroll-margin-top: 5rem;
+}
+
+.market-detail-hero-status {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--spacing-sm) var(--spacing-md);
+  margin-bottom: var(--spacing-sm);
+}
+
+.market-detail-hero-deadline {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+}
+
+.market-detail-jump-trade {
+  display: inline-flex;
+  margin-top: var(--spacing-sm);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-teal);
+  text-decoration: none;
+}
+
+.market-detail-jump-trade:hover {
+  text-decoration: underline;
+}
+
+@media (min-width: 900px) {
+  .market-detail-hero {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(300px, 400px);
+    align-items: start;
+    gap: var(--spacing-xl);
+  }
+
+  .market-detail-jump-trade {
+    display: none;
+  }
+
+  .market-detail-hero-trade .market-detail-actions {
+    position: sticky;
+    top: 4.5rem;
+  }
+}
+
+.market-detail-secondary {
+  width: 100%;
+}
+
+/* Legacy alias — some docs/tests may still reference info card */
 .market-detail-info {
   width: 100%;
 }
@@ -130,9 +197,10 @@
   font-weight: normal;
 }
 
-.market-detail-info .status {
+.market-detail-info .status,
+.market-detail-hero-info .status {
   display: inline-block;
-  margin-bottom: var(--spacing-lg);
+  margin-bottom: 0;
 }
 
 /* About this market: what you're buying + description in one block */
@@ -183,12 +251,13 @@
   line-height: 1.5;
 }
 
-.market-detail-info > .market-detail-odds {
+.market-detail-info > .market-detail-odds,
+.market-detail-hero-info > .market-detail-odds {
   margin: var(--spacing-sm) 0 var(--spacing-md);
 }
 
 .market-detail-related {
-  margin-top: var(--spacing-lg);
+  margin-top: 0;
   padding: var(--spacing-md) var(--spacing-lg);
   border-radius: var(--radius-xl, 12px);
   background: var(--color-glass-fill);

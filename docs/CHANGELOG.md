@@ -6,6 +6,11 @@ Summary of major cleanups and improvements. For current structure see [README](.
 
 ## Unreleased
 
+## 1.0.50 — Market detail trade-first layout (October 2026)
+
+- **Release:** Version **1.0.50** on the branch (tag **`v1.0.50`** after merge) so desktop picks up the detail layout.
+- **Market detail:** Prediction UI (odds + trade panel) sits in a hero near the top; about / resolution / volumes and Similar markets are deferred below. Wide viewports show title and trade side-by-side; narrow viewports stack trade immediately under the title.
+
 ## 1.0.49 — Light theme for modals & overlays (October 2026)
 
 - **Release:** Version **1.0.49** on the branch (tag **`v1.0.49`** after merge) so desktop picks up modal light-theme fixes.

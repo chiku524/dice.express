@@ -184,7 +184,7 @@ function ProductMapContent() {
       <ul>
         <li><strong>Top navigation:</strong> Logo → home (<code>/</code>). <strong>Markets</strong> opens the browse page; use source pills or <code>/?source=…</code> for categories. <strong>Documentation</strong> (hover) opens the full section list; <strong>Resources</strong> → Download desktop, Activity (<code>/activity</code>; <code>/history</code> redirects here). When signed in: Pips balance → Portfolio, display name → Dashboard, copy button, Sign out.</li>
         <li><strong>Auth:</strong> <code>/register</code> (wizard), <code>/sign-in</code> — full-page flows without main chrome.</li>
-        <li><strong>Markets:</strong> <code>/market/:marketId</code> — resolution details, AMM trade, limit orders (binary active markets), volumes.</li>
+        <li><strong>Markets:</strong> <code>/market/:marketId</code> — odds and trade near the top; about / resolution / volumes and Similar markets below. AMM trade and limit orders on active markets.</li>
         <li><strong>Account hub (signed in):</strong> <code>/dashboard</code> (summary, account ID copy, links to Profile and Portfolio, <strong>Tip Pips</strong> to another display name). <code>/profile</code> — edit display name, account metadata, sign out. <code>/portfolio</code> — Balance, Positions, Activity tabs; crypto deposit and withdraw.</li>
         <li><strong>Create market:</strong> <code>/create</code> — signed-in users publish a community market (shared web + desktop UI); guests are prompted to sign in.</li>
         <li><strong>Marketing / legal:</strong> <code>/download</code> — desktop installers. <code>/privacy</code>, <code>/terms</code>.</li>
