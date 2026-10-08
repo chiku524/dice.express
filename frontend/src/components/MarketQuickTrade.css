@@ -1,9 +1,9 @@
 .market-quick-trade {
   margin-top: var(--spacing-md);
   padding: var(--spacing-md);
-  background: rgba(0, 0, 0, 0.25);
+  background: var(--color-inset-bg);
   border-radius: var(--radius-md);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--color-glass-border);
 }
 
 .market-quick-trade--in-modal {
@@ -17,7 +17,7 @@
 .market-quick-trade-modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.7);
+  background: var(--color-overlay-scrim);
   backdrop-filter: blur(8px);
   display: flex;
   align-items: center;
@@ -33,15 +33,16 @@
 }
 
 .market-quick-trade-modal {
-  background: rgba(15, 23, 42, 0.96);
+  background: var(--color-modal-bg);
+  color: var(--color-text-primary);
   backdrop-filter: blur(24px);
   border-radius: 20px;
   max-width: 440px;
   width: 100%;
   max-height: 90vh;
   overflow-y: auto;
-  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.5);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: var(--shadow-xl);
+  border: 1px solid var(--color-glass-border);
   animation: market-quick-modal-slide 0.25s ease-out;
 }
 
@@ -62,7 +63,7 @@
   align-items: flex-start;
   gap: var(--spacing-sm);
   padding: var(--spacing-lg) var(--spacing-lg) var(--spacing-md);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  border-bottom: 1px solid var(--color-glass-border-subtle);
 }
 
 .market-quick-trade-modal-heading {
@@ -112,8 +113,10 @@
 }
 
 .market-quick-trade-modal-close:hover {
-  background: rgba(255, 255, 255, 0.08);
+  background: var(--color-glass-fill-hover);
   color: var(--color-text-primary);
+  transform: none;
+  border-color: transparent;
 }
 
 .market-quick-trade-modal-body {
@@ -182,13 +185,18 @@
   min-width: 0;
   padding: var(--spacing-sm) var(--spacing-md);
   border-radius: var(--radius-md);
-  border: 2px solid rgba(255, 255, 255, 0.12);
-  background: rgba(0, 0, 0, 0.2);
+  border: 2px solid var(--color-glass-border-strong);
+  background: var(--color-inset-bg);
   color: var(--color-text-primary);
   font-size: var(--font-size-sm);
   font-weight: var(--font-weight-semibold);
   cursor: pointer;
   transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.market-quick-pill:hover:not(:disabled) {
+  transform: none;
+  border-color: var(--color-chrome-control-border);
 }
 
 .market-quick-pill--sm {
@@ -199,7 +207,7 @@
 
 .market-quick-pill.is-on {
   border-color: var(--color-teal);
-  background: rgba(20, 184, 166, 0.12);
+  background: var(--color-teal-soft);
 }
 
 .market-quick-pill-pct {
@@ -215,7 +223,7 @@
   margin-bottom: var(--spacing-sm);
   border-radius: var(--radius-md);
   overflow: hidden;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid var(--color-glass-border);
 }
 
 .market-quick-tabs button {
@@ -229,8 +237,14 @@
   cursor: pointer;
 }
 
+.market-quick-tabs button:hover:not(:disabled) {
+  transform: none;
+  border-color: transparent;
+  background: var(--color-glass-fill);
+}
+
 .market-quick-tabs button.is-on {
-  background: rgba(20, 184, 166, 0.2);
+  background: var(--color-teal-soft);
   color: var(--color-teal);
 }
 
@@ -249,19 +263,20 @@
   padding: 4px 10px;
   font-size: var(--font-size-xs);
   border-radius: 999px;
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--color-glass-border-strong);
+  background: var(--color-glass-fill);
   color: var(--color-text-primary);
   cursor: pointer;
   font-family: inherit;
 }
 
 .market-quick-chip:hover {
-  border-color: rgba(20, 184, 166, 0.4);
+  border-color: var(--color-teal);
+  transform: none;
 }
 
 .market-quick-chip--max {
-  border-color: rgba(20, 184, 166, 0.35);
+  border-color: var(--color-primary-border);
   color: var(--color-teal);
 }
 
@@ -284,6 +299,9 @@
 .market-quick-field input[type="number"] {
   width: 100%;
   max-width: 12rem;
+  background: var(--color-input-bg);
+  color: var(--color-text-primary);
+  border: 1px solid var(--color-glass-border-strong);
 }
 
 .market-quick-field--row {
@@ -305,6 +323,11 @@
   font-family: inherit;
 }
 
+.market-quick-link:hover:not(:disabled) {
+  transform: none;
+  border-color: transparent;
+}
+
 .market-quick-slider {
   width: 100%;
   margin-bottom: var(--spacing-sm);
@@ -321,18 +344,23 @@
   flex: 1;
   padding: 6px 10px;
   border-radius: var(--radius-md);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid var(--color-glass-border-strong);
+  background: var(--color-inset-bg);
   color: var(--color-text-secondary);
   font: inherit;
   font-size: var(--font-size-sm);
   cursor: pointer;
 }
 
+.market-quick-bs button:hover:not(:disabled) {
+  transform: none;
+  border-color: var(--color-chrome-control-border);
+}
+
 .market-quick-bs button.is-on {
   border-color: var(--color-teal);
   color: var(--color-teal);
-  background: rgba(20, 184, 166, 0.1);
+  background: var(--color-teal-soft);
 }
 
 .market-quick-quote {
@@ -342,7 +370,7 @@
 }
 
 .market-quick-warn {
-  color: var(--color-warning, #eab308);
+  color: var(--color-warning);
 }
 
 .market-quick-cta {
@@ -354,7 +382,7 @@
   list-style: none;
   padding: var(--spacing-sm) 0 0;
   margin: var(--spacing-sm) 0 0;
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  border-top: 1px solid var(--color-glass-border);
   font-size: var(--font-size-xs);
   color: var(--color-text-muted);
 }
@@ -366,7 +394,7 @@
 .market-quick-my-orders {
   margin-top: var(--spacing-sm);
   padding-top: var(--spacing-xs);
-  border-top: 1px solid rgba(20, 184, 166, 0.2);
+  border-top: 1px solid var(--color-teal-soft);
 }
 
 .market-quick-my-orders-label {
@@ -391,8 +419,8 @@
   padding: 0;
   line-height: 1;
   border-radius: var(--radius-sm);
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid var(--color-glass-border-strong);
+  background: var(--color-inset-bg);
   color: var(--color-text-secondary);
   cursor: pointer;
   font-size: var(--font-size-sm);
@@ -401,6 +429,7 @@
 .market-quick-cancel:hover:not(:disabled) {
   border-color: var(--color-teal);
   color: var(--color-teal);
+  transform: none;
 }
 
 .market-quick-cancel:disabled {
